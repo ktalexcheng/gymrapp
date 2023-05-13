@@ -1,3 +1,18 @@
+# GymRapp -- The social app for gym rats
+
+## Building with Expo
+
+Refer to this [Expo documentation](https://docs.expo.dev/workflow/customizing/) for how to run the app during development.
+
+Refer to this [Expo documentation](https://docs.expo.dev/develop/development-builds/introduction/) for more information on what a "development build" is.
+
+Adding custom native code to development builds
+
+1. Run `npx expo run:android` to build and run locally
+   1. If unsuccessful, run `npx expo prebuild --clean` to delete and regenerate native project files
+   2. If still unsuccessful, try deleting directory `node_modules`, run `npm install`
+2.
+
 # Welcome to your new ignited app!
 
 [![CircleCI](https://circleci.com/gh/infinitered/ignite.svg?style=svg)](https://circleci.com/gh/infinitered/ignite)
@@ -127,4 +142,3 @@ Follow our [Maestro Setup](https://ignitecookbook.com/docs/recipes/MaestroSetup)
 - [2018 aka Bowser](https://github.com/infinitered/ignite-bowser)
 - [2017 aka Andross](https://github.com/infinitered/ignite-andross)
 - [2016 aka Ignite 1.0](https://github.com/infinitered/ignite-ir-boilerplate-2016)
-

@@ -23,6 +23,32 @@ const en = {
       button: "Let's try this again",
     },
   },
+  tabNavigator: {
+    feedTab: "Feed",
+    activityTab: "Activity",
+    profileTab: "Profile",
+  },
+  signInScreen: {
+    signIn: "Sign In",
+    enterDetails:
+      "Enter your details below to unlock top secret info. You'll never guess what we've got waiting. Or maybe you will; it's not rocket science here.",
+    emailFieldLabel: "Email",
+    passwordFieldLabel: "Password",
+    emailFieldPlaceholder: "Enter your email address",
+    passwordFieldPlaceholder: "Super secret password here",
+    tapToSignIn: "Tap to sign in!",
+    hint: "Hint: you can use any email address and your favorite password :)",
+    tapToSignUp: "Create a new account",
+    signInWithGoogle: "Sign in with Google",
+  },
+  signUpScreen: {
+    signUp: "Sign Up",
+    tapToCreateAccount: "Create new account",
+    emailFieldLabel: "Email",
+    passwordFieldLabel: "Password",
+    emailFieldPlaceholder: "Enter your email address",
+    passwordFieldPlaceholder: "Super secret password here",
+  }
 }
 
 export default en

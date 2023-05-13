@@ -4,17 +4,16 @@
  * Generally speaking, it will contain an auth flow (registration, login, forgot password)
  * and a "main" flow which the user will use once logged in.
  */
-import {
-  DarkTheme,
-  DefaultTheme,
-  NavigationContainer,
-} from "@react-navigation/native"
-import { createNativeStackNavigator, NativeStackScreenProps } from "@react-navigation/native-stack"
+import auth from "@react-native-firebase/auth"
+import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/native"
+import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { observer } from "mobx-react-lite"
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { useColorScheme } from "react-native"
-import * as Screens from "app/screens"
 import Config from "../config"
+import { useStores } from "../models"
+import { AuthNavigator } from "./AuthNavigator"
+import { RootNavigator } from "./RootNavigator"
 import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
 
 /**
@@ -33,6 +32,8 @@ import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
 export type AppStackParamList = {
   Welcome: undefined
   // 🔥 Your screens go here
+  RootNavigator: undefined
+  AuthNavigator: undefined
   // IGNITE_GENERATOR_ANCHOR_APP_STACK_PARAM_LIST
 }
 
@@ -51,12 +52,39 @@ export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStack
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = observer(function AppStack() {
+  // const {
+  //   authenticationStore: { isAuthenticated },
+  // } = useStores()
+  const { authenticationStore: authStore } = useStores()
+
+  // Set an initializing state whilst Firebase connects
+  const [initializing, setInitializing] = useState(true)
+
+  // Handle user state changes
+  function onAuthStateChanged(user) {
+    authStore.setUser(user)
+    if (initializing) setInitializing(false)
+  }
+
+  useEffect(() => {
+    const subscriber = auth().onAuthStateChanged(onAuthStateChanged)
+    return subscriber // unsubscribe on unmount
+  }, [])
+
+  if (initializing) return null
+
   return (
     <Stack.Navigator
       screenOptions={{ headerShown: false }}
+      initialRouteName={authStore.isAuthenticated ? "RootNavigator" : "AuthNavigator"}
     >
-          <Stack.Screen name="Welcome" component={Screens.WelcomeScreen} />
+      {/* <Stack.Screen name="Welcome" component={Screens.WelcomeScreen} /> */}
       {/** 🔥 Your screens go here */}
+      {authStore.isAuthenticated ? (
+        <Stack.Screen name="RootNavigator" component={RootNavigator} />
+      ) : (
+        <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
+      )}
       {/* IGNITE_GENERATOR_ANCHOR_APP_STACK_SCREENS */}
     </Stack.Navigator>
   )

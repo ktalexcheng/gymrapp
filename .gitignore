@@ -84,3 +84,10 @@ web-build/
 
 # Configurations
 !env.js
+
+google-services.json
+.env
+
+# Build native source code with Expo 
+android/
+ios/
