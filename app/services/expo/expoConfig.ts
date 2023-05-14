@@ -1,7 +1,6 @@
 import Constants from 'expo-constants';
 
 function getGoogleClientId() {
-  let debug = Constants.expoConfig
   const GOOGLE_CLIENT_ID = Constants.expoConfig.extra.googleClientId;
 
   if (!GOOGLE_CLIENT_ID) {
