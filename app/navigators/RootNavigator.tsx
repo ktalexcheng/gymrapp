@@ -1,162 +1,28 @@
-import Ionicons from "@expo/vector-icons/Ionicons"
-import { BottomTabScreenProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
-import React, { useState } from "react"
-import { Modal, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
-import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Text } from "../components"
-import { translate } from "../i18n"
-import { FeedScreen, ProfileScreen } from "../screens"
-import { colors, spacing, typography } from "../theme"
+import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
+import React from "react"
+import { ActivityNavigator } from "./ActivityNavigator"
+import { HomeTabNavigator } from "./HomeTabNavigator"
 
-export type TabParamList = {
-  Feed: undefined
-  Activity: undefined
-  Profile: undefined
+export type RootStackParamList = {
+  HomeTabNavigator: undefined
+  ActivityNavigator: undefined
 }
 
-/**
- * Helper for automatically generating navigation prop types for each route.
- *
- * More info: https://reactnavigation.org/docs/typescript/#organizing-types
- */
-export type TabScreenProps<T extends keyof TabParamList> = BottomTabScreenProps<TabParamList, T>
+export type RootStackScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<
+  RootStackParamList,
+  T
+>
 
-const BottomTab = createBottomTabNavigator<TabParamList>()
-
-const ActivityScreen = () => {
-  return <Text>Activity</Text>
-}
-
-const NewActivityButton = () => {
-  const [modalVisible, setModalVisible] = useState(false)
-
-  const $bottomContainerInsets = useSafeAreaInsetsStyle(["bottom"])
-
-  return (
-    <>
-      <TouchableOpacity onPress={() => setModalVisible(true)} style={$centerButton}>
-        <Ionicons name="add" color="white" size={30} />
-        <Text style={$centerButtonLabel}>{translate("tabNavigator.activityTab")}</Text>
-      </TouchableOpacity>
-      <Modal
-        transparent={true}
-        visible={modalVisible}
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={[$bottomContainer, $bottomContainerInsets]}
-          onPress={() => setModalVisible(false)}
-        >
-          <TouchableOpacity style={$modalView} activeOpacity={1}>
-            <Text>Hello! 👋 This is an overlay.</Text>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-    </>
-  )
-}
+const RootStack = createNativeStackNavigator<RootStackParamList>()
 
 export function RootNavigator() {
-  const { bottom } = useSafeAreaInsets()
-
   return (
-    <BottomTab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarHideOnKeyboard: true,
-        tabBarStyle: [$tabBar, { height: bottom + 60 }],
-        tabBarActiveTintColor: colors.text,
-        tabBarInactiveTintColor: colors.text,
-        tabBarLabelStyle: $tabBarLabel,
-        tabBarItemStyle: $tabBarItem,
-      }}
+    <RootStack.Navigator
+      screenOptions={{ headerShown: false }}
+      initialRouteName={"HomeTabNavigator"}
     >
-      <BottomTab.Screen
-        name="Feed"
-        component={FeedScreen}
-        options={{
-          tabBarLabel: translate("tabNavigator.feedTab"),
-          tabBarIcon: ({ focused }) => (
-            <Ionicons name="people" color={focused && colors.tint} size={20} />
-          ),
-        }}
-      />
-
-      <BottomTab.Screen
-        name="Activity"
-        component={ActivityScreen}
-        options={{
-          tabBarButton: () => <NewActivityButton />,
-        }}
-      />
-
-      <BottomTab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarLabel: translate("tabNavigator.profileTab"),
-          tabBarIcon: ({ focused }) => (
-            <Ionicons name="person" color={focused && colors.tint} size={20} />
-          ),
-        }}
-      />
-    </BottomTab.Navigator>
+      <RootStack.Screen name="HomeTabNavigator" component={HomeTabNavigator} />
+      <RootStack.Screen name="ActivityNavigator" component={ActivityNavigator} />
+    </RootStack.Navigator>
   )
-}
-
-const $tabBar: ViewStyle = {
-  backgroundColor: colors.background,
-  borderTopColor: colors.transparent,
-}
-
-const $tabBarItem: ViewStyle = {
-  paddingTop: spacing.small,
-}
-
-const $tabBarLabel: TextStyle = {
-  fontSize: 12,
-  fontFamily: typography.primary.medium,
-  lineHeight: 16,
-  flex: 1,
-}
-
-const $centerButton: ViewStyle = {
-  bottom: 40,
-  height: 80,
-  width: 80,
-  borderRadius: 80,
-  backgroundColor: colors.actionBackground,
-  alignItems: "center",
-  justifyContent: "center",
-}
-
-const $centerButtonLabel: TextStyle = {
-  fontSize: 12,
-  fontFamily: typography.primary.medium,
-  color: "white",
-  lineHeight: 16,
-}
-
-const $modalView: ViewStyle = {
-  margin: 20,
-  backgroundColor: "white",
-  borderRadius: 20,
-  padding: 35,
-  alignItems: "center",
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 2,
-  },
-  shadowOpacity: 0.25,
-  shadowRadius: 4,
-  elevation: 5,
-}
-
-const $bottomContainer: ViewStyle = {
-  bottom: 100,
-  flex: 1,
-  justifyContent: "flex-end",
 }

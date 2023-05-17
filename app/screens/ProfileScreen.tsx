@@ -20,7 +20,7 @@ export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileSc
   // Pull in navigation via hook
   // const navigation = useNavigation()
   return (
-    <Screen style={$screenContentContainer}>
+    <Screen safeAreaEdges={["top", "bottom"]} style={$screenContentContainer}>
       <Button onPress={logout}>Logout</Button>
     </Screen>
   )

@@ -10,7 +10,7 @@ const FirebaseUserType = types.custom<any, FirebaseAuthTypes.User>({
     if (value) {
       const obj = JSON.parse(value)
       return {
-        uid: obj.uid ?? ""
+        ...obj
       } as FirebaseAuthTypes.User
     } else {
       return undefined
@@ -18,7 +18,7 @@ const FirebaseUserType = types.custom<any, FirebaseAuthTypes.User>({
   },
   toSnapshot(value: FirebaseAuthTypes.User) {
     if (value) {
-      return value.toJSON()
+      return JSON.stringify(value)
     } else {
       return undefined
     }

@@ -27,6 +27,7 @@ const en = {
     feedTab: "Feed",
     activityTab: "Activity",
     profileTab: "Profile",
+    startWorkout: "Start a workout",
   },
   signInScreen: {
     signIn: "Sign In",
@@ -48,6 +49,15 @@ const en = {
     passwordFieldLabel: "Password",
     emailFieldPlaceholder: "Enter your email address",
     passwordFieldPlaceholder: "Super secret password here",
+  },
+  newActivityScreen: {
+    startNewWorkoutText: "Start new workout",
+    nextWorkoutHeading: "Next workout in program",
+    savedWorkoutHeading: "Saved workouts",
+  },
+  activeWorkoutScreen: {
+    newActiveWorkoutTitle: "New workout",
+    endWorkoutButton: "Finish"
   }
 }
 
