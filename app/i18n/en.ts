@@ -57,7 +57,14 @@ const en = {
   },
   activeWorkoutScreen: {
     newActiveWorkoutTitle: "New workout",
-    endWorkoutButton: "Finish"
+    finishWorkoutButton: "Finish",
+    setOrderColumnHeader: "Set",
+    previousColumnHeader: "Previous",
+    weightColumnHeader: "Weight",
+    repsColumnHeader: "Reps",
+    addNotesPlaceholder: "Add notes...",
+    addSetAction: "Add set",
+    addExerciseAction: "Add exercise",
   }
 }
 

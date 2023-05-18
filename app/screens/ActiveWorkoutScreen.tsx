@@ -3,16 +3,8 @@ import { ActivityStackScreenProps } from "app/navigators/ActivityNavigator"
 import { observer } from "mobx-react-lite"
 import moment from "moment"
 import React, { FC, useEffect, useState } from "react"
-import {
-  Modal,
-  StyleProp,
-  TextStyle,
-  TouchableOpacity,
-  View,
-  ViewProps,
-  ViewStyle,
-} from "react-native"
-import { Screen, Text } from "../components"
+import { Modal, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import { RowView, Screen, Text, TextField } from "../components"
 import { useStores } from "../models"
 import { colors, spacing } from "../theme"
 
@@ -25,6 +17,29 @@ type SaveWorkoutDialogProps = {
 const SaveWorkoutDialog: FC<SaveWorkoutDialogProps> = function SaveWorkoutDialog(
   props: SaveWorkoutDialogProps,
 ) {
+  const $saveDialogContainer: ViewStyle = {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  }
+
+  const $saveDialog: ViewStyle = {
+    flexBasis: "auto",
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  }
+
   return (
     <Modal
       animationType="slide"
@@ -72,27 +87,74 @@ type SetEntryProps = {
 
 const SetEntry: FC = observer((props: SetEntryProps) => {
   const { workoutStore } = useStores()
-  const [completed, setCompleted] = useState(props.ifCompleted)
+  const { exerciseOrder, setOrder } = props
+  const exerciseSetStore = workoutStore.exercises[exerciseOrder].sets[setOrder]
 
   function toggleSetStatus() {
-    setCompleted(!completed)
-    workoutStore.updateSetStatus(props.exerciseOrder, props.setOrder, completed)
+    // setCompleted(!completed)
+    exerciseSetStore.setProp("ifCompleted", !exerciseSetStore.ifCompleted)
+  }
+
+  function setExerciseSetWeight(value: string) {
+    if (value) {
+      exerciseSetStore.setProp("weight", Number(value))
+    } else {
+      exerciseSetStore.setProp("weight", undefined)
+    }
+  }
+
+  function setExerciseSetReps(value: string) {
+    if (value) {
+      exerciseSetStore.setProp("reps", Number(value))
+    } else {
+      exerciseSetStore.setProp("reps", undefined)
+    }
+  }
+
+  const $exerciseSet: ViewStyle = {
+    justifyContent: "space-around",
+    alignItems: "center",
+    marginTop: spacing.tiny,
+  }
+
+  const $textFieldContainer: ViewStyle = {
+    padding: 0,
+    width: 70,
   }
 
   return (
-    <View style={$exerciseSets}>
-      <RowView style={$exerciseSet}>
-        <Text>{props.setOrder}</Text>
-        <Text text="N/A" />
-        <Text>{props.weight}</Text>
-        <Text>{props.reps}</Text>
-        {completed ? (
+    <RowView style={$exerciseSet}>
+      <Text text={props.setOrder.toString()} style={[$setOrderColumn, $textAlignCenter]} />
+      {/* TODO: Find last set record that is the same set order */}
+      <Text text="N/A" style={[$previousColumn, $textAlignCenter]} />
+      <View style={$weightColumn}>
+        <TextField
+          value={exerciseSetStore.weight !== undefined ? exerciseSetStore.weight.toString() : ""}
+          onChangeText={setExerciseSetWeight}
+          containerStyle={$textFieldContainer}
+          textAlign="center"
+          autoCorrect={false}
+          keyboardType="number-pad"
+        />
+      </View>
+      <View style={$repsColumn}>
+        <TextField
+          value={exerciseSetStore.reps !== undefined ? exerciseSetStore.reps.toString() : ""}
+          onChangeText={setExerciseSetReps}
+          containerStyle={$textFieldContainer}
+          textAlign="center"
+          autoCorrect={false}
+          keyboardType="number-pad"
+        />
+      </View>
+      <View style={[$ifCompletedColumn, $textAlignCenter]}>
+        {exerciseSetStore.ifCompleted ? (
           <Ionicons name="checkbox" color="black" size={30} onPress={toggleSetStatus} />
         ) : (
           <Ionicons name="checkbox-outline" color="black" size={30} onPress={toggleSetStatus} />
         )}
-      </RowView>
-    </View>
+      </View>
+    </RowView>
   )
 })
 
@@ -108,23 +170,51 @@ const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
   function addSet() {
     workoutStore.addSet(props.exerciseOrder, {
       type: "Normal",
-      weight: 123,
-      reps: 5,
+      // weight: 123,
+      // reps: 5,
     })
+  }
+
+  const $exercise: ViewStyle = {
+    marginTop: spacing.medium,
+  }
+
+  const $exerciseSetsHeader: ViewStyle = {
+    justifyContent: "space-around",
+    marginTop: spacing.medium,
+  }
+
+  const $exerciseActions: ViewStyle = {
+    justifyContent: "space-around",
+    marginTop: spacing.medium,
   }
 
   return (
     <View>
       <View style={$exercise}>
         <Text preset="bold">{"#" + props.exerciseOrder + " " + props.exerciseId}</Text>
-        <Text text="Add notes..." />
+        <Text tx="activeWorkoutScreen.addNotesPlaceholder" />
 
         <RowView style={$exerciseSetsHeader}>
-          <Text text="Set" />
-          <Text text="Previous" />
-          <Text text="Weight" />
-          <Text text="Reps" />
-          <Ionicons name="checkmark" color="black" size={30} />
+          <Text
+            tx="activeWorkoutScreen.setOrderColumnHeader"
+            style={[$setOrderColumn, $textAlignCenter]}
+          />
+          <Text
+            tx="activeWorkoutScreen.previousColumnHeader"
+            style={[$previousColumn, $textAlignCenter]}
+          />
+          <Text
+            tx="activeWorkoutScreen.weightColumnHeader"
+            style={[$weightColumn, $textAlignCenter]}
+          />
+          <Text tx="activeWorkoutScreen.repsColumnHeader" style={[$repsColumn, $textAlignCenter]} />
+          <Ionicons
+            name="checkmark"
+            style={[$ifCompletedColumn, $textAlignCenter]}
+            color="black"
+            size={30}
+          />
         </RowView>
         {/* TODO: Create reuseable component for exercise sets */}
         {props.sets.map((set) => (
@@ -133,7 +223,7 @@ const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
 
         <TouchableOpacity onPress={addSet}>
           <RowView style={$exerciseActions}>
-            <Text text="Add set" />
+            <Text tx="activeWorkoutScreen.addSetAction" />
           </RowView>
         </TouchableOpacity>
       </View>
@@ -141,26 +231,10 @@ const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
   )
 })
 
-interface RowViewProps extends React.PropsWithChildren<ViewProps> {
-  style?: StyleProp<ViewStyle>
-}
-
-const RowView: FC<RowViewProps> = observer(({ children, style, ...props }) => {
-  const $rowView: ViewStyle = {
-    flexDirection: "row",
-  }
-
-  return (
-    <View style={[style, $rowView]} {...props}>
-      {children}
-    </View>
-  )
-})
-
 interface ActiveWorkoutScreenProps extends ActivityStackScreenProps<"ActiveWorkout"> {}
 
 export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
-  function ActiveWorkoutScreen() {
+  function ActiveWorkoutScreen({ navigation }) {
     const { workoutStore } = useStores()
     const [showSaveDialog, setShowSaveDialog] = useState(false)
     const [timeElapsed, setTimeElapsed] = useState("")
@@ -182,7 +256,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
       }
     }, [])
 
-    function tryEndWorkout() {
+    function finishWorkout() {
       workoutStore.pauseWorkout()
       setShowSaveDialog(true)
     }
@@ -198,7 +272,36 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
     }
 
     function addExercise() {
-      workoutStore.addExercise("TEST_EXERCISE")
+      navigation.navigate("ExercisePicker")
+    }
+
+    const $container: ViewStyle = {
+      padding: spacing.screen,
+    }
+
+    const $workoutHeaderRow: ViewStyle = {
+      justifyContent: "space-between",
+    }
+
+    const $finishWorkoutButton: TextStyle = {
+      color: colors.actionBackground,
+    }
+
+    const $metricsRow: ViewStyle = {
+      justifyContent: "space-between",
+      marginTop: spacing.medium,
+    }
+
+    const $metric: ViewStyle = {
+      borderWidth: 1,
+      flex: 1,
+      padding: spacing.small,
+      margin: spacing.extraSmall,
+    }
+
+    const $addExercise: ViewStyle = {
+      justifyContent: "space-around",
+      marginTop: spacing.medium,
     }
 
     return (
@@ -218,16 +321,15 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
           <Text tx="activeWorkoutScreen.newActiveWorkoutTitle" preset="bold" />
           {/* TODO: Active workout title should be dependent on the template used */}
           <Text
-            tx="activeWorkoutScreen.endWorkoutButton"
-            style={$endWorkoutButton}
-            onPress={tryEndWorkout}
+            tx="activeWorkoutScreen.finishWorkoutButton"
+            style={$finishWorkoutButton}
+            onPress={finishWorkout}
           />
         </RowView>
 
         {/* TODO: Dynamically update metrics as workout progresses */}
         <RowView style={$metricsRow}>
-          {/* <Text text={timeElapsed} style={$metric} /> */}
-          <Text style={$metric}>{timeElapsed}</Text>
+          <Text style={$metric} text={timeElapsed} />
           <Text text="Metric 2" style={$metric} />
           <Text text="Metric 3" style={$metric} />
         </RowView>
@@ -239,7 +341,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
 
         <TouchableOpacity onPress={addExercise}>
           <RowView style={$addExercise}>
-            <Text text="Add exercise" />
+            <Text tx="activeWorkoutScreen.addExerciseAction" />
           </RowView>
         </TouchableOpacity>
       </Screen>
@@ -247,75 +349,29 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
   },
 )
 
-const $container: ViewStyle = {
-  padding: spacing.screen,
-}
-
-const $workoutHeaderRow: ViewStyle = {
-  justifyContent: "space-between",
-}
-
-const $endWorkoutButton: TextStyle = {
-  color: colors.actionBackground,
-}
-
-const $metricsRow: ViewStyle = {
-  justifyContent: "space-between",
-  marginTop: spacing.medium,
-}
-
-const $metric: ViewStyle = {
-  borderWidth: 1,
+const $setOrderColumn: ViewStyle = {
   flex: 1,
-  padding: spacing.small,
-  margin: spacing.extraSmall,
 }
 
-const $exercise: ViewStyle = {
-  marginTop: spacing.medium,
+const $previousColumn: ViewStyle = {
+  flex: 2,
 }
 
-const $exerciseSets: ViewStyle = {
-  marginTop: spacing.medium,
-}
-
-const $exerciseSetsHeader: ViewStyle = {
-  justifyContent: "space-around",
-}
-
-const $exerciseSet: ViewStyle = {
-  justifyContent: "space-around",
-}
-
-const $exerciseActions: ViewStyle = {
-  justifyContent: "space-around",
-  marginTop: spacing.medium,
-}
-
-const $addExercise: ViewStyle = {
-  justifyContent: "space-around",
-  marginTop: spacing.medium,
-}
-
-const $saveDialogContainer: ViewStyle = {
-  flex: 1,
-  justifyContent: "center",
+const $weightColumn: ViewStyle = {
+  flex: 2,
   alignItems: "center",
 }
 
-const $saveDialog: ViewStyle = {
-  flexBasis: "auto",
-  margin: 20,
-  backgroundColor: "white",
-  borderRadius: 20,
-  padding: 35,
+const $repsColumn: ViewStyle = {
+  flex: 2,
   alignItems: "center",
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 2,
-  },
-  shadowOpacity: 0.25,
-  shadowRadius: 4,
-  elevation: 5,
+}
+
+const $ifCompletedColumn: ViewStyle = {
+  flex: 1,
+  alignItems: "center",
+}
+
+const $textAlignCenter: TextStyle = {
+  textAlign: "center",
 }

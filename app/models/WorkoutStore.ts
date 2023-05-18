@@ -5,8 +5,8 @@ const SingleExerciseSet = types
   .model({
     setOrder: types.number,
     type: types.enumeration("SetType", ["WarmUp", "DropSet", "Failure", "Normal"]),
-    weight: types.number,
-    reps: types.number,
+    weight: types.maybe(types.number),
+    reps: types.maybe(types.number),
     ifCompleted: false,
   })
   .actions(withSetPropAction)
@@ -69,9 +69,9 @@ const WorkoutStoreModel = types
       })
       self.exercises[targetExerciseOrder].sets.push(newSet)
     },
-    updateSetStatus(targetExerciseOrder: number, targetSetOrder: number, setStatus: boolean) {
-      self.exercises[targetExerciseOrder].sets[targetSetOrder].ifCompleted = setStatus
-    }
+    // updateSetStatus(targetExerciseOrder: number, targetSetOrder: number, set: SnapshotIn<typeof SingleExerciseSet>) {
+    //   self.exercises[targetExerciseOrder].sets[targetSetOrder].ifCompleted = set.ifCompleted
+    // },
   }))
 
   export { WorkoutStoreModel, ExerciseSets }
