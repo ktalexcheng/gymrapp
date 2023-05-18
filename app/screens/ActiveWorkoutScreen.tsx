@@ -161,6 +161,7 @@ const SetEntry: FC = observer((props: SetEntryProps) => {
 type ExerciseEntryProps = {
   exerciseOrder: number
   exerciseId: string
+  exerciseName: string
   sets: SetEntryProps[]
 }
 
@@ -192,7 +193,7 @@ const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
   return (
     <View>
       <View style={$exercise}>
-        <Text preset="bold">{"#" + props.exerciseOrder + " " + props.exerciseId}</Text>
+        <Text preset="bold">{"#" + props.exerciseOrder + " " + props.exerciseName}</Text>
         <Text tx="activeWorkoutScreen.addNotesPlaceholder" />
 
         <RowView style={$exerciseSetsHeader}>

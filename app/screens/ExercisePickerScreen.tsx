@@ -1,52 +1,108 @@
 import firestore from "@react-native-firebase/firestore"
+import { useNavigation } from "@react-navigation/native"
 import React, { FC, useEffect, useState } from "react"
-import { SectionList, ViewStyle, useWindowDimensions } from "react-native"
+import {
+  SectionList,
+  TextStyle,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+  useWindowDimensions,
+} from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { SceneMap, TabView } from "react-native-tab-view"
+import { TabView } from "react-native-tab-view"
 import { Text } from "../components"
+import { useStores } from "../models"
+import { ActivityStackScreenProps } from "../navigators"
+import { colors } from "../theme"
 
-type ExerciseData = {
+type ExerciseItem = {
   exerciseId: string
   exerciseName: string
 }
 
 type CategorizedExerciseList = {
-  [category: string]: ExerciseData[]
+  [category: string]: ExerciseItem[]
 }
 
 type ExerciseListScreenProps = {
   sectionsData: {
     title: string
-    data: ExerciseData[]
+    data: ExerciseItem[]
   }[]
 }
 
-type SceneMapData = {
-  [key: string]: React.ComponentType
+// type SceneMapData = {
+//   [key: string]: React.ComponentType
+// }
+
+const $listItem: ViewStyle = {
+  padding: 10,
+  height: 44,
+}
+
+const $listItemText: TextStyle = {
+  fontSize: 18,
+}
+
+const $sectionHeader: ViewStyle = {
+  paddingTop: 2,
+  paddingLeft: 10,
+  paddingRight: 10,
+  paddingBottom: 2,
+  backgroundColor: "rgba(247,247,247,1.0)",
+}
+
+const $sectionHeaderText: TextStyle = {
+  fontSize: 14,
+  fontWeight: "bold",
+}
+
+const $sectionListContainer: ViewStyle = {
+  flex: 1,
+  backgroundColor: colors.background,
 }
 
 const ExerciseListScreen: FC<ExerciseListScreenProps> = (props: ExerciseListScreenProps) => {
+  const navigation = useNavigation()
+  const { workoutStore } = useStores()
+
+  function handleSelectExercise(exerciseId: string, exerciseName: string) {
+    workoutStore.addExercise(exerciseId, exerciseName)
+    navigation.goBack()
+  }
+
   return (
-    <SectionList
-      sections={props.sectionsData}
-      renderItem={({ item }) => <Text>{item.exerciseName}</Text>}
-      renderSectionHeader={({ section }) => <Text>{section.title}</Text>}
-      keyExtractor={(item) => item.exerciseId}
-    />
+    <View style={$sectionListContainer}>
+      <SectionList
+        sections={props.sectionsData}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => handleSelectExercise(item.exerciseId, item.exerciseName)}
+          >
+            <Text style={[$listItem, $listItemText]}>{item.exerciseName}</Text>
+          </TouchableOpacity>
+        )}
+        renderSectionHeader={({ section }) => (
+          <Text style={[$sectionHeader, $sectionHeaderText]}>{section.title}</Text>
+        )}
+        keyExtractor={(item) => item.exerciseId}
+      />
+    </View>
   )
 }
 
-export const ExercisePickerScreen: FC = () => {
+interface ExercisePickerScreenProps extends ActivityStackScreenProps<"ExercisePicker"> {}
+
+export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = () => {
   const layout = useWindowDimensions()
   const insets = useSafeAreaInsets()
 
   const [allExercises, setAllExercises] = useState({})
   const [index, setIndex] = useState(0)
   const [routes, setRoutes] = useState([])
-  const [renderScene, setRenderScene] = useState<SceneMapData>({})
 
   useEffect(() => {
-    console.log("firebase fetch effect")
     const getExercises = async () => {
       const exercisesCollection = firestore().collection("exercises")
       const exercisesSnapshot = await exercisesCollection.get()
@@ -57,26 +113,26 @@ export const ExercisePickerScreen: FC = () => {
       .then((snapshot) => {
         if (snapshot.empty) return
 
-        const exercises: CategorizedExerciseList = {}
+        const _allExercises: CategorizedExerciseList = {}
         snapshot.forEach((e) => {
           const { category: cat, exerciseName: name } = e.data()
 
-          const newExercise: ExerciseData = {
+          const newExercise: ExerciseItem = {
             exerciseId: cat,
             exerciseName: name,
           }
 
-          if (cat in exercises) {
-            exercises[cat].push(newExercise)
+          if (cat in _allExercises) {
+            _allExercises[cat].push(newExercise)
           } else {
-            exercises[cat] = [newExercise]
+            _allExercises[cat] = [newExercise]
           }
         })
 
         // Sort by exercise name
-        Object.values(exercises).forEach((d) => d.sort())
+        Object.values(_allExercises).forEach((d) => d.sort())
 
-        setAllExercises(exercises)
+        setAllExercises(_allExercises)
       })
       .catch((error) => {
         console.log(error)
@@ -84,20 +140,18 @@ export const ExercisePickerScreen: FC = () => {
   }, [])
 
   useEffect(() => {
-    console.log("screen update effect")
     const routes = []
-    const scenes = {}
 
     const createSectionsData = (
-      exercises: ExerciseData[],
+      exercises: ExerciseItem[],
     ): ExerciseListScreenProps["sectionsData"] => {
-      const groupedExercises: { [group: string]: ExerciseData[] } = {}
+      const groupedExercises: { [group: string]: ExerciseItem[] } = {}
       exercises.forEach((exercise) => {
-        const group = exercise.exerciseName[0].toUpperCase()
-        if (group in groupedExercises) {
-          groupedExercises[group].push(exercise)
+        const groupId = exercise.exerciseName[0].toUpperCase()
+        if (groupId in groupedExercises) {
+          groupedExercises[groupId].push(exercise)
         } else {
-          groupedExercises[group] = [exercise]
+          groupedExercises[groupId] = [exercise]
         }
       })
 
@@ -112,12 +166,7 @@ export const ExercisePickerScreen: FC = () => {
       return sectionsData
     }
 
-    Object.entries(allExercises).forEach(([category, exercises]: [string, ExerciseData[]]) => {
-      routes.push({
-        key: category,
-        title: category,
-      })
-
+    Object.entries(allExercises).forEach(([category, exercises]: [string, ExerciseItem[]]) => {
       // Group by first letter of name
       // {
       //   title: 'B',
@@ -125,12 +174,21 @@ export const ExercisePickerScreen: FC = () => {
       // }
       const sectionedListData = createSectionsData(exercises)
 
-      scenes[category] = () => <ExerciseListScreen sectionsData={sectionedListData} />
+      routes.push({
+        key: category,
+        title: category,
+        data: sectionedListData,
+      })
     })
 
     setRoutes(routes)
-    setRenderScene(scenes)
   }, [allExercises])
+
+  // Create custom renderScene function to avoid passing inline function to SceneMap()
+  // See doc: https://www.npmjs.com/package/react-native-tab-view
+  const renderScene = ({ route }) => {
+    return <ExerciseListScreen sectionsData={route.data} />
+  }
 
   const $tabViewContainer: ViewStyle = {
     paddingTop: insets.top,
@@ -140,9 +198,11 @@ export const ExercisePickerScreen: FC = () => {
   }
 
   return (
+    // Note that tab press does not work properly when a debugger is attached
+    // See: https://github.com/satya164/react-native-tab-view/issues/703
     <TabView
       navigationState={{ index, routes }}
-      renderScene={SceneMap(renderScene)}
+      renderScene={renderScene}
       onIndexChange={setIndex}
       style={$tabViewContainer}
       initialLayout={{ height: 1234, width: layout.width }}

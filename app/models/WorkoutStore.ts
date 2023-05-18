@@ -17,6 +17,7 @@ const SingleExercise = types
   .model({
     exerciseOrder: types.number,
     exerciseId: types.string,
+    exerciseName: types.string,
     sets: ExerciseSets
   })
   .actions(withSetPropAction)
@@ -52,11 +53,12 @@ const WorkoutStoreModel = types
 
       // TODO: Save workout to database
     },
-    addExercise(newExerciseId: string) {
+    addExercise(newExerciseId: string, newExerciseName: string) {
       const newExerciseOrder = self.exercises.length
       const newExercise = SingleExercise.create({
         exerciseOrder: newExerciseOrder,
         exerciseId: newExerciseId,
+        exerciseName: newExerciseName,
         sets: []
       })
       self.exercises.push(newExercise)
