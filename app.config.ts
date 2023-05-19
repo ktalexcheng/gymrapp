@@ -6,9 +6,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         ...config,
         name: "GymRapp",
         slug: "gymrapp",
+        android: {
+            ...config.android,
+            googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
+        },
         extra: {
             ...config.extra,
-            googleClientId: process.env.GOOGLE_CLIENT_ID
+            googleClientId: process.env.GOOGLE_CLIENT_ID,
         }
     }
 };
