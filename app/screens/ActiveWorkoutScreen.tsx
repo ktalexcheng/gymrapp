@@ -2,10 +2,11 @@ import Ionicons from "@expo/vector-icons/Ionicons"
 import { ActivityStackScreenProps } from "app/navigators/ActivityNavigator"
 import { observer } from "mobx-react-lite"
 import moment from "moment"
+import { Icon } from "native-base"
 import React, { FC, useEffect, useState } from "react"
 import { Modal, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { RowView, Screen, Text, TextField } from "../components"
-import { useStores } from "../models"
+import { useStores } from "../stores"
 import { colors, spacing } from "../theme"
 
 type SaveWorkoutDialogProps = {
@@ -62,18 +63,25 @@ const SaveWorkoutDialog: FC<SaveWorkoutDialogProps> = function SaveWorkoutDialog
   )
 }
 
-function formatDuration(d: moment.Duration): string {
-  const hours = Math.floor(d.asHours())
-  const minutes = Math.floor(d.asMinutes()) - hours * 60
-  const seconds = Math.floor(d.asSeconds()) - (hours * 60 + minutes) * 60
+function formatDuration(d: moment.Duration, showHour = true): string {
+  if (showHour) {
+    const hours = Math.floor(d.asHours())
+    const minutes = Math.floor(d.asMinutes()) - hours * 60
+    const seconds = Math.floor(d.asSeconds()) - (hours * 60 + minutes) * 60
 
-  return (
-    hours.toString().padStart(2, "0") +
-    ":" +
-    minutes.toString().padStart(2, "0") +
-    ":" +
-    seconds.toString().padStart(2, "0")
-  )
+    return (
+      hours.toString().padStart(2, "0") +
+      ":" +
+      minutes.toString().padStart(2, "0") +
+      ":" +
+      seconds.toString().padStart(2, "0")
+    )
+  } else {
+    const minutes = Math.floor(d.asMinutes())
+    const seconds = Math.floor(d.asSeconds()) - minutes * 60
+
+    return minutes.toString().padStart(2, "0") + ":" + seconds.toString().padStart(2, "0")
+  }
 }
 
 type SetEntryProps = {
@@ -93,6 +101,11 @@ const SetEntry: FC = observer((props: SetEntryProps) => {
   function toggleSetStatus() {
     // setCompleted(!completed)
     exerciseSetStore.setProp("ifCompleted", !exerciseSetStore.ifCompleted)
+
+    if (exerciseSetStore.ifCompleted) {
+      workoutStore.setProp("restTime", 65)
+      workoutStore.setProp("restTimeRemaining", 65)
+    }
   }
 
   function setExerciseSetWeight(value: string) {
@@ -171,8 +184,6 @@ const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
   function addSet() {
     workoutStore.addSet(props.exerciseOrder, {
       type: "Normal",
-      // weight: 123,
-      // reps: 5,
     })
   }
 
@@ -190,8 +201,21 @@ const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
     marginTop: spacing.medium,
   }
 
+  const $exerciseSettingsButton: ViewStyle = {
+    position: "absolute",
+    top: spacing.large,
+    right: spacing.small,
+  }
+
   return (
     <View>
+      <TouchableOpacity
+        style={$exerciseSettingsButton}
+        onPress={() => console.log("exercise entry settings")}
+      >
+        <Icon as={Ionicons} name="ellipsis-vertical" size="lg" />
+      </TouchableOpacity>
+
       <View style={$exercise}>
         <Text preset="bold">{"#" + props.exerciseOrder + " " + props.exerciseName}</Text>
         <Text tx="activeWorkoutScreen.addNotesPlaceholder" />
@@ -232,21 +256,70 @@ const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
   )
 })
 
+const RestTimerProgressBar: FC = observer(() => {
+  const { workoutStore } = useStores()
+
+  const progressBarWidth = 90
+
+  const $timeProgressContainer: ViewStyle = {
+    width: progressBarWidth,
+    borderWidth: 1,
+    borderColor: colors.actionBackground,
+  }
+
+  const $timeProgressRemainingContainer: ViewStyle = {
+    width: Math.floor((workoutStore.restTimeRemaining / workoutStore.restTime) * 100) + "%",
+    backgroundColor: colors.actionBackground,
+  }
+
+  const $restTimeDisplayView: ViewStyle | TextStyle = {
+    position: "absolute",
+    height: "100%",
+    width: "100%",
+    alignItems: "center",
+  }
+
+  return (
+    <>
+      {workoutStore.restTimeRemaining > 0 ? (
+        <RowView style={$timeProgressContainer}>
+          <View style={$timeProgressRemainingContainer} />
+          <RowView style={$restTimeDisplayView}>
+            <Icon as={Ionicons} name="stopwatch-outline" color="black" size={30} />
+            <Text numberOfLines={1}>
+              {formatDuration(moment.duration(workoutStore.restTimeRemaining, "s"), false)}
+            </Text>
+          </RowView>
+        </RowView>
+      ) : (
+        <Icon as={Ionicons} name="stopwatch-outline" color="black" size={30} />
+      )}
+    </>
+  )
+})
+
 interface ActiveWorkoutScreenProps extends ActivityStackScreenProps<"ActiveWorkout"> {}
 
 export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
   function ActiveWorkoutScreen({ navigation }) {
     const { workoutStore } = useStores()
     const [showSaveDialog, setShowSaveDialog] = useState(false)
-    const [timeElapsed, setTimeElapsed] = useState("")
+    const [timeElapsed, setTimeElapsed] = useState("00:00:00")
 
     useEffect(() => {
       const updateTimeElapsed = () => {
+        // Update timer
         const start = moment(workoutStore.startTime)
         const duration = moment.duration(moment().diff(start))
         const formatted = formatDuration(duration)
 
         setTimeElapsed(formatted)
+
+        // Check if rest time is active and update that as well
+        if (workoutStore.restTimeRemaining > 0) {
+          console.log(workoutStore.restTime, workoutStore.restTimeRemaining)
+          workoutStore.subtractRestTimeRemaining(1)
+        }
       }
 
       const intervalId = setInterval(updateTimeElapsed, 1000)
@@ -317,7 +390,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
         <RowView style={$workoutHeaderRow}>
           <RowView>
             <Ionicons name="chevron-down-outline" color="black" size={30} />
-            <Ionicons name="stopwatch-outline" color="black" size={30} />
+            <RestTimerProgressBar />
           </RowView>
           <Text tx="activeWorkoutScreen.newActiveWorkoutTitle" preset="bold" />
           {/* TODO: Active workout title should be dependent on the template used */}

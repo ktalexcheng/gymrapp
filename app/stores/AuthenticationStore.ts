@@ -1,7 +1,7 @@
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import { GoogleSignin } from "@react-native-google-signin/google-signin"
 import { Instance, SnapshotOut, flow, types } from "mobx-state-tree"
-import { Env } from "../services/expo"
+import { Env } from "../utils/expo"
 
 // To satisfy type definition of model properties
 const FirebaseUserType = types.custom<any, FirebaseAuthTypes.User>({

@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { ViewStyle } from "react-native"
 // import { useNavigation } from "@react-navigation/native"
-import { useStores } from "app/models"
+import { useStores } from "app/stores"
 import { spacing } from "../theme"
 
 interface ProfileScreenProps extends NativeStackScreenProps<TabScreenProps<"Profile">> {}

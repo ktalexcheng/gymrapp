@@ -31,11 +31,15 @@ const WorkoutStoreModel = types
     endTime: types.maybe(types.Date),
     inProgress: false,
     exercises: types.optional(Exercises, []),
+    restTime: 0,
+    restTimeRemaining: 0
   })
   .actions(withSetPropAction)
   .actions((self) => ({
     initNewWorkout() {
       self.startTime = new Date()
+      self.restTime = 0
+      self.restTimeRemaining = 0
       self.exercises = Exercises.create()
       self.inProgress = true
     },
@@ -71,9 +75,12 @@ const WorkoutStoreModel = types
       })
       self.exercises[targetExerciseOrder].sets.push(newSet)
     },
-    // updateSetStatus(targetExerciseOrder: number, targetSetOrder: number, set: SnapshotIn<typeof SingleExerciseSet>) {
-    //   self.exercises[targetExerciseOrder].sets[targetSetOrder].ifCompleted = set.ifCompleted
-    // },
+    addRestTimeRemaining(seconds: number) {
+      self.setProp("restTimeRemaining", self.restTimeRemaining+seconds)
+    },
+    subtractRestTimeRemaining(seconds: number) {
+      self.setProp("restTimeRemaining", self.restTimeRemaining-seconds)
+    }
   }))
 
   export { WorkoutStoreModel, ExerciseSets }

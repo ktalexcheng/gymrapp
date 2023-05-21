@@ -4,8 +4,8 @@ import { observer } from "mobx-react-lite"
 import React, { FC, useMemo, useRef, useState } from "react"
 import { TextInput, TextStyle, ViewStyle } from "react-native"
 import { Button, Icon, Screen, Text, TextField, TextFieldAccessoryProps } from "../components"
-import { useStores } from "../models"
 import { AuthStackParamList, AuthStackScreenProps } from "../navigators"
+import { useStores } from "../stores"
 import { colors, spacing } from "../theme"
 
 interface SignInScreenProps extends AuthStackScreenProps<"SignIn"> {}

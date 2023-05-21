@@ -2,7 +2,7 @@ import { ActivityStackScreenProps } from "app/navigators/ActivityNavigator"
 import React, { FC } from "react"
 import { TextStyle, TouchableOpacity, ViewStyle } from "react-native"
 import { Card, Screen, Text } from "../components"
-import { useStores } from "../models"
+import { useStores } from "../stores"
 import { colors, spacing } from "../theme"
 
 interface NewWorkoutScreenProps extends ActivityStackScreenProps<"NewWorkout"> {}

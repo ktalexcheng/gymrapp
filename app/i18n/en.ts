@@ -26,7 +26,7 @@ const en = {
   tabNavigator: {
     feedTab: "Feed",
     activityTab: "Activity",
-    profileTab: "Profile",
+    profileTab: "You",
     startWorkout: "Start a workout",
   },
   signInScreen: {
@@ -65,6 +65,12 @@ const en = {
     addNotesPlaceholder: "Add notes...",
     addSetAction: "Add set",
     addExerciseAction: "Add exercise",
+  },
+  addExerciseScreen: {
+    exerciseType: "Type",
+    exerciseCategory: "Category",
+    exerciseName: "Name",
+    addExerciseButton: "Add exercise",
   }
 }
 

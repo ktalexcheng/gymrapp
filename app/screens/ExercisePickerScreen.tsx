@@ -1,40 +1,27 @@
-import firestore from "@react-native-firebase/firestore"
+import Ionicons from "@expo/vector-icons/Ionicons"
 import { useNavigation } from "@react-navigation/native"
+import { observer } from "mobx-react-lite"
+import { Fab, Icon } from "native-base"
 import React, { FC, useEffect, useState } from "react"
-import {
-  SectionList,
-  TextStyle,
-  TouchableOpacity,
-  View,
-  ViewStyle,
-  useWindowDimensions,
-} from "react-native"
-import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { TabView } from "react-native-tab-view"
+import { SectionList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import { TabBar, TabView } from "react-native-tab-view"
 import { Text } from "../components"
-import { useStores } from "../models"
+import { Exercise } from "../data/model"
 import { ActivityStackScreenProps } from "../navigators"
+import { useStores } from "../stores"
 import { colors } from "../theme"
-
-type ExerciseItem = {
-  exerciseId: string
-  exerciseName: string
-}
+import { useSafeAreaInsetsStyle } from "../utils/useSafeAreaInsetsStyle"
 
 type CategorizedExerciseList = {
-  [category: string]: ExerciseItem[]
+  [category: string]: Exercise[]
 }
 
 type ExerciseListScreenProps = {
   sectionsData: {
     title: string
-    data: ExerciseItem[]
+    data: Exercise[]
   }[]
 }
-
-// type SceneMapData = {
-//   [key: string]: React.ComponentType
-// }
 
 const $listItem: ViewStyle = {
   padding: 10,
@@ -50,7 +37,7 @@ const $sectionHeader: ViewStyle = {
   paddingLeft: 10,
   paddingRight: 10,
   paddingBottom: 2,
-  backgroundColor: "rgba(247,247,247,1.0)",
+  backgroundColor: colors.separator,
 }
 
 const $sectionHeaderText: TextStyle = {
@@ -94,58 +81,36 @@ const ExerciseListScreen: FC<ExerciseListScreenProps> = (props: ExerciseListScre
 
 interface ExercisePickerScreenProps extends ActivityStackScreenProps<"ExercisePicker"> {}
 
-export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = () => {
-  const layout = useWindowDimensions()
-  const insets = useSafeAreaInsets()
-
+export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ navigation }) => {
   const [allExercises, setAllExercises] = useState({})
   const [index, setIndex] = useState(0)
   const [routes, setRoutes] = useState([])
+  const { exerciseStore } = useStores()
+  exerciseStore.getAllExercises()
 
   useEffect(() => {
-    const getExercises = async () => {
-      const exercisesCollection = firestore().collection("exercises")
-      const exercisesSnapshot = await exercisesCollection.get()
-      return exercisesSnapshot
-    }
+    // if (exerciseStore.allExercises) {
+    const _allExercises: CategorizedExerciseList = {}
 
-    getExercises()
-      .then((snapshot) => {
-        if (snapshot.empty) return
+    exerciseStore.allExercises.forEach((e) => {
+      if (e.exerciseCategory in _allExercises) {
+        _allExercises[e.exerciseCategory].push(e)
+      } else {
+        _allExercises[e.exerciseCategory] = [e]
+      }
+    })
 
-        const _allExercises: CategorizedExerciseList = {}
-        snapshot.forEach((e) => {
-          const { category: cat, exerciseName: name } = e.data()
-
-          const newExercise: ExerciseItem = {
-            exerciseId: cat,
-            exerciseName: name,
-          }
-
-          if (cat in _allExercises) {
-            _allExercises[cat].push(newExercise)
-          } else {
-            _allExercises[cat] = [newExercise]
-          }
-        })
-
-        // Sort by exercise name
-        Object.values(_allExercises).forEach((d) => d.sort())
-
-        setAllExercises(_allExercises)
-      })
-      .catch((error) => {
-        console.log(error)
-      })
-  }, [])
+    // Sort by exercise name
+    Object.values(_allExercises).forEach((d) => d.sort())
+    setAllExercises(_allExercises)
+    // }
+  }, [exerciseStore.allExercises])
 
   useEffect(() => {
     const routes = []
 
-    const createSectionsData = (
-      exercises: ExerciseItem[],
-    ): ExerciseListScreenProps["sectionsData"] => {
-      const groupedExercises: { [group: string]: ExerciseItem[] } = {}
+    const createSectionsData = (exercises: Exercise[]): ExerciseListScreenProps["sectionsData"] => {
+      const groupedExercises: { [group: string]: Exercise[] } = {}
       exercises.forEach((exercise) => {
         const groupId = exercise.exerciseName[0].toUpperCase()
         if (groupId in groupedExercises) {
@@ -166,7 +131,7 @@ export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = () => {
       return sectionsData
     }
 
-    Object.entries(allExercises).forEach(([category, exercises]: [string, ExerciseItem[]]) => {
+    Object.entries(allExercises).forEach(([category, exercises]: [string, Exercise[]]) => {
       // Group by first letter of name
       // {
       //   title: 'B',
@@ -190,22 +155,29 @@ export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = () => {
     return <ExerciseListScreen sectionsData={route.data} />
   }
 
-  const $tabViewContainer: ViewStyle = {
-    paddingTop: insets.top,
-    paddingBottom: insets.bottom,
-    paddingLeft: insets.left,
-    paddingRight: insets.right,
+  const $containerInsets = useSafeAreaInsetsStyle(["bottom", "left", "right"])
+
+  const $screenContainer: ViewStyle = {
+    flex: 1,
   }
 
   return (
     // Note that tab press does not work properly when a debugger is attached
     // See: https://github.com/satya164/react-native-tab-view/issues/703
-    <TabView
-      navigationState={{ index, routes }}
-      renderScene={renderScene}
-      onIndexChange={setIndex}
-      style={$tabViewContainer}
-      initialLayout={{ height: 1234, width: layout.width }}
-    />
+    <View style={[$screenContainer, $containerInsets]}>
+      <Fab
+        renderInPortal={false}
+        shadow={2}
+        size="lg"
+        icon={<Icon color="white" as={Ionicons} name="add-outline" size="lg" />}
+        onPress={() => navigation.navigate("AddExercise")}
+      />
+      <TabView
+        navigationState={{ index, routes }}
+        renderScene={renderScene}
+        renderTabBar={(props) => <TabBar {...props} />}
+        onIndexChange={setIndex}
+      />
+    </View>
   )
-}
+})

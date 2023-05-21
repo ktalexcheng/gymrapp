@@ -1,7 +1,7 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Button, Icon, Screen, Text, TextField, TextFieldAccessoryProps } from "app/components"
-import { useStores } from "app/models"
 import { AuthStackScreenProps } from "app/navigators"
+import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React, { FC, useMemo, useRef, useState } from "react"
 import { TextInput, TextStyle, ViewStyle } from "react-native"
