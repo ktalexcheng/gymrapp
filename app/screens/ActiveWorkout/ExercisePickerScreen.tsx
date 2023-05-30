@@ -5,14 +5,14 @@ import { Fab, Icon } from "native-base"
 import React, { FC, useEffect, useState } from "react"
 import { SectionList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { TabBar, TabView } from "react-native-tab-view"
-import { Text } from "../components"
-import { Exercise } from "../data/model"
-import { ActivityStackScreenProps } from "../navigators"
-import { useStores } from "../stores"
-import { colors } from "../theme"
-import { useSafeAreaInsetsStyle } from "../utils/useSafeAreaInsetsStyle"
+import { Text } from "../../components"
+import { Exercise } from "../../data/model"
+import { ActivityStackScreenProps } from "../../navigators"
+import { useStores } from "../../stores"
+import { colors } from "../../theme"
+import { useSafeAreaInsetsStyle } from "../../utils/useSafeAreaInsetsStyle"
 
-type CategorizedExerciseList = {
+type GroupedExerciseList = {
   [category: string]: Exercise[]
 }
 
@@ -82,33 +82,11 @@ const ExerciseListScreen: FC<ExerciseListScreenProps> = (props: ExerciseListScre
 interface ExercisePickerScreenProps extends ActivityStackScreenProps<"ExercisePicker"> {}
 
 export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ navigation }) => {
-  const [allExercises, setAllExercises] = useState({})
   const [index, setIndex] = useState(0)
   const [routes, setRoutes] = useState([])
   const { exerciseStore } = useStores()
-  exerciseStore.getAllExercises()
 
   useEffect(() => {
-    // if (exerciseStore.allExercises) {
-    const _allExercises: CategorizedExerciseList = {}
-
-    exerciseStore.allExercises.forEach((e) => {
-      if (e.exerciseCategory in _allExercises) {
-        _allExercises[e.exerciseCategory].push(e)
-      } else {
-        _allExercises[e.exerciseCategory] = [e]
-      }
-    })
-
-    // Sort by exercise name
-    Object.values(_allExercises).forEach((d) => d.sort())
-    setAllExercises(_allExercises)
-    // }
-  }, [exerciseStore.allExercises])
-
-  useEffect(() => {
-    const routes = []
-
     const createSectionsData = (exercises: Exercise[]): ExerciseListScreenProps["sectionsData"] => {
       const groupedExercises: { [group: string]: Exercise[] } = {}
       exercises.forEach((exercise) => {
@@ -131,8 +109,23 @@ export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ n
       return sectionsData
     }
 
-    Object.entries(allExercises).forEach(([category, exercises]: [string, Exercise[]]) => {
-      // Group by first letter of name
+    // Categorize exercises into CategorizedExerciseList
+    const groupedAllExercises: GroupedExerciseList = {}
+    exerciseStore.allExercises.forEach((e: Exercise) => {
+      if (e.exerciseCategory in groupedAllExercises) {
+        groupedAllExercises[e.exerciseCategory].push(e)
+      } else {
+        groupedAllExercises[e.exerciseCategory] = [e]
+      }
+    })
+
+    // Sort by exercise name
+    Object.values(groupedAllExercises).forEach((d) => d.sort())
+
+    // Generate routes
+    const routes = []
+    Object.entries(groupedAllExercises).forEach(([category, exercises]: [string, Exercise[]]) => {
+      // Group exercises within each category by first letter of name
       // {
       //   title: 'B',
       //   data: ExerciseData[]
@@ -146,8 +139,9 @@ export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ n
       })
     })
 
+    console.debug("ExercisePickerScreen called setRoutes(routes)")
     setRoutes(routes)
-  }, [allExercises])
+  }, [exerciseStore.lastUpdated])
 
   // Create custom renderScene function to avoid passing inline function to SceneMap()
   // See doc: https://www.npmjs.com/package/react-native-tab-view
@@ -170,7 +164,7 @@ export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ n
         shadow={2}
         size="lg"
         icon={<Icon color="white" as={Ionicons} name="add-outline" size="lg" />}
-        onPress={() => navigation.navigate("AddExercise")}
+        onPress={() => navigation.navigate("CreateExercise")}
       />
       <TabView
         navigationState={{ index, routes }}

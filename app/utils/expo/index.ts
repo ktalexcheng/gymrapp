@@ -1,1 +1,1 @@
-export * from "./expoConfig";
+export * from "./expoConfig"

@@ -4,12 +4,12 @@ import { useNavigation } from "@react-navigation/native"
 import { useStores } from "app/stores"
 import React, { FC, useState } from "react"
 import { ViewStyle } from "react-native"
-import { Button, Dropdown, Screen, TextField } from "../components"
-import { ActivityStackScreenProps } from "../navigators"
+import { Button, Dropdown, Screen, TextField } from "../../components"
+import { ActivityStackScreenProps } from "../../navigators"
 
-interface AddExerciseScreenProps extends ActivityStackScreenProps<"AddExercise"> {}
+interface AddExerciseScreenProps extends ActivityStackScreenProps<"CreateExercise"> {}
 
-export const AddExerciseScreen: FC<AddExerciseScreenProps> = () => {
+export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
   const [type, setType] = useState("")
   const [category, setCategory] = useState("")
   const [name, setName] = useState("")
@@ -26,16 +26,16 @@ export const AddExerciseScreen: FC<AddExerciseScreenProps> = () => {
 
   function selectType(value: string) {
     setType(value)
-    console.log(type)
+    console.debug(type)
   }
 
   function selectCategory(value: string) {
     setCategory(value)
-    console.log(category)
+    console.debug(category)
   }
 
   function addExercise() {
-    console.log("TODO: adding exercise")
+    console.debug("TODO: adding exercise")
     navigation.goBack()
   }
 
@@ -44,14 +44,14 @@ export const AddExerciseScreen: FC<AddExerciseScreenProps> = () => {
       <Dropdown
         onValueChange={selectType}
         labelTx="addExerciseScreen.exerciseType"
-        itemsList={exerciseStore.allTypes.map((type) => {
+        itemsList={exerciseStore.allExerciseTypes.map((type) => {
           return { label: type, value: type }
         })}
       />
       <Dropdown
         onValueChange={selectCategory}
         labelTx="addExerciseScreen.exerciseCategory"
-        itemsList={exerciseStore.allCategories.map((category) => {
+        itemsList={exerciseStore.allExerciseCategories.map((category) => {
           return { label: category, value: category }
         })}
       />

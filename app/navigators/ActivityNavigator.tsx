@@ -1,9 +1,10 @@
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import {
   ActiveWorkoutScreen,
-  AddExerciseScreen,
+  CreateExerciseScreen,
   ExercisePickerScreen,
   NewWorkoutScreen,
+  RestTimerScreen,
 } from "app/screens"
 import React from "react"
 
@@ -11,7 +12,8 @@ export type ActivityStackParamList = {
   NewWorkout: undefined
   ActiveWorkout: undefined
   ExercisePicker: undefined
-  AddExercise: undefined
+  CreateExercise: undefined
+  RestTimer: undefined
 }
 
 export type ActivityStackScreenProps<T extends keyof ActivityStackParamList> =
@@ -30,10 +32,11 @@ export const ActivityNavigator = () => {
         component={ExercisePickerScreen}
       />
       <Stack.Screen
-        name="AddExercise"
+        name="CreateExercise"
         options={{ headerShown: true }}
-        component={AddExerciseScreen}
+        component={CreateExerciseScreen}
       />
+      <Stack.Screen name="RestTimer" options={{ headerShown: true }} component={RestTimerScreen} />
     </Stack.Navigator>
   )
 }

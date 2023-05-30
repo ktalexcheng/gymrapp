@@ -84,5 +84,9 @@ export const colors = {
   /**
    * Action background
    */
-  actionBackground: palette.primary600
+  actionBackground: palette.primary600,
+  /**
+   * Disabled
+   */
+  disabled: palette.neutral300,
 }

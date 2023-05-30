@@ -5,4 +5,3 @@ export * from "./AuthNavigator"
 export * from "./HomeTabNavigator"
 export * from "./RootNavigator"
 export * from "./navigationUtilities"
-

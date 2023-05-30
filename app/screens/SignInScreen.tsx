@@ -1,7 +1,8 @@
 import { useNavigation } from "@react-navigation/native"
 import { NativeStackNavigationProp } from "@react-navigation/native-stack"
+import { IUser } from "app/data/model"
 import { observer } from "mobx-react-lite"
-import React, { FC, useMemo, useRef, useState } from "react"
+import React, { FC, useEffect, useMemo, useRef, useState } from "react"
 import { TextInput, TextStyle, ViewStyle } from "react-native"
 import { Button, Icon, Screen, Text, TextField, TextFieldAccessoryProps } from "../components"
 import { AuthStackParamList, AuthStackScreenProps } from "../navigators"
@@ -11,45 +12,41 @@ import { colors, spacing } from "../theme"
 interface SignInScreenProps extends AuthStackScreenProps<"SignIn"> {}
 
 export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScreen(_props) {
-  const authPasswordInput = useRef<TextInput>()
   const [isAuthPasswordHidden, setIsAuthPasswordHidden] = useState(true)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [attemptsCount, setAttemptsCount] = useState(0)
-  const {
-    authenticationStore: {
-      authEmail,
-      authPassword,
-      setAuthEmail,
-      setAuthPassword,
-      signInWithEmail,
-      validationError,
-      storeError,
-      signInWithGoogle,
-    },
-  } = useStores()
+  const [loginEmail, setLoginEmail] = useState("")
+  const [loginPassword, setLoginPassword] = useState("")
+  const { authenticationStore: authStore } = useStores()
+  const loginPasswordRef = useRef<TextInput>()
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>()
 
-  // useEffect(() => {
-  //   // TODO: Here is where you could fetch credentials from keychain or storage
-  //   // and pre-fill the form fields.
-  //   setAuthEmail("ignite@infinite.red")
-  //   setAuthPassword("ign1teIsAwes0m3")
-  // }, [])
+  useEffect(() => {
+    // TODO: Here is where you could fetch credentials from keychain or storage
+    // and pre-fill the form fields.
+    // setAuthEmail("ignite@infinite.red")
+    // setAuthPassword("ign1teIsAwes0m3")
+    authStore.resetAuthError()
+  }, [])
 
-  const error = isSubmitted ? validationError : ""
+  const error = isSubmitted ? authStore.validationError : ""
 
   function signIn() {
     setIsSubmitted(true)
     setAttemptsCount(attemptsCount + 1)
 
-    if (validationError) return
+    const loginUser: IUser = {
+      email: loginEmail,
+    }
+    authStore.setUser(loginUser)
+    authStore.setPassword(loginPassword)
+
+    if (authStore.validationError) return
 
     // Make a request to your server to get an authentication token.
     // If successful, reset the fields and set the token.
     setIsSubmitted(false)
-    setAuthEmail(authEmail)
-    setAuthPassword(authPassword)
-    signInWithEmail()
+    authStore.signInWithEmail()
 
     // We'll mock this with a fake token.
     // setAuthToken(String(Date.now()))
@@ -87,15 +84,15 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
       <Text testID="signIn-heading" tx="signInScreen.signIn" preset="heading" style={$signIn} />
       <Text tx="signInScreen.enterDetails" preset="subheading" style={$enterDetails} />
       {/* {attemptsCount > 2 && <Text tx="signInScreen.hint" size="sm" weight="light" style={$hint} />} */}
-      {storeError && (
+      {authStore.authError && (
         <Text size="sm" weight="light" style={$hint}>
-          {storeError}
+          {authStore.authError}
         </Text>
       )}
 
       <TextField
-        value={authEmail}
-        onChangeText={setAuthEmail}
+        value={loginEmail}
+        onChangeText={setLoginEmail}
         containerStyle={$textField}
         autoCapitalize="none"
         autoComplete="email"
@@ -105,13 +102,13 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
         placeholderTx="signInScreen.emailFieldPlaceholder"
         helper={error}
         status={error ? "error" : undefined}
-        onSubmitEditing={() => authPasswordInput.current?.focus()}
+        onSubmitEditing={() => loginPasswordRef.current?.focus()}
       />
 
       <TextField
-        ref={authPasswordInput}
-        value={authPassword}
-        onChangeText={setAuthPassword}
+        ref={loginPasswordRef}
+        value={loginPassword}
+        onChangeText={setLoginPassword}
         containerStyle={$textField}
         autoCapitalize="none"
         autoComplete="password"
@@ -142,7 +139,7 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
         testID="createAccount-google"
         tx="signInScreen.signInWithGoogle"
         style={$tapButton}
-        onPress={signInWithGoogle}
+        onPress={authStore.signInWithGoogle}
       />
     </Screen>
   )

@@ -1,1 +1,2 @@
-export * from "./exerciseModel";
+export * from "./exerciseModel"
+export * from "./userModel"

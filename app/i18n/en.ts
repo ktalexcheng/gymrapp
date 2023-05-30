@@ -49,6 +49,8 @@ const en = {
     passwordFieldLabel: "Password",
     emailFieldPlaceholder: "Enter your email address",
     passwordFieldPlaceholder: "Super secret password here",
+    firstNameLabel: "First name",
+    lastNameLabel: "Last name",
   },
   newActivityScreen: {
     startNewWorkoutText: "Start new workout",
@@ -71,7 +73,10 @@ const en = {
     exerciseCategory: "Category",
     exerciseName: "Name",
     addExerciseButton: "Add exercise",
-  }
+  },
+  exerciseEntrySettings: {
+    restTimerEnabledLabel: "Enabled",
+  },
 }
 
 export default en

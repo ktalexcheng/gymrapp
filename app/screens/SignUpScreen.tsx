@@ -1,44 +1,46 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Button, Icon, Screen, Text, TextField, TextFieldAccessoryProps } from "app/components"
+import { IUser } from "app/data/model"
 import { AuthStackScreenProps } from "app/navigators"
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
-import React, { FC, useMemo, useRef, useState } from "react"
+import React, { FC, useEffect, useMemo, useRef, useState } from "react"
 import { TextInput, TextStyle, ViewStyle } from "react-native"
 import { colors, spacing } from "../theme"
 
 interface SignUpScreenProps extends NativeStackScreenProps<AuthStackScreenProps<"SignUp">> {}
 
 export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScreen() {
-  // Pull in one of our MST stores
-  // const { someStore, anotherStore } = useStores()
-  const {
-    authenticationStore: {
-      authEmail,
-      authPassword,
-      setAuthEmail,
-      setAuthPassword,
-      signUpWithEmail,
-      validationError,
-    },
-  } = useStores()
-
-  // Pull in navigation via hook
-  // const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>()
-
-  const newPasswordInput = useRef<TextInput>()
-
+  const [newEmail, setNewEmail] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [newFirstName, setNewFirstName] = useState("")
+  const [newLastName, setNewLastName] = useState("")
   const [isNewPasswordHidden, setIsNewPasswordHidden] = useState(true)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const { authenticationStore: authStore } = useStores()
+  const newLastNameInputRef = useRef<TextInput>()
+  const newEmailInputRef = useRef<TextInput>()
+  const newPasswordInputRef = useRef<TextInput>()
 
-  // const error = isSubmitted ? validationError : ""?
-  const error = ""
+  useEffect(() => {
+    authStore.resetAuthError()
+  }, [])
+  const error = isSubmitted ? authStore.validationError : ""
 
   function createNewAccount() {
-    if (validationError) return
+    setIsSubmitted(true)
+    const newUser: IUser = {
+      firstName: newFirstName,
+      lastName: newLastName,
+      email: newEmail,
+    }
+    authStore.setUser(newUser)
+    authStore.setPassword(newPassword)
 
-    setAuthEmail(authEmail)
-    setAuthPassword(authPassword)
-    signUpWithEmail()
+    if (authStore.validationError) return
+
+    authStore.signUpWithEmail()
+    setIsSubmitted(false)
   }
 
   const PasswordRightAccessory = useMemo(
@@ -65,9 +67,37 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
     >
       <Text testID="signIn-heading" tx="signUpScreen.signUp" preset="heading" style={$signIn} />
 
+      {authStore.authError && (
+        <Text size="sm" weight="light" style={$hint}>
+          {authStore.authError}
+        </Text>
+      )}
+
       <TextField
-        value={authEmail}
-        onChangeText={setAuthEmail}
+        value={newFirstName}
+        onChangeText={setNewFirstName}
+        containerStyle={$textField}
+        autoCapitalize="words"
+        autoCorrect={false}
+        labelTx="signUpScreen.firstNameLabel"
+        onSubmitEditing={() => newLastNameInputRef.current?.focus()}
+      />
+
+      <TextField
+        ref={newLastNameInputRef}
+        value={newLastName}
+        onChangeText={setNewLastName}
+        containerStyle={$textField}
+        autoCapitalize="words"
+        autoCorrect={false}
+        labelTx="signUpScreen.lastNameLabel"
+        onSubmitEditing={() => newEmailInputRef.current?.focus()}
+      />
+
+      <TextField
+        ref={newEmailInputRef}
+        value={newEmail}
+        onChangeText={setNewEmail}
         containerStyle={$textField}
         autoCapitalize="none"
         autoComplete="email"
@@ -77,13 +107,13 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
         placeholderTx="signUpScreen.emailFieldPlaceholder"
         helper={error}
         status={error ? "error" : undefined}
-        onSubmitEditing={() => newPasswordInput.current?.focus()}
+        onSubmitEditing={() => newPasswordInputRef.current?.focus()}
       />
 
       <TextField
-        ref={newPasswordInput}
-        value={authPassword}
-        onChangeText={setAuthPassword}
+        ref={newPasswordInputRef}
+        value={newPassword}
+        onChangeText={setNewPassword}
         containerStyle={$textField}
         autoCapitalize="none"
         autoComplete="password"
@@ -120,4 +150,9 @@ const $textField: ViewStyle = {
 
 const $tapButton: ViewStyle = {
   marginTop: spacing.extraSmall,
+}
+
+const $hint: TextStyle = {
+  color: colors.tint,
+  marginBottom: spacing.medium,
 }

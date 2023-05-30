@@ -52,9 +52,6 @@ export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStack
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = observer(function AppStack() {
-  // const {
-  //   authenticationStore: { isAuthenticated },
-  // } = useStores()
   const { authenticationStore: authStore } = useStores()
 
   // Set an initializing state whilst Firebase connects
@@ -62,13 +59,14 @@ const AppStack = observer(function AppStack() {
 
   // Handle user state changes
   function onAuthStateChanged(user) {
-    authStore.setUser(user)
+    if (user) authStore.setUserWithFirebaseUser(user)
     if (initializing) setInitializing(false)
   }
 
   useEffect(() => {
-    const subscriber = auth().onAuthStateChanged(onAuthStateChanged)
-    return subscriber // unsubscribe on unmount
+    // Event is fired upon app initialization as well
+    const unsubscribe = auth().onAuthStateChanged(onAuthStateChanged)
+    return unsubscribe // unsubscribe on unmount
   }, [])
 
   if (initializing) return null

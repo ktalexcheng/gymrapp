@@ -28,7 +28,7 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
       <Text tx="newActivityScreen.nextWorkoutHeading" preset="heading" style={$heading} />
       <TouchableOpacity
         onPress={() => {
-          console.log("TODO: Start next workout in program")
+          console.debug("TODO: Start next workout in program")
         }}
       >
         <Card
@@ -42,7 +42,7 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
       <Text tx="newActivityScreen.savedWorkoutHeading" preset="heading" style={$heading} />
       <TouchableOpacity
         onPress={() => {
-          console.log("TODO: Start workout from template")
+          console.debug("TODO: Start workout from template")
         }}
       >
         <Card

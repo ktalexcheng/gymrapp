@@ -8,7 +8,7 @@ import { WorkoutStoreModel } from "./WorkoutStore"
 export const RootStoreModel = types.model("RootStore").props({
   authenticationStore: types.optional(AuthenticationStoreModel, {}),
   workoutStore: types.optional(WorkoutStoreModel, {}),
-  exerciseStore: types.optional(ExerciseStoreModel, {})
+  exerciseStore: types.optional(ExerciseStoreModel, {}),
 })
 
 /**

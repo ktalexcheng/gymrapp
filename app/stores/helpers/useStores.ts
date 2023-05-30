@@ -1,3 +1,4 @@
+import { ExerciseRepository, UserRepository } from "app/data/repository"
 import { createContext, useContext, useEffect, useState } from "react"
 import { setReactotronRootStore } from "../../services/reactotron"
 import { RootStore, RootStoreModel } from "../RootStore"
@@ -15,7 +16,13 @@ import { setupRootStore } from "./setupRootStore"
  * very large), you may want to use a different strategy than immediately
  * instantiating it, although that should be rare.
  */
-const _rootStore = RootStoreModel.create({})
+const _rootStore = RootStoreModel.create(
+  {},
+  {
+    userRepository: new UserRepository(),
+    exerciseRepository: new ExerciseRepository(),
+  },
+)
 
 /**
  * The RootStoreContext provides a way to access
@@ -40,6 +47,17 @@ export const RootStoreProvider = RootStoreContext.Provider
  * or:
  *
  * const { someStore, someOtherStore } = useStores()
+ *
+ * Avoid destructing stores, especially views as it could result in a stagnant view:
+ *
+ * ```
+ * // Use
+ * { authenticationStore: authStore } = useStores()
+ * if (authStore.isAuthenticated) return
+ *
+ * // Avoid
+ * { authenticationStore: { isAuthenticated } } = useStores()
+ * ```
  */
 export const useStores = () => useContext(RootStoreContext)
 

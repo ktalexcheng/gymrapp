@@ -18,7 +18,7 @@ const SingleExercise = types
     exerciseOrder: types.number,
     exerciseId: types.string,
     exerciseName: types.string,
-    sets: ExerciseSets
+    sets: ExerciseSets,
   })
   .actions(withSetPropAction)
 
@@ -32,7 +32,7 @@ const WorkoutStoreModel = types
     inProgress: false,
     exercises: types.optional(Exercises, []),
     restTime: 0,
-    restTimeRemaining: 0
+    restTimeRemaining: 0,
   })
   .actions(withSetPropAction)
   .actions((self) => ({
@@ -63,7 +63,7 @@ const WorkoutStoreModel = types
         exerciseOrder: newExerciseOrder,
         exerciseId: newExerciseId,
         exerciseName: newExerciseName,
-        sets: []
+        sets: [],
       })
       self.exercises.push(newExercise)
     },
@@ -71,16 +71,16 @@ const WorkoutStoreModel = types
       const newSetOrder = self.exercises[targetExerciseOrder].sets.length
       const newSet = SingleExerciseSet.create({
         setOrder: newSetOrder,
-        ...newSetObject
+        ...newSetObject,
       })
       self.exercises[targetExerciseOrder].sets.push(newSet)
     },
     addRestTimeRemaining(seconds: number) {
-      self.setProp("restTimeRemaining", self.restTimeRemaining+seconds)
+      self.setProp("restTimeRemaining", self.restTimeRemaining + seconds)
     },
     subtractRestTimeRemaining(seconds: number) {
-      self.setProp("restTimeRemaining", self.restTimeRemaining-seconds)
-    }
+      self.setProp("restTimeRemaining", self.restTimeRemaining - seconds)
+    },
   }))
 
-  export { WorkoutStoreModel, ExerciseSets }
+export { WorkoutStoreModel, ExerciseSets }
