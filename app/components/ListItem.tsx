@@ -8,7 +8,7 @@ import {
   ViewStyle,
 } from "react-native"
 import { colors, spacing } from "../theme"
-import { Icon, IconTypes } from "./Icon"
+import { CustomIcon, CustomIconTypes } from "./CustomIcon"
 import { Text, TextProps } from "./Text"
 
 export interface ListItemProps extends TouchableOpacityProps {
@@ -63,7 +63,7 @@ export interface ListItemProps extends TouchableOpacityProps {
   /**
    * Icon that should appear on the left.
    */
-  leftIcon?: IconTypes
+  leftIcon?: CustomIconTypes
   /**
    * An optional tint color for the left icon
    */
@@ -71,7 +71,7 @@ export interface ListItemProps extends TouchableOpacityProps {
   /**
    * Icon that should appear on the right.
    */
-  rightIcon?: IconTypes
+  rightIcon?: CustomIconTypes
   /**
    * An optional tint color for the right icon
    */
@@ -89,7 +89,7 @@ export interface ListItemProps extends TouchableOpacityProps {
 }
 
 interface ListItemActionProps {
-  icon: IconTypes
+  icon: CustomIconTypes
   iconColor?: string
   Component?: ReactElement
   size: number
@@ -169,7 +169,7 @@ function ListItemAction(props: ListItemActionProps) {
 
   if (icon) {
     return (
-      <Icon
+      <CustomIcon
         size={24}
         icon={icon}
         color={iconColor}

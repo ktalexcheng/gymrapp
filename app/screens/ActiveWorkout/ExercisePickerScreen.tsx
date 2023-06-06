@@ -1,11 +1,10 @@
-import Ionicons from "@expo/vector-icons/Ionicons"
 import { useNavigation } from "@react-navigation/native"
 import { observer } from "mobx-react-lite"
-import { Fab, Icon } from "native-base"
+import { Fab } from "native-base"
 import React, { FC, useEffect, useState } from "react"
 import { SectionList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { TabBar, TabView } from "react-native-tab-view"
-import { Text } from "../../components"
+import { Icon, Text } from "../../components"
 import { Exercise } from "../../data/model"
 import { ActivityStackScreenProps } from "../../navigators"
 import { useStores } from "../../stores"
@@ -163,7 +162,7 @@ export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ n
         renderInPortal={false}
         shadow={2}
         size="lg"
-        icon={<Icon color="white" as={Ionicons} name="add-outline" size="lg" />}
+        icon={<Icon color="white" name="add-outline" size={30} />}
         onPress={() => navigation.navigate("CreateExercise")}
       />
       <TabView

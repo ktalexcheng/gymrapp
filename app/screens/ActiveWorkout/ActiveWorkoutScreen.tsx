@@ -1,11 +1,9 @@
-import Ionicons from "@expo/vector-icons/Ionicons"
 import { ActivityStackScreenProps } from "app/navigators/ActivityNavigator"
 import { observer } from "mobx-react-lite"
 import moment from "moment"
-import { Icon } from "native-base"
 import React, { FC, useEffect, useState } from "react"
 import { Modal, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
-import { RowView, Screen, Text } from "../../components"
+import { Icon, RowView, Screen, Text } from "../../components"
 import { useStores } from "../../stores"
 import { colors, spacing } from "../../theme"
 import { ExerciseEntry } from "./ExerciseEntry"
@@ -94,14 +92,14 @@ const RestTimerProgressBar: FC = observer(() => {
         <RowView style={$timeProgressContainer}>
           <View style={$timeProgressRemainingContainer} />
           <RowView style={$restTimeDisplayView}>
-            <Icon as={Ionicons} name="stopwatch-outline" color="black" size={30} />
+            <Icon name="stopwatch-outline" color="black" size={30} />
             <Text numberOfLines={1}>
               {formatDuration(moment.duration(workoutStore.restTimeRemaining, "s"), false)}
             </Text>
           </RowView>
         </RowView>
       ) : (
-        <Icon as={Ionicons} name="stopwatch-outline" color="black" size={30} />
+        <Icon name="stopwatch-outline" color="black" size={30} />
       )}
     </>
   )
@@ -198,7 +196,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
 
         <RowView style={$workoutHeaderRow}>
           <RowView>
-            <Ionicons name="chevron-down-outline" color="black" size={30} />
+            <Icon name="chevron-down-outline" color="black" size={30} />
             <RestTimerProgressBar />
           </RowView>
           <Text tx="activeWorkoutScreen.newActiveWorkoutTitle" preset="bold" />

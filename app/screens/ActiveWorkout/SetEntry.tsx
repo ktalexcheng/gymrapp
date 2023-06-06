@@ -1,8 +1,7 @@
-import Ionicons from "@expo/vector-icons/Ionicons"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { TextStyle, View, ViewStyle } from "react-native"
-import { RowView, Text, TextField } from "../../components"
+import { Icon, RowView, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
 import { spacing } from "../../theme"
 
@@ -91,9 +90,9 @@ export const SetEntry: FC = observer((props: SetEntryProps) => {
       </View>
       <View style={[$ifCompletedColumn, $textAlignCenter]}>
         {exerciseSetStore.ifCompleted ? (
-          <Ionicons name="checkbox" color="black" size={30} onPress={toggleSetStatus} />
+          <Icon name="checkbox" color="black" size={30} onPress={toggleSetStatus} />
         ) : (
-          <Ionicons name="checkbox-outline" color="black" size={30} onPress={toggleSetStatus} />
+          <Icon name="checkbox-outline" color="black" size={30} onPress={toggleSetStatus} />
         )}
       </View>
     </RowView>

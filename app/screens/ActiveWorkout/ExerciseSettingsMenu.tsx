@@ -1,10 +1,9 @@
-import Ionicons from "@expo/vector-icons/Ionicons"
 import { ExerciseSettings } from "app/data/model"
 import moment from "moment"
-import { HStack, Icon, Menu, Popover, Pressable, Switch } from "native-base"
+import { HStack, Menu, Popover, Pressable, Switch } from "native-base"
 import React, { FC, useState } from "react"
 import { View } from "react-native"
-import { Text, WheelPickerFlat } from "../../components"
+import { Icon, Text, WheelPickerFlat } from "../../components"
 import { useStores } from "../../stores"
 import { formatDuration } from "./formatDuration"
 export type ExerciseSettingsProps = {
@@ -68,7 +67,7 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = (props: ExerciseS
       trigger={(triggerProps) => {
         return (
           <Pressable accessibilityLabel="Exercise settings" {...triggerProps}>
-            <Icon as={Ionicons} name="ellipsis-vertical" size="lg" />
+            <Icon name="ellipsis-vertical" size={24} />
           </Pressable>
         )
       }}
@@ -90,9 +89,8 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = (props: ExerciseS
         {page === "timer" && (
           <Popover.Body>
             <Icon
-              as={Ionicons}
               name="arrow-back"
-              size="lg"
+              size={24}
               onPress={() => {
                 setPage("")
               }}

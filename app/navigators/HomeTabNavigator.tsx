@@ -1,10 +1,9 @@
-import Ionicons from "@expo/vector-icons/Ionicons"
 import { BottomTabScreenProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
 import React, { useState } from "react"
 import { Modal, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Text } from "../components"
+import { Icon, Text } from "../components"
 import { translate } from "../i18n"
 import { FeedScreen, ProfileScreen } from "../screens"
 import { colors, spacing, typography } from "../theme"
@@ -44,7 +43,7 @@ export function HomeTabNavigator({ navigation }) {
     return (
       <>
         <TouchableOpacity onPress={() => setModalVisible(true)} style={$centerButton}>
-          <Ionicons name="add" color="white" size={30} />
+          <Icon name="add" color="white" size={30} />
           <Text style={$centerButtonLabel}>{translate("tabNavigator.activityTab")}</Text>
         </TouchableOpacity>
 
@@ -85,7 +84,7 @@ export function HomeTabNavigator({ navigation }) {
         options={{
           tabBarLabel: translate("tabNavigator.feedTab"),
           tabBarIcon: ({ focused }) => (
-            <Ionicons name="people" color={focused && colors.tint} size={20} />
+            <Icon name="people" color={focused && colors.tint} size={20} />
           ),
         }}
       />
@@ -102,7 +101,7 @@ export function HomeTabNavigator({ navigation }) {
         options={{
           tabBarLabel: translate("tabNavigator.profileTab"),
           tabBarIcon: ({ focused }) => (
-            <Ionicons name="person" color={focused && colors.tint} size={20} />
+            <Icon name="person" color={focused && colors.tint} size={20} />
           ),
         }}
       />

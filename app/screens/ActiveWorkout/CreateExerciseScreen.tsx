@@ -1,7 +1,6 @@
-import { spacing } from "app/theme"
-// import { Select } from "native-base"
 import { useNavigation } from "@react-navigation/native"
 import { useStores } from "app/stores"
+import { spacing } from "app/theme"
 import React, { FC, useState } from "react"
 import { ViewStyle } from "react-native"
 import { Button, Dropdown, Screen, TextField } from "../../components"

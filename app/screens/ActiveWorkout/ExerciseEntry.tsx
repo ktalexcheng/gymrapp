@@ -1,9 +1,7 @@
-import Ionicons from "@expo/vector-icons/Ionicons"
 import { observer } from "mobx-react-lite"
-import { Box } from "native-base"
 import React, { FC } from "react"
 import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
-import { RowView, Text } from "../../components"
+import { Icon, RowView, Text } from "../../components"
 import { useStores } from "../../stores"
 import { spacing } from "../../theme"
 import { ExerciseSettingsMenu } from "./ExerciseSettingsMenu"
@@ -50,12 +48,12 @@ export const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
 
   return (
     <View>
-      <Box style={$exerciseSettingsButton}>
+      <View style={$exerciseSettingsButton}>
         <ExerciseSettingsMenu
           exerciseId={props.exerciseId}
           exerciseSettings={exerciseStore.allExercises.get(props.exerciseId).exerciseSettings}
         />
-      </Box>
+      </View>
 
       <View style={$exercise}>
         <Text preset="bold">{"#" + props.exerciseOrder + " " + props.exerciseName}</Text>
@@ -75,7 +73,7 @@ export const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
             style={[$weightColumn, $textAlignCenter]}
           />
           <Text tx="activeWorkoutScreen.repsColumnHeader" style={[$repsColumn, $textAlignCenter]} />
-          <Ionicons
+          <Icon
             name="checkmark"
             style={[$ifCompletedColumn, $textAlignCenter]}
             color="black"

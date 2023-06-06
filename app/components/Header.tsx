@@ -10,7 +10,7 @@ import {
 import { isRTL, translate } from "../i18n"
 import { colors, spacing } from "../theme"
 import { ExtendedEdge, useSafeAreaInsetsStyle } from "../utils/useSafeAreaInsetsStyle"
-import { Icon, IconTypes } from "./Icon"
+import { CustomIcon, CustomIconTypes } from "./CustomIcon"
 import { Text, TextProps } from "./Text"
 
 export interface HeaderProps {
@@ -57,7 +57,7 @@ export interface HeaderProps {
    * Icon that should appear on the left.
    * Can be used with `onLeftPress`.
    */
-  leftIcon?: IconTypes
+  leftIcon?: CustomIconTypes
   /**
    * An optional tint color for the left icon
    */
@@ -90,7 +90,7 @@ export interface HeaderProps {
    * Icon that should appear on the right.
    * Can be used with `onRightPress`.
    */
-  rightIcon?: IconTypes
+  rightIcon?: CustomIconTypes
   /**
    * An optional tint color for the right icon
    */
@@ -127,7 +127,7 @@ export interface HeaderProps {
 
 interface HeaderActionProps {
   backgroundColor?: string
-  icon?: IconTypes
+  icon?: CustomIconTypes
   iconColor?: string
   text?: TextProps["text"]
   tx?: TextProps["tx"]
@@ -243,7 +243,7 @@ function HeaderAction(props: HeaderActionProps) {
 
   if (icon) {
     return (
-      <Icon
+      <CustomIcon
         size={24}
         icon={icon}
         color={iconColor}

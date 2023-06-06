@@ -1,5 +1,12 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { Button, Icon, Screen, Text, TextField, TextFieldAccessoryProps } from "app/components"
+import {
+  Button,
+  CustomIcon,
+  Screen,
+  Text,
+  TextField,
+  TextFieldAccessoryProps,
+} from "app/components"
 import { IUser } from "app/data/model"
 import { AuthStackScreenProps } from "app/navigators"
 import { useStores } from "app/stores"
@@ -47,7 +54,7 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
     () =>
       function PasswordRightAccessory(props: TextFieldAccessoryProps) {
         return (
-          <Icon
+          <CustomIcon
             icon={isNewPasswordHidden ? "view" : "hidden"}
             color={colors.palette.neutral800}
             containerStyle={props.style}
