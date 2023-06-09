@@ -1,24 +1,103 @@
-import { ActivityStackScreenProps } from "app/navigators/ActivityNavigator"
-import React, { FC } from "react"
-import { TextStyle, TouchableOpacity, ViewStyle } from "react-native"
+import { MainStackScreenProps } from "app/navigators"
+import React, { FC, useState } from "react"
+import { Modal, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { Card, Screen, Text } from "../components"
 import { useStores } from "../stores"
 import { colors, spacing } from "../theme"
 
-interface NewWorkoutScreenProps extends ActivityStackScreenProps<"NewWorkout"> {}
+type ResetWorkoutDialogProps = {
+  visible: boolean
+  onResume: () => void
+  onReset: () => void
+  onCancel: () => void
+}
+
+const ResetWorkoutDialog: FC<ResetWorkoutDialogProps> = function ResetWorkoutDialog(
+  props: ResetWorkoutDialogProps,
+) {
+  const $saveDialogContainer: ViewStyle = {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  }
+
+  const $saveDialog: ViewStyle = {
+    flexBasis: "auto",
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  }
+
+  return (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={props.visible}
+      onRequestClose={props.onCancel}
+    >
+      <View style={$saveDialogContainer}>
+        <View style={$saveDialog}>
+          <Text>Resume or start new workout?</Text>
+          <TouchableOpacity onPress={props.onResume}>
+            <Text>Resume</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={props.onReset}>
+            <Text>Start New</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={props.onCancel}>
+            <Text>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  )
+}
+
+interface NewWorkoutScreenProps extends MainStackScreenProps<"NewWorkout"> {}
 
 export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutScreen({
   navigation,
 }) {
   const { workoutStore } = useStores()
+  const [showResetWorkoutDialog, setShowResetWorkoutDialog] = useState(false)
 
   function startNewWorkout() {
-    workoutStore.initNewWorkout()
+    if (workoutStore.inProgress) {
+      setShowResetWorkoutDialog(true)
+    } else {
+      workoutStore.startNewWorkout()
+      navigation.navigate("ActiveWorkout")
+    }
+  }
+
+  function resumeWorkout() {
+    navigation.navigate("ActiveWorkout")
+  }
+
+  function resetWorkout() {
+    workoutStore.resetWorkout()
     navigation.navigate("ActiveWorkout")
   }
 
   return (
     <Screen safeAreaEdges={["top", "bottom"]} style={$container}>
+      <ResetWorkoutDialog
+        visible={showResetWorkoutDialog}
+        onResume={resumeWorkout}
+        onReset={resetWorkout}
+        onCancel={() => setShowResetWorkoutDialog(false)}
+      />
+
       <Text
         tx="newActivityScreen.startNewWorkoutText"
         style={$pressableText}

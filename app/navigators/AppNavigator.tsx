@@ -13,7 +13,7 @@ import { useColorScheme } from "react-native"
 import Config from "../config"
 import { useStores } from "../stores"
 import { AuthNavigator } from "./AuthNavigator"
-import { RootNavigator } from "./RootNavigator"
+import { MainNavigator } from "./MainNavigator"
 import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
 
 /**
@@ -32,7 +32,7 @@ import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
 export type AppStackParamList = {
   Welcome: undefined
   // 🔥 Your screens go here
-  RootNavigator: undefined
+  MainNavigator: undefined
   AuthNavigator: undefined
   // IGNITE_GENERATOR_ANCHOR_APP_STACK_PARAM_LIST
 }
@@ -74,12 +74,12 @@ const AppStack = observer(function AppStack() {
   return (
     <Stack.Navigator
       screenOptions={{ headerShown: false }}
-      initialRouteName={authStore.isAuthenticated ? "RootNavigator" : "AuthNavigator"}
+      initialRouteName={authStore.isAuthenticated ? "MainNavigator" : "AuthNavigator"}
     >
       {/* <Stack.Screen name="Welcome" component={Screens.WelcomeScreen} /> */}
       {/** 🔥 Your screens go here */}
       {authStore.isAuthenticated ? (
-        <Stack.Screen name="RootNavigator" component={RootNavigator} />
+        <Stack.Screen name="MainNavigator" component={MainNavigator} />
       ) : (
         <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
       )}

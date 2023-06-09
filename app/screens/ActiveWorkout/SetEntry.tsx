@@ -1,9 +1,10 @@
 import { observer } from "mobx-react-lite"
-import React, { FC } from "react"
+import React, { FC, useState } from "react"
 import { TextStyle, View, ViewStyle } from "react-native"
 import { Icon, RowView, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
 import { spacing } from "../../theme"
+import { DefaultExerciseSettings } from "./defaultExerciseSettings"
 
 export type SetEntryProps = {
   exerciseOrder: number
@@ -12,27 +13,41 @@ export type SetEntryProps = {
   type: string
   weight: number
   reps: number
-  ifCompleted: boolean
+  isCompleted: boolean
 }
 
 export const SetEntry: FC = observer((props: SetEntryProps) => {
   const { workoutStore, exerciseStore } = useStores()
   const { exerciseOrder, setOrder } = props
-  const exerciseSetStore = workoutStore.exercises[exerciseOrder].sets[setOrder]
+  const [isNullWeight, setIsNullWeight] = useState(false)
+  const [isNullReps, setIsNullReps] = useState(false)
+  const exerciseSetStore = workoutStore.exercises[exerciseOrder].setsPerformed[setOrder]
 
   function toggleSetStatus() {
-    // setCompleted(!completed)
-    exerciseSetStore.setProp("ifCompleted", !exerciseSetStore.ifCompleted)
+    if (exerciseSetStore.isCompleted) {
+      exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
+      return
+    }
 
-    if (exerciseSetStore.ifCompleted) {
+    if (exerciseSetStore.validWeight && exerciseSetStore.validReps) {
+      setIsNullWeight(false)
+      setIsNullReps(false)
+
       workoutStore.setProp(
         "restTime",
-        exerciseStore.allExercises.get(props.exerciseId).exerciseSettings.restTime,
+        exerciseStore.allExercises.get(props.exerciseId).exerciseSettings?.restTime ??
+          DefaultExerciseSettings.restTime,
       )
       workoutStore.setProp(
         "restTimeRemaining",
-        exerciseStore.allExercises.get(props.exerciseId).exerciseSettings.restTime,
+        exerciseStore.allExercises.get(props.exerciseId).exerciseSettings?.restTime ??
+          DefaultExerciseSettings.restTime,
       )
+
+      exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
+    } else {
+      setIsNullWeight(!exerciseSetStore.validWeight)
+      setIsNullReps(!exerciseSetStore.validReps)
     }
   }
 
@@ -52,17 +67,6 @@ export const SetEntry: FC = observer((props: SetEntryProps) => {
     }
   }
 
-  const $exerciseSet: ViewStyle = {
-    justifyContent: "space-around",
-    alignItems: "center",
-    marginTop: spacing.tiny,
-  }
-
-  const $textFieldContainer: ViewStyle = {
-    padding: 0,
-    width: 70,
-  }
-
   return (
     <RowView style={$exerciseSet}>
       <Text text={props.setOrder.toString()} style={[$setOrderColumn, $textAlignCenter]} />
@@ -70,6 +74,7 @@ export const SetEntry: FC = observer((props: SetEntryProps) => {
       <Text text="N/A" style={[$previousColumn, $textAlignCenter]} />
       <View style={$weightColumn}>
         <TextField
+          status={isNullWeight ? "error" : null}
           value={exerciseSetStore.weight !== undefined ? exerciseSetStore.weight.toString() : ""}
           onChangeText={setExerciseSetWeight}
           containerStyle={$textFieldContainer}
@@ -80,6 +85,7 @@ export const SetEntry: FC = observer((props: SetEntryProps) => {
       </View>
       <View style={$repsColumn}>
         <TextField
+          status={isNullReps ? "error" : null}
           value={exerciseSetStore.reps !== undefined ? exerciseSetStore.reps.toString() : ""}
           onChangeText={setExerciseSetReps}
           containerStyle={$textFieldContainer}
@@ -88,8 +94,8 @@ export const SetEntry: FC = observer((props: SetEntryProps) => {
           keyboardType="number-pad"
         />
       </View>
-      <View style={[$ifCompletedColumn, $textAlignCenter]}>
-        {exerciseSetStore.ifCompleted ? (
+      <View style={[$isCompletedColumn, $textAlignCenter]}>
+        {exerciseSetStore.isCompleted ? (
           <Icon name="checkbox" color="black" size={30} onPress={toggleSetStatus} />
         ) : (
           <Icon name="checkbox-outline" color="black" size={30} onPress={toggleSetStatus} />
@@ -117,11 +123,22 @@ const $repsColumn: ViewStyle = {
   alignItems: "center",
 }
 
-const $ifCompletedColumn: ViewStyle = {
+const $isCompletedColumn: ViewStyle = {
   flex: 1,
   alignItems: "center",
 }
 
 const $textAlignCenter: TextStyle = {
   textAlign: "center",
+}
+
+const $exerciseSet: ViewStyle = {
+  justifyContent: "space-around",
+  alignItems: "center",
+  marginTop: spacing.tiny,
+}
+
+const $textFieldContainer: ViewStyle = {
+  padding: 0,
+  width: 70,
 }

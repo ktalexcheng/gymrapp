@@ -1,15 +1,16 @@
 import auth from "@react-native-firebase/auth"
 import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
-import { ExerciseSettings, IUser } from "../model"
-import { IBaseRepository, RepositoryError } from "./baseRepository"
+import { ExerciseSettings, User, WorkoutMetadata } from "../model"
+import { BaseRepository, RepositoryError } from "./baseRepository"
 
-export class UserRepository implements IBaseRepository<IUser> {
+export class UserRepository implements BaseRepository<User> {
   #userId: string
-  #user: IUser
+  #user: User
+  #collectionName = "users"
 
   _getCurrentUser(): FirebaseFirestoreTypes.DocumentReference {
     if (!auth().currentUser) throw new RepositoryError("No user signed in")
-    return firestore().collection("users").doc(this.#userId)
+    return firestore().collection(this.#collectionName).doc(this.#userId)
   }
 
   async _getUserSnapshot(): Promise<FirebaseFirestoreTypes.DocumentSnapshot> {
@@ -18,30 +19,27 @@ export class UserRepository implements IBaseRepository<IUser> {
     return userSnapshot
   }
 
-  // setUserId(userId: string) {
-  //   this.#userId = userId
-  // }
-
-  getUserExerciseSettings(): {
+  get userExerciseSettings(): {
     exerciseId: string
     exerciseSettings: ExerciseSettings
   }[] {
     if (!this.#user) {
-      console.error("UserRepository.getUserExerciseSettings() error: No user set")
+      console.error("UserRepository.get userExerciseSettings() error: No user set")
       return undefined
     }
+
     return this.#user.preferences?.allExerciseSettings
   }
 
-  updateUserExerciseSettings(
+  set userExerciseSettings(
     allExerciseSettings: {
       exerciseId: string
       exerciseSettings: ExerciseSettings
     }[],
   ) {
     if (!this.#user) {
-      console.error("UserRepository.updateUserExerciseSettings() error: No user set")
-      return undefined
+      console.error("UserRepository.set userExerciseSettings() error: No user set")
+      return
     }
 
     if (this.#user.preferences) {
@@ -50,7 +48,31 @@ export class UserRepository implements IBaseRepository<IUser> {
     this.#user.preferences.allExerciseSettings = allExerciseSettings
   }
 
-  async get(userId = this.#userId): Promise<IUser> {
+  get userWorkouts(): WorkoutMetadata {
+    if (!this.#user) {
+      console.error("UserRepository.get userWorkouts() error: No user set")
+      return undefined
+    }
+
+    return this.#user.workouts
+  }
+
+  set userWorkouts(workoutMeta: WorkoutMetadata) {
+    if (!this.#user) {
+      console.error("UserRepository.set userWorkouts() error: No user set")
+      return
+    }
+
+    if (this.#user.workouts === undefined) {
+      this.#user.workouts = {}
+    }
+
+    Object.keys(workoutMeta).forEach((k) => {
+      this.#user.workouts[k] = workoutMeta[k]
+    })
+  }
+
+  async get(userId = this.#userId): Promise<User> {
     this.#userId = userId
     const snapshot = await this._getUserSnapshot()
     if (!snapshot.exists) throw new RepositoryError("(get) User does not exist")
@@ -69,31 +91,30 @@ export class UserRepository implements IBaseRepository<IUser> {
     return this.#user
   }
 
-  async create(user: IUser): Promise<void> {
+  async create(user: User): Promise<void> {
     const snapshot = await this._getUserSnapshot()
 
     if (snapshot.exists) throw new RepositoryError("(create) User already exists")
 
-    firestore().collection("users").doc(this.#userId).set(user)
+    firestore().collection(this.#collectionName).doc(this.#userId).set(user)
   }
 
-  async update(_userId = this.#userId, _user = this.#user): Promise<void> {
+  async update(userId = this.#userId, user = this.#user): Promise<void> {
     const snapshot = await this._getUserSnapshot()
 
     if (!snapshot.exists) throw new RepositoryError("(update) User does not exist")
 
-    const payload = _user
-    Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k])
+    // const payload = user
+    // Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k])
 
-    console.debug("Payload to update user data:", payload)
-    await firestore().collection("users").doc(_userId).update(payload)
+    await firestore().collection(this.#collectionName).doc(userId).update(user)
   }
 
-  async delete(_userId = this.#userId): Promise<void> {
+  async delete(userId = this.#userId): Promise<void> {
     const snapshot = await this._getUserSnapshot()
 
     if (!snapshot.exists) throw new RepositoryError("(delete) User does not exist")
 
-    await firestore().collection("users").doc(_userId).delete()
+    await firestore().collection(this.#collectionName).doc(userId).delete()
   }
 }

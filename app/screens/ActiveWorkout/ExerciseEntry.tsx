@@ -1,3 +1,4 @@
+import { ExerciseSetType } from "app/data/model"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
@@ -6,12 +7,13 @@ import { useStores } from "../../stores"
 import { spacing } from "../../theme"
 import { ExerciseSettingsMenu } from "./ExerciseSettingsMenu"
 import { SetEntry, SetEntryProps } from "./SetEntry"
+import { DefaultExerciseSettings } from "./defaultExerciseSettings"
 
 export type ExerciseEntryProps = {
   exerciseOrder: number
   exerciseId: string
   exerciseName: string
-  sets: SetEntryProps[]
+  setsPerformed: SetEntryProps[]
 }
 
 export const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
@@ -19,44 +21,26 @@ export const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
 
   function addSet() {
     workoutStore.addSet(props.exerciseOrder, {
-      type: "Normal",
+      setType: ExerciseSetType.Normal,
     })
   }
 
-  const $exercise: ViewStyle = {
-    marginTop: spacing.medium,
-  }
-
-  const $exerciseSetsHeader: ViewStyle = {
-    justifyContent: "space-around",
-    marginTop: spacing.medium,
-  }
-
-  const $exerciseActions: ViewStyle = {
-    justifyContent: "space-around",
-    marginTop: spacing.medium,
-  }
-
-  const $exerciseSettingsButton: ViewStyle = {
-    position: "absolute",
-    top: spacing.large,
-    right: spacing.small,
-    zIndex: 1, // Note: Critical to surface overlaying touchable components
-  }
-
-  console.debug("ExerciseEntry props", props)
+  const exerciseName = exerciseStore.allExercises.get(props.exerciseId).exerciseName
 
   return (
     <View>
       <View style={$exerciseSettingsButton}>
         <ExerciseSettingsMenu
           exerciseId={props.exerciseId}
-          exerciseSettings={exerciseStore.allExercises.get(props.exerciseId).exerciseSettings}
+          exerciseSettings={
+            exerciseStore.allExercises.get(props.exerciseId).exerciseSettings ??
+            DefaultExerciseSettings
+          }
         />
       </View>
 
       <View style={$exercise}>
-        <Text preset="bold">{"#" + props.exerciseOrder + " " + props.exerciseName}</Text>
+        <Text preset="bold">{"#" + props.exerciseOrder + " " + exerciseName}</Text>
         <Text tx="activeWorkoutScreen.addNotesPlaceholder" />
 
         <RowView style={$exerciseSetsHeader}>
@@ -75,13 +59,13 @@ export const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
           <Text tx="activeWorkoutScreen.repsColumnHeader" style={[$repsColumn, $textAlignCenter]} />
           <Icon
             name="checkmark"
-            style={[$ifCompletedColumn, $textAlignCenter]}
+            style={[$isCompletedColumn, $textAlignCenter]}
             color="black"
             size={30}
           />
         </RowView>
-        {/* TODO: Create reuseable component for exercise sets */}
-        {props.sets.map((set) => (
+
+        {props.setsPerformed.map((set) => (
           <SetEntry
             key={set.setOrder}
             exerciseOrder={props.exerciseOrder}
@@ -118,11 +102,33 @@ const $repsColumn: ViewStyle = {
   alignItems: "center",
 }
 
-const $ifCompletedColumn: ViewStyle = {
+const $isCompletedColumn: ViewStyle = {
   flex: 1,
   alignItems: "center",
 }
 
 const $textAlignCenter: TextStyle = {
   textAlign: "center",
+}
+
+const $exercise: ViewStyle = {
+  marginTop: spacing.medium,
+}
+
+const $exerciseSetsHeader: ViewStyle = {
+  justifyContent: "space-around",
+  marginVertical: spacing.medium,
+  alignItems: "center",
+}
+
+const $exerciseActions: ViewStyle = {
+  justifyContent: "space-around",
+  marginTop: spacing.medium,
+}
+
+const $exerciseSettingsButton: ViewStyle = {
+  position: "absolute",
+  top: spacing.large,
+  right: spacing.small,
+  zIndex: 1, // Note: Critical to surface overlaying touchable components
 }

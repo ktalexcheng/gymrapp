@@ -1,7 +1,7 @@
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import { GoogleSignin } from "@react-native-google-signin/google-signin"
 import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
-import { IUser, isIUser } from "../data/model"
+import { User, isUser } from "../data/model"
 import { Env } from "../utils/expo"
 
 function snapshotToType<T>(value: string): T {
@@ -45,19 +45,19 @@ const FirebaseUserType = types.custom<any, FirebaseAuthTypes.User>({
   },
 })
 
-const UserType = types.custom<any, IUser>({
+const UserType = types.custom<any, User>({
   name: "User",
   fromSnapshot(value: string) {
-    return snapshotToType<IUser>(value)
+    return snapshotToType<User>(value)
   },
-  toSnapshot(value: IUser) {
-    return typeToSnapshot<IUser>(value)
+  toSnapshot(value: User) {
+    return typeToSnapshot<User>(value)
   },
   isTargetType(value: any) {
-    return isIUser(value)
+    return isUser(value)
   },
   getValidationMessage(value: any) {
-    if (isIUser(value) || value === undefined) return ""
+    if (isUser(value) || value === undefined) return ""
     return `"${value}" does not look like a User type`
   },
 })
@@ -79,9 +79,9 @@ GoogleSignin.configure({
   webClientId: Env.GOOGLE_CLIENT_ID,
 })
 
-function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.UserCredential): IUser {
+function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.UserCredential): User {
   // Create user profile
-  const newUser: IUser = {
+  const newUser: User = {
     userId: firebaseUserCred.user.uid,
     email: firebaseUserCred.user.email,
     firstName: firebaseUserCred.additionalUserInfo?.profile?.given_name ?? "",
@@ -126,7 +126,7 @@ export const AuthenticationStoreModel = types
       self.firebaseUser = firebaseUser
       // getEnv(self).userRepository.setUserId(firebaseUser.uid)
     },
-    setUser(user: IUser) {
+    setUser(user: User) {
       self.user = user
     },
     setPassword(password: string) {
@@ -190,9 +190,13 @@ export const AuthenticationStoreModel = types
       self.invalidateSession()
     },
     deleteAccount: flow(function* () {
-      yield getEnv(self).userRepository.delete()
-      yield auth().currentUser.delete() // Also signs user out
-      self.invalidateSession()
+      try {
+        yield getEnv(self).userRepository.delete()
+        yield auth().currentUser.delete() // Also signs user out
+        self.invalidateSession()
+      } catch (error) {
+        self.catchAuthError(error)
+      }
     }),
     signInWithEmail() {
       if (self.validationError) return

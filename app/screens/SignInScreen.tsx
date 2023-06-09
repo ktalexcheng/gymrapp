@@ -1,11 +1,10 @@
-import { useNavigation } from "@react-navigation/native"
-import { NativeStackNavigationProp } from "@react-navigation/native-stack"
-import { IUser } from "app/data/model"
+import { User } from "app/data/model"
+import { useAuthNavigation } from "app/navigators/navigationUtilities"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useMemo, useRef, useState } from "react"
 import { TextInput, TextStyle, ViewStyle } from "react-native"
 import { Button, CustomIcon, Screen, Text, TextField, TextFieldAccessoryProps } from "../components"
-import { AuthStackParamList, AuthStackScreenProps } from "../navigators"
+import { AuthStackScreenProps } from "../navigators"
 import { useStores } from "../stores"
 import { colors, spacing } from "../theme"
 
@@ -19,7 +18,7 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
   const [loginPassword, setLoginPassword] = useState("")
   const { authenticationStore: authStore } = useStores()
   const loginPasswordRef = useRef<TextInput>()
-  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>()
+  const navigation = useAuthNavigation()
 
   useEffect(() => {
     // TODO: Here is where you could fetch credentials from keychain or storage
@@ -35,7 +34,7 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
     setIsSubmitted(true)
     setAttemptsCount(attemptsCount + 1)
 
-    const loginUser: IUser = {
+    const loginUser: User = {
       email: loginEmail,
     }
     authStore.setUser(loginUser)

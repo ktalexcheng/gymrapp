@@ -7,7 +7,7 @@ import {
   TextField,
   TextFieldAccessoryProps,
 } from "app/components"
-import { IUser } from "app/data/model"
+import { User } from "app/data/model"
 import { AuthStackScreenProps } from "app/navigators"
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
@@ -36,7 +36,7 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
 
   function createNewAccount() {
     setIsSubmitted(true)
-    const newUser: IUser = {
+    const newUser: User = {
       firstName: newFirstName,
       lastName: newLastName,
       email: newEmail,

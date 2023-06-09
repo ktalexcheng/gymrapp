@@ -1,14 +1,25 @@
-import { SnapshotIn, types } from "mobx-state-tree"
+import { ExerciseSetType, NewWorkout } from "app/data/model"
+import { SnapshotIn, destroy, flow, getEnv, types } from "mobx-state-tree"
+import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
 const SingleExerciseSet = types
   .model({
     setOrder: types.number,
-    type: types.enumeration("SetType", ["WarmUp", "DropSet", "Failure", "Normal"]),
+    setType: types.enumeration<ExerciseSetType>(Object.values(ExerciseSetType)),
     weight: types.maybe(types.number),
     reps: types.maybe(types.number),
-    ifCompleted: false,
+    rpe: types.maybeNull(types.number),
+    isCompleted: false,
   })
+  .views((self) => ({
+    get validWeight() {
+      return self.weight !== undefined
+    },
+    get validReps() {
+      return self.reps !== undefined
+    },
+  }))
   .actions(withSetPropAction)
 
 const ExerciseSets = types.array(SingleExerciseSet)
@@ -17,8 +28,7 @@ const SingleExercise = types
   .model({
     exerciseOrder: types.number,
     exerciseId: types.string,
-    exerciseName: types.string,
-    sets: ExerciseSets,
+    setsPerformed: types.optional(ExerciseSets, []),
   })
   .actions(withSetPropAction)
 
@@ -29,51 +39,99 @@ const WorkoutStoreModel = types
   .props({
     startTime: types.maybe(types.Date),
     endTime: types.maybe(types.Date),
-    inProgress: false,
     exercises: types.optional(Exercises, []),
+    inProgress: false,
     restTime: 0,
     restTimeRemaining: 0,
   })
+  .views((self) => ({
+    get isAllSetsCompleted() {
+      let allSetsCompleted = true
+
+      for (const e of self.exercises) {
+        for (const s of e.setsPerformed) {
+          if (!s.isCompleted) {
+            allSetsCompleted = false
+            break
+          }
+        }
+        if (!allSetsCompleted) break
+      }
+
+      return allSetsCompleted
+    },
+  }))
   .actions(withSetPropAction)
   .actions((self) => ({
-    initNewWorkout() {
+    resetWorkout() {
       self.startTime = new Date()
       self.restTime = 0
       self.restTimeRemaining = 0
       self.exercises = Exercises.create()
+    },
+  }))
+  .actions((self) => ({
+    startNewWorkout() {
+      self.resetWorkout()
       self.inProgress = true
     },
     pauseWorkout() {
       self.endTime = new Date()
-      self.inProgress = false
     },
     resumeWorkout() {
       self.endTime = undefined
-      self.inProgress = true
     },
     endWorkout() {
-      // Workout should have been paused before ending
-      if (self.inProgress) throw new Error("workout should be paused before ending")
-
-      // TODO: Save workout to database
+      // self.resetWorkout()
+      self.inProgress = false
     },
-    addExercise(newExerciseId: string, newExerciseName: string) {
+    saveWorkout: flow(function* () {
+      try {
+        if (self.inProgress) {
+          console.error("WorkoutStore().saveWorkout(): Unable to save, workout still in progress")
+          return
+        }
+
+        // Remove incompleted sets
+        self.exercises.forEach((e) => {
+          e.setsPerformed.forEach((s) => {
+            !s.isCompleted && destroy(s)
+          })
+        })
+
+        const workoutId = yield getEnv<RootStoreDependencies>(self).workoutRepository.create({
+          startTime: self.startTime as Date,
+          endTime: self.endTime as Date,
+          exercises: self.exercises,
+        } as NewWorkout)
+
+        getEnv<RootStoreDependencies>(self).userRepository.userWorkouts = {
+          [workoutId]: {
+            endTime: self.endTime,
+          },
+        }
+        yield getEnv<RootStoreDependencies>(self).userRepository.update()
+        self.resetWorkout()
+      } catch (error) {
+        console.error("WorkoutStore().saveWorkout().error:", error)
+      }
+    }),
+    addExercise(newExerciseId: string) {
       const newExerciseOrder = self.exercises.length
       const newExercise = SingleExercise.create({
         exerciseOrder: newExerciseOrder,
         exerciseId: newExerciseId,
-        exerciseName: newExerciseName,
-        sets: [],
+        setsPerformed: [],
       })
       self.exercises.push(newExercise)
     },
     addSet(targetExerciseOrder: number, newSetObject: SnapshotIn<typeof SingleExerciseSet>) {
-      const newSetOrder = self.exercises[targetExerciseOrder].sets.length
+      const newSetOrder = self.exercises[targetExerciseOrder].setsPerformed.length
       const newSet = SingleExerciseSet.create({
         setOrder: newSetOrder,
         ...newSetObject,
       })
-      self.exercises[targetExerciseOrder].sets.push(newSet)
+      self.exercises[targetExerciseOrder].setsPerformed.push(newSet)
     },
     addRestTimeRemaining(seconds: number) {
       self.setProp("restTimeRemaining", self.restTimeRemaining + seconds)
@@ -83,4 +141,4 @@ const WorkoutStoreModel = types
     },
   }))
 
-export { WorkoutStoreModel, ExerciseSets }
+export { ExerciseSets, WorkoutStoreModel }

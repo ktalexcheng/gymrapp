@@ -5,6 +5,7 @@ import React, { FC, useState } from "react"
 import { View } from "react-native"
 import { Icon, Text, WheelPickerFlat } from "../../components"
 import { useStores } from "../../stores"
+import { DefaultExerciseSettings } from "./defaultExerciseSettings"
 import { formatDuration } from "./formatDuration"
 export type ExerciseSettingsProps = {
   exerciseId: string
@@ -12,10 +13,9 @@ export type ExerciseSettingsProps = {
 }
 
 export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = (props: ExerciseSettingsProps) => {
-  // const navigation = useNavigation<NavigationProp<ActivityStackParamList>>()
   const [page, setPage] = useState("")
   const [restTimeIndex, setRestTimeIndex] = useState(
-    Math.trunc(props.exerciseSettings?.restTime / 5) - 1 ?? 23,
+    Math.trunc(props.exerciseSettings?.restTime ?? DefaultExerciseSettings.restTime / 5) - 1,
   )
   const { exerciseStore } = useStores()
   const [restTimeList, _] = useState<{ label: string; value: number }[]>(

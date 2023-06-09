@@ -1,4 +1,4 @@
-import { ExerciseRepository, UserRepository } from "app/data/repository"
+import { ExerciseRepository, UserRepository, WorkoutRepository } from "app/data/repository"
 import { createContext, useContext, useEffect, useState } from "react"
 import { setReactotronRootStore } from "../../services/reactotron"
 import { RootStore, RootStoreModel } from "../RootStore"
@@ -16,13 +16,17 @@ import { setupRootStore } from "./setupRootStore"
  * very large), you may want to use a different strategy than immediately
  * instantiating it, although that should be rare.
  */
-const _rootStore = RootStoreModel.create(
-  {},
-  {
-    userRepository: new UserRepository(),
-    exerciseRepository: new ExerciseRepository(),
-  },
-)
+export interface RootStoreDependencies {
+  userRepository: UserRepository
+  exerciseRepository: ExerciseRepository
+  workoutRepository: WorkoutRepository
+}
+
+const _rootStore = RootStoreModel.create({}, {
+  userRepository: new UserRepository(),
+  exerciseRepository: new ExerciseRepository(),
+  workoutRepository: new WorkoutRepository(),
+} as RootStoreDependencies)
 
 /**
  * The RootStoreContext provides a way to access

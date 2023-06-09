@@ -4,19 +4,16 @@ import React, { FC } from "react"
 import { View, ViewStyle } from "react-native"
 import { Icon } from "../../components"
 import { MainStackScreenProps } from "../../navigators"
-import { useStores } from "../../stores"
 import { useSafeAreaInsetsStyle } from "../../utils/useSafeAreaInsetsStyle"
-import { ExerciseCatalog } from "../Exercise"
+import { ExerciseCatalog } from "./ExerciseCatalog"
 
-interface ExercisePickerScreenProps extends MainStackScreenProps<"ExercisePicker"> {}
+interface ExerciseManagerScreenProps extends MainStackScreenProps<"ExerciseManager"> {}
 
-export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ navigation }) => {
-  const { workoutStore } = useStores()
+export const ExerciseManagerScreen: FC<ExerciseManagerScreenProps> = observer(({ navigation }) => {
   const $containerInsets = useSafeAreaInsetsStyle(["bottom", "left", "right"])
 
   function handleSelectExercise(exerciseId: string) {
-    workoutStore.addExercise(exerciseId)
-    navigation.goBack()
+    console.debug("TODO: Goto exercise details:", exerciseId)
   }
 
   return (

@@ -1,12 +1,18 @@
-import { useState, useEffect, useRef } from "react"
+import {
+  NavigationState,
+  createNavigationContainerRef,
+  useNavigation,
+} from "@react-navigation/native"
+import { NativeStackNavigationProp } from "@react-navigation/native-stack"
+import { useEffect, useRef, useState } from "react"
 import { BackHandler, Platform } from "react-native"
-import { NavigationState, createNavigationContainerRef } from "@react-navigation/native"
 import Config from "../config"
 import type { PersistNavigationConfig } from "../config/config.base"
+import * as storage from "../utils/storage"
 import { useIsMounted } from "../utils/useIsMounted"
 import type { AppStackParamList, NavigationProps } from "./AppNavigator"
-
-import * as storage from "../utils/storage"
+import { AuthStackParamList } from "./AuthNavigator"
+import { MainStackParamList } from "./MainNavigator"
 
 type Storage = typeof storage
 
@@ -21,6 +27,10 @@ type Storage = typeof storage
  * nested navigators, you'll need to use the `useNavigation` with the stack navigator's ParamList type.
  */
 export const navigationRef = createNavigationContainerRef<AppStackParamList>()
+
+export const useAuthNavigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>
+
+export const useMainNavigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>
 
 /**
  * Gets the current screen from any navigation state.

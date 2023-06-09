@@ -1,14 +1,15 @@
 import firestore from "@react-native-firebase/firestore"
-import { Exercise } from "../model"
-import { IBaseRepository } from "./baseRepository"
+import { Exercise, NewExercise } from "../model"
+import { BaseRepository } from "./baseRepository"
 
-export class ExerciseRepository implements IBaseRepository<Exercise> {
+export class ExerciseRepository implements BaseRepository<Exercise> {
   get(): Promise<Exercise> {
     throw new Error("Method not implemented.")
   }
 
-  create(): Promise<void> {
-    throw new Error("Method not implemented.")
+  async create(newExercise: NewExercise): Promise<void> {
+    const exercisesCollection = firestore().collection("exercises")
+    await exercisesCollection.add(newExercise)
   }
 
   update(): Promise<void> {
@@ -27,14 +28,15 @@ export class ExerciseRepository implements IBaseRepository<Exercise> {
 
     const exercises: Exercise[] = []
     exercisesSnapshot.forEach((e) => {
-      const { type: _type, category: _cat, exerciseName: _name } = e.data()
+      const exercise = e.data()
 
       exercises.push(<Exercise>{
         exerciseSource: "Public",
         exerciseId: e.id,
-        exerciseType: _type,
-        exerciseCategory: _cat,
-        exerciseName: _name,
+        exerciseType: exercise.exerciseType,
+        exerciseSubtype: exercise.exerciseSubtype,
+        exerciseCategory: exercise.exerciseCategory,
+        exerciseName: exercise.exerciseName,
       })
     })
 

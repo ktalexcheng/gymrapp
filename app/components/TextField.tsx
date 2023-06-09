@@ -23,7 +23,7 @@ export interface TextFieldProps extends Omit<TextInputProps, "ref"> {
   /**
    * A style modifier for different input states.
    */
-  status?: "error" | "disabled"
+  status?: "error" | "disabled" | null
   /**
    * The label text to display if not using `labelTx`.
    */

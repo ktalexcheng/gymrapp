@@ -5,10 +5,10 @@ export class RepositoryError extends Error {
   }
 }
 
-export interface IBaseRepository<T> {
+export interface BaseRepository<T> {
   get(id: string): Promise<T>
   getMany?(filter: any): Promise<T[]>
-  create(data: Partial<T>): Promise<void>
-  update(id: string, data: Partial<T>): Promise<void>
-  delete(id: string): Promise<void>
+  create(data: Partial<T>): Promise<any>
+  update(id: string, data: Partial<T>): Promise<any>
+  delete(id: string): Promise<any>
 }

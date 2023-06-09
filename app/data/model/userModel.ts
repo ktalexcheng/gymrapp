@@ -1,22 +1,30 @@
 import { ExerciseSettings } from "./exerciseModel"
 
-export interface IUserPreferences {
+export interface UserPreferences {
   allExerciseSettings?: {
     exerciseId: string
     exerciseSettings: ExerciseSettings
   }[]
 }
 
-export interface IUser {
+export type WorkoutMetadata = Record<
+  string,
+  {
+    endTime: Date
+  }
+>
+
+export interface User {
+  userId?: string
   email: string
   firstName?: string
   lastName?: string
-  userId?: string
   providerId?: string
   photoUrl?: string
-  preferences?: IUserPreferences
+  preferences?: UserPreferences
+  workouts?: WorkoutMetadata
 }
 
-export function isIUser(value: unknown): value is IUser {
-  return value && typeof value === "object" && (value as IUser).email !== undefined
+export function isUser(value: unknown): value is User {
+  return value && typeof value === "object" && (value as User).email !== undefined
 }

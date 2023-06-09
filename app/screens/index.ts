@@ -1,8 +1,6 @@
-export * from "./ActiveWorkout/ActiveWorkoutScreen"
-export * from "./ActiveWorkout/CreateExerciseScreen"
-export * from "./ActiveWorkout/ExercisePickerScreen"
-export * from "./ActiveWorkout/RestTimerScreen"
+export * from "./ActiveWorkout"
 export * from "./ErrorScreen/ErrorBoundary"
+export * from "./Exercise"
 export * from "./FeedScreen"
 export * from "./NewWorkoutScreen"
 // export other screens here

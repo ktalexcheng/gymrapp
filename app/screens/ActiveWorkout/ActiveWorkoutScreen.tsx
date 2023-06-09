@@ -1,4 +1,5 @@
-import { ActivityStackScreenProps } from "app/navigators/ActivityNavigator"
+import { MainStackScreenProps } from "app/navigators"
+import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { observer } from "mobx-react-lite"
 import moment from "moment"
 import React, { FC, useEffect, useState } from "react"
@@ -8,16 +9,25 @@ import { useStores } from "../../stores"
 import { colors, spacing } from "../../theme"
 import { ExerciseEntry } from "./ExerciseEntry"
 import { formatDuration } from "./formatDuration"
+import { useTimeElapsed } from "./useTimeElapsed"
 
 type SaveWorkoutDialogProps = {
   visible: boolean
+  isAllSetsCompleted: boolean
   onSave: () => void
+  onDiscard: () => void
   onCancel: () => void
 }
 
 const SaveWorkoutDialog: FC<SaveWorkoutDialogProps> = function SaveWorkoutDialog(
   props: SaveWorkoutDialogProps,
 ) {
+  const [allSetsCompleted, setAlSetsCompleted] = useState(props.isAllSetsCompleted)
+
+  useEffect(() => {
+    setAlSetsCompleted(props.isAllSetsCompleted)
+  }, [props.visible, props.isAllSetsCompleted])
+
   const $saveDialogContainer: ViewStyle = {
     flex: 1,
     justifyContent: "center",
@@ -49,15 +59,30 @@ const SaveWorkoutDialog: FC<SaveWorkoutDialogProps> = function SaveWorkoutDialog
       onRequestClose={props.onCancel}
     >
       <View style={$saveDialogContainer}>
-        <View style={$saveDialog}>
-          <Text>Confirm save?</Text>
-          <TouchableOpacity onPress={props.onSave}>
-            <Text>Save</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={props.onCancel}>
-            <Text>Cancel</Text>
-          </TouchableOpacity>
-        </View>
+        {allSetsCompleted ? (
+          <View style={$saveDialog}>
+            <Text tx="activeWorkoutScreen.dialogSaveWorkout" />
+            <TouchableOpacity onPress={props.onSave}>
+              <Text tx="activeWorkoutScreen.saveWorkout" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={props.onDiscard}>
+              <Text tx="activeWorkoutScreen.discardWorkout" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={props.onCancel}>
+              <Text tx="activeWorkoutScreen.cancelAction" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={$saveDialog}>
+            <Text tx="activeWorkoutScreen.dialogRemoveIncompletedSets" />
+            <TouchableOpacity onPress={() => setAlSetsCompleted(true)}>
+              <Text tx="activeWorkoutScreen.confirmRemoveIncompletedSets" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={props.onCancel}>
+              <Text tx="activeWorkoutScreen.rejectRemoveIncompletedSets" />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </Modal>
   )
@@ -105,36 +130,14 @@ const RestTimerProgressBar: FC = observer(() => {
   )
 })
 
-interface ActiveWorkoutScreenProps extends ActivityStackScreenProps<"ActiveWorkout"> {}
+interface ActiveWorkoutScreenProps extends MainStackScreenProps<"ActiveWorkout"> {}
 
 export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
   function ActiveWorkoutScreen({ navigation }) {
     const { workoutStore, exerciseStore } = useStores()
     const [showSaveDialog, setShowSaveDialog] = useState(false)
-    const [timeElapsed, setTimeElapsed] = useState("00:00:00")
-
-    useEffect(() => {
-      const updateTimeElapsed = () => {
-        // Update timer
-        const start = moment(workoutStore.startTime)
-        const duration = moment.duration(moment().diff(start))
-        const formatted = formatDuration(duration)
-
-        setTimeElapsed(formatted)
-
-        // Check if rest time is active and update that as well
-        if (workoutStore.restTimeRemaining > 0) {
-          workoutStore.subtractRestTimeRemaining(1)
-        }
-      }
-
-      const intervalId = setInterval(updateTimeElapsed, 1000)
-
-      // Function called when component unmounts
-      return () => {
-        clearInterval(intervalId)
-      }
-    }, [])
+    const timeElapsed = useTimeElapsed()
+    const rootNavigation = useMainNavigation()
 
     function finishWorkout() {
       workoutStore.pauseWorkout()
@@ -143,8 +146,18 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
 
     function saveWorkout() {
       workoutStore.endWorkout()
+      workoutStore.saveWorkout()
       exerciseStore.uploadExerciseSettings()
       setShowSaveDialog(false)
+
+      // TODO: Navigate to workout summary
+      rootNavigation.navigate("HomeTabNavigator")
+    }
+
+    function discardWorkout() {
+      workoutStore.endWorkout()
+      setShowSaveDialog(false)
+      rootNavigation.navigate("HomeTabNavigator")
     }
 
     function cancelEndWorkout() {
@@ -190,13 +203,20 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
         {/* Save workout confirmation dialog */}
         <SaveWorkoutDialog
           visible={showSaveDialog}
+          isAllSetsCompleted={workoutStore.isAllSetsCompleted}
           onSave={saveWorkout}
+          onDiscard={discardWorkout}
           onCancel={cancelEndWorkout}
         />
 
         <RowView style={$workoutHeaderRow}>
           <RowView>
-            <Icon name="chevron-down-outline" color="black" size={30} />
+            <Icon
+              name="chevron-down-outline"
+              color="black"
+              size={30}
+              onPress={() => rootNavigation.navigate("HomeTabNavigator")}
+            />
             <RestTimerProgressBar />
           </RowView>
           <Text tx="activeWorkoutScreen.newActiveWorkoutTitle" preset="bold" />
@@ -215,7 +235,6 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
           <Text text="Metric 3" style={$metric} />
         </RowView>
 
-        {/* TODO: Create reuseable component for exercise */}
         {workoutStore.exercises.map((exercise) => (
           <ExerciseEntry key={exercise.exerciseOrder} {...exercise} />
         ))}

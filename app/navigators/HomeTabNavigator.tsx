@@ -1,16 +1,17 @@
 import { BottomTabScreenProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs"
+import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
 import React, { useState } from "react"
 import { Modal, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Icon, Text } from "../components"
 import { translate } from "../i18n"
-import { FeedScreen, ProfileScreen } from "../screens"
+import { ActiveWorkoutOverlay, FeedScreen, ProfileScreen } from "../screens"
 import { colors, spacing, typography } from "../theme"
 
 export type TabParamList = {
   Feed: undefined
-  ActivityNavigator: undefined
+  NewActivity: undefined
   Profile: undefined
 }
 
@@ -27,85 +28,101 @@ const EmptyActivityScreen = () => {
   return null
 }
 
-export function HomeTabNavigator({ navigation }) {
-  const { bottom } = useSafeAreaInsets()
+// TODO: Create pop up buttons for new activity, new food entry, or new weight entry
+const NewActivityButton = () => {
+  const navigation = useMainNavigation()
+  const [modalVisible, setModalVisible] = useState(false)
+  const $bottomContainerInsets = useSafeAreaInsetsStyle(["bottom"])
 
-  // TODO: Create pop up buttons for new activity, new food entry, or new weight entry
-  const NewActivityButton = () => {
-    const [modalVisible, setModalVisible] = useState(false)
-    const $bottomContainerInsets = useSafeAreaInsetsStyle(["bottom"])
+  function navigateToNewWorkout() {
+    setModalVisible(false)
+    navigation.navigate("NewWorkout")
+  }
 
-    function navigateToNewActivity() {
-      setModalVisible(false)
-      navigation.navigate("ActivityNavigator")
-    }
-
-    return (
-      <>
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={$centerButton}>
-          <Icon name="add" color="white" size={30} />
-          <Text style={$centerButtonLabel}>{translate("tabNavigator.activityTab")}</Text>
-        </TouchableOpacity>
-
-        <Modal
-          transparent={true}
-          visible={modalVisible}
-          animationType="slide"
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <TouchableOpacity
-            style={[$bottomContainer, $bottomContainerInsets]}
-            onPress={() => setModalVisible(false)}
-          >
-            <TouchableOpacity style={$modalView} activeOpacity={1} onPress={navigateToNewActivity}>
-              <Text tx="tabNavigator.startWorkout" />
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </Modal>
-      </>
-    )
+  function navigateToExerciseManager() {
+    setModalVisible(false)
+    navigation.navigate("ExerciseManager")
   }
 
   return (
-    <BottomTab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarHideOnKeyboard: true,
-        tabBarStyle: [$tabBar, { height: bottom + 60 }],
-        tabBarActiveTintColor: colors.text,
-        tabBarInactiveTintColor: colors.text,
-        tabBarLabelStyle: $tabBarLabel,
-        tabBarItemStyle: $tabBarItem,
-      }}
-    >
-      <BottomTab.Screen
-        name="Feed"
-        component={FeedScreen}
-        options={{
-          tabBarLabel: translate("tabNavigator.feedTab"),
-          tabBarIcon: ({ focused }) => (
-            <Icon name="people" color={focused && colors.tint} size={20} />
-          ),
+    <>
+      <TouchableOpacity onPress={() => setModalVisible(true)} style={$centerButton}>
+        <Icon name="add" color="white" size={30} />
+        <Text style={$centerButtonLabel}>{translate("tabNavigator.activityTab")}</Text>
+      </TouchableOpacity>
+
+      <Modal
+        transparent={true}
+        visible={modalVisible}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={[$bottomContainer, $bottomContainerInsets]}
+          onPress={() => setModalVisible(false)}
+        >
+          <TouchableOpacity style={$modalButton} activeOpacity={1} onPress={navigateToNewWorkout}>
+            <Text tx="tabNavigator.startWorkout" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={$modalButton}
+            activeOpacity={1}
+            onPress={navigateToExerciseManager}
+          >
+            <Text tx="tabNavigator.manageExercises" />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+    </>
+  )
+}
+
+export function HomeTabNavigator() {
+  const { bottom } = useSafeAreaInsets()
+
+  return (
+    <>
+      <ActiveWorkoutOverlay />
+      <BottomTab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarHideOnKeyboard: true,
+          tabBarStyle: [$tabBar, { height: bottom + 60 }],
+          tabBarActiveTintColor: colors.text,
+          tabBarInactiveTintColor: colors.text,
+          tabBarLabelStyle: $tabBarLabel,
+          tabBarItemStyle: $tabBarItem,
         }}
-      />
-      <BottomTab.Screen
-        name="ActivityNavigator"
-        component={EmptyActivityScreen}
-        options={{
-          tabBarButton: () => <NewActivityButton />,
-        }}
-      />
-      <BottomTab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarLabel: translate("tabNavigator.profileTab"),
-          tabBarIcon: ({ focused }) => (
-            <Icon name="person" color={focused && colors.tint} size={20} />
-          ),
-        }}
-      />
-    </BottomTab.Navigator>
+      >
+        <BottomTab.Screen
+          name="Feed"
+          component={FeedScreen}
+          options={{
+            tabBarLabel: translate("tabNavigator.feedTab"),
+            tabBarIcon: ({ focused }) => (
+              <Icon name="people" color={focused && colors.tint} size={20} />
+            ),
+          }}
+        />
+        <BottomTab.Screen
+          name="NewActivity"
+          component={EmptyActivityScreen}
+          options={{
+            tabBarButton: () => <NewActivityButton />,
+          }}
+        />
+        <BottomTab.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{
+            tabBarLabel: translate("tabNavigator.profileTab"),
+            tabBarIcon: ({ focused }) => (
+              <Icon name="person" color={focused && colors.tint} size={20} />
+            ),
+          }}
+        />
+      </BottomTab.Navigator>
+    </>
   )
 }
 
@@ -142,7 +159,7 @@ const $centerButtonLabel: TextStyle = {
   lineHeight: 16,
 }
 
-const $modalView: ViewStyle = {
+const $modalButton: ViewStyle = {
   margin: 20,
   backgroundColor: "white",
   borderRadius: 20,
