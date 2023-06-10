@@ -147,7 +147,7 @@ const $centerButton: ViewStyle = {
   height: 80,
   width: 80,
   borderRadius: 80,
-  backgroundColor: colors.actionBackground,
+  backgroundColor: colors.actionable,
   alignItems: "center",
   justifyContent: "center",
 }

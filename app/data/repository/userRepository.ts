@@ -19,6 +19,25 @@ export class UserRepository implements BaseRepository<User> {
     return userSnapshot
   }
 
+  get userId(): string {
+    return this.#userId
+  }
+
+  set userId(_: string) {
+    console.warn(
+      "Do not manually set userId. This should be done automatically with the get() method.",
+    )
+  }
+
+  get user(): User {
+    return this.#user
+  }
+
+  set user(user: User) {
+    this.#user = user
+    this.update()
+  }
+
   get userExerciseSettings(): {
     exerciseId: string
     exerciseSettings: ExerciseSettings
@@ -46,6 +65,7 @@ export class UserRepository implements BaseRepository<User> {
       this.#user.preferences = {}
     }
     this.#user.preferences.allExerciseSettings = allExerciseSettings
+    this.update()
   }
 
   get userWorkouts(): WorkoutMetadata {
@@ -70,6 +90,7 @@ export class UserRepository implements BaseRepository<User> {
     Object.keys(workoutMeta).forEach((k) => {
       this.#user.workouts[k] = workoutMeta[k]
     })
+    this.update()
   }
 
   async get(userId = this.#userId): Promise<User> {
@@ -80,6 +101,7 @@ export class UserRepository implements BaseRepository<User> {
     const data = snapshot.data()
     this.#user = {
       userId,
+      privateAccount: data.privateAccount,
       firstName: data.firstName,
       lastName: data.lastName,
       preferences: data.preferences,

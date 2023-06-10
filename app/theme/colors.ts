@@ -82,9 +82,9 @@ export const colors = {
    */
   errorBackground: palette.angry100,
   /**
-   * Action background
+   * Actionable
    */
-  actionBackground: palette.primary600,
+  actionable: palette.primary600,
   /**
    * Disabled
    */

@@ -28,9 +28,13 @@ type Storage = typeof storage
  */
 export const navigationRef = createNavigationContainerRef<AppStackParamList>()
 
-export const useAuthNavigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>
+export function useAuthNavigation() {
+  return useNavigation<NativeStackNavigationProp<AuthStackParamList>>()
+}
 
-export const useMainNavigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>
+export function useMainNavigation() {
+  return useNavigation<NativeStackNavigationProp<MainStackParamList>>()
+}
 
 /**
  * Gets the current screen from any navigation state.

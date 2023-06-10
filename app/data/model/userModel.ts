@@ -14,12 +14,19 @@ export type WorkoutMetadata = Record<
   }
 >
 
-export interface User {
-  userId?: string
+export interface UnauthorizedUser {
   email: string
   firstName?: string
   lastName?: string
-  providerId?: string
+  privateAccount?: boolean
+}
+
+export interface User extends UnauthorizedUser {
+  firstName: string
+  lastName: string
+  privateAccount: boolean
+  userId: string
+  providerId: string
   photoUrl?: string
   preferences?: UserPreferences
   workouts?: WorkoutMetadata

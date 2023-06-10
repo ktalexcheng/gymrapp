@@ -1,4 +1,3 @@
-import { User } from "app/data/model"
 import { useAuthNavigation } from "app/navigators/navigationUtilities"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useMemo, useRef, useState } from "react"
@@ -34,11 +33,8 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
     setIsSubmitted(true)
     setAttemptsCount(attemptsCount + 1)
 
-    const loginUser: User = {
-      email: loginEmail,
-    }
-    authStore.setUser(loginUser)
-    authStore.setPassword(loginPassword)
+    authStore.setLoginEmail(loginEmail)
+    authStore.setLoginPassword(loginPassword)
 
     if (authStore.validationError) return
 

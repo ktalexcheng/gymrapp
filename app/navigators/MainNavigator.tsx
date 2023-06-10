@@ -1,4 +1,6 @@
+import firestore from "@react-native-firebase/firestore"
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
+import { User } from "app/data/model"
 import {
   ActiveWorkoutScreen,
   CreateExerciseScreen,
@@ -6,8 +8,10 @@ import {
   ExercisePickerScreen,
   NewWorkoutScreen,
   RestTimerScreen,
+  UserSettingsScreen,
 } from "app/screens"
-import React from "react"
+import { useStores } from "app/stores"
+import React, { useEffect } from "react"
 import { HomeTabNavigator } from "./HomeTabNavigator"
 
 export type MainStackParamList = {
@@ -18,6 +22,7 @@ export type MainStackParamList = {
   CreateExercise: undefined
   RestTimer: undefined
   ExerciseManager: undefined
+  UserSettings: undefined
 }
 
 export type MainStackScreenProps<T extends keyof MainStackParamList> = NativeStackScreenProps<
@@ -28,6 +33,20 @@ export type MainStackScreenProps<T extends keyof MainStackParamList> = NativeSta
 const MainStack = createNativeStackNavigator<MainStackParamList>()
 
 export function MainNavigator() {
+  const { authenticationStore: authStore } = useStores()
+
+  // Listen to database update
+  useEffect(() => {
+    const userSubscriber = firestore()
+      .collection("users")
+      .doc(authStore.firebaseUser.uid)
+      .onSnapshot((snapshot) => {
+        authStore.setUser(snapshot.data() as User)
+      })
+
+    return () => userSubscriber()
+  }, [])
+
   return (
     <MainStack.Navigator
       screenOptions={{ headerShown: false }}
@@ -59,6 +78,11 @@ export function MainNavigator() {
         name="ExerciseManager"
         options={{ headerShown: true }}
         component={ExerciseManagerScreen}
+      />
+      <MainStack.Screen
+        name="UserSettings"
+        options={{ headerShown: true }}
+        component={UserSettingsScreen}
       />
     </MainStack.Navigator>
   )

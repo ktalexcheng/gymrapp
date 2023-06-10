@@ -100,6 +100,8 @@ const WorkoutStoreModel = types
         })
 
         const workoutId = yield getEnv<RootStoreDependencies>(self).workoutRepository.create({
+          byUser: getEnv<RootStoreDependencies>(self).userRepository.user.userId,
+          privateUser: getEnv<RootStoreDependencies>(self).userRepository.user.privateAccount,
           startTime: self.startTime as Date,
           endTime: self.endTime as Date,
           exercises: self.exercises,
@@ -110,7 +112,6 @@ const WorkoutStoreModel = types
             endTime: self.endTime,
           },
         }
-        yield getEnv<RootStoreDependencies>(self).userRepository.update()
         self.resetWorkout()
       } catch (error) {
         console.error("WorkoutStore().saveWorkout().error:", error)

@@ -3,6 +3,8 @@ import { GoogleSignin } from "@react-native-google-signin/google-signin"
 import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
 import { User, isUser } from "../data/model"
 import { Env } from "../utils/expo"
+import { RootStoreDependencies } from "./helpers/useStores"
+import { withSetPropAction } from "./helpers/withSetPropAction"
 
 function snapshotToType<T>(value: string): T {
   if (value) {
@@ -83,6 +85,7 @@ function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.User
   // Create user profile
   const newUser: User = {
     userId: firebaseUserCred.user.uid,
+    privateAccount: true,
     email: firebaseUserCred.user.email,
     firstName: firebaseUserCred.additionalUserInfo?.profile?.given_name ?? "",
     lastName: firebaseUserCred.additionalUserInfo?.profile?.family_name ?? "",
@@ -98,9 +101,11 @@ export const AuthenticationStoreModel = types
   .props({
     user: UserType,
     firebaseUser: FirebaseUserType,
+    isLoadingProfile: true,
   })
   .volatile((_) => ({
-    password: "",
+    loginEmail: "",
+    loginPassword: "",
     authError: "",
   }))
   .views((self) => ({
@@ -115,22 +120,39 @@ export const AuthenticationStoreModel = types
       if (self.user.email.length < 6) return AuthStoreError.EmailLengthError
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(self.user.email))
         return AuthStoreError.EmailInvalidError
-      if (self.password.length === 0) return AuthStoreError.PasswordMissingError
+      if (self.loginPassword.length === 0) return AuthStoreError.PasswordMissingError
 
       return null
     },
+    get displayName() {
+      if (self.firebaseUser.displayName) {
+        return self.firebaseUser.displayName
+      } else if (self.user.firstName && self.user.lastName) {
+        return `${self.user.firstName} ${self.user.lastName}`
+      }
+
+      console.warn("User display name not available. This should not be possible.")
+      return self.firebaseUser.email
+    },
   }))
+  .actions(withSetPropAction)
   .actions((self) => ({
     setFirebaseUser(firebaseUser: FirebaseAuthTypes.User) {
       if (!firebaseUser) throw new Error("AuthenticationStore.setFirebaseUser failed")
       self.firebaseUser = firebaseUser
-      // getEnv(self).userRepository.setUserId(firebaseUser.uid)
     },
     setUser(user: User) {
       self.user = user
     },
-    setPassword(password: string) {
-      self.password = password
+    setLoginEmail(email: string) {
+      self.loginEmail = email
+    },
+    setLoginPassword(password: string) {
+      self.loginPassword = password
+    },
+    setPrivateAccount(isPrivate: boolean) {
+      self.user.privateAccount = isPrivate
+      getEnv<RootStoreDependencies>(self).userRepository.user = self.user
     },
     invalidateSession() {
       self.firebaseUser = undefined
@@ -171,16 +193,32 @@ export const AuthenticationStoreModel = types
   }))
   .actions((self) => ({
     setUserWithFirebaseUser(firebaseUser: FirebaseAuthTypes.User) {
+      self.setProp("isLoadingProfile", true)
+
       const uid = firebaseUser.uid
-      // getEnv(self).userRepository.setUserId(uid)
-      getEnv(self).userRepository.get(uid).then(self.setUser).catch(console.error)
-      self.setFirebaseUser(firebaseUser)
+      getEnv(self)
+        .userRepository.get(uid)
+        .then((user) => {
+          self.setUser(user)
+          self.setFirebaseUser(firebaseUser)
+
+          self.setProp("isLoadingProfile", false)
+        })
+        .catch(console.error)
     },
     setUserWithFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.UserCredential) {
+      self.setProp("isLoadingProfile", true)
+
       const uid = firebaseUserCred.user.uid
-      // getEnv(self).userRepository.setUserId(uid)
-      getEnv(self).userRepository.get(uid).then(self.setUser).catch(console.error)
-      self.setFirebaseUser(firebaseUserCred.user)
+      getEnv(self)
+        .userRepository.get(uid)
+        .then((user) => {
+          self.setUser(user)
+          self.setFirebaseUser(firebaseUserCred.user)
+
+          self.setProp("isLoadingProfile", false)
+        })
+        .catch(console.error)
     },
   }))
   // Utility actions are defined first to be used in async actions below
@@ -201,25 +239,35 @@ export const AuthenticationStoreModel = types
     signInWithEmail() {
       if (self.validationError) return
 
+      self.setProp("isLoadingProfile", true)
       auth()
-        .signInWithEmailAndPassword(self.user.email, self.password)
-        .then(self.setUserWithFirebaseUserCred)
+        .signInWithEmailAndPassword(self.loginEmail, self.loginPassword)
+        .then((userCred) => {
+          self.setUserWithFirebaseUserCred(userCred)
+
+          self.setProp("isLoadingProfile", false)
+        })
         .catch(self.catchAuthError)
     },
     signUpWithEmail() {
       if (self.validationError) return
 
+      self.setProp("isLoadingProfile", true)
       auth()
-        .createUserWithEmailAndPassword(self.user.email, self.password)
+        .createUserWithEmailAndPassword(self.user.email, self.loginPassword)
         .then((userCred) => {
           const user = createUserFromFirebaseUserCred(userCred)
           getEnv(self).userRepository.create(user).catch(console.error)
           self.setUser(user)
           self.setFirebaseUser(userCred.user)
+
+          self.setProp("isLoadingProfile", false)
         })
         .catch(self.catchAuthError)
     },
     signInWithGoogle: flow(function* () {
+      self.setProp("isLoadingProfile", true)
+
       try {
         // Check if your device supports Google Play
         yield GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true })
@@ -238,6 +286,8 @@ export const AuthenticationStoreModel = types
               getEnv(self).userRepository.create(user).catch(console.error)
             }
             self.setUser(user)
+
+            self.setProp("isLoadingProfile", false)
           })
       } catch (error) {
         self.catchAuthError(error)

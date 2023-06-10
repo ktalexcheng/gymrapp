@@ -96,12 +96,12 @@ const RestTimerProgressBar: FC = observer(() => {
   const $timeProgressContainer: ViewStyle = {
     width: progressBarWidth,
     borderWidth: 1,
-    borderColor: colors.actionBackground,
+    borderColor: colors.actionable,
   }
 
   const $timeProgressRemainingContainer: ViewStyle = {
     width: Math.floor((workoutStore.restTimeRemaining / workoutStore.restTime) * 100) + "%",
-    backgroundColor: colors.actionBackground,
+    backgroundColor: colors.actionable,
   }
 
   const $restTimeDisplayView: ViewStyle | TextStyle = {
@@ -178,7 +178,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
     }
 
     const $finishWorkoutButton: TextStyle = {
-      color: colors.actionBackground,
+      color: colors.actionable,
     }
 
     const $metricsRow: ViewStyle = {

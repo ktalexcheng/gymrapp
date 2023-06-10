@@ -14,7 +14,6 @@ export class WorkoutRepository implements BaseRepository<NewWorkout> {
   }
 
   async create(workout: NewWorkout): Promise<string> {
-    console.debug("WorkoutRepository().create().workout:", workout)
     const workoutRef = await firestore().collection(this.#collectionName).add(workout)
 
     return workoutRef.id

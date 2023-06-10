@@ -53,6 +53,14 @@ const en = {
     firstNameLabel: "First name",
     lastNameLabel: "Last name",
   },
+  profileScreen: {
+    userSettings: "Settings",
+  },
+  userSettingsScreen: {
+    preferencesSectionLabel: "Preferences",
+    privateAccountTitle: "Private account",
+    privateAccountDescription: "Private account activity is only visible to friends",
+  },
   newActivityScreen: {
     startNewWorkoutText: "Start new workout",
     nextWorkoutHeading: "Next workout in program",

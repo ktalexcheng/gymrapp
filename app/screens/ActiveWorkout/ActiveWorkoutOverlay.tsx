@@ -31,6 +31,6 @@ export const ActiveWorkoutOverlay = () => {
 
 const $activeActivityOverlay: ViewStyle = {
   zIndex: 1,
-  backgroundColor: colors.actionBackground,
+  backgroundColor: colors.actionable,
   justifyContent: "center",
 }

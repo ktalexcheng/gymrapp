@@ -7,7 +7,7 @@ import {
   TextField,
   TextFieldAccessoryProps,
 } from "app/components"
-import { User } from "app/data/model"
+import { UnauthorizedUser } from "app/data/model"
 import { AuthStackScreenProps } from "app/navigators"
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
@@ -36,13 +36,13 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
 
   function createNewAccount() {
     setIsSubmitted(true)
-    const newUser: User = {
+    const newUser: UnauthorizedUser = {
       firstName: newFirstName,
       lastName: newLastName,
       email: newEmail,
     }
     authStore.setUser(newUser)
-    authStore.setPassword(newPassword)
+    authStore.setLoginPassword(newPassword)
 
     if (authStore.validationError) return
 

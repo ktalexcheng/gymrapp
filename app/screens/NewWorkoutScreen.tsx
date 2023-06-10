@@ -141,7 +141,7 @@ const $container: ViewStyle = {
 
 const $pressableText: TextStyle = {
   textAlign: "right",
-  color: colors.actionBackground,
+  color: colors.actionable,
 }
 
 const $heading: TextStyle = {

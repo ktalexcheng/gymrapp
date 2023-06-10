@@ -115,7 +115,6 @@ export const ExerciseStoreModel = types
 
         getEnv<RootStoreDependencies>(self).userRepository.userExerciseSettings =
           allExerciseSettings
-        yield getEnv(self).userRepository.update()
       } catch (error) {
         console.error("ExerciseStore().uploadExerciseSettings().error:", error)
       }
