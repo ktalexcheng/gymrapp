@@ -44,13 +44,13 @@ const SwitchSettingTile: React.FC<SwitchSettingTileProps> = (props: SwitchSettin
 }
 
 export function UserSettingsScreen() {
-  const { authenticationStore: authStore } = useStores()
+  const { authenticationStore: authStore, userStore } = useStores()
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const onCloseAlert = () => setShowDeleteAlert(false)
   const cancelDeleteRef = useRef(null)
 
   const togglePrivateAccount = (newState: boolean) => {
-    authStore.setPrivateAccount(newState)
+    userStore.setPrivateAccount(newState)
   }
 
   return (
@@ -58,7 +58,7 @@ export function UserSettingsScreen() {
       <RowView justifyContent="center">
         <View style={$userHeaderContainer}>
           <Image source={tempUserAvatar} style={$userAvatar} />
-          <Text preset="subheading">{authStore.displayName}</Text>
+          <Text preset="subheading">{userStore.displayName}</Text>
         </View>
       </RowView>
 
@@ -67,7 +67,7 @@ export function UserSettingsScreen() {
         <SwitchSettingTile
           titleTx="userSettingsScreen.privateAccountTitle"
           descriptionTx="userSettingsScreen.privateAccountDescription"
-          initialState={!!authStore.user.privateAccount}
+          initialState={userStore.isPrivate}
           isOffIcon={<Icon name="lock-open-outline" size={30} />}
           isOnIcon={<Icon name="lock-closed" size={30} />}
           onToggle={togglePrivateAccount}

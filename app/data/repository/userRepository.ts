@@ -93,6 +93,11 @@ export class UserRepository implements BaseRepository<User> {
     this.update()
   }
 
+  logout(): void {
+    this.#userId = undefined
+    this.#user = undefined
+  }
+
   async get(userId = this.#userId): Promise<User> {
     this.#userId = userId
     const snapshot = await this._getUserSnapshot()
@@ -114,8 +119,9 @@ export class UserRepository implements BaseRepository<User> {
   }
 
   async create(user: User): Promise<void> {
-    const snapshot = await this._getUserSnapshot()
+    this.#userId = user.userId
 
+    const snapshot = await this._getUserSnapshot()
     if (snapshot.exists) throw new RepositoryError("(create) User already exists")
 
     firestore().collection(this.#collectionName).doc(this.#userId).set(user)
@@ -123,7 +129,6 @@ export class UserRepository implements BaseRepository<User> {
 
   async update(userId = this.#userId, user = this.#user): Promise<void> {
     const snapshot = await this._getUserSnapshot()
-
     if (!snapshot.exists) throw new RepositoryError("(update) User does not exist")
 
     // const payload = user
@@ -134,9 +139,9 @@ export class UserRepository implements BaseRepository<User> {
 
   async delete(userId = this.#userId): Promise<void> {
     const snapshot = await this._getUserSnapshot()
-
     if (!snapshot.exists) throw new RepositoryError("(delete) User does not exist")
 
     await firestore().collection(this.#collectionName).doc(userId).delete()
+    this.logout()
   }
 }

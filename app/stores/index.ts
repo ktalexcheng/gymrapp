@@ -1,4 +1,5 @@
 export * from "./RootStore"
+export * from "./UserStore"
 export * from "./WorkoutStore"
 export * from "./helpers/getRootStore"
 export * from "./helpers/setupRootStore"

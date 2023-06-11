@@ -135,10 +135,10 @@ const WorkoutStoreModel = types
       self.exercises[targetExerciseOrder].setsPerformed.push(newSet)
     },
     addRestTimeRemaining(seconds: number) {
-      self.setProp("restTimeRemaining", self.restTimeRemaining + seconds)
+      self.restTimeRemaining += seconds
     },
     subtractRestTimeRemaining(seconds: number) {
-      self.setProp("restTimeRemaining", self.restTimeRemaining - seconds)
+      self.restTimeRemaining -= seconds
     },
   }))
 

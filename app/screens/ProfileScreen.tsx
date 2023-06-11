@@ -13,13 +13,13 @@ const tempUserAvatar = require("../../assets/images/app-icon-all.png")
 interface ProfileScreenProps extends NativeStackScreenProps<TabScreenProps<"Profile">> {}
 
 export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileScreen() {
-  const { authenticationStore: authStore } = useStores()
+  const { userStore } = useStores()
   const [isLoading, setIsLoading] = useState(true)
   const mainNavigation = useMainNavigation()
 
   useEffect(() => {
-    setIsLoading(authStore.isLoadingProfile)
-  }, [authStore.isLoadingProfile])
+    setIsLoading(userStore.isLoading)
+  }, [userStore.isLoading])
 
   return isLoading ? (
     <Text>Loading</Text>
@@ -28,7 +28,7 @@ export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileSc
       <RowView style={$userSettingsIcon}>
         <RowView style={$headerRow}>
           <Image source={tempUserAvatar} style={$userAvatar} />
-          <Text style={$userDisplayName}>{authStore.displayName}</Text>
+          <Text style={$userDisplayName}>{userStore.displayName}</Text>
         </RowView>
         <Icon
           name="settings-outline"
@@ -37,6 +37,8 @@ export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileSc
           size={32}
         />
       </RowView>
+
+      <Text preset="subheading" tx="profileScreen.userActivities" />
     </Screen>
   )
 })

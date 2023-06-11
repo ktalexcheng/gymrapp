@@ -27,7 +27,7 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
     authStore.resetAuthError()
   }, [])
 
-  const error = isSubmitted ? authStore.validationError : ""
+  const error = isSubmitted ? authStore.signInCredentialsError : ""
 
   function signIn() {
     setIsSubmitted(true)
@@ -36,7 +36,7 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
     authStore.setLoginEmail(loginEmail)
     authStore.setLoginPassword(loginPassword)
 
-    if (authStore.validationError) return
+    if (authStore.signInCredentialsError) return
 
     // Make a request to your server to get an authentication token.
     // If successful, reset the fields and set the token.

@@ -52,14 +52,19 @@ export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStack
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = observer(function AppStack() {
-  const { authenticationStore: authStore } = useStores()
+  const { authenticationStore: authStore, userStore } = useStores()
 
   // Set an initializing state whilst Firebase connects
   const [initializing, setInitializing] = useState(true)
 
   // Handle user state changes
-  function onAuthStateChanged(user) {
-    if (user) authStore.setUserWithFirebaseUser(user)
+  async function onAuthStateChanged(user) {
+    // Update authentication and user data
+    if (user) {
+      authStore.setFirebaseUser(user)
+      await userStore.getProfile(user.uid)
+    }
+
     if (initializing) setInitializing(false)
   }
 

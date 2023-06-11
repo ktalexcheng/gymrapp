@@ -55,11 +55,13 @@ const en = {
   },
   profileScreen: {
     userSettings: "Settings",
+    userActivities: "Activities",
   },
   userSettingsScreen: {
     preferencesSectionLabel: "Preferences",
     privateAccountTitle: "Private account",
-    privateAccountDescription: "Private account activity is only visible to friends",
+    privateAccountDescription:
+      "Private account activity is only visible to friends. Activities must be performed with a public profile to participate in the leaderboard.",
   },
   newActivityScreen: {
     startNewWorkoutText: "Start new workout",

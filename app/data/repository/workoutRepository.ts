@@ -1,16 +1,30 @@
-import firestore from "@react-native-firebase/firestore"
-import { NewWorkout } from "../model/workoutModel"
+import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
+import { NewWorkout, Workout } from "../model/workoutModel"
 import { BaseRepository } from "./baseRepository"
 
-export class WorkoutRepository implements BaseRepository<NewWorkout> {
+export class WorkoutRepository implements BaseRepository<NewWorkout | Workout> {
   #collectionName = "workouts"
 
-  get(): Promise<NewWorkout> {
+  get(): Promise<Workout> {
     throw new Error("Method not implemented.")
   }
 
-  getMany?(): Promise<NewWorkout[]> {
-    throw new Error("Method not implemented.")
+  async getMany?(workoutIds: string[]): Promise<Workout[]> {
+    const workoutRef = await firestore()
+      .collection(this.#collectionName)
+      .where(FirebaseFirestoreTypes.FieldPath.documentId(), "in", workoutIds)
+      .get()
+
+    const workouts: Workout[] = []
+    if (!workoutRef.empty) {
+      workoutRef.forEach((doc) => {
+        workouts.push({
+          ...doc.data(),
+        } as Workout)
+      })
+    }
+
+    return workouts
   }
 
   async create(workout: NewWorkout): Promise<string> {

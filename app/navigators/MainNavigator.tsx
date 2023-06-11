@@ -33,7 +33,7 @@ export type MainStackScreenProps<T extends keyof MainStackParamList> = NativeSta
 const MainStack = createNativeStackNavigator<MainStackParamList>()
 
 export function MainNavigator() {
-  const { authenticationStore: authStore } = useStores()
+  const { authenticationStore: authStore, userStore } = useStores()
 
   // Listen to database update
   useEffect(() => {
@@ -41,7 +41,7 @@ export function MainNavigator() {
       .collection("users")
       .doc(authStore.firebaseUser.uid)
       .onSnapshot((snapshot) => {
-        authStore.setUser(snapshot.data() as User)
+        userStore.setProp("user", snapshot.data() as User)
       })
 
     return () => userSubscriber()
