@@ -1,6 +1,6 @@
 import auth from "@react-native-firebase/auth"
 import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
-import { ExerciseSettings, User, WorkoutMetadata } from "../model"
+import { ExerciseSettings, User, WorkoutMeta } from "../model"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class UserRepository implements BaseRepository<User> {
@@ -68,27 +68,27 @@ export class UserRepository implements BaseRepository<User> {
     this.update()
   }
 
-  get userWorkouts(): WorkoutMetadata {
+  get userWorkoutsMeta(): Record<string, WorkoutMeta> {
     if (!this.#user) {
       console.error("UserRepository.get userWorkouts() error: No user set")
       return undefined
     }
 
-    return this.#user.workouts
+    return this.#user.workoutsMeta
   }
 
-  set userWorkouts(workoutMeta: WorkoutMetadata) {
+  set userWorkoutsMeta(workoutsMeta: Record<string, WorkoutMeta>) {
     if (!this.#user) {
       console.error("UserRepository.set userWorkouts() error: No user set")
       return
     }
 
-    if (this.#user.workouts === undefined) {
-      this.#user.workouts = {}
+    if (this.#user.workoutsMeta === undefined) {
+      this.#user.workoutsMeta = {}
     }
 
-    Object.keys(workoutMeta).forEach((k) => {
-      this.#user.workouts[k] = workoutMeta[k]
+    Object.keys(workoutsMeta).forEach((k) => {
+      this.#user.workoutsMeta[k] = workoutsMeta[k]
     })
     this.update()
   }
@@ -134,7 +134,7 @@ export class UserRepository implements BaseRepository<User> {
     // const payload = user
     // Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k])
 
-    await firestore().collection(this.#collectionName).doc(userId).update(user)
+    await firestore().collection(this.#collectionName).doc(userId).update(user).catch(console.error)
   }
 
   async delete(userId = this.#userId): Promise<void> {

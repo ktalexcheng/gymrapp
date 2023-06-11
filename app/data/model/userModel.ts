@@ -1,3 +1,4 @@
+import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { ExerciseSettings } from "./exerciseModel"
 
 export interface UserPreferences {
@@ -7,12 +8,9 @@ export interface UserPreferences {
   }[]
 }
 
-export type WorkoutMetadata = Record<
-  string,
-  {
-    endTime: Date
-  }
->
+export interface WorkoutMeta {
+  endTime: Date | FirebaseFirestoreTypes.Timestamp
+}
 
 export interface UnauthorizedUser {
   email: string
@@ -29,7 +27,7 @@ export interface User extends UnauthorizedUser {
   providerId: string
   photoUrl?: string
   preferences?: UserPreferences
-  workouts?: WorkoutMetadata
+  workoutsMeta?: Record<string, WorkoutMeta>
 }
 
 export function isUser(value: unknown): value is User {

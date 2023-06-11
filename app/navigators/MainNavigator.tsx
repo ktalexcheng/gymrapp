@@ -42,9 +42,14 @@ export function MainNavigator() {
       .doc(authStore.firebaseUser.uid)
       .onSnapshot((snapshot) => {
         userStore.setProp("user", snapshot.data() as User)
-      })
+        // Workout metadata is written to the 'users' collection document
+        // so it will trigger an event when a new workout is saved
+        userStore.getWorkouts()
+      }, console.error)
 
-    return () => userSubscriber()
+    return () => {
+      userSubscriber()
+    }
   }, [])
 
   return (

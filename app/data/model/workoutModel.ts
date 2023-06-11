@@ -1,13 +1,19 @@
+import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { NewExercisePerformed } from "./exerciseModel"
 
 export interface NewWorkout {
   byUser: string
   privateUser: boolean
-  startTime: Date | number
-  endTime: Date | number
+  startTime: Date | FirebaseFirestoreTypes.Timestamp
+  endTime: Date | FirebaseFirestoreTypes.Timestamp
   exercises: NewExercisePerformed[]
+  workoutTitle: string
 }
 
 export interface Workout extends NewWorkout {
   workoutId: string
+}
+
+export function isWorkout(value: unknown): value is Workout {
+  return value && typeof value === "object" && (value as Workout).workoutId !== undefined
 }

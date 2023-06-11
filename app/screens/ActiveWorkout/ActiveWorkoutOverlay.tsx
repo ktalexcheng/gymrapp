@@ -21,7 +21,7 @@ export const ActiveWorkoutOverlay = () => {
     workoutStore.inProgress && (
       <TouchableOpacity onPress={goToActiveWorkout}>
         <View style={[$containerInsets, $activeActivityOverlay]}>
-          <Text preset="subheading" tx="activeWorkoutScreen.newActiveWorkoutTitle" />
+          <Text preset="subheading">{workoutStore.workoutTitle}</Text>
           <Text text={timeElapsed} />
         </View>
       </TouchableOpacity>

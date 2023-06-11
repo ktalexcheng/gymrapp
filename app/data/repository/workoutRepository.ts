@@ -1,4 +1,4 @@
-import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
+import firestore from "@react-native-firebase/firestore"
 import { NewWorkout, Workout } from "../model/workoutModel"
 import { BaseRepository } from "./baseRepository"
 
@@ -12,13 +12,14 @@ export class WorkoutRepository implements BaseRepository<NewWorkout | Workout> {
   async getMany?(workoutIds: string[]): Promise<Workout[]> {
     const workoutRef = await firestore()
       .collection(this.#collectionName)
-      .where(FirebaseFirestoreTypes.FieldPath.documentId(), "in", workoutIds)
+      .where(firestore.FieldPath.documentId(), "in", workoutIds)
       .get()
 
     const workouts: Workout[] = []
     if (!workoutRef.empty) {
       workoutRef.forEach((doc) => {
         workouts.push({
+          workoutId: doc.id,
           ...doc.data(),
         } as Workout)
       })

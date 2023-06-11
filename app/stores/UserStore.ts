@@ -1,49 +1,24 @@
+import { User, Workout, isUser, isWorkout } from "app/data/model"
 import { flow, getEnv, types } from "mobx-state-tree"
-import { User, isUser } from "../data/model"
+import { createCustomType } from "./helpers/createCustomType"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
-function snapshotToType<T>(value: string): T {
-  if (value) {
-    const obj = JSON.parse(value)
-    return {
-      ...obj,
-    } as T
-  } else {
-    return undefined
-  }
-}
-
-function typeToSnapshot<T>(value: T): string {
-  if (value) {
-    return JSON.stringify(value)
-  } else {
-    return undefined
-  }
-}
-
-const UserType = types.custom<any, User>({
-  name: "User",
-  fromSnapshot(value: string) {
-    return snapshotToType<User>(value)
-  },
-  toSnapshot(value: User) {
-    return typeToSnapshot<User>(value)
-  },
-  isTargetType(value: any) {
-    return isUser(value)
-  },
-  getValidationMessage(value: any) {
-    if (isUser(value) || value === undefined) return ""
-    return `"${value}" does not look like a User type`
-  },
-})
+const UserType = createCustomType<User>("User", isUser)
+const WorkoutType = createCustomType<Workout>("Workout", isWorkout)
 
 export const UserStoreModel = types
   .model("UserStoreModel")
   .props({
     user: UserType,
+    workouts: types.map(
+      types.model({
+        workoutId: types.identifier,
+        workout: WorkoutType,
+      }),
+    ),
     isLoading: true,
+    isLoadingWorkouts: true,
   })
   .views((self) => ({
     get displayName() {
@@ -62,12 +37,50 @@ export const UserStoreModel = types
   .actions((self) => ({
     getProfile: flow(function* (userId: string) {
       self.isLoading = true
-      const user = yield getEnv<RootStoreDependencies>(self).userRepository.get(userId)
-      self.user = user
-      self.isLoading = false
+
+      try {
+        const user = yield getEnv<RootStoreDependencies>(self).userRepository.get(userId)
+        self.user = user
+        self.isLoading = false
+      } catch (e) {
+        console.error(e)
+      }
+    }),
+    getWorkouts: flow(function* () {
+      self.isLoadingWorkouts = true
+
+      if (!self.user.workoutsMeta) {
+        console.warn("No workouts found for user")
+        self.setProp("isLoadingWorkouts", false)
+        return
+      }
+
+      const workoutIds = Object.keys(self.user.workoutsMeta)
+      const workouts: Workout[] = yield getEnv<RootStoreDependencies>(
+        self,
+      ).workoutRepository.getMany(workoutIds)
+
+      if (!workouts) {
+        console.error("UserStore() unable to get workouts")
+        self.setProp("isLoadingWorkouts", false)
+        return
+      }
+
+      workouts.forEach((w) => {
+        self.workouts.put({
+          workoutId: w.workoutId,
+          workout: w,
+        })
+      })
+      self.setProp("isLoadingWorkouts", false)
     }),
     setPrivateAccount(isPrivate: boolean) {
       self.user.privateAccount = isPrivate
-      getEnv<RootStoreDependencies>(self).userRepository.user = self.user
+
+      try {
+        getEnv<RootStoreDependencies>(self).userRepository.user = self.user
+      } catch (e) {
+        console.error(e)
+      }
     },
   }))

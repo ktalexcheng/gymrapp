@@ -3,6 +3,8 @@ const en = {
     ok: "OK!",
     cancel: "Cancel",
     back: "Back",
+    delete: "Delete",
+    loading: "Loading",
   },
   welcomeScreen: {
     postscript:
@@ -56,17 +58,23 @@ const en = {
   profileScreen: {
     userSettings: "Settings",
     userActivities: "Activities",
+    noActivityhistory: "No activity history",
   },
   userSettingsScreen: {
     preferencesSectionLabel: "Preferences",
     privateAccountTitle: "Private account",
     privateAccountDescription:
       "Private account activity is only visible to friends. Activities must be performed with a public profile to participate in the leaderboard.",
+    deleteAccount: "Delete account",
+    deleteAccountConfirmationMessage:
+      "This will remove all user data. This action cannot be reversed. Are you sure?",
   },
   newActivityScreen: {
     startNewWorkoutText: "Start new workout",
     nextWorkoutHeading: "Next workout in program",
     savedWorkoutHeading: "Saved workouts",
+    resumeWorkoutPromptMessage: "Resume or start new workout?",
+    resumeWorkout: "Resume",
   },
   activeWorkoutScreen: {
     newActiveWorkoutTitle: "New workout",

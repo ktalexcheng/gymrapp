@@ -3,7 +3,7 @@ import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 export interface GymRecord {
   rank: number
   holderUid: string
-  date: Date
+  date: Date | FirebaseFirestoreTypes.Timestamp
   gymId: string
 }
 

@@ -1,33 +1,33 @@
 import React, { FC } from "react"
 import { StyleProp, View, ViewProps, ViewStyle } from "react-native"
 
-interface RowViewProps extends React.PropsWithChildren<ViewProps> {
+interface ColumnViewProps extends React.PropsWithChildren<ViewProps> {
   style?: StyleProp<ViewStyle>
   justifyContent?: ViewStyle["justifyContent"]
   alignItems?: ViewStyle["alignItems"]
 }
 
-export const RowView: FC<RowViewProps> = ({
+export const ColumnView: FC<ColumnViewProps> = ({
   children,
   style,
   justifyContent,
   alignItems,
   ...props
 }) => {
-  const $rowView: ViewStyle = {
-    flexDirection: "row",
+  const $columnView: ViewStyle = {
+    flexDirection: "column",
   }
 
   if (justifyContent) {
-    $rowView.justifyContent = justifyContent
+    $columnView.justifyContent = justifyContent
   }
 
   if (alignItems) {
-    $rowView.alignItems = alignItems
+    $columnView.alignItems = alignItems
   }
 
   return (
-    <View style={[style, $rowView]} {...props}>
+    <View style={[style, $columnView]} {...props}>
       {children}
     </View>
   )

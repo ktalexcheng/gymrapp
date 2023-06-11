@@ -1,7 +1,7 @@
 import { Button, Icon, RowView, Screen, Text } from "app/components"
 import { TxKeyPath } from "app/i18n"
 import { useStores } from "app/stores"
-import { spacing } from "app/theme"
+import { colors, spacing } from "app/theme"
 import { AlertDialog, Button as NBButton } from "native-base"
 import React, { useRef, useState } from "react"
 import { Image, ImageStyle, TouchableOpacity, View, ViewStyle } from "react-native"
@@ -75,7 +75,11 @@ export function UserSettingsScreen() {
       </View>
 
       <Button onPress={authStore.logout}>Logout</Button>
-      <NBButton onPress={() => setShowDeleteAlert(!showDeleteAlert)}>Delete account</NBButton>
+      <Button
+        style={$deleteButton}
+        onPress={() => setShowDeleteAlert(!showDeleteAlert)}
+        tx="userSettingsScreen.deleteAccount"
+      />
       <AlertDialog
         leastDestructiveRef={cancelDeleteRef}
         isOpen={showDeleteAlert}
@@ -83,9 +87,11 @@ export function UserSettingsScreen() {
       >
         <AlertDialog.Content>
           <AlertDialog.CloseButton />
-          <AlertDialog.Header>Delete Customer</AlertDialog.Header>
+          <AlertDialog.Header>
+            <Text tx="userSettingsScreen.deleteAccount" />
+          </AlertDialog.Header>
           <AlertDialog.Body>
-            This will remove all user data. This action cannot be reversed. Are you sure?
+            <Text tx="userSettingsScreen.deleteAccountConfirmationMessage" />
           </AlertDialog.Body>
           <AlertDialog.Footer>
             <NBButton.Group space={2}>
@@ -95,10 +101,10 @@ export function UserSettingsScreen() {
                 onPress={onCloseAlert}
                 ref={cancelDeleteRef}
               >
-                Cancel
+                <Text tx="common.cancel" />
               </NBButton>
               <NBButton colorScheme="danger" onPress={authStore.deleteAccount}>
-                Delete
+                <Text tx="common.delete" />
               </NBButton>
             </NBButton.Group>
           </AlertDialog.Footer>
@@ -121,4 +127,8 @@ const $userAvatar: ImageStyle = {
   height: 100,
   width: 100,
   borderRadius: 100,
+}
+
+const $deleteButton: ViewStyle = {
+  backgroundColor: colors.danger,
 }

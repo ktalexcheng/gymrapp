@@ -89,4 +89,8 @@ export const colors = {
    * Disabled
    */
   disabled: palette.neutral300,
+  /**
+   * Danger
+   */
+  danger: palette.angry500,
 }

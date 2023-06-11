@@ -1,4 +1,5 @@
 import { ExerciseSetType, NewWorkout } from "app/data/model"
+import { translate } from "app/i18n"
 import { SnapshotIn, destroy, flow, getEnv, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
@@ -43,6 +44,7 @@ const WorkoutStoreModel = types
     inProgress: false,
     restTime: 0,
     restTimeRemaining: 0,
+    workoutTitle: translate("activeWorkoutScreen.newActiveWorkoutTitle"),
   })
   .views((self) => ({
     get isAllSetsCompleted() {
@@ -68,6 +70,7 @@ const WorkoutStoreModel = types
       self.restTime = 0
       self.restTimeRemaining = 0
       self.exercises = Exercises.create()
+      self.workoutTitle = translate("activeWorkoutScreen.newActiveWorkoutTitle")
     },
   }))
   .actions((self) => ({
@@ -102,12 +105,13 @@ const WorkoutStoreModel = types
         const workoutId = yield getEnv<RootStoreDependencies>(self).workoutRepository.create({
           byUser: getEnv<RootStoreDependencies>(self).userRepository.user.userId,
           privateUser: getEnv<RootStoreDependencies>(self).userRepository.user.privateAccount,
-          startTime: self.startTime as Date,
-          endTime: self.endTime as Date,
+          startTime: self.startTime,
+          endTime: self.endTime,
           exercises: self.exercises,
+          workoutTitle: self.workoutTitle,
         } as NewWorkout)
 
-        getEnv<RootStoreDependencies>(self).userRepository.userWorkouts = {
+        getEnv<RootStoreDependencies>(self).userRepository.userWorkoutsMeta = {
           [workoutId]: {
             endTime: self.endTime,
           },

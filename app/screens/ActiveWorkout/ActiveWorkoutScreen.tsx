@@ -4,7 +4,7 @@ import { observer } from "mobx-react-lite"
 import moment from "moment"
 import React, { FC, useEffect, useState } from "react"
 import { Modal, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
-import { Icon, RowView, Screen, Text } from "../../components"
+import { Icon, RowView, Screen, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
 import { colors, spacing } from "../../theme"
 import { ExerciseEntry } from "./ExerciseEntry"
@@ -136,10 +136,12 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
   function ActiveWorkoutScreen({ navigation }) {
     const { workoutStore, exerciseStore } = useStores()
     const [showSaveDialog, setShowSaveDialog] = useState(false)
+    const [workoutTitle, setWorkoutTitle] = useState(workoutStore.workoutTitle)
     const timeElapsed = useTimeElapsed()
     const rootNavigation = useMainNavigation()
 
     function finishWorkout() {
+      workoutStore.setProp("workoutTitle", workoutTitle)
       workoutStore.pauseWorkout()
       setShowSaveDialog(true)
     }
@@ -198,6 +200,16 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
       marginTop: spacing.medium,
     }
 
+    const $workoutTitleContainer: ViewStyle = {
+      width: 200,
+      borderWidth: 0,
+    }
+
+    const $workoutTitle: TextStyle = {
+      fontWeight: "bold",
+      textAlign: "center",
+    }
+
     return (
       <Screen safeAreaEdges={["top", "bottom"]} style={$container} preset="scroll">
         {/* Save workout confirmation dialog */}
@@ -219,7 +231,18 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
             />
             <RestTimerProgressBar />
           </RowView>
-          <Text tx="activeWorkoutScreen.newActiveWorkoutTitle" preset="bold" />
+
+          <TextField
+            selectTextOnFocus
+            style={$workoutTitle}
+            inputWrapperStyle={$workoutTitleContainer}
+            // inputWrapperStyle={}
+            value={workoutTitle}
+            placeholderTx="activeWorkoutScreen.newActiveWorkoutTitle"
+            onChangeText={setWorkoutTitle}
+            autoCapitalize="sentences"
+          />
+
           {/* TODO: Active workout title should be dependent on the template used */}
           <Text
             tx="activeWorkoutScreen.finishWorkoutButton"

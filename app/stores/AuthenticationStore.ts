@@ -3,49 +3,16 @@ import { GoogleSignin } from "@react-native-google-signin/google-signin"
 import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
 import { User } from "../data/model"
 import { Env } from "../utils/expo"
+import { createCustomType } from "./helpers/createCustomType"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
-
-function snapshotToType<T>(value: string): T {
-  if (value) {
-    const obj = JSON.parse(value)
-    return {
-      ...obj,
-    } as T
-  } else {
-    return undefined
-  }
-}
-
-function typeToSnapshot<T>(value: T): string {
-  if (value) {
-    return JSON.stringify(value)
-  } else {
-    return undefined
-  }
-}
 
 function isFirebaseUser(value: any): value is FirebaseAuthTypes.User {
   if (value === undefined) return false
   return (value as FirebaseAuthTypes.User).uid !== undefined
 }
 
-const FirebaseUserType = types.custom<any, FirebaseAuthTypes.User>({
-  name: "FirebaseUser",
-  fromSnapshot(value: string) {
-    return snapshotToType<FirebaseAuthTypes.User>(value)
-  },
-  toSnapshot(value: FirebaseAuthTypes.User) {
-    return typeToSnapshot<FirebaseAuthTypes.User>(value)
-  },
-  isTargetType(value: any) {
-    return isFirebaseUser(value)
-  },
-  getValidationMessage(value: any) {
-    if (isFirebaseUser(value) || value === undefined) return ""
-    return `"${value}" does not look like a FirebaseAuthTypes.User type`
-  },
-})
+const FirebaseUserType = createCustomType<FirebaseAuthTypes.User>("FirebaseUser", isFirebaseUser)
 
 enum AuthStoreError {
   EmailMissingError = "Email is not provided",
@@ -133,7 +100,12 @@ export const AuthenticationStoreModel = types
     invalidateSession() {
       auth().signOut()
       self.firebaseUser = undefined
-      getEnv<RootStoreDependencies>(self).userRepository.logout()
+
+      try {
+        getEnv<RootStoreDependencies>(self).userRepository.logout()
+      } catch (e) {
+        console.error(e)
+      }
     },
     resetAuthError() {
       self.authError = undefined
@@ -186,16 +158,18 @@ export const AuthenticationStoreModel = types
       if (self.signInCredentialsError) return
 
       self.isLoadingProfile = true
-      auth()
-        .signInWithEmailAndPassword(self.loginEmail, self.loginPassword)
-        .then((userCred) => {
-          self.setFirebaseUser(userCred.user)
-          getEnv<RootStoreDependencies>(self)
-            .userRepository.get(userCred.user.uid)
-            .catch(console.error)
-          self.setProp("isLoadingProfile", false)
-        })
-        .catch(self.catchAuthError)
+      try {
+        const userCred = yield auth()
+          .signInWithEmailAndPassword(self.loginEmail, self.loginPassword)
+          .catch(self.catchAuthError)
+
+        self.setFirebaseUser(userCred.user)
+        yield getEnv<RootStoreDependencies>(self).userRepository.get(userCred.user.uid)
+
+        self.setProp("isLoadingProfile", false)
+      } catch (e) {
+        console.error(e)
+      }
     }),
     signUpWithEmail() {
       if (self.signInCredentialsError) return
@@ -231,18 +205,16 @@ export const AuthenticationStoreModel = types
         // Create a Google credential with the token
         const googleCredential = auth.GoogleAuthProvider.credential(idToken)
         // Sign-in the user with the credential
-        auth()
-          .signInWithCredential(googleCredential)
-          .then((userCred) => {
-            self.setFirebaseUser(userCred.user)
-            const user = createUserFromFirebaseUserCred(userCred)
+        const userCred = yield auth().signInWithCredential(googleCredential)
 
-            if (userCred.additionalUserInfo.isNewUser) {
-              getEnv<RootStoreDependencies>(self).userRepository.create(user).catch(console.error)
-            }
+        self.setFirebaseUser(userCred.user)
 
-            self.setProp("isLoadingProfile", false)
-          })
+        if (userCred.additionalUserInfo.isNewUser) {
+          const user = createUserFromFirebaseUserCred(userCred)
+          getEnv<RootStoreDependencies>(self).userRepository.create(user)
+        }
+
+        self.setProp("isLoadingProfile", false)
       } catch (error) {
         self.catchAuthError(error)
       }

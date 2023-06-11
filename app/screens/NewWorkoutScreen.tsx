@@ -47,15 +47,15 @@ const ResetWorkoutDialog: FC<ResetWorkoutDialogProps> = function ResetWorkoutDia
     >
       <View style={$saveDialogContainer}>
         <View style={$saveDialog}>
-          <Text>Resume or start new workout?</Text>
+          <Text tx="newActivityScreen.resumeWorkoutPromptMessage" />
           <TouchableOpacity onPress={props.onResume}>
-            <Text>Resume</Text>
+            <Text tx="newActivityScreen.resumeWorkout" />
           </TouchableOpacity>
           <TouchableOpacity onPress={props.onReset}>
-            <Text>Start New</Text>
+            <Text tx="newActivityScreen.startNewWorkoutText" />
           </TouchableOpacity>
           <TouchableOpacity onPress={props.onCancel}>
-            <Text>Cancel</Text>
+            <Text tx="common.cancel" />
           </TouchableOpacity>
         </View>
       </View>

@@ -78,8 +78,8 @@ export const ExerciseStoreModel = types
         // Set property
         self.allExercises.replace(exerciseMap)
         self.lastUpdated = new Date()
-      } catch (error) {
-        console.error("ExerciseStore().getAllExercises().error:", error)
+      } catch (e) {
+        console.error(e)
       }
     }),
     updateExerciseSetting(exerciseId, exerciseSettingsId, exerciseSettingsValue) {
@@ -122,8 +122,8 @@ export const ExerciseStoreModel = types
     createNewExercise: flow(function* (newExercise: NewExercise) {
       try {
         yield getEnv(self).exerciseRepository.create(newExercise)
-      } catch (error) {
-        console.error("ExerciseStore().createNewExercise().error:", error)
+      } catch (e) {
+        console.error(e)
       }
     }),
   }))

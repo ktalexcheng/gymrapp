@@ -1,3 +1,5 @@
+import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
+
 export enum ExerciseSetType {
   WarmUp = "WarmUp",
   Normal = "Normal",
@@ -20,7 +22,7 @@ export interface NewExercisePerformed {
 }
 
 export interface ExercisePerformed extends NewExercisePerformed {
-  datePerformed: Date
+  datePerformed: Date | FirebaseFirestoreTypes.Timestamp
   totalVolume: number // Store as kg, convert to user preferred unit as necessary
   totalReps: number
 }
