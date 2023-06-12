@@ -29,6 +29,7 @@ export const ExerciseStoreModel = types
   .props({
     allExercises: types.map(ExerciseModel),
     lastUpdated: types.maybe(types.Date),
+    isLoading: true,
   })
   .views((self) => ({
     get allExerciseTypes() {
@@ -49,35 +50,52 @@ export const ExerciseStoreModel = types
 
       return Array.from(categories)
     },
-  }))
-  .views((self) => ({
-    get allExercisesEmpty() {
+    get isAllExercisesEmpty() {
       return self.allExercises.size === 0
     },
   }))
   .actions(withSetPropAction)
   .actions((self) => ({
+    setAllExercises(exercises: Exercise[]) {
+      self.isLoading = true
+
+      if (exercises === undefined || exercises.length === 0) {
+        self.isLoading = false
+        console.warn("ExerciseStore().setAllExercises(): undefined exercises")
+        return
+      }
+
+      const exerciseSettings =
+        getEnv<RootStoreDependencies>(self).userRepository.userExerciseSettings
+
+      // Merge exercises with user settings
+      const exerciseMap: { [key: string]: Exercise } = {}
+      exercises.forEach((item) => {
+        exerciseMap[item.exerciseId] = item
+      })
+      if (exerciseSettings) {
+        exerciseSettings.forEach((item) => {
+          exerciseMap[item.exerciseId].exerciseSettings = item.exerciseSettings
+        })
+      }
+
+      // Set property
+      self.allExercises.replace(exerciseMap)
+      self.lastUpdated = new Date()
+
+      self.isLoading = false
+    },
+  }))
+  .actions((self) => ({
     getAllExercises: flow(function* () {
+      self.isLoading = true
+
       try {
         // Fetch exercises and user settings
         const exercises: Exercise[] = yield getEnv(self).exerciseRepository.getMany()
-        const exerciseSettings =
-          getEnv<RootStoreDependencies>(self).userRepository.userExerciseSettings
+        self.setAllExercises(exercises)
 
-        // Merge exercises with user settings
-        const exerciseMap: { [key: string]: Exercise } = {}
-        exercises.forEach((item) => {
-          exerciseMap[item.exerciseId] = item
-        })
-        if (exerciseSettings) {
-          exerciseSettings.forEach((item) => {
-            exerciseMap[item.exerciseId].exerciseSettings = item.exerciseSettings
-          })
-        }
-
-        // Set property
-        self.allExercises.replace(exerciseMap)
-        self.lastUpdated = new Date()
+        self.isLoading = false
       } catch (e) {
         console.error(e)
       }
@@ -100,6 +118,8 @@ export const ExerciseStoreModel = types
       self.allExercises.put(exercise)
     },
     uploadExerciseSettings: flow(function* () {
+      self.isLoading = true
+
       try {
         const allExerciseSettings: {
           exerciseId: string
@@ -115,13 +135,19 @@ export const ExerciseStoreModel = types
 
         getEnv<RootStoreDependencies>(self).userRepository.userExerciseSettings =
           allExerciseSettings
+
+        self.isLoading = false
       } catch (error) {
         console.error("ExerciseStore().uploadExerciseSettings().error:", error)
       }
     }),
     createNewExercise: flow(function* (newExercise: NewExercise) {
+      self.isLoading = true
+
       try {
         yield getEnv(self).exerciseRepository.create(newExercise)
+
+        self.isLoading = false
       } catch (e) {
         console.error(e)
       }

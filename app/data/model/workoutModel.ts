@@ -1,5 +1,5 @@
 import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
-import { NewExercisePerformed } from "./exerciseModel"
+import { ExercisePerformed, NewExercisePerformed } from "./exerciseModel"
 
 export interface NewWorkout {
   byUser: string
@@ -12,6 +12,7 @@ export interface NewWorkout {
 
 export interface Workout extends NewWorkout {
   workoutId: string
+  exercises: ExercisePerformed[]
 }
 
 export function isWorkout(value: unknown): value is Workout {

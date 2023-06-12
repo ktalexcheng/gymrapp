@@ -140,8 +140,12 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
     const timeElapsed = useTimeElapsed()
     const rootNavigation = useMainNavigation()
 
+    function updateWorkoutTitle(value: string) {
+      setWorkoutTitle(value)
+      workoutStore.setProp("workoutTitle", value)
+    }
+
     function finishWorkout() {
-      workoutStore.setProp("workoutTitle", workoutTitle)
       workoutStore.pauseWorkout()
       setShowSaveDialog(true)
     }
@@ -239,7 +243,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
             // inputWrapperStyle={}
             value={workoutTitle}
             placeholderTx="activeWorkoutScreen.newActiveWorkoutTitle"
-            onChangeText={setWorkoutTitle}
+            onChangeText={updateWorkoutTitle}
             autoCapitalize="sentences"
           />
 

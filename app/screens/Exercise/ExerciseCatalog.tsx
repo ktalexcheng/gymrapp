@@ -42,15 +42,15 @@ export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: Exerci
   const [routes, setRoutes] = useState([])
   const { exerciseStore } = useStores()
 
-  useEffect(() => {
-    const refreshExercisesData = async () => {
-      await exerciseStore
-        .getAllExercises()
-        .catch((e) => console.error("ExerciseCatalog().useEffect([]).error:", e))
-    }
+  // useEffect(() => {
+  //   const refreshExercisesData = async () => {
+  //     await exerciseStore
+  //       .getAllExercises()
+  //       .catch((e) => console.error("ExerciseCatalog().useEffect([]).error:", e))
+  //   }
 
-    refreshExercisesData()
-  }, [])
+  //   refreshExercisesData()
+  // }, [])
 
   useEffect(() => {
     const createSectionsData = (exercises: Exercise[]): ExerciseListScreenProps["sectionsData"] => {
