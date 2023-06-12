@@ -163,8 +163,10 @@ export const AuthenticationStoreModel = types
           .signInWithEmailAndPassword(self.loginEmail, self.loginPassword)
           .catch(self.catchAuthError)
 
-        self.setFirebaseUser(userCred.user)
-        yield getEnv<RootStoreDependencies>(self).userRepository.get(userCred.user.uid)
+        if (userCred) {
+          self.setFirebaseUser(userCred.user)
+          yield getEnv<RootStoreDependencies>(self).userRepository.get(userCred.user.uid)
+        }
 
         self.setProp("isLoadingProfile", false)
       } catch (e) {

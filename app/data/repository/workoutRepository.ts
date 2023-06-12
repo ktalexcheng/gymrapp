@@ -25,6 +25,8 @@ export class WorkoutRepository implements BaseRepository<NewWorkout | Workout> {
       })
     }
 
+    workouts.sort((a, b) => (a.endTime < b.endTime ? -1 : 1))
+
     return workouts
   }
 

@@ -1,3 +1,4 @@
+import { colors } from "app/theme"
 import { observer } from "mobx-react-lite"
 import { Fab } from "native-base"
 import React, { FC } from "react"
@@ -28,6 +29,7 @@ export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ n
         shadow={2}
         size="lg"
         icon={<Icon color="white" name="add-outline" size={30} />}
+        backgroundColor={colors.actionable}
         onPress={() => navigation.navigate("CreateExercise")}
       />
       <ExerciseCatalog onItemPress={handleSelectExercise} />

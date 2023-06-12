@@ -5,7 +5,7 @@ import { TabScreenProps, useMainNavigation } from "app/navigators"
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
-import { FlatList, Image, ImageStyle, View, ViewStyle } from "react-native"
+import { FlatList, Image, ImageStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { colors, spacing } from "../theme"
 
 const tempUserAvatar = require("../../assets/images/app-icon-all.png")
@@ -32,13 +32,15 @@ export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileSc
     const { workoutId, workout } = item
 
     return (
-      <View style={$workoutItem}>
-        <Text>{workoutId}</Text>
-        <Text>{workout.workoutTitle}</Text>
-        <Text>
-          {(workout.endTime as FirebaseFirestoreTypes.Timestamp).toDate().toLocaleString()}
-        </Text>
-      </View>
+      <TouchableOpacity onPress={() => mainNavigation.navigate("WorkoutSummary", { workoutId })}>
+        <View style={$workoutItem}>
+          <Text>{workoutId}</Text>
+          <Text>{workout.workoutTitle}</Text>
+          <Text>
+            {(workout.endTime as FirebaseFirestoreTypes.Timestamp).toDate().toLocaleString()}
+          </Text>
+        </View>
+      </TouchableOpacity>
     )
   }
 

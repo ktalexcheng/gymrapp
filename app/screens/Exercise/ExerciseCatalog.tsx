@@ -1,11 +1,11 @@
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
-import { SectionList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
-import { TabBar, TabView } from "react-native-tab-view"
-import { Text } from "../../components"
+import { Animated, SectionList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import { TabView } from "react-native-tab-view"
+import { RowView, Text } from "../../components"
 import { Exercise } from "../../data/model"
 import { useStores } from "../../stores"
-import { colors } from "../../theme"
+import { colors, spacing } from "../../theme"
 
 interface ExerciseListScreenProps extends ExerciseCatalogProps {
   sectionsData: {
@@ -65,10 +65,10 @@ export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: Exerci
       })
 
       const sectionsData: ExerciseListScreenProps["sectionsData"] = []
-      Object.entries(groupedExercises).forEach(([t, d]) => {
+      Object.entries(groupedExercises).forEach(([exerciseType, exercises]) => {
         sectionsData.push({
-          title: t,
-          data: d,
+          title: exerciseType,
+          data: exercises,
         })
       })
 
@@ -88,7 +88,9 @@ export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: Exerci
     })
 
     // Sort by exercise name
-    Object.values(groupedAllExercises).forEach((d) => d.sort())
+    Object.values(groupedAllExercises).forEach((d) =>
+      d.sort((a, b) => (a.exerciseName[0] < b.exerciseName[0] ? -1 : 1)),
+    )
 
     // Generate routes
     const routes = []
@@ -116,13 +118,58 @@ export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: Exerci
     return <ExerciseListScreen sectionsData={route.data} onItemPress={props.onItemPress} />
   }
 
+  const renderTabBar = (props) => {
+    const inputRange = props.navigationState.routes.map((x, i) => i)
+
+    return (
+      <RowView>
+        {props.navigationState.routes.map((route, i) => {
+          const opacity = props.position.interpolate({
+            inputRange,
+            outputRange: inputRange.map((inputIndex) => (inputIndex === i ? 1 : 0.5)),
+          })
+          const textColor = index === i ? colors.actionable : colors.textDim
+          const borderColor = index === i ? colors.actionable : colors.disabled
+
+          const $tabBarItem: ViewStyle = {
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "flex-end",
+            paddingBottom: spacing.extraSmall,
+            borderBottomWidth: 3,
+            height: 40,
+            borderColor,
+          }
+
+          const $tabText: TextStyle = {
+            fontSize: 16,
+            color: textColor,
+            opacity,
+          }
+
+          return (
+            <View key={i} style={$tabBarItem}>
+              <TouchableOpacity
+                onPress={() => {
+                  setIndex(i)
+                }}
+              >
+                <Animated.Text style={$tabText}>{route.title}</Animated.Text>
+              </TouchableOpacity>
+            </View>
+          )
+        })}
+      </RowView>
+    )
+  }
+
   // Note that tab press does not work properly when a debugger is attached
   // See: https://github.com/satya164/react-native-tab-view/issues/703
   return (
     <TabView
       navigationState={{ index, routes }}
       renderScene={renderScene}
-      renderTabBar={(props) => <TabBar {...props} />}
+      renderTabBar={renderTabBar}
       onIndexChange={setIndex}
     />
   )

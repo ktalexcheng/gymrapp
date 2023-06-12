@@ -1,3 +1,4 @@
+import { colors } from "app/theme"
 import { observer } from "mobx-react-lite"
 import { Fab } from "native-base"
 import React, { FC } from "react"
@@ -14,6 +15,7 @@ export const ExerciseManagerScreen: FC<ExerciseManagerScreenProps> = observer(({
 
   function handleSelectExercise(exerciseId: string) {
     console.debug("TODO: Goto exercise details:", exerciseId)
+    navigation.navigate("ExerciseDetails", { exerciseId })
   }
 
   return (
@@ -25,6 +27,7 @@ export const ExerciseManagerScreen: FC<ExerciseManagerScreenProps> = observer(({
         shadow={2}
         size="lg"
         icon={<Icon color="white" name="add-outline" size={30} />}
+        backgroundColor={colors.actionable}
         onPress={() => navigation.navigate("CreateExercise")}
       />
       <ExerciseCatalog onItemPress={handleSelectExercise} />

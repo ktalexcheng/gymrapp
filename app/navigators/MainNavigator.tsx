@@ -4,11 +4,13 @@ import { User } from "app/data/model"
 import {
   ActiveWorkoutScreen,
   CreateExerciseScreen,
+  ExerciseDetailsScreen,
   ExerciseManagerScreen,
   ExercisePickerScreen,
   NewWorkoutScreen,
   RestTimerScreen,
   UserSettingsScreen,
+  WorkoutSummaryScreen,
 } from "app/screens"
 import { useStores } from "app/stores"
 import React, { useEffect } from "react"
@@ -22,7 +24,9 @@ export type MainStackParamList = {
   CreateExercise: undefined
   RestTimer: undefined
   ExerciseManager: undefined
+  ExerciseDetails: { exerciseId: string }
   UserSettings: undefined
+  WorkoutSummary: { workoutId: string }
 }
 
 export type MainStackScreenProps<T extends keyof MainStackParamList> = NativeStackScreenProps<
@@ -85,9 +89,19 @@ export function MainNavigator() {
         component={ExerciseManagerScreen}
       />
       <MainStack.Screen
+        name="ExerciseDetails"
+        options={{ headerShown: true }}
+        component={ExerciseDetailsScreen}
+      />
+      <MainStack.Screen
         name="UserSettings"
         options={{ headerShown: true }}
         component={UserSettingsScreen}
+      />
+      <MainStack.Screen
+        name="WorkoutSummary"
+        options={{ headerShown: true }}
+        component={WorkoutSummaryScreen}
       />
     </MainStack.Navigator>
   )

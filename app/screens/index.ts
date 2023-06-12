@@ -4,6 +4,7 @@ export * from "./Exercise"
 export * from "./FeedScreen"
 export * from "./NewWorkoutScreen"
 // export other screens here
+export * from "./FinishedWorkout"
 export * from "./ProfileScreen"
 export * from "./SignInScreen"
 export * from "./SignUpScreen"

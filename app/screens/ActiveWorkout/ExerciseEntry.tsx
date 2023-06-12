@@ -57,6 +57,7 @@ export const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
             style={[$weightColumn, $textAlignCenter]}
           />
           <Text tx="activeWorkoutScreen.repsColumnHeader" style={[$repsColumn, $textAlignCenter]} />
+          <Text tx="activeWorkoutScreen.rpeColumnHeader" style={[$rpeColumn, $textAlignCenter]} />
           <Icon
             name="checkmark"
             style={[$isCompletedColumn, $textAlignCenter]}
@@ -98,6 +99,11 @@ const $weightColumn: ViewStyle = {
 }
 
 const $repsColumn: ViewStyle = {
+  flex: 2,
+  alignItems: "center",
+}
+
+const $rpeColumn: ViewStyle = {
   flex: 2,
   alignItems: "center",
 }

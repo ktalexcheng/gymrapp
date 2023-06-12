@@ -83,6 +83,7 @@ const en = {
     previousColumnHeader: "Previous",
     weightColumnHeader: "Weight",
     repsColumnHeader: "Reps",
+    rpeColumnHeader: "RPE",
     addNotesPlaceholder: "Add notes...",
     addSetAction: "Add set",
     addExerciseAction: "Add exercise",

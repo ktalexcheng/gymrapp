@@ -67,6 +67,14 @@ export const SetEntry: FC = observer((props: SetEntryProps) => {
     }
   }
 
+  function setExerciseSetRpe(value: string) {
+    if (value) {
+      exerciseSetStore.setProp("rpe", Number(value))
+    } else {
+      exerciseSetStore.setProp("rpe", null)
+    }
+  }
+
   return (
     <RowView style={$exerciseSet}>
       <Text text={props.setOrder.toString()} style={[$setOrderColumn, $textAlignCenter]} />
@@ -88,6 +96,16 @@ export const SetEntry: FC = observer((props: SetEntryProps) => {
           status={isNullReps ? "error" : null}
           value={exerciseSetStore.reps !== undefined ? exerciseSetStore.reps.toString() : ""}
           onChangeText={setExerciseSetReps}
+          containerStyle={$textFieldContainer}
+          textAlign="center"
+          autoCorrect={false}
+          keyboardType="number-pad"
+        />
+      </View>
+      <View style={$rpeColumn}>
+        <TextField
+          value={exerciseSetStore.rpe ? exerciseSetStore.rpe.toString() : ""}
+          onChangeText={setExerciseSetRpe}
           containerStyle={$textFieldContainer}
           textAlign="center"
           autoCorrect={false}
@@ -119,6 +137,11 @@ const $weightColumn: ViewStyle = {
 }
 
 const $repsColumn: ViewStyle = {
+  flex: 2,
+  alignItems: "center",
+}
+
+const $rpeColumn: ViewStyle = {
   flex: 2,
   alignItems: "center",
 }
