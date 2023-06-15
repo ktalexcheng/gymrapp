@@ -1,4 +1,5 @@
 import { ExerciseSettings } from "app/data/model"
+import { formatDuration } from "app/utils/formatDuration"
 import moment from "moment"
 import { HStack, Menu, Popover, Pressable, Switch } from "native-base"
 import React, { FC, useState } from "react"
@@ -6,8 +7,9 @@ import { View } from "react-native"
 import { Icon, Text, WheelPickerFlat } from "../../components"
 import { useStores } from "../../stores"
 import { DefaultExerciseSettings } from "./defaultExerciseSettings"
-import { formatDuration } from "./formatDuration"
+
 export type ExerciseSettingsProps = {
+  exerciseOrder: number
   exerciseId: string
   exerciseSettings: ExerciseSettings
 }
@@ -15,9 +17,9 @@ export type ExerciseSettingsProps = {
 export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = (props: ExerciseSettingsProps) => {
   const [page, setPage] = useState("")
   const [restTimeIndex, setRestTimeIndex] = useState(
-    Math.trunc(props.exerciseSettings?.restTime ?? DefaultExerciseSettings.restTime / 5) - 1,
+    Math.trunc((props.exerciseSettings?.restTime ?? DefaultExerciseSettings.restTime) / 5) - 1,
   )
-  const { exerciseStore } = useStores()
+  const { workoutStore, exerciseStore } = useStores()
   const [restTimeList, _] = useState<{ label: string; value: number }[]>(
     Array(60)
       .fill(null)
@@ -61,6 +63,10 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = (props: ExerciseS
     setRestTimeIndex(index)
   }
 
+  function removeExercise() {
+    workoutStore.removeExercise(props.exerciseOrder)
+  }
+
   return (
     <Popover
       placement="bottom right"
@@ -83,7 +89,7 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = (props: ExerciseS
               Rest Time
             </Menu.Item>
             <Menu.Item>Create superset</Menu.Item>
-            <Menu.Item>Remove exercise</Menu.Item>
+            <Menu.Item onPress={removeExercise}>Remove exercise</Menu.Item>
           </Popover.Body>
         )}
         {page === "timer" && (

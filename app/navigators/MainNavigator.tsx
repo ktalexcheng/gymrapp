@@ -13,8 +13,10 @@ import {
   WorkoutSummaryScreen,
 } from "app/screens"
 import { useStores } from "app/stores"
+import { observer } from "mobx-react-lite"
 import React, { useEffect } from "react"
 import { HomeTabNavigator } from "./HomeTabNavigator"
+import { OnboardingNavigator } from "./OnboardingNavigator"
 
 export type MainStackParamList = {
   HomeTabNavigator: undefined
@@ -27,6 +29,7 @@ export type MainStackParamList = {
   ExerciseDetails: { exerciseId: string }
   UserSettings: undefined
   WorkoutSummary: { workoutId: string }
+  OnboardingNavigator: undefined
 }
 
 export type MainStackScreenProps<T extends keyof MainStackParamList> = NativeStackScreenProps<
@@ -36,24 +39,29 @@ export type MainStackScreenProps<T extends keyof MainStackParamList> = NativeSta
 
 const MainStack = createNativeStackNavigator<MainStackParamList>()
 
-export function MainNavigator() {
+export const MainNavigator = observer(function MainNavigator() {
   const { authenticationStore: authStore, userStore, exerciseStore } = useStores()
 
   // Listen to database update
   useEffect(() => {
+    console.debug("MainNavigator.useEffect() triggered")
+    userStore.loadUserWithId(authStore.firebaseUser.uid)
+    exerciseStore.getAllExercises()
+
     const userSubscriber = firestore()
       .collection("users")
       .doc(authStore.firebaseUser.uid)
       .onSnapshot((snapshot) => {
-        userStore.setProp("user", snapshot.data() as User)
-        // Workout metadata is written to the 'users' collection document
-        // so it will trigger an event when a new workout is saved
-        userStore.getWorkouts()
+        if (!snapshot.exists) return
+
+        userStore.updateProfile(snapshot.data() as User)
       }, console.error)
 
     const exercisesSubscriber = firestore()
       .collection("exercises")
       .onSnapshot((snapshot) => {
+        if (snapshot.empty) return
+
         const exercises = snapshot.docs.map((doc) => {
           return { exerciseId: doc.id, exerciseSource: "Public", ...doc.data() } as Exercise
         })
@@ -71,6 +79,8 @@ export function MainNavigator() {
       screenOptions={{ headerShown: false }}
       initialRouteName={"HomeTabNavigator"}
     >
+      <MainStack.Screen name="OnboardingNavigator" component={OnboardingNavigator} />
+
       <MainStack.Screen name="HomeTabNavigator" component={HomeTabNavigator} />
 
       <MainStack.Group>
@@ -93,16 +103,19 @@ export function MainNavigator() {
         />
       </MainStack.Group>
 
-      <MainStack.Screen
-        name="ExerciseManager"
-        options={{ headerShown: true }}
-        component={ExerciseManagerScreen}
-      />
-      <MainStack.Screen
-        name="ExerciseDetails"
-        options={{ headerShown: true }}
-        component={ExerciseDetailsScreen}
-      />
+      <MainStack.Group>
+        <MainStack.Screen
+          name="ExerciseManager"
+          options={{ headerShown: true }}
+          component={ExerciseManagerScreen}
+        />
+        <MainStack.Screen
+          name="ExerciseDetails"
+          options={{ headerShown: true }}
+          component={ExerciseDetailsScreen}
+        />
+      </MainStack.Group>
+
       <MainStack.Screen
         name="UserSettings"
         options={{ headerShown: true }}
@@ -115,4 +128,4 @@ export function MainNavigator() {
       />
     </MainStack.Navigator>
   )
-}
+})

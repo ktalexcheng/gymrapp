@@ -33,13 +33,7 @@ export const SetEntry: FC = observer((props: SetEntryProps) => {
       setIsNullWeight(false)
       setIsNullReps(false)
 
-      workoutStore.setProp(
-        "restTime",
-        exerciseStore.allExercises.get(props.exerciseId).exerciseSettings?.restTime ??
-          DefaultExerciseSettings.restTime,
-      )
-      workoutStore.setProp(
-        "restTimeRemaining",
+      workoutStore.restartRestTimer(
         exerciseStore.allExercises.get(props.exerciseId).exerciseSettings?.restTime ??
           DefaultExerciseSettings.restTime,
       )

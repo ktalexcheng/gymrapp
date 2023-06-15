@@ -14,15 +14,17 @@ const ExerciseSettingsModel = types
   })
   .actions(withSetPropAction)
 
-const ExerciseModel = types.model({
-  exerciseId: types.identifier,
-  exerciseSource: types.enumeration("Source", ["Public", "Private"]),
-  exerciseType: types.string,
-  exerciseSubtype: types.string,
-  exerciseCategory: types.string,
-  exerciseName: types.string,
-  exerciseSettings: types.maybe(ExerciseSettingsModel),
-})
+const ExerciseModel = types
+  .model({
+    exerciseId: types.identifier,
+    exerciseSource: types.enumeration("Source", ["Public", "Private"]),
+    exerciseType: types.string,
+    exerciseSubtype: types.string,
+    exerciseCategory: types.string,
+    exerciseName: types.string,
+    exerciseSettings: types.maybe(ExerciseSettingsModel),
+  })
+  .actions(withSetPropAction)
 
 export const ExerciseStoreModel = types
   .model("ExerciseStore")
@@ -65,23 +67,25 @@ export const ExerciseStoreModel = types
         return
       }
 
+      exercises.forEach((e) => {
+        self.allExercises.put(e)
+      })
+
+      self.lastUpdated = new Date()
+      self.isLoading = false
+    },
+    applyUserExerciseSettings() {
+      self.isLoading = true
+
       const exerciseSettings =
         getEnv<RootStoreDependencies>(self).userRepository.userExerciseSettings
 
-      // Merge exercises with user settings
-      const exerciseMap: { [key: string]: Exercise } = {}
-      exercises.forEach((item) => {
-        exerciseMap[item.exerciseId] = item
-      })
+      // Update exercises with user settings
       if (exerciseSettings) {
         exerciseSettings.forEach((item) => {
-          exerciseMap[item.exerciseId].exerciseSettings = item.exerciseSettings
+          self.allExercises.get(item.exerciseId).setProp("exerciseSettings", item.exerciseSettings)
         })
       }
-
-      // Set property
-      self.allExercises.replace(exerciseMap)
-      self.lastUpdated = new Date()
 
       self.isLoading = false
     },
@@ -115,7 +119,7 @@ export const ExerciseStoreModel = types
         exercise.exerciseSettings = ExerciseSettingsModel.create()
       }
       exercise.exerciseSettings.setProp(exerciseSettingsId, exerciseSettingsValue)
-      self.allExercises.put(exercise)
+      // self.allExercises.put(exercise)
     },
     uploadExerciseSettings: flow(function* () {
       self.isLoading = true
@@ -133,8 +137,9 @@ export const ExerciseStoreModel = types
           })
           .filter((item) => item.exerciseSettings)
 
-        getEnv<RootStoreDependencies>(self).userRepository.userExerciseSettings =
-          allExerciseSettings
+        getEnv<RootStoreDependencies>(self).userRepository.updateUserExerciseSettings(
+          allExerciseSettings,
+        )
 
         self.isLoading = false
       } catch (error) {
@@ -152,9 +157,4 @@ export const ExerciseStoreModel = types
         console.error(e)
       }
     }),
-  }))
-  .actions((self) => ({
-    afterCreate() {
-      self.getAllExercises()
-    },
   }))

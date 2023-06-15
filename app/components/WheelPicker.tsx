@@ -31,6 +31,7 @@ export const WheelPickerFlat: FC<WheelPickerProps> = (props) => {
   const renderItem = ({ item }: ListRenderItemInfo<ListItem>) => {
     return (
       <Text
+        key={item.value}
         style={[
           styles.pickerItem,
           { height: itemHeight, color: enabled ? colors.text : colors.disabled },

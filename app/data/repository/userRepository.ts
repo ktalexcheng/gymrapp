@@ -23,19 +23,8 @@ export class UserRepository implements BaseRepository<User> {
     return this.#userId
   }
 
-  set userId(_: string) {
-    console.warn(
-      "Do not manually set userId. This should be done automatically with the get() method.",
-    )
-  }
-
   get user(): User {
     return this.#user
-  }
-
-  set user(user: User) {
-    this.#user = user
-    this.update()
   }
 
   get userExerciseSettings(): {
@@ -50,7 +39,7 @@ export class UserRepository implements BaseRepository<User> {
     return this.#user.preferences?.allExerciseSettings
   }
 
-  set userExerciseSettings(
+  updateUserExerciseSettings(
     allExerciseSettings: {
       exerciseId: string
       exerciseSettings: ExerciseSettings
@@ -77,7 +66,7 @@ export class UserRepository implements BaseRepository<User> {
     return this.#user.workoutsMeta
   }
 
-  set userWorkoutsMeta(workoutsMeta: Record<string, WorkoutMeta>) {
+  saveNewWorkoutMeta(workoutsMeta: Record<string, WorkoutMeta>) {
     if (!this.#user) {
       console.error("UserRepository.set userWorkouts() error: No user set")
       return
@@ -100,8 +89,9 @@ export class UserRepository implements BaseRepository<User> {
 
   async get(userId = this.#userId): Promise<User> {
     this.#userId = userId
+
     const snapshot = await this._getUserSnapshot()
-    if (!snapshot.exists) throw new RepositoryError("(get) User does not exist")
+    if (!snapshot.exists) return null
 
     const data = snapshot.data()
     this.#user = {
@@ -113,28 +103,31 @@ export class UserRepository implements BaseRepository<User> {
       providerId: data.providerId,
       email: data.email,
       photoUrl: data.photoUrl,
+      workoutsMeta: data.workoutsMeta,
     }
 
     return this.#user
   }
 
   async create(user: User): Promise<void> {
-    this.#userId = user.userId
-
     const snapshot = await this._getUserSnapshot()
     if (snapshot.exists) throw new RepositoryError("(create) User already exists")
 
-    firestore().collection(this.#collectionName).doc(this.#userId).set(user)
+    firestore().collection(this.#collectionName).doc(user.userId).set(user)
+
+    this.#userId = user.userId
+    this.#user = user
   }
 
-  async update(userId = this.#userId, user = this.#user): Promise<void> {
+  async update(userId = this.#userId, user: Partial<User> = this.#user): Promise<void> {
+    if (userId !== this.#userId) throw new RepositoryError("(update) userId is invalid")
+
     const snapshot = await this._getUserSnapshot()
     if (!snapshot.exists) throw new RepositoryError("(update) User does not exist")
 
-    // const payload = user
-    // Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k])
-
     await firestore().collection(this.#collectionName).doc(userId).update(user).catch(console.error)
+
+    this.#user = { ...this.#user, ...user }
   }
 
   async delete(userId = this.#userId): Promise<void> {
@@ -142,6 +135,7 @@ export class UserRepository implements BaseRepository<User> {
     if (!snapshot.exists) throw new RepositoryError("(delete) User does not exist")
 
     await firestore().collection(this.#collectionName).doc(userId).delete()
+
     this.logout()
   }
 }

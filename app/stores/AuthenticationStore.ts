@@ -48,7 +48,7 @@ export const AuthenticationStoreModel = types
   .model("AuthenticationStore")
   .props({
     firebaseUser: FirebaseUserType,
-    isLoadingProfile: true,
+    isAuthenticating: true,
   })
   .volatile((_) => ({
     loginEmail: "",
@@ -61,7 +61,7 @@ export const AuthenticationStoreModel = types
     // isAuthenticated() checks if firebaseUser exists in store
     // firebaseUser can only exist if we got the credentials from Firebase
     get isAuthenticated() {
-      return !!self.firebaseUser
+      return !self.isAuthenticating && !!self.firebaseUser
     },
     get signInCredentialsError() {
       if (self.loginEmail.length === 0) return AuthStoreError.EmailMissingError
@@ -82,8 +82,10 @@ export const AuthenticationStoreModel = types
   .actions(withSetPropAction)
   .actions((self) => ({
     setFirebaseUser(firebaseUser: FirebaseAuthTypes.User) {
+      self.isAuthenticating = true
       if (!firebaseUser) throw new Error("AuthenticationStore.setFirebaseUser failed")
       self.firebaseUser = firebaseUser
+      self.isAuthenticating = false
     },
     setLoginEmail(email: string) {
       self.loginEmail = email
@@ -157,7 +159,8 @@ export const AuthenticationStoreModel = types
     signInWithEmail: flow(function* () {
       if (self.signInCredentialsError) return
 
-      self.isLoadingProfile = true
+      self.isAuthenticating = true
+
       try {
         const userCred = yield auth()
           .signInWithEmailAndPassword(self.loginEmail, self.loginPassword)
@@ -165,39 +168,43 @@ export const AuthenticationStoreModel = types
 
         if (userCred) {
           self.setFirebaseUser(userCred.user)
-          yield getEnv<RootStoreDependencies>(self).userRepository.get(userCred.user.uid)
         }
 
-        self.setProp("isLoadingProfile", false)
+        self.isAuthenticating = false
       } catch (e) {
         console.error(e)
       }
     }),
-    signUpWithEmail() {
+    signUpWithEmail: flow(function* () {
       if (self.signInCredentialsError) return
 
-      self.isLoadingProfile = true
-      auth()
-        .createUserWithEmailAndPassword(self.loginEmail, self.loginPassword)
-        .then((userCred) => {
+      self.isAuthenticating = true
+
+      try {
+        const userCred = yield auth()
+          .createUserWithEmailAndPassword(self.loginEmail, self.loginPassword)
+          .catch(self.catchAuthError)
+
+        if (userCred) {
           self.setFirebaseUser(userCred.user)
-          getEnv<RootStoreDependencies>(self)
-            .userRepository.create({
-              userId: userCred.user.uid,
-              privateAccount: true,
-              email: userCred.user.email,
-              firstName: self.newFirstName,
-              lastName: self.newLastName,
-              providerId: userCred.additionalUserInfo?.providerId ?? "",
-              photoUrl: null, // TODO: Allow user to upload profile picture
-            } as User)
-            .catch(console.error)
-          self.setProp("isLoadingProfile", false)
-        })
-        .catch(self.catchAuthError)
-    },
+          yield getEnv<RootStoreDependencies>(self).userRepository.create({
+            userId: userCred.user.uid,
+            privateAccount: true,
+            email: userCred.user.email,
+            firstName: self.newFirstName,
+            lastName: self.newLastName,
+            providerId: userCred.additionalUserInfo?.providerId ?? "",
+            photoUrl: null, // TODO: Allow user to upload profile picture
+          } as User)
+        }
+
+        self.isAuthenticating = false
+      } catch (e) {
+        console.error(e)
+      }
+    }),
     signInWithGoogle: flow(function* () {
-      self.isLoadingProfile = true
+      self.isAuthenticating = true
 
       try {
         // Check if your device supports Google Play
@@ -216,7 +223,7 @@ export const AuthenticationStoreModel = types
           getEnv<RootStoreDependencies>(self).userRepository.create(user)
         }
 
-        self.setProp("isLoadingProfile", false)
+        self.isAuthenticating = false
       } catch (error) {
         self.catchAuthError(error)
       }

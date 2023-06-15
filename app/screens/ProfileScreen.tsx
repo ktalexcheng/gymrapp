@@ -1,7 +1,8 @@
 import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Icon, RowView, Screen, Text } from "app/components"
-import { TabScreenProps, useMainNavigation } from "app/navigators"
+import { TabScreenProps } from "app/navigators"
+import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
@@ -15,8 +16,8 @@ interface ProfileScreenProps extends NativeStackScreenProps<TabScreenProps<"Prof
 export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileScreen() {
   const mainNavigation = useMainNavigation()
   const { userStore } = useStores()
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true)
-  const [isLoadingWorkouts, setIsLoadingWorkouts] = useState(true)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(userStore.isLoading)
+  const [isLoadingWorkouts, setIsLoadingWorkouts] = useState(userStore.isLoadingWorkouts)
 
   useEffect(() => {
     setIsLoadingProfile(userStore.isLoading)
@@ -44,37 +45,41 @@ export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileSc
     )
   }
 
-  return isLoadingProfile ? (
-    <Text tx="common.loading" />
-  ) : (
+  return (
     <Screen safeAreaEdges={["top", "bottom"]} style={$screenContentContainer}>
-      <RowView alignItems="center" style={$userAvatarRow}>
-        <RowView alignItems="center">
-          <Image source={tempUserAvatar} style={$userAvatar} />
-          <Text style={$userDisplayName}>{userStore.displayName}</Text>
-        </RowView>
-        <Icon
-          name="settings-outline"
-          onPress={() => mainNavigation.navigate("UserSettings")}
-          color={colors.actionable}
-          size={32}
-        />
-      </RowView>
+      {isLoadingProfile ? (
+        <Text tx="common.loading" />
+      ) : (
+        <>
+          <RowView alignItems="center" style={$userAvatarRow}>
+            <RowView alignItems="center">
+              <Image source={tempUserAvatar} style={$userAvatar} />
+              <Text style={$userDisplayName}>{userStore.displayName}</Text>
+            </RowView>
+            <Icon
+              name="settings-outline"
+              onPress={() => mainNavigation.navigate("UserSettings")}
+              color={colors.actionable}
+              size={32}
+            />
+          </RowView>
 
-      <Text preset="subheading" tx="profileScreen.userActivities" />
-      <View>
-        {(() => {
-          if (!isLoadingWorkouts) {
-            return userStore.workouts ? (
-              <FlatList data={getWorkoutData()} renderItem={renderWorkoutItem} />
-            ) : (
-              <Text tx="profileScreen.noActivityhistory" />
-            )
-          }
+          <Text preset="subheading" tx="profileScreen.userActivities" />
+          <View>
+            {(() => {
+              if (!isLoadingWorkouts) {
+                return userStore.workouts ? (
+                  <FlatList data={getWorkoutData()} renderItem={renderWorkoutItem} />
+                ) : (
+                  <Text tx="profileScreen.noActivityhistory" />
+                )
+              }
 
-          return <Text tx="common.loading" />
-        })()}
-      </View>
+              return <Text tx="common.loading" />
+            })()}
+          </View>
+        </>
+      )}
     </Screen>
   )
 })

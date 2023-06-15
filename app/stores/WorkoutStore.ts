@@ -1,6 +1,8 @@
 import { ExerciseSetType, NewWorkout } from "app/data/model"
 import { translate } from "app/i18n"
+import { formatDuration } from "app/utils/formatDuration"
 import { SnapshotIn, destroy, flow, getEnv, types } from "mobx-state-tree"
+import moment from "moment"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
@@ -62,6 +64,22 @@ const WorkoutStoreModel = types
 
       return allSetsCompleted
     },
+    get timeElapsedFormatted() {
+      const start = moment(self.startTime)
+      const duration = moment.duration(moment().diff(start))
+      console.debug("WorkoutStore.timeElapsedFormatted:", formatDuration(duration))
+      return formatDuration(duration)
+    },
+    get totalVolume() {
+      let total = 0
+      self.exercises.forEach((e) => {
+        e.setsPerformed.forEach((s) => {
+          total += s.isCompleted ? s.weight * s.reps : 0
+        })
+      })
+
+      return total
+    },
   }))
   .actions(withSetPropAction)
   .actions((self) => ({
@@ -111,11 +129,11 @@ const WorkoutStoreModel = types
           workoutTitle: self.workoutTitle,
         } as NewWorkout)
 
-        getEnv<RootStoreDependencies>(self).userRepository.userWorkoutsMeta = {
+        getEnv<RootStoreDependencies>(self).userRepository.saveNewWorkoutMeta({
           [workoutId]: {
             endTime: self.endTime,
           },
-        }
+        })
         self.resetWorkout()
       } catch (error) {
         console.error("WorkoutStore().saveWorkout().error:", error)
@@ -130,6 +148,12 @@ const WorkoutStoreModel = types
       })
       self.exercises.push(newExercise)
     },
+    removeExercise(exerciseOrder: number) {
+      self.exercises.splice(exerciseOrder, 1)
+      self.exercises.forEach((e, i) => {
+        e.exerciseOrder = i
+      })
+    },
     addSet(targetExerciseOrder: number, newSetObject: SnapshotIn<typeof SingleExerciseSet>) {
       const newSetOrder = self.exercises[targetExerciseOrder].setsPerformed.length
       const newSet = SingleExerciseSet.create({
@@ -138,12 +162,39 @@ const WorkoutStoreModel = types
       })
       self.exercises[targetExerciseOrder].setsPerformed.push(newSet)
     },
-    addRestTimeRemaining(seconds: number) {
-      self.restTimeRemaining += seconds
-    },
-    subtractRestTimeRemaining(seconds: number) {
-      self.restTimeRemaining -= seconds
-    },
   }))
+  .actions((self) => {
+    let intervalId
+
+    const setRestTime = (time: number) => {
+      self.restTime = time
+      self.restTimeRemaining = time
+    }
+
+    const startRestTimer = () => {
+      intervalId = setInterval(() => {
+        if (self.restTimeRemaining > 0) {
+          self.setProp("restTimeRemaining", self.restTimeRemaining - 1)
+        } else {
+          console.debug("WorkoutStore.startRestTimer() cleared")
+          clearInterval(intervalId)
+        }
+      }, 1000)
+    }
+
+    const stopRestTimer = () => {
+      if (intervalId) {
+        clearInterval(intervalId)
+      }
+    }
+
+    const restartRestTimer = (time: number) => {
+      stopRestTimer()
+      setRestTime(time)
+      startRestTimer()
+    }
+
+    return { setRestTime, startRestTimer, stopRestTimer, restartRestTimer }
+  })
 
 export { ExerciseSets, WorkoutStoreModel }

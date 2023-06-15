@@ -25,6 +25,10 @@ const en = {
       button: "Let's try this again",
     },
   },
+  onboarding: {
+    onboardingTitle: "Create your profile",
+    createProfile: "I'm done, let's go!",
+  },
   tabNavigator: {
     feedTab: "Feed",
     activityTab: "Activity",
@@ -94,6 +98,8 @@ const en = {
     saveWorkout: "Save",
     discardWorkout: "Discard",
     cancelAction: "Cancel",
+    timeElapsedLabel: "Time elapsed:",
+    totalVolumeLabel: "Total volume:",
   },
   addExerciseScreen: {
     exerciseType: "Type",

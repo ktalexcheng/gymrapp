@@ -2,6 +2,7 @@ import { Button, Icon, RowView, Screen, Text } from "app/components"
 import { TxKeyPath } from "app/i18n"
 import { useStores } from "app/stores"
 import { colors, spacing } from "app/theme"
+import { observer } from "mobx-react-lite"
 import { AlertDialog, Button as NBButton } from "native-base"
 import React, { useRef, useState } from "react"
 import { Image, ImageStyle, TouchableOpacity, View, ViewStyle } from "react-native"
@@ -11,14 +12,16 @@ const tempUserAvatar = require("../../assets/images/app-icon-all.png")
 type SwitchSettingTileProps = {
   titleTx: TxKeyPath
   descriptionTx: TxKeyPath
-  initialState: boolean
-  onToggle: (prevState: boolean) => void
+  toggleState: boolean
+  onToggle: (newState: boolean) => void
   isOnIcon: React.ReactNode
   isOffIcon: React.ReactNode
 }
 
-const SwitchSettingTile: React.FC<SwitchSettingTileProps> = (props: SwitchSettingTileProps) => {
-  const [isOn, setIsOn] = useState(props.initialState)
+export const SwitchSettingTile: React.FC<SwitchSettingTileProps> = (
+  props: SwitchSettingTileProps,
+) => {
+  const [isOn, setIsOn] = useState(props.toggleState)
 
   const _onToggle = () => {
     props.onToggle(!isOn)
@@ -30,27 +33,37 @@ const SwitchSettingTile: React.FC<SwitchSettingTileProps> = (props: SwitchSettin
     borderWidth: 1,
   }
 
+  const $description: ViewStyle = {
+    flex: 8,
+  }
+
+  const $iconButton: ViewStyle = {
+    flex: 1,
+  }
+
   return (
     <RowView style={$tileView}>
-      <View>
+      <View style={$description}>
         <Text weight="bold" tx={props.titleTx} />
         <Text tx={props.descriptionTx} />
       </View>
-      <TouchableOpacity onPress={_onToggle}>
+      <TouchableOpacity onPress={_onToggle} style={$iconButton}>
         {isOn ? props.isOnIcon : props.isOffIcon}
       </TouchableOpacity>
     </RowView>
   )
 }
 
-export function UserSettingsScreen() {
+export const UserSettingsScreen = observer(function () {
   const { authenticationStore: authStore, userStore } = useStores()
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const onCloseAlert = () => setShowDeleteAlert(false)
   const cancelDeleteRef = useRef(null)
 
-  const togglePrivateAccount = (newState: boolean) => {
-    userStore.setPrivateAccount(newState)
+  const togglePrivateAccount = (privateAccount: boolean) => {
+    const user = userStore.user
+    user.privateAccount = privateAccount
+    userStore.updateProfile(user)
   }
 
   return (
@@ -67,7 +80,7 @@ export function UserSettingsScreen() {
         <SwitchSettingTile
           titleTx="userSettingsScreen.privateAccountTitle"
           descriptionTx="userSettingsScreen.privateAccountDescription"
-          initialState={userStore.isPrivate}
+          toggleState={userStore.isPrivate}
           isOffIcon={<Icon name="lock-open-outline" size={30} />}
           isOnIcon={<Icon name="lock-closed" size={30} />}
           onToggle={togglePrivateAccount}
@@ -112,7 +125,7 @@ export function UserSettingsScreen() {
       </AlertDialog>
     </Screen>
   )
-}
+})
 
 const $screenContentContainer: ViewStyle = {
   paddingVertical: spacing.huge,

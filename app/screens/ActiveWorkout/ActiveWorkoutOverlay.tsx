@@ -3,15 +3,30 @@ import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { colors } from "app/theme"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { TouchableOpacity, View, ViewStyle } from "react-native"
-import { useTimeElapsed } from "./useTimeElapsed"
 
 export const ActiveWorkoutOverlay = () => {
-  const $containerInsets = useSafeAreaInsetsStyle(["top"], "margin")
-  const timeElapsed = useTimeElapsed()
   const { workoutStore } = useStores()
+  const [timeElapsed, setTimeElapsed] = useState("00:00:00")
   const navigation = useMainNavigation()
+  const $containerInsets = useSafeAreaInsetsStyle(["top"], "margin")
+
+  // Using MobX observer and useEffect will not work for some reason
+  useEffect(() => {
+    // if (workoutStore.inProgress) {
+    const intervalId = setInterval(() => {
+      // console.debug("ActiveWorkoutOverlay setInterval called")
+      setTimeElapsed(workoutStore.timeElapsedFormatted)
+    }, 1000)
+    console.debug("ActiveWorkoutOverlay setInterval(): ", intervalId)
+
+    return () => {
+      console.debug("ActiveWorkoutOverlay clearInterval(): ", intervalId)
+      clearInterval(intervalId)
+    }
+    // }
+  }, [workoutStore.inProgress])
 
   function goToActiveWorkout() {
     navigation.navigate("ActiveWorkout")

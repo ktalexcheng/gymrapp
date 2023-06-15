@@ -1,7 +1,9 @@
 import { BottomTabScreenProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
+import { useStores } from "app/stores"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
-import React, { useState } from "react"
+import { observer } from "mobx-react-lite"
+import React, { useEffect, useState } from "react"
 import { Modal, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Icon, Text } from "../components"
@@ -77,8 +79,18 @@ const NewActivityButton = () => {
   )
 }
 
-export function HomeTabNavigator() {
+export const HomeTabNavigator = observer(() => {
   const { bottom } = useSafeAreaInsets()
+  const { userStore } = useStores()
+  const mainNavigation = useMainNavigation()
+
+  useEffect(() => {
+    console.debug("HomeTabNavigator useEffect start")
+    if (userStore.profileIncomplete) {
+      console.debug("Profile is incomplete, navigating to OnboardingNavigator")
+      mainNavigation.navigate("OnboardingNavigator")
+    }
+  }, [userStore.profileIncomplete])
 
   return (
     <>
@@ -124,7 +136,7 @@ export function HomeTabNavigator() {
       </BottomTab.Navigator>
     </>
   )
-}
+})
 
 const $tabBar: ViewStyle = {
   backgroundColor: colors.background,

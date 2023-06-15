@@ -31,6 +31,7 @@ export const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
     <View>
       <View style={$exerciseSettingsButton}>
         <ExerciseSettingsMenu
+          exerciseOrder={props.exerciseOrder}
           exerciseId={props.exerciseId}
           exerciseSettings={
             exerciseStore.allExercises.get(props.exerciseId).exerciseSettings ??
