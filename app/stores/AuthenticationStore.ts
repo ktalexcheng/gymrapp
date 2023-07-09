@@ -1,7 +1,7 @@
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import { GoogleSignin } from "@react-native-google-signin/google-signin"
 import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
-import { User } from "../data/model"
+import { AppLanguage, User } from "../data/model"
 import { Env } from "../utils/expo"
 import { createCustomType } from "./helpers/createCustomType"
 import { RootStoreDependencies } from "./helpers/useStores"
@@ -40,7 +40,10 @@ function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.User
     firstName: firebaseUserCred.additionalUserInfo?.profile?.given_name ?? "",
     lastName: firebaseUserCred.additionalUserInfo?.profile?.family_name ?? "",
     providerId: firebaseUserCred.additionalUserInfo?.providerId ?? "",
-    photoUrl: firebaseUserCred.user?.photoURL ?? "",
+    avatarUrl: firebaseUserCred.user?.photoURL ?? "",
+    preferences: {
+      appLocale: AppLanguage.en_US, // TODO: Default to match user system setting
+    },
   } as User
 }
 
@@ -64,56 +67,47 @@ export const AuthenticationStoreModel = types
       return !self.isAuthenticating && !!self.firebaseUser
     },
     get signInCredentialsError() {
-      if (self.loginEmail.length === 0) return AuthStoreError.EmailMissingError
-      if (self.loginEmail.length < 6) return AuthStoreError.EmailLengthError
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(self.loginEmail))
-        return AuthStoreError.EmailInvalidError
-      if (self.loginPassword.length === 0) return AuthStoreError.PasswordMissingError
+      switch (true) {
+        case self.loginEmail.length === 0:
+          return AuthStoreError.EmailMissingError
+        case self.loginEmail.length < 6:
+          return AuthStoreError.EmailLengthError
+        case !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(self.loginEmail):
+          return AuthStoreError.EmailInvalidError
+        case self.loginPassword.length === 0:
+          return AuthStoreError.PasswordMissingError
+        default:
+          return null
+      }
 
-      return null
+      // if (self.loginEmail.length === 0) return AuthStoreError.EmailMissingError
+      // if (self.loginEmail.length < 6) return AuthStoreError.EmailLengthError
+      // if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(self.loginEmail))
+      //   return AuthStoreError.EmailInvalidError
+      // if (self.loginPassword.length === 0) return AuthStoreError.PasswordMissingError
+
+      // return null
     },
     get signUpInfoError() {
-      if (self.newFirstName.length === 0) return AuthStoreError.FirstNameMissingError
-      if (self.newLastName.length === 0) return AuthStoreError.LastNameMissingError
+      switch (true) {
+        case self.newFirstName.length === 0:
+          return AuthStoreError.FirstNameMissingError
+        case self.newLastName.length === 0:
+          return AuthStoreError.LastNameMissingError
+        default:
+          return null
+      }
 
-      return null
+      // if (self.newFirstName.length === 0) return AuthStoreError.FirstNameMissingError
+      // if (self.newLastName.length === 0) return AuthStoreError.LastNameMissingError
+
+      // return null
     },
   }))
   .actions(withSetPropAction)
   .actions((self) => ({
-    setFirebaseUser(firebaseUser: FirebaseAuthTypes.User) {
-      self.isAuthenticating = true
-      if (!firebaseUser) throw new Error("AuthenticationStore.setFirebaseUser failed")
-      self.firebaseUser = firebaseUser
-      self.isAuthenticating = false
-    },
-    setLoginEmail(email: string) {
-      self.loginEmail = email
-    },
-    setLoginPassword(password: string) {
-      self.loginPassword = password
-    },
-    setNewFirstName(firstName: string) {
-      self.newFirstName = firstName
-    },
-    setNewLastName(lastName: string) {
-      self.newLastName = lastName
-    },
-    invalidateSession() {
-      auth().signOut()
-      self.firebaseUser = undefined
-
-      try {
-        getEnv<RootStoreDependencies>(self).userRepository.logout()
-      } catch (e) {
-        console.error(e)
-      }
-    },
-    resetAuthError() {
-      self.authError = undefined
-    },
-    catchAuthError(error) {
-      console.error("AuthenticationStore ERROR: ", error)
+    catchAuthError(caller, error) {
+      console.error("AuthenticationStore.catchAuthError called from", caller, ":", error)
       // Just in case an unexpected error is encountered
       if (!("code" in error)) {
         self.authError = error.toString()
@@ -142,6 +136,43 @@ export const AuthenticationStoreModel = types
       }
     },
   }))
+  .actions((self) => ({
+    setFirebaseUser(firebaseUser: FirebaseAuthTypes.User) {
+      self.isAuthenticating = true
+      if (!firebaseUser) throw new Error("AuthenticationStore.setFirebaseUser failed")
+      self.firebaseUser = firebaseUser
+      self.isAuthenticating = false
+    },
+    setLoginEmail(email: string) {
+      self.loginEmail = email
+    },
+    setLoginPassword(password: string) {
+      self.loginPassword = password
+    },
+    setNewFirstName(firstName: string) {
+      self.newFirstName = firstName
+    },
+    setNewLastName(lastName: string) {
+      self.newLastName = lastName
+    },
+    invalidateSession() {
+      if (self.firebaseUser) {
+        auth()
+          .signOut()
+          .catch((e) => self.catchAuthError("invalidateSession", e))
+        self.firebaseUser = undefined
+      }
+
+      try {
+        getEnv<RootStoreDependencies>(self).userRepository.logout()
+      } catch (e) {
+        console.error("AuthenticationStore.invalidateSession error:", e)
+      }
+    },
+    resetAuthError() {
+      self.authError = undefined
+    },
+  }))
   // Utility actions are defined first to be used in actions below
   .actions((self) => ({
     logout() {
@@ -153,7 +184,7 @@ export const AuthenticationStoreModel = types
         yield auth().currentUser.delete() // Also signs user out
         self.invalidateSession()
       } catch (error) {
-        self.catchAuthError(error)
+        self.catchAuthError("deleteAccount", error)
       }
     }),
     signInWithEmail: flow(function* () {
@@ -164,7 +195,7 @@ export const AuthenticationStoreModel = types
       try {
         const userCred = yield auth()
           .signInWithEmailAndPassword(self.loginEmail, self.loginPassword)
-          .catch(self.catchAuthError)
+          .catch((e) => self.catchAuthError("signInWithEmail", e))
 
         if (userCred) {
           self.setFirebaseUser(userCred.user)
@@ -172,7 +203,7 @@ export const AuthenticationStoreModel = types
 
         self.isAuthenticating = false
       } catch (e) {
-        console.error(e)
+        console.error("AuthenticationStore.signInWithEmail error:", e)
       }
     }),
     signUpWithEmail: flow(function* () {
@@ -183,7 +214,7 @@ export const AuthenticationStoreModel = types
       try {
         const userCred = yield auth()
           .createUserWithEmailAndPassword(self.loginEmail, self.loginPassword)
-          .catch(self.catchAuthError)
+          .catch((e) => self.catchAuthError("signUpWithEmail", e))
 
         if (userCred) {
           self.setFirebaseUser(userCred.user)
@@ -194,13 +225,16 @@ export const AuthenticationStoreModel = types
             firstName: self.newFirstName,
             lastName: self.newLastName,
             providerId: userCred.additionalUserInfo?.providerId ?? "",
-            photoUrl: null, // TODO: Allow user to upload profile picture
+            preferences: {
+              appLocale: AppLanguage.en_US, // TODO: Default to match user system setting
+            },
+            avatarUrl: null, // TODO: Allow user to upload profile picture
           } as User)
         }
 
         self.isAuthenticating = false
       } catch (e) {
-        console.error(e)
+        console.error("AuthenticationStore.signUpWithEmail error:", e)
       }
     }),
     signInWithGoogle: flow(function* () {
@@ -225,7 +259,7 @@ export const AuthenticationStoreModel = types
 
         self.isAuthenticating = false
       } catch (error) {
-        self.catchAuthError(error)
+        self.catchAuthError("signInWithGoogle", error)
       }
       return null
     }),

@@ -14,18 +14,17 @@ export const ActiveWorkoutOverlay = () => {
 
   // Using MobX observer and useEffect will not work for some reason
   useEffect(() => {
-    // if (workoutStore.inProgress) {
-    const intervalId = setInterval(() => {
-      // console.debug("ActiveWorkoutOverlay setInterval called")
-      setTimeElapsed(workoutStore.timeElapsedFormatted)
-    }, 1000)
-    console.debug("ActiveWorkoutOverlay setInterval(): ", intervalId)
+    if (workoutStore.inProgress) {
+      const intervalId = setInterval(() => {
+        setTimeElapsed(workoutStore.timeElapsedFormatted)
+      }, 1000)
+      console.debug("ActiveWorkoutOverlay setInterval called:", intervalId)
 
-    return () => {
-      console.debug("ActiveWorkoutOverlay clearInterval(): ", intervalId)
-      clearInterval(intervalId)
+      return () => {
+        console.debug("ActiveWorkoutOverlay clearInterval called:", intervalId)
+        clearInterval(intervalId)
+      }
     }
-    // }
   }, [workoutStore.inProgress])
 
   function goToActiveWorkout() {
@@ -33,14 +32,12 @@ export const ActiveWorkoutOverlay = () => {
   }
 
   return (
-    workoutStore.inProgress && (
-      <TouchableOpacity onPress={goToActiveWorkout}>
-        <View style={[$containerInsets, $activeActivityOverlay]}>
-          <Text preset="subheading">{workoutStore.workoutTitle}</Text>
-          <Text text={timeElapsed} />
-        </View>
-      </TouchableOpacity>
-    )
+    <TouchableOpacity onPress={goToActiveWorkout}>
+      <View style={[$containerInsets, $activeActivityOverlay]}>
+        <Text preset="subheading">{workoutStore.workoutTitle}</Text>
+        <Text text={timeElapsed} />
+      </View>
+    </TouchableOpacity>
   )
 }
 

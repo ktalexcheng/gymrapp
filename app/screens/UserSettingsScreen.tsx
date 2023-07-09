@@ -1,13 +1,11 @@
-import { Button, Icon, RowView, Screen, Text } from "app/components"
+import { Avatar, Button, Icon, RowView, Screen, Spacer, Text } from "app/components"
 import { TxKeyPath } from "app/i18n"
 import { useStores } from "app/stores"
-import { colors, spacing } from "app/theme"
+import { colors, spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
 import { AlertDialog, Button as NBButton } from "native-base"
 import React, { useRef, useState } from "react"
-import { Image, ImageStyle, TouchableOpacity, View, ViewStyle } from "react-native"
-
-const tempUserAvatar = require("../../assets/images/app-icon-all.png")
+import { TouchableOpacity, View, ViewStyle } from "react-native"
 
 type SwitchSettingTileProps = {
   titleTx: TxKeyPath
@@ -30,7 +28,6 @@ export const SwitchSettingTile: React.FC<SwitchSettingTileProps> = (
 
   const $tileView: ViewStyle = {
     alignItems: "center",
-    borderWidth: 1,
   }
 
   const $description: ViewStyle = {
@@ -42,7 +39,7 @@ export const SwitchSettingTile: React.FC<SwitchSettingTileProps> = (
   }
 
   return (
-    <RowView style={$tileView}>
+    <RowView style={[styles.listItem, $tileView]}>
       <View style={$description}>
         <Text weight="bold" tx={props.titleTx} />
         <Text tx={props.descriptionTx} />
@@ -70,7 +67,7 @@ export const UserSettingsScreen = observer(function () {
     <Screen style={$screenContentContainer}>
       <RowView justifyContent="center">
         <View style={$userHeaderContainer}>
-          <Image source={tempUserAvatar} style={$userAvatar} />
+          <Avatar user={userStore.user} size="2xl" />
           <Text preset="subheading">{userStore.displayName}</Text>
         </View>
       </RowView>
@@ -86,6 +83,8 @@ export const UserSettingsScreen = observer(function () {
           onToggle={togglePrivateAccount}
         />
       </View>
+
+      <Spacer type="vertical" size="massive" />
 
       <Button onPress={authStore.logout}>Logout</Button>
       <Button
@@ -134,12 +133,6 @@ const $screenContentContainer: ViewStyle = {
 
 const $userHeaderContainer: ViewStyle = {
   alignItems: "center",
-}
-
-const $userAvatar: ImageStyle = {
-  height: 100,
-  width: 100,
-  borderRadius: 100,
 }
 
 const $deleteButton: ViewStyle = {

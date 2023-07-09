@@ -12,5 +12,5 @@ export const RestTimerScreen: FC = () => {
 }
 
 const $container: ViewStyle = {
-  padding: spacing.screen,
+  padding: spacing.screenPadding,
 }

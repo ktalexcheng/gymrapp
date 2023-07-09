@@ -32,7 +32,7 @@ export const UserStoreModel = types
   })
   .views((self) => ({
     get profileIncomplete() {
-      console.debug("UserStore.profileIncomplete checking")
+      console.debug("UserStore.profileIncomplete called")
       // If store has not been initialized, we cannot reliably determine status
       // Return true to prevent flashing of the onboarding stack before store can be
       // initialized with user data
@@ -49,52 +49,73 @@ export const UserStoreModel = types
         return true
       }
 
-      console.debug("UserStore.profileIncomplete: false")
+      console.debug("UserStore.profileIncomplete return false")
       return false
     },
     get userProfileExists() {
-      if (self.user === undefined || self.user === null) return false
+      if (!self.user) return false
 
       return true
     },
     get displayName() {
+      if (!self.user) {
+        console.warn("UserStore.displayName: User profile not available")
+        return undefined
+      }
+
       if (self.user.firstName && self.user.lastName) {
         return `${self.user.firstName} ${self.user.lastName}`
       }
 
-      console.warn("User display name not available. This should not be possible.")
+      console.warn(
+        "UserStore.displayName: User display name not available. Using email instead. This should not be possible.",
+      )
       return self.user.email
     },
     get isPrivate() {
+      if (!self.user) {
+        console.warn("UserStore.isPrivate: User profile not available")
+        return undefined
+      }
+
       return !!self.user.privateAccount
     },
   }))
   .actions((self) => ({
+    uploadUserAvatar: flow<string, [imagePath: string]>(function* (imagePath: string) {
+      try {
+        const avatarUrl = yield getEnv<RootStoreDependencies>(self).userRepository.uploadAvatar(
+          imagePath,
+        )
+
+        return avatarUrl
+      } catch (e) {
+        console.error("UserStore.uploadUserAvatar error:", e)
+      }
+    }),
     /**
      * Creating a profile should usually be done right after signing up
-     * this is for the rare case when a user's profile needs to be recreate
+     * this is for the rare case when a user's profile needs to be recreated
      */
-    createNewProfile: flow(function* (user: User) {
+    createNewProfile: flow(function* (newUser: User) {
       self.isLoading = true
 
       try {
-        yield getEnv<RootStoreDependencies>(self).userRepository.create(user)
-        self.user = user
+        yield getEnv<RootStoreDependencies>(self).userRepository.create(newUser)
+        self.user = newUser
 
         self.isLoading = false
         self.isInitializing = false
       } catch (e) {
-        console.error(e)
+        console.error("UserStore.createNewProfile error:", e)
       }
     }),
-
     getWorkouts: flow(function* () {
-      console.debug("UserStore.getWorkouts() start")
+      console.debug("UserStore.getWorkouts called")
       try {
         self.isLoadingWorkouts = true
 
         if (!self.user.workoutsMeta) {
-          console.error("UserStore() unable to get workouts")
           self.isLoadingWorkouts = false
           return
         }
@@ -105,7 +126,6 @@ export const UserStoreModel = types
         ).workoutRepository.getMany(workoutIds)
 
         if (!workouts) {
-          console.error("UserStore() unable to get workouts")
           self.isLoadingWorkouts = false
           return
         }
@@ -119,14 +139,14 @@ export const UserStoreModel = types
 
         self.isLoadingWorkouts = false
       } catch (e) {
-        console.error(e)
+        console.error("UserStore.getWorkouts error:", e)
       }
-      console.debug("UserStore.getWorkouts() done")
+      console.debug("UserStore.getWorkouts done")
     }),
   }))
   .actions((self) => ({
     loadUserWithId: flow(function* (userId: string) {
-      console.debug("UserStore.loadUserWIthId() start")
+      console.debug("UserStore.loadUserWIthId called:", userId)
       self.isLoading = true
 
       try {
@@ -135,31 +155,34 @@ export const UserStoreModel = types
         if (user) {
           self.user = user
           self.isNewUser = false
+          yield self.getWorkouts()
         } else {
           self.isNewUser = true
         }
 
         self.isLoading = false
         self.isInitializing = false
-        yield self.getWorkouts()
       } catch (e) {
-        console.error(e)
+        console.error("UserStore.loadUserWIthId error:", e)
       }
-      console.debug("UserStore.loadUserWIthId() done")
+      console.debug("UserStore.loadUserWIthId done")
     }),
-    updateProfile: flow(function* (user: Partial<User>) {
-      console.debug("UserStore.updateProfile() start")
+    updateProfile: flow(function* (userUpdate: Partial<User>) {
+      console.debug("UserStore.updateProfile called")
       self.isLoading = true
 
       try {
-        yield getEnv<RootStoreDependencies>(self).userRepository.update(user.userId, user)
-        self.user = { ...self.user, ...user }
+        yield getEnv<RootStoreDependencies>(self).userRepository.update(
+          userUpdate.userId,
+          userUpdate,
+        )
+        self.user = { ...self.user, ...userUpdate }
         yield self.getWorkouts()
 
         self.isLoading = false
       } catch (e) {
-        console.error(e)
+        console.error("UserStore.updateProfile error:", e)
       }
-      console.debug("UserStore.updateProfile() done")
+      console.debug("UserStore.updateProfile done")
     }),
   }))

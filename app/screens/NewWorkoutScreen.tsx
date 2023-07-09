@@ -136,7 +136,7 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
 }
 
 const $container: ViewStyle = {
-  padding: spacing.screen,
+  padding: spacing.screenPadding,
 }
 
 const $pressableText: TextStyle = {

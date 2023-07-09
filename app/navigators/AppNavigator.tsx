@@ -4,7 +4,7 @@
  * Generally speaking, it will contain an auth flow (registration, login, forgot password)
  * and a "main" flow which the user will use once logged in.
  */
-import auth from "@react-native-firebase/auth"
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/native"
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { observer } from "mobx-react-lite"
@@ -61,13 +61,28 @@ const AppStack = observer(function AppStack() {
   async function onAuthStateChanged(user) {
     // Update authentication and user data
     if (user) {
+      console.debug("onAuthStateChanged valid user:", user)
       authStore.setFirebaseUser(user)
+    } else {
+      console.debug("onAuthStateChanged invalid user, invalidating session")
+      authStore.invalidateSession()
     }
 
     if (initializing) setInitializing(false)
   }
 
   useEffect(() => {
+    // Force token refresh
+    ;(async function tokenRefresh() {
+      if (!auth().currentUser) return
+
+      await auth()
+        .currentUser.getIdToken(true)
+        .catch((e: FirebaseAuthTypes.NativeFirebaseAuthError) => {
+          console.debug("Unable to refresh token:", e.code)
+        })
+    })()
+
     // Event is fired upon app initialization as well
     const unsubscribe = auth().onAuthStateChanged(onAuthStateChanged)
     return unsubscribe // unsubscribe on unmount

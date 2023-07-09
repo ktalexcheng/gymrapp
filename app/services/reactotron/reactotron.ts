@@ -17,6 +17,7 @@ import { onSnapshot } from "mobx-state-tree"
 import { Platform } from "react-native"
 import { ArgType } from "reactotron-core-client"
 import { mst } from "reactotron-mst"
+import { trackGlobalErrors } from "reactotron-react-native"
 import { goBack, navigate, resetRoot } from "../../navigators/navigationUtilities"
 import { RootStore, RootStoreSnapshot } from "../../stores/RootStore"
 import { clear } from "../../utils/storage"
@@ -119,6 +120,10 @@ export function setupReactotron(customConfig: ReactotronConfig = {}) {
     Reactotron.use(
       mst({
         filter: (event) => RX.test(event.name) === false,
+      }),
+    ).use(
+      trackGlobalErrors({
+        veto: (frame) => frame.fileName.indexOf("/node_modules/react-native/") >= 0,
       }),
     )
 

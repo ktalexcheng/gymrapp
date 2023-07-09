@@ -1,8 +1,8 @@
-import { ExerciseSetType, NewWorkout } from "app/data/model"
+import { ExercisePerformed, ExerciseSetType, NewWorkout } from "app/data/model"
 import { translate } from "app/i18n"
-import { formatDuration } from "app/utils/formatDuration"
+import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
+import { differenceInSeconds } from "date-fns"
 import { SnapshotIn, destroy, flow, getEnv, types } from "mobx-state-tree"
-import moment from "moment"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
@@ -24,6 +24,15 @@ const SingleExerciseSet = types
     },
   }))
   .actions(withSetPropAction)
+  .actions((self) => ({
+    updateSetValues(prop: "weight" | "reps" | "rpe", value: string) {
+      if (value) {
+        self.setProp(prop, Number(value))
+      } else {
+        self.setProp(prop, undefined)
+      }
+    },
+  }))
 
 const ExerciseSets = types.array(SingleExerciseSet)
 
@@ -32,6 +41,7 @@ const SingleExercise = types
     exerciseOrder: types.number,
     exerciseId: types.string,
     setsPerformed: types.optional(ExerciseSets, []),
+    notes: types.maybe(types.string),
   })
   .actions(withSetPropAction)
 
@@ -46,6 +56,7 @@ const WorkoutStoreModel = types
     inProgress: false,
     restTime: 0,
     restTimeRemaining: 0,
+    lastSetCompletedTime: types.maybe(types.Date),
     workoutTitle: translate("activeWorkoutScreen.newActiveWorkoutTitle"),
   })
   .views((self) => ({
@@ -65,10 +76,8 @@ const WorkoutStoreModel = types
       return allSetsCompleted
     },
     get timeElapsedFormatted() {
-      const start = moment(self.startTime)
-      const duration = moment.duration(moment().diff(start))
-      console.debug("WorkoutStore.timeElapsedFormatted:", formatDuration(duration))
-      return formatDuration(duration)
+      const duration = differenceInSeconds(new Date(), self.startTime)
+      return formatSecondsAsTime(duration, true)
     },
     get totalVolume() {
       let total = 0
@@ -80,15 +89,43 @@ const WorkoutStoreModel = types
 
       return total
     },
+    get timeSinceLastSetFormatted() {
+      if (self.lastSetCompletedTime !== undefined) {
+        const duration = differenceInSeconds(new Date(), self.lastSetCompletedTime)
+        return formatSecondsAsTime(duration)
+      }
+
+      return "00:00"
+    },
   }))
   .actions(withSetPropAction)
   .actions((self) => ({
     resetWorkout() {
       self.startTime = new Date()
+      self.lastSetCompletedTime = undefined
       self.restTime = 0
       self.restTimeRemaining = 0
       self.exercises = Exercises.create()
       self.workoutTitle = translate("activeWorkoutScreen.newActiveWorkoutTitle")
+    },
+  }))
+  .actions((self) => ({
+    summarizeExercises(): ExercisePerformed[] {
+      const exercisesSummary: ExercisePerformed[] = []
+      self.exercises.forEach((e) => {
+        exercisesSummary.push({
+          ...e,
+          bestSet: e.setsPerformed.reduce(
+            (max, set) => (set.weight > max.weight ? set : max),
+            e.setsPerformed[0],
+          ),
+          datePerformed: self.endTime,
+          totalReps: e.setsPerformed.reduce((reps, set) => reps + set.reps, 0),
+          totalVolume: e.setsPerformed.reduce((volume, set) => volume + set.weight * set.reps, 0),
+        })
+      })
+
+      return exercisesSummary
     },
   }))
   .actions((self) => ({
@@ -109,7 +146,7 @@ const WorkoutStoreModel = types
     saveWorkout: flow(function* () {
       try {
         if (self.inProgress) {
-          console.error("WorkoutStore().saveWorkout(): Unable to save, workout still in progress")
+          console.warn("WorkoutStore.saveWorkout: Unable to save, workout still in progress")
           return
         }
 
@@ -122,10 +159,12 @@ const WorkoutStoreModel = types
 
         const workoutId = yield getEnv<RootStoreDependencies>(self).workoutRepository.create({
           byUser: getEnv<RootStoreDependencies>(self).userRepository.user.userId,
-          privateUser: getEnv<RootStoreDependencies>(self).userRepository.user.privateAccount,
+          visibility: getEnv<RootStoreDependencies>(self).userRepository.user.privateAccount
+            ? "private"
+            : "public",
           startTime: self.startTime,
           endTime: self.endTime,
-          exercises: self.exercises,
+          exercises: self.summarizeExercises(),
           workoutTitle: self.workoutTitle,
         } as NewWorkout)
 
@@ -136,7 +175,7 @@ const WorkoutStoreModel = types
         })
         self.resetWorkout()
       } catch (error) {
-        console.error("WorkoutStore().saveWorkout().error:", error)
+        console.error("WorkoutStore.saveWorkout error:", error)
       }
     }),
     addExercise(newExerciseId: string) {
@@ -162,6 +201,12 @@ const WorkoutStoreModel = types
       })
       self.exercises[targetExerciseOrder].setsPerformed.push(newSet)
     },
+    removeSet(targetExerciseOrder: number, targetExerciseSetOrder: number) {
+      self.exercises[targetExerciseOrder].setsPerformed.splice(targetExerciseSetOrder, 1)
+      self.exercises[targetExerciseOrder].setsPerformed.forEach((s, i) => {
+        s.setOrder = i
+      })
+    },
   }))
   .actions((self) => {
     let intervalId
@@ -172,11 +217,12 @@ const WorkoutStoreModel = types
     }
 
     const startRestTimer = () => {
+      self.lastSetCompletedTime = new Date()
       intervalId = setInterval(() => {
         if (self.restTimeRemaining > 0) {
           self.setProp("restTimeRemaining", self.restTimeRemaining - 1)
         } else {
-          console.debug("WorkoutStore.startRestTimer() cleared")
+          console.debug("WorkoutStore.startRestTimer cleared")
           clearInterval(intervalId)
         }
       }, 1000)

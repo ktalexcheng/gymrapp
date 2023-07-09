@@ -1,8 +1,7 @@
 import { MainStackScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
-import { formatDuration } from "app/utils/formatDuration"
+import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
 import { observer } from "mobx-react-lite"
-import moment from "moment"
 import React, { FC, useEffect, useState } from "react"
 import { Modal, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { Icon, RowView, Screen, Text, TextField } from "../../components"
@@ -90,7 +89,7 @@ const SaveWorkoutDialog: FC<SaveWorkoutDialogProps> = function SaveWorkoutDialog
 const RestTimerProgressBar: FC = observer(() => {
   const { workoutStore } = useStores()
 
-  const progressBarWidth = 90
+  const progressBarWidth = 75
 
   const $timeProgressContainer: ViewStyle = {
     width: progressBarWidth,
@@ -110,6 +109,7 @@ const RestTimerProgressBar: FC = observer(() => {
     height: "100%",
     width: "100%",
     alignItems: "center",
+    textAlign: "center",
   }
 
   return (
@@ -117,12 +117,9 @@ const RestTimerProgressBar: FC = observer(() => {
       {workoutStore.restTimeRemaining > 0 ? (
         <RowView style={$timeProgressContainer}>
           <View style={$timeProgressRemainingContainer} />
-          <RowView style={$restTimeDisplayView}>
-            <Icon name="stopwatch-outline" color="black" size={30} />
-            <Text numberOfLines={1}>
-              {formatDuration(moment.duration(workoutStore.restTimeRemaining, "s"), false)}
-            </Text>
-          </RowView>
+          <Text style={$restTimeDisplayView} numberOfLines={1}>
+            {formatSecondsAsTime(workoutStore.restTimeRemaining)}
+          </Text>
         </RowView>
       ) : (
         <Icon name="stopwatch-outline" color="black" size={30} />
@@ -139,21 +136,22 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
     const [showSaveDialog, setShowSaveDialog] = useState(false)
     const [workoutTitle, setWorkoutTitle] = useState(workoutStore.workoutTitle)
     const [timeElapsed, setTimeElapsed] = useState("00:00:00")
+    const [timeSinceLastSet, setTimeSinceLastSet] = useState("00:00")
     const rootNavigation = useMainNavigation()
 
     useEffect(() => {
-      // if (workoutStore.inProgress) {
-      const intervalId = setInterval(() => {
-        // console.debug("ActiveWorkoutScreen setInterval called")
-        setTimeElapsed(workoutStore.timeElapsedFormatted)
-      }, 1000)
-      console.debug("ActiveWorkoutScreen setInterval(): ", intervalId)
+      if (workoutStore.inProgress) {
+        const intervalId = setInterval(() => {
+          setTimeElapsed(workoutStore.timeElapsedFormatted)
+          setTimeSinceLastSet(workoutStore.timeSinceLastSetFormatted)
+        }, 1000)
+        console.debug("ActiveWorkoutScreen setInterval called:", intervalId)
 
-      return () => {
-        console.debug("ActiveWorkoutScreen clearInterval(): ", intervalId)
-        clearInterval(intervalId)
+        return () => {
+          console.debug("ActiveWorkoutScreen clearInterval called:", intervalId)
+          clearInterval(intervalId)
+        }
       }
-      // }
     }, [workoutStore.inProgress])
 
     function updateWorkoutTitle(value: string) {
@@ -192,15 +190,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
     }
 
     const $container: ViewStyle = {
-      padding: spacing.screen,
-    }
-
-    const $workoutHeaderRow: ViewStyle = {
-      justifyContent: "space-between",
-    }
-
-    const $finishWorkoutButton: TextStyle = {
-      color: colors.actionable,
+      padding: spacing.screenPadding,
     }
 
     const $metricsRow: ViewStyle = {
@@ -226,14 +216,32 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
       marginTop: spacing.medium,
     }
 
+    const $workoutHeaderRow: ViewStyle = {
+      justifyContent: "space-between",
+      alignItems: "center",
+    }
+
+    const $minimizeAndTimer: ViewStyle = {
+      flex: 2,
+    }
+
     const $workoutTitleContainer: ViewStyle = {
-      width: 200,
+      flex: 3,
+    }
+
+    const $workoutTitleWrapper: TextStyle = {
       borderWidth: 0,
     }
 
     const $workoutTitle: TextStyle = {
       fontWeight: "bold",
       textAlign: "center",
+    }
+
+    const $finishWorkoutButton: ViewStyle & TextStyle = {
+      flex: 2,
+      textAlign: "right",
+      color: colors.actionable,
     }
 
     return (
@@ -249,7 +257,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
 
         <View style={$container}>
           <RowView style={$workoutHeaderRow}>
-            <RowView>
+            <RowView style={$minimizeAndTimer}>
               <Icon
                 name="chevron-down-outline"
                 color="black"
@@ -261,9 +269,9 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
 
             <TextField
               selectTextOnFocus
+              containerStyle={$workoutTitleContainer}
+              inputWrapperStyle={$workoutTitleWrapper}
               style={$workoutTitle}
-              inputWrapperStyle={$workoutTitleContainer}
-              // inputWrapperStyle={}
               value={workoutTitle}
               placeholderTx="activeWorkoutScreen.newActiveWorkoutTitle"
               onChangeText={updateWorkoutTitle}
@@ -283,6 +291,10 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
             <View style={$metric}>
               <Text tx="activeWorkoutScreen.timeElapsedLabel" style={$metricLabel} />
               <Text text={timeElapsed} />
+            </View>
+            <View style={$metric}>
+              <Text tx="activeWorkoutScreen.timeSinceLastSetLabel" style={$metricLabel} />
+              <Text text={timeSinceLastSet} />
             </View>
             <View style={$metric}>
               <Text tx="activeWorkoutScreen.totalVolumeLabel" style={$metricLabel} />

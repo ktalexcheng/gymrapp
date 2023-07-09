@@ -1,26 +1,30 @@
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
 import { TextStyle, View, ViewStyle } from "react-native"
-import { Icon, RowView, Text, TextField } from "../../components"
+import { Swipeable } from "react-native-gesture-handler"
+import { Button, Icon, RowView, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
-import { spacing } from "../../theme"
+import { colors, spacing, thresholds } from "../../theme"
 import { DefaultExerciseSettings } from "./defaultExerciseSettings"
 
 export type SetEntryProps = {
   exerciseOrder: number
   exerciseId: string
   setOrder: number
-  type: string
+  setType: string
   weight: number
   reps: number
   isCompleted: boolean
 }
 
-export const SetEntry: FC = observer((props: SetEntryProps) => {
+export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const { workoutStore, exerciseStore } = useStores()
   const { exerciseOrder, setOrder } = props
   const [isNullWeight, setIsNullWeight] = useState(false)
   const [isNullReps, setIsNullReps] = useState(false)
+  const [weight, setWeight] = useState("")
+  const [reps, setReps] = useState("")
+  const [rpe, setRpe] = useState("")
   const exerciseSetStore = workoutStore.exercises[exerciseOrder].setsPerformed[setOrder]
 
   function toggleSetStatus() {
@@ -29,9 +33,13 @@ export const SetEntry: FC = observer((props: SetEntryProps) => {
       return
     }
 
-    if (exerciseSetStore.validWeight && exerciseSetStore.validReps) {
+    if (weight && reps) {
       setIsNullWeight(false)
       setIsNullReps(false)
+
+      exerciseSetStore.updateSetValues("weight", weight)
+      exerciseSetStore.updateSetValues("reps", reps)
+      exerciseSetStore.updateSetValues("rpe", rpe)
 
       workoutStore.restartRestTimer(
         exerciseStore.allExercises.get(props.exerciseId).exerciseSettings?.restTime ??
@@ -40,80 +48,112 @@ export const SetEntry: FC = observer((props: SetEntryProps) => {
 
       exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
     } else {
-      setIsNullWeight(!exerciseSetStore.validWeight)
-      setIsNullReps(!exerciseSetStore.validReps)
+      setIsNullWeight(!weight)
+      setIsNullReps(!reps)
     }
   }
 
-  function setExerciseSetWeight(value: string) {
-    if (value) {
-      exerciseSetStore.setProp("weight", Number(value))
-    } else {
-      exerciseSetStore.setProp("weight", undefined)
+  function isLegalPrecision(value: string, decimalPlaces: number) {
+    const decimalIndex = value.indexOf(".")
+    if (decimalPlaces === 0 && decimalIndex !== -1) {
+      return false
     }
+
+    if (decimalIndex !== -1 && value.substring(decimalIndex + 1).length > decimalPlaces) {
+      return false
+    }
+
+    return true
   }
 
-  function setExerciseSetReps(value: string) {
-    if (value) {
-      exerciseSetStore.setProp("reps", Number(value))
-    } else {
-      exerciseSetStore.setProp("reps", undefined)
-    }
+  function handleWeightChangeText(value: string) {
+    if (isLegalPrecision(value, 2)) setWeight(value)
   }
 
-  function setExerciseSetRpe(value: string) {
-    if (value) {
-      exerciseSetStore.setProp("rpe", Number(value))
-    } else {
-      exerciseSetStore.setProp("rpe", null)
+  function handleRepsChangeText(value: string) {
+    if (isLegalPrecision(value, 0)) setReps(value)
+  }
+
+  function handleRpeChangeText(value: string) {
+    if (isLegalPrecision(value, 1)) setRpe(value)
+  }
+
+  function renderRightDelete() {
+    const handleDelete = () => {
+      workoutStore.removeSet(exerciseOrder, setOrder)
     }
+
+    const $swipeContainer: ViewStyle = {
+      justifyContent: "center",
+      marginTop: spacing.tiny,
+    }
+
+    const $deleteButton: ViewStyle = {
+      backgroundColor: colors.danger,
+      paddingHorizontal: spacing.small,
+      paddingVertical: 0,
+      minHeight: 40,
+      height: 40,
+    }
+
+    return (
+      <View style={$swipeContainer}>
+        <Button style={$deleteButton} onPress={handleDelete} tx="common.delete" />
+      </View>
+    )
   }
 
   return (
-    <RowView style={$exerciseSet}>
-      <Text text={props.setOrder.toString()} style={[$setOrderColumn, $textAlignCenter]} />
-      {/* TODO: Find last set record that is the same set order */}
-      <Text text="N/A" style={[$previousColumn, $textAlignCenter]} />
-      <View style={$weightColumn}>
-        <TextField
-          status={isNullWeight ? "error" : null}
-          value={exerciseSetStore.weight !== undefined ? exerciseSetStore.weight.toString() : ""}
-          onChangeText={setExerciseSetWeight}
-          containerStyle={$textFieldContainer}
-          textAlign="center"
-          autoCorrect={false}
-          keyboardType="number-pad"
-        />
-      </View>
-      <View style={$repsColumn}>
-        <TextField
-          status={isNullReps ? "error" : null}
-          value={exerciseSetStore.reps !== undefined ? exerciseSetStore.reps.toString() : ""}
-          onChangeText={setExerciseSetReps}
-          containerStyle={$textFieldContainer}
-          textAlign="center"
-          autoCorrect={false}
-          keyboardType="number-pad"
-        />
-      </View>
-      <View style={$rpeColumn}>
-        <TextField
-          value={exerciseSetStore.rpe ? exerciseSetStore.rpe.toString() : ""}
-          onChangeText={setExerciseSetRpe}
-          containerStyle={$textFieldContainer}
-          textAlign="center"
-          autoCorrect={false}
-          keyboardType="number-pad"
-        />
-      </View>
-      <View style={[$isCompletedColumn, $textAlignCenter]}>
-        {exerciseSetStore.isCompleted ? (
-          <Icon name="checkbox" color="black" size={30} onPress={toggleSetStatus} />
-        ) : (
-          <Icon name="checkbox-outline" color="black" size={30} onPress={toggleSetStatus} />
-        )}
-      </View>
-    </RowView>
+    <Swipeable renderRightActions={renderRightDelete} rightThreshold={thresholds.swipeableRight}>
+      <RowView style={$exerciseSet}>
+        <Text text={props.setOrder.toString()} style={[$setOrderColumn, $textAlignCenter]} />
+        {/* TODO: Find last set record that is the same set order */}
+        <Text text="N/A" style={[$previousColumn, $textAlignCenter]} />
+        <View style={$weightColumn}>
+          <TextField
+            status={isNullWeight ? "error" : null}
+            value={weight}
+            onChangeText={handleWeightChangeText}
+            containerStyle={$textFieldContainer}
+            textAlign="center"
+            autoCorrect={false}
+            keyboardType="decimal-pad"
+            inputMode="numeric"
+            maxLength={7}
+          />
+        </View>
+        <View style={$repsColumn}>
+          <TextField
+            status={isNullReps ? "error" : null}
+            value={reps}
+            onChangeText={handleRepsChangeText}
+            containerStyle={$textFieldContainer}
+            textAlign="center"
+            autoCorrect={false}
+            keyboardType="decimal-pad"
+            maxLength={4}
+          />
+        </View>
+        <View style={$rpeColumn}>
+          <TextField
+            value={rpe}
+            onChangeText={handleRpeChangeText}
+            containerStyle={$textFieldContainer}
+            textAlign="center"
+            autoCorrect={false}
+            keyboardType="decimal-pad"
+            maxLength={3}
+          />
+        </View>
+        <View style={[$isCompletedColumn, $textAlignCenter]}>
+          {exerciseSetStore.isCompleted ? (
+            <Icon name="checkbox" color="black" size={30} onPress={toggleSetStatus} />
+          ) : (
+            <Icon name="checkbox-outline" color="black" size={30} onPress={toggleSetStatus} />
+          )}
+        </View>
+      </RowView>
+    </Swipeable>
   )
 })
 
@@ -153,6 +193,7 @@ const $exerciseSet: ViewStyle = {
   justifyContent: "space-around",
   alignItems: "center",
   marginTop: spacing.tiny,
+  backgroundColor: colors.background,
 }
 
 const $textFieldContainer: ViewStyle = {

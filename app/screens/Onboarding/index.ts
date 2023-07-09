@@ -1,1 +1,1 @@
-export * from "./NewUserProfileScreen"
+export * from "./CreateProfileScreen"

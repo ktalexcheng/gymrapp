@@ -8,12 +8,20 @@ import { Modal, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Icon, Text } from "../components"
 import { translate } from "../i18n"
-import { ActiveWorkoutOverlay, FeedScreen, ProfileScreen } from "../screens"
+import {
+  ActiveWorkoutOverlay,
+  DiscoverScreen,
+  FeedScreen,
+  ProfileScreen,
+  UpcomingScreen,
+} from "../screens"
 import { colors, spacing, typography } from "../theme"
 
 export type TabParamList = {
   Feed: undefined
+  Discover: undefined
   NewActivity: undefined
+  Upcoming: undefined
   Profile: undefined
 }
 
@@ -81,11 +89,11 @@ const NewActivityButton = () => {
 
 export const HomeTabNavigator = observer(() => {
   const { bottom } = useSafeAreaInsets()
-  const { userStore } = useStores()
+  const { userStore, workoutStore } = useStores()
   const mainNavigation = useMainNavigation()
 
   useEffect(() => {
-    console.debug("HomeTabNavigator useEffect start")
+    console.debug("HomeTabNavigator.useEffect [userStore.profileIncomplete] called")
     if (userStore.profileIncomplete) {
       console.debug("Profile is incomplete, navigating to OnboardingNavigator")
       mainNavigation.navigate("OnboardingNavigator")
@@ -94,7 +102,7 @@ export const HomeTabNavigator = observer(() => {
 
   return (
     <>
-      <ActiveWorkoutOverlay />
+      {workoutStore.inProgress && <ActiveWorkoutOverlay />}
       <BottomTab.Navigator
         screenOptions={{
           headerShown: false,
@@ -117,10 +125,30 @@ export const HomeTabNavigator = observer(() => {
           }}
         />
         <BottomTab.Screen
+          name="Discover"
+          component={DiscoverScreen}
+          options={{
+            tabBarLabel: translate("tabNavigator.discoverTab"),
+            tabBarIcon: ({ focused }) => (
+              <Icon name="search-outline" color={focused && colors.tint} size={20} />
+            ),
+          }}
+        />
+        <BottomTab.Screen
           name="NewActivity"
           component={EmptyActivityScreen}
           options={{
             tabBarButton: () => <NewActivityButton />,
+          }}
+        />
+        <BottomTab.Screen
+          name="Upcoming"
+          component={UpcomingScreen}
+          options={{
+            tabBarLabel: translate("tabNavigator.upcomingTab"),
+            tabBarIcon: ({ focused }) => (
+              <Icon name="calendar-outline" color={focused && colors.tint} size={20} />
+            ),
           }}
         />
         <BottomTab.Screen

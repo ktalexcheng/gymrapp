@@ -44,18 +44,21 @@ export const MainNavigator = observer(function MainNavigator() {
 
   // Listen to database update
   useEffect(() => {
-    console.debug("MainNavigator.useEffect() triggered")
+    console.debug("MainNavigator.useEffect [] called")
     userStore.loadUserWithId(authStore.firebaseUser.uid)
     exerciseStore.getAllExercises()
 
     const userSubscriber = firestore()
       .collection("users")
       .doc(authStore.firebaseUser.uid)
-      .onSnapshot((snapshot) => {
-        if (!snapshot.exists) return
+      .onSnapshot(
+        (snapshot) => {
+          if (!snapshot.exists) return
 
-        userStore.updateProfile(snapshot.data() as User)
-      }, console.error)
+          userStore.updateProfile(snapshot.data() as User)
+        },
+        (e) => console.error("MainNavigator.userSubscriber.onSnapshot error:", e),
+      )
 
     const exercisesSubscriber = firestore()
       .collection("exercises")

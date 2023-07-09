@@ -58,12 +58,15 @@ export const ExerciseStoreModel = types
   }))
   .actions(withSetPropAction)
   .actions((self) => ({
+    getExerciseName(exerciesId: string) {
+      return self.allExercises.get(exerciesId).exerciseName
+    },
     setAllExercises(exercises: Exercise[]) {
       self.isLoading = true
 
-      if (exercises === undefined || exercises.length === 0) {
+      if (!exercises || exercises.length === 0) {
         self.isLoading = false
-        console.warn("ExerciseStore().setAllExercises(): undefined exercises")
+        console.warn("ExerciseStore.setAllExercises: no exercises available")
         return
       }
 
@@ -96,21 +99,23 @@ export const ExerciseStoreModel = types
 
       try {
         // Fetch exercises and user settings
-        const exercises: Exercise[] = yield getEnv(self).exerciseRepository.getMany()
+        const exercises: Exercise[] = yield getEnv<RootStoreDependencies>(
+          self,
+        ).exerciseRepository.getMany()
         self.setAllExercises(exercises)
 
         self.isLoading = false
       } catch (e) {
-        console.error(e)
+        console.error("ExerciseStore.getAllExercises error:", e)
       }
     }),
     updateExerciseSetting(exerciseId, exerciseSettingsId, exerciseSettingsValue) {
       if (!self.allExercises.has(exerciseId)) {
-        console.error("ExerciseStoreModel.updateExerciseSetting() Invalid exerciseId")
+        console.warn("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseId")
         return
       }
       if (!(exerciseSettingsId in ExerciseSettingsModel.properties)) {
-        console.error("ExerciseStoreModel.updateExerciseSetting() Invalid exerciseSettingsId")
+        console.warn("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseSettingsId")
         return
       }
 
@@ -143,7 +148,7 @@ export const ExerciseStoreModel = types
 
         self.isLoading = false
       } catch (error) {
-        console.error("ExerciseStore().uploadExerciseSettings().error:", error)
+        console.error("ExerciseStore.uploadExerciseSettings error:", error)
       }
     }),
     createNewExercise: flow(function* (newExercise: NewExercise) {
@@ -154,7 +159,7 @@ export const ExerciseStoreModel = types
 
         self.isLoading = false
       } catch (e) {
-        console.error(e)
+        console.error("ExerciseStore.createNewExercise error:", e)
       }
     }),
   }))

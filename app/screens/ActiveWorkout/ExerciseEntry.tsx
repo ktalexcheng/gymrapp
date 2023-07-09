@@ -1,4 +1,4 @@
-import { ExerciseSetType } from "app/data/model"
+import { ExerciseSet, ExerciseSetType } from "app/data/model"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
@@ -6,26 +6,25 @@ import { Icon, RowView, Text } from "../../components"
 import { useStores } from "../../stores"
 import { spacing } from "../../theme"
 import { ExerciseSettingsMenu } from "./ExerciseSettingsMenu"
-import { SetEntry, SetEntryProps } from "./SetEntry"
+import { SetEntry } from "./SetEntry"
 import { DefaultExerciseSettings } from "./defaultExerciseSettings"
 
 export type ExerciseEntryProps = {
   exerciseOrder: number
   exerciseId: string
-  exerciseName: string
-  setsPerformed: SetEntryProps[]
+  setsPerformed: ExerciseSet[]
 }
 
-export const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
+export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEntryProps) => {
   const { workoutStore, exerciseStore } = useStores()
+
+  const exerciseName = exerciseStore.allExercises.get(props.exerciseId).exerciseName
 
   function addSet() {
     workoutStore.addSet(props.exerciseOrder, {
       setType: ExerciseSetType.Normal,
     })
   }
-
-  const exerciseName = exerciseStore.allExercises.get(props.exerciseId).exerciseName
 
   return (
     <View>
@@ -67,9 +66,10 @@ export const ExerciseEntry: FC = observer((props: ExerciseEntryProps) => {
           />
         </RowView>
 
-        {props.setsPerformed.map((set) => (
+        {props.setsPerformed.map((set, i) => (
           <SetEntry
-            key={set.setOrder}
+            key={i}
+            setOrder={i}
             exerciseOrder={props.exerciseOrder}
             exerciseId={props.exerciseId}
             {...set}

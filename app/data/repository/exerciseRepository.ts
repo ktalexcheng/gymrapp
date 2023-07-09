@@ -10,7 +10,9 @@ export class ExerciseRepository implements BaseRepository<Exercise> {
   async create(newExercise: NewExercise): Promise<void> {
     const exercisesCollection = firestore().collection("exercises")
 
-    await exercisesCollection.add(newExercise).catch(console.error)
+    await exercisesCollection
+      .add(newExercise)
+      .catch((e) => console.error("ExerciseRepository.create error:", e))
   }
 
   update(): Promise<void> {

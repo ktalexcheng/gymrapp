@@ -7,6 +7,7 @@ import {
   TextField,
   TextFieldAccessoryProps,
 } from "app/components"
+import { translate } from "app/i18n"
 import { AuthStackScreenProps } from "app/navigators"
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
@@ -19,14 +20,18 @@ interface SignUpScreenProps extends NativeStackScreenProps<AuthStackScreenProps<
 export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScreen() {
   const [newEmail, setNewEmail] = useState("")
   const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [newFirstName, setNewFirstName] = useState("")
   const [newLastName, setNewLastName] = useState("")
   const [isNewPasswordHidden, setIsNewPasswordHidden] = useState(true)
+  const [isConfirmPasswordHidden, setIsConfirmPasswordHidden] = useState(true)
+  const [isPasswordMismatch, setIsPasswordMismatch] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const { authenticationStore: authStore } = useStores()
   const newLastNameInputRef = useRef<TextInput>()
   const newEmailInputRef = useRef<TextInput>()
   const newPasswordInputRef = useRef<TextInput>()
+  const confirmPasswordInputRef = useRef<TextInput>()
 
   useEffect(() => {
     authStore.resetAuthError()
@@ -35,6 +40,7 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
 
   function createNewAccount() {
     setIsSubmitted(true)
+
     authStore.setLoginEmail(newEmail)
     authStore.setLoginPassword(newPassword)
     authStore.setNewFirstName(newFirstName)
@@ -42,8 +48,15 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
 
     if (authStore.signInCredentialsError) return
     if (authStore.signUpInfoError) return
+    if (newPassword !== confirmPassword) {
+      setIsPasswordMismatch(true)
+      return
+    } else {
+      setIsPasswordMismatch(false)
+    }
 
     authStore.signUpWithEmail()
+
     setIsSubmitted(false)
   }
 
@@ -61,6 +74,22 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
         )
       },
     [isNewPasswordHidden],
+  )
+
+  const ConfirmPasswordRightAccessory = useMemo(
+    () =>
+      function ConfirmPasswordRightAccessory(props: TextFieldAccessoryProps) {
+        return (
+          <CustomIcon
+            icon={isConfirmPasswordHidden ? "view" : "hidden"}
+            color={colors.palette.neutral800}
+            containerStyle={props.style}
+            size={20}
+            onPress={() => setIsConfirmPasswordHidden(!isConfirmPasswordHidden)}
+          />
+        )
+      },
+    [isConfirmPasswordHidden],
   )
 
   return (
@@ -125,8 +154,25 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
         secureTextEntry={isNewPasswordHidden}
         labelTx="signUpScreen.passwordFieldLabel"
         placeholderTx="signUpScreen.passwordFieldPlaceholder"
-        onSubmitEditing={createNewAccount}
+        onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
         RightAccessory={PasswordRightAccessory}
+      />
+
+      <TextField
+        ref={confirmPasswordInputRef}
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        containerStyle={$textField}
+        autoCapitalize="none"
+        autoComplete="password"
+        autoCorrect={false}
+        secureTextEntry={isConfirmPasswordHidden}
+        labelTx="signUpScreen.confirmPasswordFieldLabel"
+        placeholderTx="signUpScreen.confirmPasswordFieldPlaceholder"
+        helper={isPasswordMismatch ? translate("signUpScreen.passwordMismatchLabel") : undefined}
+        status={isPasswordMismatch ? "error" : undefined}
+        onSubmitEditing={createNewAccount}
+        RightAccessory={ConfirmPasswordRightAccessory}
       />
 
       <Button

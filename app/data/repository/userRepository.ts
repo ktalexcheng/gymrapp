@@ -1,5 +1,6 @@
 import auth from "@react-native-firebase/auth"
 import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
+import storage from "@react-native-firebase/storage"
 import { ExerciseSettings, User, WorkoutMeta } from "../model"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
@@ -32,11 +33,38 @@ export class UserRepository implements BaseRepository<User> {
     exerciseSettings: ExerciseSettings
   }[] {
     if (!this.#user) {
-      console.error("UserRepository.get userExerciseSettings() error: No user set")
+      console.error("UserRepository.get userExerciseSettings error: No user set")
       return undefined
     }
 
     return this.#user.preferences?.allExerciseSettings
+  }
+
+  async uploadAvatar(imagePath: string): Promise<string> {
+    const avatarRef = storage().ref(`${this.#userId}/profile/avatar`)
+    const uploadTask = avatarRef.putFile(imagePath)
+
+    await uploadTask.on(
+      "state_changed",
+      (taskSnapshot) => {
+        console.debug(
+          "UserRepository.uploadAvatar task update:",
+          taskSnapshot.state,
+          "; progress (bytes):",
+          taskSnapshot.bytesTransferred,
+          "/",
+          taskSnapshot.totalBytes,
+        )
+      },
+      (error) => {
+        console.error("UserRepository.uploadAvatar error:", error)
+      },
+      () => {
+        console.debug("UserRepository.uploadAvatar upload done")
+      },
+    )
+
+    return await avatarRef.getDownloadURL()
   }
 
   updateUserExerciseSettings(
@@ -46,20 +74,17 @@ export class UserRepository implements BaseRepository<User> {
     }[],
   ) {
     if (!this.#user) {
-      console.error("UserRepository.set userExerciseSettings() error: No user set")
+      console.error("UserRepository.set userExerciseSettings error: No user set")
       return
     }
 
-    if (this.#user.preferences) {
-      this.#user.preferences = {}
-    }
     this.#user.preferences.allExerciseSettings = allExerciseSettings
     this.update()
   }
 
   get userWorkoutsMeta(): Record<string, WorkoutMeta> {
     if (!this.#user) {
-      console.error("UserRepository.get userWorkouts() error: No user set")
+      console.error("UserRepository.get userWorkouts error: No user set")
       return undefined
     }
 
@@ -68,7 +93,7 @@ export class UserRepository implements BaseRepository<User> {
 
   saveNewWorkoutMeta(workoutsMeta: Record<string, WorkoutMeta>) {
     if (!this.#user) {
-      console.error("UserRepository.set userWorkouts() error: No user set")
+      console.error("UserRepository.set userWorkouts error: No user set")
       return
     }
 
@@ -102,7 +127,7 @@ export class UserRepository implements BaseRepository<User> {
       preferences: data.preferences,
       providerId: data.providerId,
       email: data.email,
-      photoUrl: data.photoUrl,
+      avatarUrl: data.avatarUrl,
       workoutsMeta: data.workoutsMeta,
     }
 
@@ -110,9 +135,8 @@ export class UserRepository implements BaseRepository<User> {
   }
 
   async create(user: User): Promise<void> {
-    const snapshot = await this._getUserSnapshot()
-    if (snapshot.exists) throw new RepositoryError("(create) User already exists")
-
+    // Firebase rule set up to only allow create for new users
+    // Only the user itself can read, update, or delete
     firestore().collection(this.#collectionName).doc(user.userId).set(user)
 
     this.#userId = user.userId
@@ -125,7 +149,11 @@ export class UserRepository implements BaseRepository<User> {
     const snapshot = await this._getUserSnapshot()
     if (!snapshot.exists) throw new RepositoryError("(update) User does not exist")
 
-    await firestore().collection(this.#collectionName).doc(userId).update(user).catch(console.error)
+    await firestore()
+      .collection(this.#collectionName)
+      .doc(userId)
+      .update(user)
+      .catch((e) => console.error("UserRepository.update error:", e))
 
     this.#user = { ...this.#user, ...user }
   }

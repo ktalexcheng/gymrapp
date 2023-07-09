@@ -9,10 +9,15 @@
  * The app navigation resides in ./app/navigators, so head over there
  * if you're interested in adding screens and navigators.
  */
+import firestore from "@react-native-firebase/firestore"
+import functions from "@react-native-firebase/functions"
+import fbStorage from "@react-native-firebase/storage"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import { NativeBaseProvider } from "native-base"
 import React from "react"
+import { ViewStyle } from "react-native"
+import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 import Config from "./config"
 import "./i18n"
@@ -63,6 +68,15 @@ const config = {
   },
 }
 
+// Firebase emulator setup
+if (__DEV__) {
+  // const localIp = "192.168.50.176" // For physical device, use local IP on network
+  const localIp = "localhost" // For emulators
+  firestore().useEmulator(localIp, 8080)
+  functions().useEmulator(localIp, 5001)
+  fbStorage().useEmulator(localIp, 9199)
+}
+
 interface AppProps {
   hideSplashScreen: () => Promise<void>
 }
@@ -106,19 +120,25 @@ function App(props: AppProps) {
     config,
   }
 
+  const $gestureHandlerRootView: ViewStyle = {
+    flex: 1,
+  }
+
   // otherwise, we're ready to render the app
   return (
-    <NativeBaseProvider>
-      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-        <ErrorBoundary catchErrors={Config.catchErrors}>
-          <AppNavigator
-            linking={linking}
-            initialState={initialNavigationState}
-            onStateChange={onNavigationStateChange}
-          />
-        </ErrorBoundary>
-      </SafeAreaProvider>
-    </NativeBaseProvider>
+    <GestureHandlerRootView style={$gestureHandlerRootView}>
+      <NativeBaseProvider>
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+          <ErrorBoundary catchErrors={Config.catchErrors}>
+            <AppNavigator
+              linking={linking}
+              initialState={initialNavigationState}
+              onStateChange={onNavigationStateChange}
+            />
+          </ErrorBoundary>
+        </SafeAreaProvider>
+      </NativeBaseProvider>
+    </GestureHandlerRootView>
   )
 }
 

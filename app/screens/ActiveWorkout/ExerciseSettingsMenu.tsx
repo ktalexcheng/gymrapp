@@ -1,6 +1,5 @@
 import { ExerciseSettings } from "app/data/model"
-import { formatDuration } from "app/utils/formatDuration"
-import moment from "moment"
+import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
 import { HStack, Menu, Popover, Pressable, Switch } from "native-base"
 import React, { FC, useState } from "react"
 import { View } from "react-native"
@@ -26,7 +25,7 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = (props: ExerciseS
       .map<any>((_, i) => {
         const seconds = (i + 1) * 5
         return {
-          label: formatDuration(moment.duration(seconds, "s"), false),
+          label: formatSecondsAsTime(seconds),
           value: seconds,
         }
       }),
