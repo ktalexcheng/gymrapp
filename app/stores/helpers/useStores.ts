@@ -1,4 +1,6 @@
+import firestore from "@react-native-firebase/firestore"
 import { ExerciseRepository, UserRepository, WorkoutRepository } from "app/data/repository"
+import { ActivityRepository } from "app/data/repository/activityRepository"
 import { createContext, useContext, useEffect, useState } from "react"
 import { setReactotronRootStore } from "../../services/reactotron"
 import { RootStore, RootStoreModel } from "../RootStore"
@@ -18,14 +20,16 @@ import { setupRootStore } from "./setupRootStore"
  */
 export interface RootStoreDependencies {
   userRepository: UserRepository
+  activityRepository: ActivityRepository
   exerciseRepository: ExerciseRepository
   workoutRepository: WorkoutRepository
 }
 
 const _rootStore = RootStoreModel.create({}, {
-  userRepository: new UserRepository(),
-  exerciseRepository: new ExerciseRepository(),
-  workoutRepository: new WorkoutRepository(),
+  userRepository: new UserRepository(firestore()),
+  activityRepository: new ActivityRepository(firestore()),
+  exerciseRepository: new ExerciseRepository(firestore()),
+  workoutRepository: new WorkoutRepository(firestore()),
 } as RootStoreDependencies)
 
 /**

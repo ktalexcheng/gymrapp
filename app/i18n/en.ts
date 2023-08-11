@@ -5,6 +5,8 @@ const en = {
     back: "Back",
     delete: "Delete",
     loading: "Loading",
+    exercise: "Exercise",
+    bestSet: "Best Set",
   },
   welcomeScreen: {
     postscript:
@@ -69,7 +71,9 @@ const en = {
   },
   profileScreen: {
     userSettings: "Settings",
-    userActivities: "Activities",
+    activitiesTabLabel: "Activities",
+    dashboardTabLabel: "Dashboard",
+    dashboardWeeklyWorkoutsTitle: "Weekly Workouts",
     noActivityhistory: "No activity history",
     coachsCenterButtonLabel: "Coach's Center",
   },
@@ -109,7 +113,15 @@ const en = {
     cancelAction: "Cancel",
     timeElapsedLabel: "Time elapsed:",
     totalVolumeLabel: "Total volume:",
-    timeSinceLastSetLabel: "Time resting (set):",
+    timeSinceLastSetLabel: "Resting (set):",
+  },
+  exerciseDetailsScreen: {
+    personalRecordsLabel: "Personal Records",
+    workoutHistoryLabel: "Workout History",
+    recordsHeaderDateLabel: "Date Performed",
+    recordsHeaderWeightLabel: "Weight",
+    recordsHeaderRepsLabel: "Reps",
+    noExerciseHistoryFound: "No exercise history found.",
   },
   addExerciseScreen: {
     exerciseType: "Type",

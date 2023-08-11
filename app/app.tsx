@@ -70,8 +70,8 @@ const config = {
 
 // Firebase emulator setup
 if (__DEV__) {
-  // const localIp = "192.168.50.176" // For physical device, use local IP on network
-  const localIp = "localhost" // For emulators
+  const localIp = "192.168.235.105" // For physical device, use local IP on network
+  // const localIp = "localhost" // For emulators
   firestore().useEmulator(localIp, 8080)
   functions().useEmulator(localIp, 5001)
   fbStorage().useEmulator(localIp, 9199)

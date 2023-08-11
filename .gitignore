@@ -91,3 +91,5 @@ google-services.json
 # Build native source code with Expo 
 android/
 ios/
+
+**/service-account-key.json

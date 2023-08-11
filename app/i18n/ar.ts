@@ -5,6 +5,10 @@ const ar: Translations = {
     ok: "نعم",
     cancel: "حذف",
     back: "خلف",
+    delete: "",
+    loading: "",
+    exercise: "",
+    bestSet: "",
   },
   welcomeScreen: {
     postscript:
@@ -25,6 +29,17 @@ const ar: Translations = {
       button: "لنحاول هذا مرّة أخرى",
     },
   },
+  onboarding: undefined,
+  tabNavigator: undefined,
+  signInScreen: undefined,
+  signUpScreen: undefined,
+  profileScreen: undefined,
+  userSettingsScreen: undefined,
+  newActivityScreen: undefined,
+  activeWorkoutScreen: undefined,
+  exerciseDetailsScreen: undefined,
+  addExerciseScreen: undefined,
+  exerciseEntrySettings: undefined,
 }
 
 export default ar

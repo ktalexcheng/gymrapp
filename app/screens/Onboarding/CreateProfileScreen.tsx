@@ -76,6 +76,8 @@ export const CreateProfileScreen = () => {
       if (imagePath) {
         const avatarUrl = await userStore.uploadUserAvatar(imagePath)
         initialUser.avatarUrl = avatarUrl
+      } else {
+        initialUser.avatarUrl = null
       }
 
       if (userStore.userProfileExists) {

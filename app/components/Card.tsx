@@ -275,21 +275,36 @@ const $containerPresets = {
 
   reversed: [
     $containerBase,
-    { backgroundColor: colors.palette.neutral800, borderColor: colors.palette.neutral500 },
+    {
+      backgroundColor: colors.palette.neutral800,
+      borderColor: colors.palette.neutral500,
+    },
+  ] as StyleProp<ViewStyle>,
+
+  dimmed: [
+    $containerBase,
+    {
+      backgroundColor: colors.palette.neutral100,
+      borderColor: colors.palette.neutral300,
+      opacity: 0.6,
+    },
   ] as StyleProp<ViewStyle>,
 }
 
 const $headingPresets: Record<Presets, TextStyle> = {
   default: {},
   reversed: { color: colors.palette.neutral100 },
+  dimmed: { color: colors.palette.neutral500 },
 }
 
 const $contentPresets: Record<Presets, TextStyle> = {
   default: {},
   reversed: { color: colors.palette.neutral100 },
+  dimmed: { color: colors.palette.neutral500 },
 }
 
 const $footerPresets: Record<Presets, TextStyle> = {
   default: {},
   reversed: { color: colors.palette.neutral100 },
+  dimmed: { color: colors.palette.neutral500 },
 }

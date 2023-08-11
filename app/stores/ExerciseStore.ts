@@ -1,4 +1,4 @@
-import { Exercise, ExerciseSettings, NewExercise } from "app/data/model"
+import { Exercise, ExerciseSettings, NewExercise, User } from "app/data/model"
 import { DefaultExerciseSettings } from "app/screens/ActiveWorkout/defaultExerciseSettings"
 import { flow, getEnv, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
@@ -18,9 +18,9 @@ const ExerciseModel = types
   .model({
     exerciseId: types.identifier,
     exerciseSource: types.enumeration("Source", ["Public", "Private"]),
-    exerciseType: types.string,
-    exerciseSubtype: types.string,
-    exerciseCategory: types.string,
+    activityName: types.string,
+    exerciseCat1: types.string,
+    exerciseCat2: types.string,
     exerciseName: types.string,
     exerciseSettings: types.maybe(ExerciseSettingsModel),
   })
@@ -36,19 +36,19 @@ export const ExerciseStoreModel = types
   .views((self) => ({
     get allExerciseTypes() {
       const arr = Array.from(self.allExercises.values())
-      const types = new Set(arr.map((item) => item.exerciseType))
+      const types = new Set(arr.map((item) => item.activityName))
 
       return Array.from(types)
     },
     get allExerciseSubtypes() {
       const arr = Array.from(self.allExercises.values())
-      const subtypes = new Set(arr.map((item) => item.exerciseSubtype))
+      const subtypes = new Set(arr.map((item) => item.exerciseCat1))
 
       return Array.from(subtypes)
     },
     get allExerciseCategories() {
       const arr = Array.from(self.allExercises.values())
-      const categories = new Set(arr.map((item) => item.exerciseCategory))
+      const categories = new Set(arr.map((item) => item.exerciseCat2))
 
       return Array.from(categories)
     },
@@ -77,7 +77,7 @@ export const ExerciseStoreModel = types
       self.lastUpdated = new Date()
       self.isLoading = false
     },
-    applyUserExerciseSettings() {
+    applyUser() {
       self.isLoading = true
 
       const exerciseSettings =
@@ -142,9 +142,11 @@ export const ExerciseStoreModel = types
           })
           .filter((item) => item.exerciseSettings)
 
-        getEnv<RootStoreDependencies>(self).userRepository.updateUserExerciseSettings(
-          allExerciseSettings,
-        )
+        if (allExerciseSettings.length > 0) {
+          getEnv<RootStoreDependencies>(self).userRepository.update({
+            allExerciseSettings,
+          } as Partial<User>)
+        }
 
         self.isLoading = false
       } catch (error) {

@@ -1,27 +1,41 @@
-import firestore from "@react-native-firebase/firestore"
+import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { NewWorkout, Workout } from "../model/workoutModel"
 import { BaseRepository } from "./baseRepository"
 
 export class WorkoutRepository implements BaseRepository<NewWorkout | Workout> {
-  #collectionName = "workouts"
+  _collectionName = "workouts"
+  _firestoreClient: FirebaseFirestoreTypes.Module
+
+  constructor(firebaseClient) {
+    this._firestoreClient = firebaseClient
+  }
 
   get(): Promise<Workout> {
     throw new Error("Method not implemented.")
   }
 
   async getMany?(workoutIds: string[]): Promise<Workout[]> {
-    const workoutRef = await firestore()
-      .collection(this.#collectionName)
-      .where(firestore.FieldPath.documentId(), "in", workoutIds)
-      .get()
+    const results: FirebaseFirestoreTypes.QuerySnapshot[] = []
+    while (workoutIds.length) {
+      // Firestore limit "in" filter to 10 elements only
+      const batchIds = workoutIds.splice(0, 10)
+      const ref = await this._firestoreClient
+        .collection(this._collectionName)
+        .where(firestore.FieldPath.documentId(), "in", [...batchIds])
+        .get()
+
+      results.push(ref)
+    }
 
     const workouts: Workout[] = []
-    if (!workoutRef.empty) {
-      workoutRef.forEach((doc) => {
-        workouts.push({
-          workoutId: doc.id,
-          ...doc.data(),
-        } as Workout)
+    if (results.length) {
+      results.forEach((snapshot) => {
+        snapshot.forEach((doc) => {
+          workouts.push({
+            workoutId: doc.id,
+            ...doc.data(),
+          } as Workout)
+        })
       })
     }
 
@@ -31,12 +45,13 @@ export class WorkoutRepository implements BaseRepository<NewWorkout | Workout> {
   }
 
   async create(workout: NewWorkout): Promise<string> {
-    const workoutRef = await firestore().collection(this.#collectionName).add(workout)
+    console.debug("WorkoutRepository.create workout:", workout)
+    const workoutRef = await this._firestoreClient.collection(this._collectionName).add(workout)
 
     return workoutRef.id
   }
 
-  update(): Promise<void> {
+  updateById(): Promise<void> {
     throw new Error("Method not implemented.")
   }
 

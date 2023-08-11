@@ -36,7 +36,8 @@ jest.mock("i18n-js", () => ({
 
 declare const tron // eslint-disable-line @typescript-eslint/no-unused-vars
 
-jest.useFakeTimers()
+// Note: Disable for now in order to properly catch timeout using firebase-admin
+// jest.useFakeTimers()
 declare global {
   let __TEST__
 }

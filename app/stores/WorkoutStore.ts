@@ -1,8 +1,18 @@
-import { ExercisePerformed, ExerciseSetType, NewWorkout } from "app/data/model"
-import { translate } from "app/i18n"
-import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
+import firestore from "@react-native-firebase/firestore"
 import { differenceInSeconds } from "date-fns"
 import { SnapshotIn, destroy, flow, getEnv, types } from "mobx-state-tree"
+import {
+  ExercisePerformed,
+  ExerciseSet,
+  ExerciseSetType,
+  NewExerciseRecord,
+  NewWorkout,
+  PersonalRecord,
+  User,
+  WorkoutVisibility,
+} from "../../app/data/model"
+import { translate } from "../../app/i18n"
+import { formatSecondsAsTime } from "../../app/utils/formatSecondsAsTime"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
@@ -41,7 +51,7 @@ const SingleExercise = types
     exerciseOrder: types.number,
     exerciseId: types.string,
     setsPerformed: types.optional(ExerciseSets, []),
-    notes: types.maybe(types.string),
+    notes: types.maybeNull(types.string),
   })
   .actions(withSetPropAction)
 
@@ -58,6 +68,7 @@ const WorkoutStoreModel = types
     restTimeRemaining: 0,
     lastSetCompletedTime: types.maybe(types.Date),
     workoutTitle: translate("activeWorkoutScreen.newActiveWorkoutTitle"),
+    activityId: types.maybe(types.string),
   })
   .views((self) => ({
     get isAllSetsCompleted() {
@@ -97,6 +108,73 @@ const WorkoutStoreModel = types
 
       return "00:00"
     },
+    get exerciseSummary() {
+      const exercisesSummary: ExercisePerformed[] = []
+      const exerciseHistory =
+        getEnv<RootStoreDependencies>(self).userRepository.user?.exerciseHistory
+
+      self.exercises.forEach((e) => {
+        const exerciseRecord = exerciseHistory && exerciseHistory?.[e.exerciseId]?.personalRecords
+        let maxWeightSet = {} as ExerciseSet
+        let totalReps = 0
+        let totalVolume = 0
+        const newRecords = {} as NewExerciseRecord
+
+        e.setsPerformed.forEach((s) => {
+          if (!s.reps || s.reps === 0) return
+
+          totalReps += s.reps
+          totalVolume += s.weight * s.reps
+
+          if (s.weight > (maxWeightSet?.weight || 0)) maxWeightSet = s
+
+          const exerciseRepRecord = exerciseRecord && exerciseRecord?.[s.reps]
+          const recordsCount = exerciseRepRecord && Object.keys(exerciseRepRecord).length
+          if (s.weight > ((recordsCount && exerciseRepRecord[recordsCount - 1].weight) || 0)) {
+            newRecords[s.reps] = {
+              // exerciseId: e.exerciseId,
+              datePerformed: self.endTime,
+              weight: s.weight,
+              reps: s.reps,
+            } as PersonalRecord
+          }
+        })
+
+        exercisesSummary.push({
+          ...e,
+          maxWeightSet,
+          datePerformed: self.endTime,
+          totalReps,
+          totalVolume,
+          newRecords,
+        })
+
+        // exercisesSummary.push({
+        //   ...e,
+        //   maxWeightSet: e.setsPerformed.reduce(
+        //     (max, set) => (set.weight > max.weight ? set : max),
+        //     e.setsPerformed[0],
+        //   ),
+        //   datePerformed: self.startTime,
+        //   totalReps: e.setsPerformed.reduce((reps, set) => reps + set.reps, 0),
+        //   totalVolume: e.setsPerformed.reduce((volume, set) => volume + set.weight * set.reps, 0),
+        //   newRecords: e.setsPerformed.reduce((pr, set) => {
+        //     return set.weight > (exerciseRecord?.[set.reps]?.[0].weight || 0)
+        //       ? ({
+        //           [set.reps]: {
+        //             exerciseId: e.exerciseId,
+        //             datePerformed: self.startTime,
+        //             weight: set.weight,
+        //             reps: set.reps,
+        //           } as PersonalRecord,
+        //         } as NewExerciseRecord)
+        //       : pr
+        //   }, {}),
+        // })
+      })
+
+      return exercisesSummary
+    },
   }))
   .actions(withSetPropAction)
   .actions((self) => ({
@@ -109,28 +187,44 @@ const WorkoutStoreModel = types
       self.workoutTitle = translate("activeWorkoutScreen.newActiveWorkoutTitle")
     },
   }))
-  .actions((self) => ({
-    summarizeExercises(): ExercisePerformed[] {
-      const exercisesSummary: ExercisePerformed[] = []
-      self.exercises.forEach((e) => {
-        exercisesSummary.push({
-          ...e,
-          bestSet: e.setsPerformed.reduce(
-            (max, set) => (set.weight > max.weight ? set : max),
-            e.setsPerformed[0],
-          ),
-          datePerformed: self.endTime,
-          totalReps: e.setsPerformed.reduce((reps, set) => reps + set.reps, 0),
-          totalVolume: e.setsPerformed.reduce((volume, set) => volume + set.weight * set.reps, 0),
-        })
-      })
+  // .actions((self) => ({
+  //   summarizeExercises(): ExercisePerformed[] {
+  //     const exercisesSummary: ExercisePerformed[] = []
+  //     const currentRecords = getEnv<RootStoreDependencies>(self).userRepository.user
+  //       .exerciseRecords as Record<string, ExerciseRecord>
 
-      return exercisesSummary
-    },
-  }))
+  //     self.exercises.forEach((e) => {
+  //       exercisesSummary.push({
+  //         ...e,
+  //         maxWeightSet: e.setsPerformed.reduce(
+  //           (max, set) => (set.weight > max.weight ? set : max),
+  //           e.setsPerformed[0],
+  //         ),
+  //         datePerformed: self.startTime,
+  //         totalReps: e.setsPerformed.reduce((reps, set) => reps + set.reps, 0),
+  //         totalVolume: e.setsPerformed.reduce((volume, set) => volume + set.weight * set.reps, 0),
+  //         newRecords: e.setsPerformed.reduce((pr, set) => {
+  //           return set.weight > (currentRecords?.[e.exerciseId]?.[set.reps]?.weight || 0)
+  //             ? ({
+  //                 [set.reps]: {
+  //                   exerciseId: e.exerciseId,
+  //                   datePerformed: self.startTime,
+  //                   weight: set.weight,
+  //                   reps: set.reps,
+  //                 } as PersonalRecord,
+  //               } as ExerciseRecord)
+  //             : pr
+  //         }, {}),
+  //       })
+  //     })
+
+  //     return exercisesSummary
+  //   },
+  // }))
   .actions((self) => ({
-    startNewWorkout() {
+    startNewWorkout(activityId: string) {
       self.resetWorkout()
+      self.activityId = activityId
       self.inProgress = true
     },
     pauseWorkout() {
@@ -157,22 +251,45 @@ const WorkoutStoreModel = types
           })
         })
 
+        console.debug("WorkoutStore exerciseSummary:", self.exerciseSummary)
         const workoutId = yield getEnv<RootStoreDependencies>(self).workoutRepository.create({
           byUser: getEnv<RootStoreDependencies>(self).userRepository.user.userId,
           visibility: getEnv<RootStoreDependencies>(self).userRepository.user.privateAccount
-            ? "private"
-            : "public",
+            ? WorkoutVisibility.Private
+            : WorkoutVisibility.Public,
           startTime: self.startTime,
           endTime: self.endTime,
-          exercises: self.summarizeExercises(),
+          exercises: self.exerciseSummary,
           workoutTitle: self.workoutTitle,
+          activityId: self.activityId,
         } as NewWorkout)
 
-        getEnv<RootStoreDependencies>(self).userRepository.saveNewWorkoutMeta({
-          [workoutId]: {
-            endTime: self.endTime,
-          },
+        // Update user workout metadata (keep track of workouts performed by user)
+        yield getEnv<RootStoreDependencies>(self).userRepository.update(
+          {
+            workoutMetas: {
+              [workoutId]: {
+                endTime: self.endTime,
+              },
+            },
+          } as Partial<User>,
+          true,
+        )
+
+        // Update user exercise history
+        const userUpdate = {} as Partial<User>
+        self.exerciseSummary.forEach((e) => {
+          userUpdate[`exerciseHistory.${e.exerciseId}.performedWorkouts`] =
+            firestore.FieldValue.arrayUnion(workoutId)
+          if (Object.keys(e.newRecords).length > 0) {
+            Object.entries(e.newRecords).forEach(([rep, record]) => {
+              const newRecord = firestore.FieldValue.arrayUnion(record)
+              userUpdate[`exerciseHistory.${e.exerciseId}.personalRecords.${rep}`] = newRecord
+            })
+          }
         })
+        yield getEnv<RootStoreDependencies>(self).userRepository.update(userUpdate)
+
         self.resetWorkout()
       } catch (error) {
         console.error("WorkoutStore.saveWorkout error:", error)

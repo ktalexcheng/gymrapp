@@ -6,8 +6,6 @@ export enum WorkoutVisibility {
   Public = "public",
 }
 
-// export interface WorkoutSummary {}
-
 export interface NewWorkout {
   byUser: string
   visibility: string
@@ -15,11 +13,11 @@ export interface NewWorkout {
   endTime: Date | FirebaseFirestoreTypes.Timestamp
   exercises: ExercisePerformed[]
   workoutTitle: string
+  activityId: string
 }
 
 export interface Workout extends NewWorkout {
   workoutId: string
-  // summary: WorkoutSummary
 }
 
 export function isWorkout(value: unknown): value is Workout {

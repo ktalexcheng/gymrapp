@@ -10,31 +10,31 @@ import { MainStackScreenProps } from "../../navigators"
 interface AddExerciseScreenProps extends MainStackScreenProps<"CreateExercise"> {}
 
 export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
-  const [type, setType] = useState("")
-  const [subtype, setSubtype] = useState("")
-  const [category, setCategory] = useState("")
-  const [name, setName] = useState("")
+  const [activityName, setActivityName] = useState("")
+  const [exerciseCat1, setExerciseCat1] = useState("")
+  const [exerciseCat2, setExerciseCat2] = useState("")
+  const [exerciseName, setExerciseName] = useState("")
   const { exerciseStore } = useStores()
   const navigation = useNavigation()
 
   function selectType(value: string) {
-    setType(value)
+    setActivityName(value)
   }
 
   function selectSubtype(value: string) {
-    setSubtype(value)
+    setExerciseCat1(value)
   }
 
   function selectCategory(value: string) {
-    setCategory(value)
+    setExerciseCat2(value)
   }
 
   function addExercise() {
     exerciseStore.createNewExercise({
-      exerciseType: type,
-      exerciseCategory: category,
-      exerciseSubtype: subtype,
-      exerciseName: name,
+      activityName,
+      exerciseCat1,
+      exerciseCat2,
+      exerciseName,
     } as NewExercise)
     navigation.goBack()
   }
@@ -62,7 +62,11 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
           return { label: category, value: category }
         })}
       />
-      <TextField onChangeText={setName} value={name} labelTx="addExerciseScreen.exerciseName" />
+      <TextField
+        onChangeText={setExerciseName}
+        value={exerciseName}
+        labelTx="addExerciseScreen.exerciseName"
+      />
       <Button tx="addExerciseScreen.addExerciseButton" style={$button} onPress={addExercise} />
     </Screen>
   )

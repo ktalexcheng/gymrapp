@@ -40,22 +40,23 @@ export type MainStackScreenProps<T extends keyof MainStackParamList> = NativeSta
 const MainStack = createNativeStackNavigator<MainStackParamList>()
 
 export const MainNavigator = observer(function MainNavigator() {
-  const { authenticationStore: authStore, userStore, exerciseStore } = useStores()
+  const { authenticationStore: authStore, userStore, activityStore, exerciseStore } = useStores()
 
   // Listen to database update
   useEffect(() => {
     console.debug("MainNavigator.useEffect [] called")
-    userStore.loadUserWithId(authStore.firebaseUser.uid)
     exerciseStore.getAllExercises()
+    activityStore.getAllActivities()
 
     const userSubscriber = firestore()
       .collection("users")
       .doc(authStore.firebaseUser.uid)
       .onSnapshot(
         (snapshot) => {
+          console.debug("MainNavigator.userSubscriber.onSnapshot snapshot:", snapshot.data())
           if (!snapshot.exists) return
 
-          userStore.updateProfile(snapshot.data() as User)
+          userStore.setUser(snapshot.data() as User)
         },
         (e) => console.error("MainNavigator.userSubscriber.onSnapshot error:", e),
       )

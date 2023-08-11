@@ -1,5 +1,5 @@
-import { User, Workout, isUser, isWorkout } from "app/data/model"
 import { flow, getEnv, types } from "mobx-state-tree"
+import { User, Workout, isUser, isWorkout } from "../../app/data/model"
 import { createCustomType } from "./helpers/createCustomType"
 import { RootStoreDependencies } from "./helpers/useStores"
 
@@ -115,17 +115,18 @@ export const UserStoreModel = types
       try {
         self.isLoadingWorkouts = true
 
-        if (!self.user.workoutsMeta) {
+        if (!self.user?.workoutMetas) {
           self.isLoadingWorkouts = false
           return
         }
 
-        const workoutIds = Object.keys(self.user.workoutsMeta)
+        const workoutIds = Object.keys(self.user.workoutMetas)
         const workouts: Workout[] = yield getEnv<RootStoreDependencies>(
           self,
         ).workoutRepository.getMany(workoutIds)
 
         if (!workouts) {
+          console.debug("UserStore.getWorkouts no workouts found")
           self.isLoadingWorkouts = false
           return
         }
@@ -165,17 +166,21 @@ export const UserStoreModel = types
       } catch (e) {
         console.error("UserStore.loadUserWIthId error:", e)
       }
+
+      self.userId = userId
       console.debug("UserStore.loadUserWIthId done")
     }),
+    setUser(user: User) {
+      console.debug("UserStore.setUser called:", user)
+      self.user = user
+      self.getWorkouts()
+    },
     updateProfile: flow(function* (userUpdate: Partial<User>) {
       console.debug("UserStore.updateProfile called")
       self.isLoading = true
 
       try {
-        yield getEnv<RootStoreDependencies>(self).userRepository.update(
-          userUpdate.userId,
-          userUpdate,
-        )
+        yield getEnv<RootStoreDependencies>(self).userRepository.update(userUpdate)
         self.user = { ...self.user, ...userUpdate }
         yield self.getWorkouts()
 

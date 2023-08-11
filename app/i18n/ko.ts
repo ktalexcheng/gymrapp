@@ -5,6 +5,10 @@ const ko: Translations = {
     ok: "확인!",
     cancel: "취소",
     back: "뒤로",
+    delete: "",
+    loading: "",
+    exercise: "",
+    bestSet: "",
   },
   welcomeScreen: {
     postscript:
@@ -25,6 +29,17 @@ const ko: Translations = {
       button: "다시 시도해봅시다",
     },
   },
+  onboarding: undefined,
+  tabNavigator: undefined,
+  signInScreen: undefined,
+  signUpScreen: undefined,
+  profileScreen: undefined,
+  userSettingsScreen: undefined,
+  newActivityScreen: undefined,
+  activeWorkoutScreen: undefined,
+  exerciseDetailsScreen: undefined,
+  addExerciseScreen: undefined,
+  exerciseEntrySettings: undefined,
 }
 
 export default ko

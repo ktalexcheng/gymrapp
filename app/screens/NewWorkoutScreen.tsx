@@ -1,7 +1,8 @@
+import { Activity } from "app/data/model/activityModel"
 import { MainStackScreenProps } from "app/navigators"
 import React, { FC, useState } from "react"
 import { Modal, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
-import { Card, Screen, Text } from "../components"
+import { Card, RowView, Screen, Text } from "../components"
 import { useStores } from "../stores"
 import { colors, spacing } from "../theme"
 
@@ -68,14 +69,31 @@ interface NewWorkoutScreenProps extends MainStackScreenProps<"NewWorkout"> {}
 export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutScreen({
   navigation,
 }) {
-  const { workoutStore } = useStores()
+  const { workoutStore, activityStore } = useStores()
   const [showResetWorkoutDialog, setShowResetWorkoutDialog] = useState(false)
+  const [selectedActivityId, setSelectedActivityId] = useState(null)
+  const [noActivitySelectedError, setNoActivitySelectedError] = useState(false)
+
+  function toggleSelectedActivity(id: string) {
+    if (id === selectedActivityId) {
+      setSelectedActivityId(null)
+    } else {
+      setSelectedActivityId(id)
+    }
+
+    setNoActivitySelectedError(false)
+  }
 
   function startNewWorkout() {
+    if (!selectedActivityId) {
+      setNoActivitySelectedError(true)
+      return
+    }
+
     if (workoutStore.inProgress) {
       setShowResetWorkoutDialog(true)
     } else {
-      workoutStore.startNewWorkout()
+      workoutStore.startNewWorkout(selectedActivityId)
       navigation.navigate("ActiveWorkout")
     }
   }
@@ -88,6 +106,14 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
     workoutStore.resetWorkout()
     navigation.navigate("ActiveWorkout")
   }
+
+  const $activitySelector: ViewStyle[] = [
+    $activitySelectorBase,
+    {
+      borderWidth: noActivitySelectedError ? 1 : null,
+      borderColor: noActivitySelectedError ? colors.error : null,
+    },
+  ]
 
   return (
     <Screen safeAreaEdges={["top", "bottom"]} style={$container}>
@@ -104,6 +130,24 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
         onPress={startNewWorkout}
       />
 
+      <RowView scrollable={true} style={$activitySelector}>
+        {Array.from(activityStore.allActivities.entries()).map(
+          ([id, activity]: [string, Activity]) => {
+            return (
+              <Card
+                key={id}
+                preset={!selectedActivityId || selectedActivityId === id ? "default" : "dimmed"}
+                style={$activityCard}
+                heading={activity.activityName}
+                onPress={() => {
+                  toggleSelectedActivity(id)
+                }}
+              />
+            )
+          },
+        )}
+      </RowView>
+
       <Text tx="newActivityScreen.nextWorkoutHeading" preset="heading" style={$heading} />
       <TouchableOpacity
         onPress={() => {
@@ -114,7 +158,7 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
           preset="default"
           heading="Next workout name"
           content="Next workout preview"
-          style={$card}
+          style={$programCard}
         />
       </TouchableOpacity>
 
@@ -128,7 +172,7 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
           preset="default"
           heading="Recently saved workout name"
           content="Recently saved workout preview"
-          style={$card}
+          style={$programCard}
         />
       </TouchableOpacity>
     </Screen>
@@ -145,10 +189,19 @@ const $pressableText: TextStyle = {
 }
 
 const $heading: TextStyle = {
-  marginTop: 20,
+  marginTop: spacing.large,
 }
 
-const $card: ViewStyle = {
+const $activitySelectorBase: ViewStyle = {
+  marginTop: spacing.medium,
+  gap: spacing.small,
+}
+
+const $activityCard: ViewStyle = {
+  elevation: null,
+}
+
+const $programCard: ViewStyle = {
   borderRadius: 20,
-  marginTop: 20,
+  marginTop: spacing.medium,
 }

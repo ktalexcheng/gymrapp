@@ -2,18 +2,16 @@ import { colors } from "app/theme"
 import { observer } from "mobx-react-lite"
 import { Fab } from "native-base"
 import React, { FC } from "react"
-import { View, ViewStyle } from "react-native"
-import { Icon } from "../../components"
+import { ViewStyle } from "react-native"
+import { Icon, Screen } from "../../components"
 import { MainStackScreenProps } from "../../navigators"
 import { useStores } from "../../stores"
-import { useSafeAreaInsetsStyle } from "../../utils/useSafeAreaInsetsStyle"
 import { ExerciseCatalog } from "../Exercise"
 
 interface ExercisePickerScreenProps extends MainStackScreenProps<"ExercisePicker"> {}
 
 export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ navigation }) => {
   const { workoutStore } = useStores()
-  const $containerInsets = useSafeAreaInsetsStyle(["bottom", "left", "right"])
 
   function handleSelectExercise(exerciseId: string) {
     workoutStore.addExercise(exerciseId)
@@ -23,7 +21,7 @@ export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ n
   return (
     // Note that tab press does not work properly when a debugger is attached
     // See: https://github.com/satya164/react-native-tab-view/issues/703
-    <View style={[$screenContainer, $containerInsets]}>
+    <Screen safeAreaEdges={["bottom", "left", "right"]} contentContainerStyle={[$screenContainer]}>
       <Fab
         renderInPortal={false}
         shadow={2}
@@ -33,7 +31,7 @@ export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ n
         onPress={() => navigation.navigate("CreateExercise")}
       />
       <ExerciseCatalog onItemPress={handleSelectExercise} />
-    </View>
+    </Screen>
   )
 })
 

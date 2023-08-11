@@ -1,12 +1,13 @@
+import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { Screen } from "app/components"
-import { ExercisePerformed, ExerciseSet } from "app/data/model"
+import { RowView, Screen, Text } from "app/components"
+import { ExercisePerformed, ExerciseSet, ExerciseSetType } from "app/data/model"
 import { MainStackParamList } from "app/navigators"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React from "react"
-import { Text, View, ViewStyle } from "react-native"
+import { View, ViewStyle } from "react-native"
 
 type ExerciseSummaryProps = {
   exercise: ExercisePerformed
@@ -22,12 +23,24 @@ const ExerciseSummary = (props: ExerciseSummaryProps) => {
   }
 
   function renderSetSummary(set: ExerciseSet, index: number) {
-    return <Text key={index}>{`${set.setType}, ${set.weight}, ${set.reps}`}</Text>
+    let summaryText = `${set.weight} x ${set.reps}`
+    if (set.rpe) summaryText += ` @ ${set.rpe}`
+
+    return (
+      <RowView key={index}>
+        <RowView>
+          <Text style={{ width: spacing.extraLarge }}>
+            {set.setType === ExerciseSetType.Normal ? index : set.setType}
+          </Text>
+          <Text>{summaryText}</Text>
+        </RowView>
+      </RowView>
+    )
   }
 
   return (
     <View style={$exerciseSummaryContainer}>
-      <Text>{exerciseInfo.exerciseName}</Text>
+      <Text preset="bold">{exerciseInfo.exerciseName}</Text>
       {exercise.setsPerformed.map((s, i) => renderSetSummary(s, i))}
     </View>
   )
@@ -41,14 +54,16 @@ export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenPro
 
   if (userStore.isLoadingWorkouts) return null
 
-  const { workoutId, workout } = userStore.workouts.get(route.params.workoutId)
+  const { workout } = userStore.workouts.get(route.params.workoutId)
 
   return (
     <Screen safeAreaEdges={["bottom"]} style={$screenContentContainer}>
-      <Text>{workoutId}</Text>
-      <Text>{workout.workoutTitle}</Text>
-      {workout.exercises.map((e, i) => {
-        return <ExerciseSummary key={i} exercise={e} />
+      <Text preset="heading">{workout.workoutTitle}</Text>
+      <Text preset="subheading">
+        {(workout.endTime as FirebaseFirestoreTypes.Timestamp).toDate().toLocaleString()}
+      </Text>
+      {workout.exercises.map((e, _) => {
+        return <ExerciseSummary key={e.exerciseId} exercise={e} />
       })}
     </Screen>
   )

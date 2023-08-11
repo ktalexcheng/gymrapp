@@ -1,5 +1,5 @@
 import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
-import { ExerciseSettings } from "./exerciseModel"
+import { ExerciseRecord, ExerciseSettings } from "./exerciseModel"
 
 export enum AppLanguage {
   en_US = "en-US",
@@ -25,6 +25,11 @@ export interface UnregisteredUser {
   privateAccount?: boolean
 }
 
+export interface ExerciseHistory {
+  performedWorkouts: string[]
+  personalRecords: ExerciseRecord
+}
+
 export interface User extends UnregisteredUser {
   firstName: string
   lastName: string
@@ -33,7 +38,9 @@ export interface User extends UnregisteredUser {
   providerId: string
   preferences: UserPreferences
   avatarUrl?: string
-  workoutsMeta?: Record<string, WorkoutMeta>
+  workoutMetas?: Record<string, WorkoutMeta>
+  exerciseHistory: Record<string, ExerciseHistory>
+  // exerciseRecords: Record<string, ExerciseRecord>
 }
 
 export function isUser(value: unknown): value is User {

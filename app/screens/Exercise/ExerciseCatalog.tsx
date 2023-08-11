@@ -1,11 +1,11 @@
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
-import { Animated, SectionList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import { SectionList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { TabView } from "react-native-tab-view"
-import { RowView, Text } from "../../components"
+import { TabBar, Text } from "../../components"
 import { Exercise } from "../../data/model"
 import { useStores } from "../../stores"
-import { colors, spacing } from "../../theme"
+import { colors } from "../../theme"
 
 interface ExerciseListScreenProps extends ExerciseCatalogProps {
   sectionsData: {
@@ -38,7 +38,7 @@ interface ExerciseCatalogProps {
 }
 
 export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: ExerciseCatalogProps) => {
-  const [index, setIndex] = useState(0)
+  const [tabIndex, setTabIndex] = useState(0)
   const [routes, setRoutes] = useState([])
   const { exerciseStore } = useStores()
 
@@ -70,10 +70,10 @@ export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: Exerci
       [category: string]: Exercise[]
     } = {}
     exerciseStore.allExercises.forEach((e: Exercise) => {
-      if (e.exerciseCategory in groupedAllExercises) {
-        groupedAllExercises[e.exerciseCategory].push(e)
+      if (e.exerciseCat1 in groupedAllExercises) {
+        groupedAllExercises[e.exerciseCat1].push(e)
       } else {
-        groupedAllExercises[e.exerciseCategory] = [e]
+        groupedAllExercises[e.exerciseCat1] = [e]
       }
     })
 
@@ -109,58 +109,60 @@ export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: Exerci
   }
 
   const renderTabBar = (props) => {
-    const inputRange = props.navigationState.routes.map((x, i) => i)
+    return <TabBar tabIndex={tabIndex} setTabIndex={setTabIndex} {...props} />
+    // const inputRange = props.navigationState.routes.map((_, i) => i)
 
-    return (
-      <RowView>
-        {props.navigationState.routes.map((route, i) => {
-          const opacity = props.position.interpolate({
-            inputRange,
-            outputRange: inputRange.map((inputIndex) => (inputIndex === i ? 1 : 0.5)),
-          })
-          const textColor = index === i ? colors.actionable : colors.textDim
-          const borderColor = index === i ? colors.actionable : colors.disabled
+    // return (
+    //   <RowView scrollable={true}>
+    //     {props.navigationState.routes.map((route, i) => {
+    //       const opacity = props.position.interpolate({
+    //         inputRange,
+    //         outputRange: inputRange.map((inputIndex) => (inputIndex === i ? 1 : 0.5)),
+    //       })
+    //       const textColor = tabIndex === i ? colors.actionable : colors.textDim
+    //       const borderColor = tabIndex === i ? colors.actionable : colors.disabled
 
-          const $tabBarItem: ViewStyle = {
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "flex-end",
-            paddingBottom: spacing.extraSmall,
-            borderBottomWidth: 3,
-            height: 40,
-            borderColor,
-          }
+    //       const $tabBarItem: ViewStyle = {
+    //         flex: 1,
+    //         alignItems: "center",
+    //         justifyContent: "flex-end",
+    //         paddingBottom: spacing.extraSmall,
+    //         paddingHorizontal: spacing.small,
+    //         borderBottomWidth: 3,
+    //         height: 40,
+    //         borderColor,
+    //       }
 
-          const $tabText: TextStyle = {
-            fontSize: 16,
-            color: textColor,
-            opacity,
-          }
+    //       const $tabText: TextStyle = {
+    //         fontSize: 16,
+    //         color: textColor,
+    //         opacity,
+    //       }
 
-          return (
-            <View key={i} style={$tabBarItem}>
-              <TouchableOpacity
-                onPress={() => {
-                  setIndex(i)
-                }}
-              >
-                <Animated.Text style={$tabText}>{route.title}</Animated.Text>
-              </TouchableOpacity>
-            </View>
-          )
-        })}
-      </RowView>
-    )
+    //       return (
+    //         <View key={i} style={$tabBarItem}>
+    //           <TouchableOpacity
+    //             onPress={() => {
+    //               setTabIndex(i)
+    //             }}
+    //           >
+    //             <Animated.Text style={$tabText}>{route.title}</Animated.Text>
+    //           </TouchableOpacity>
+    //         </View>
+    //       )
+    //     })}
+    //   </RowView>
+    // )
   }
 
   // Note that tab press does not work properly when a debugger is attached
   // See: https://github.com/satya164/react-native-tab-view/issues/703
   return (
     <TabView
-      navigationState={{ index, routes }}
+      navigationState={{ index: tabIndex, routes }}
       renderScene={renderScene}
       renderTabBar={renderTabBar}
-      onIndexChange={setIndex}
+      onIndexChange={setTabIndex}
     />
   )
 })

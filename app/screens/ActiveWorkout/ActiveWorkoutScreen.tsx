@@ -302,8 +302,8 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
             </View>
           </RowView>
 
-          {workoutStore.exercises.map((exercise, i) => (
-            <ExerciseEntry key={i} {...exercise} />
+          {workoutStore.exercises.map((exercise, _) => (
+            <ExerciseEntry key={`${exercise.exerciseId}_${exercise.exerciseOrder}`} {...exercise} />
           ))}
 
           <TouchableOpacity onPress={addExercise}>

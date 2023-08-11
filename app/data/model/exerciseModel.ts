@@ -15,6 +15,19 @@ export type ExerciseSet = {
   isCompleted: boolean
 }
 
+// Using Weight and Reps type alias for clarity
+export type Weight = number
+export type Reps = number
+export type PersonalRecord = {
+  workoutId: string
+  // exerciseId: string
+  datePerformed: Date | FirebaseFirestoreTypes.Timestamp
+  reps: Reps
+  weight: Weight
+}
+export type ExerciseRecord = Record<Reps, PersonalRecord[]>
+export type NewExerciseRecord = Record<Reps, PersonalRecord>
+
 export interface ExercisePerformed {
   exerciseId: string
   exerciseOrder: number
@@ -22,7 +35,8 @@ export interface ExercisePerformed {
   datePerformed: Date | FirebaseFirestoreTypes.Timestamp
   totalVolume: number // Store as kg, convert to user preferred unit as necessary
   totalReps: number
-  bestSet: ExerciseSet
+  maxWeightSet: ExerciseSet
+  newRecords: NewExerciseRecord
   // weightPr?: ExerciseSet
   // volumePr?: ExerciseSet
   // timeSpent: Duration
@@ -35,15 +49,15 @@ export type ExerciseSettings = {
 }
 
 export interface NewExercise {
-  exerciseType: string
-  exerciseSubtype: string
-  exerciseCategory: string
+  activityName: string
+  exerciseCat1: string
+  exerciseCat2: string
   exerciseName: string
 }
 
 export interface Exercise extends NewExercise {
   exerciseId: string
   exerciseSource: "Public" | "Private"
-  exerciseSettings?: ExerciseSettings
+  // exerciseSettings?: ExerciseSettings
   exerciseHistory?: ExercisePerformed[]
 }
