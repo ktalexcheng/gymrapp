@@ -1,8 +1,9 @@
 import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
+import { UserId } from "./userModel"
 
 export interface GymRecord {
   rank: number
-  holderUid: string
+  holderUid: UserId
   date: Date | FirebaseFirestoreTypes.Timestamp
   gymId: string
 }
@@ -21,8 +22,10 @@ export interface GymLeaderboard {
   volumeRecord: Record<number, VolumeRecord>
 }
 
+export type GymId = string
+
 export interface Gym {
-  gymId: string
+  gymId: GymId
   gymLocation: FirebaseFirestoreTypes.GeoPoint
   gymName: string
   gymMembers: string[]

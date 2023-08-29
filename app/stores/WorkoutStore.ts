@@ -1,15 +1,14 @@
 import firestore from "@react-native-firebase/firestore"
 import { differenceInSeconds } from "date-fns"
 import { SnapshotIn, destroy, flow, getEnv, types } from "mobx-state-tree"
+import { ExerciseSetType, WorkoutVisibility } from "../../app/data/constants"
 import {
   ExercisePerformed,
   ExerciseSet,
-  ExerciseSetType,
   NewExerciseRecord,
   NewWorkout,
   PersonalRecord,
   User,
-  WorkoutVisibility,
 } from "../../app/data/model"
 import { translate } from "../../app/i18n"
 import { formatSecondsAsTime } from "../../app/utils/formatSecondsAsTime"
@@ -35,9 +34,9 @@ const SingleExerciseSet = types
   }))
   .actions(withSetPropAction)
   .actions((self) => ({
-    updateSetValues(prop: "weight" | "reps" | "rpe", value: string) {
+    updateSetValues(prop: "weight" | "reps" | "rpe", value: number) {
       if (value) {
-        self.setProp(prop, Number(value))
+        self.setProp(prop, value)
       } else {
         self.setProp(prop, undefined)
       }
@@ -48,21 +47,21 @@ const ExerciseSets = types.array(SingleExerciseSet)
 
 const SingleExercise = types
   .model({
-    exerciseOrder: types.number,
+    exerciseOrder: types.identifierNumber,
     exerciseId: types.string,
     setsPerformed: types.optional(ExerciseSets, []),
     notes: types.maybeNull(types.string),
   })
   .actions(withSetPropAction)
 
-const Exercises = types.array(SingleExercise)
+const Exercises = types.map(SingleExercise)
 
 const WorkoutStoreModel = types
   .model("WorkoutStore")
   .props({
     startTime: types.maybe(types.Date),
     endTime: types.maybe(types.Date),
-    exercises: types.optional(Exercises, []),
+    exercises: types.optional(Exercises, {}),
     inProgress: false,
     restTime: 0,
     restTimeRemaining: 0,
@@ -72,9 +71,10 @@ const WorkoutStoreModel = types
   })
   .views((self) => ({
     get isAllSetsCompleted() {
-      let allSetsCompleted = true
+      if (!self.exercises.size) return false
 
-      for (const e of self.exercises) {
+      let allSetsCompleted = true
+      for (const e of self.exercises.values()) {
         for (const s of e.setsPerformed) {
           if (!s.isCompleted) {
             allSetsCompleted = false
@@ -111,7 +111,9 @@ const WorkoutStoreModel = types
     get exerciseSummary() {
       const exercisesSummary: ExercisePerformed[] = []
       const exerciseHistory =
-        getEnv<RootStoreDependencies>(self).userRepository.user?.exerciseHistory
+        getEnv<RootStoreDependencies>(self).userRepository.getUserPropFromCacheData(
+          "exerciseHistory",
+        )
 
       self.exercises.forEach((e) => {
         const exerciseRecord = exerciseHistory && exerciseHistory?.[e.exerciseId]?.personalRecords
@@ -148,29 +150,6 @@ const WorkoutStoreModel = types
           totalVolume,
           newRecords,
         })
-
-        // exercisesSummary.push({
-        //   ...e,
-        //   maxWeightSet: e.setsPerformed.reduce(
-        //     (max, set) => (set.weight > max.weight ? set : max),
-        //     e.setsPerformed[0],
-        //   ),
-        //   datePerformed: self.startTime,
-        //   totalReps: e.setsPerformed.reduce((reps, set) => reps + set.reps, 0),
-        //   totalVolume: e.setsPerformed.reduce((volume, set) => volume + set.weight * set.reps, 0),
-        //   newRecords: e.setsPerformed.reduce((pr, set) => {
-        //     return set.weight > (exerciseRecord?.[set.reps]?.[0].weight || 0)
-        //       ? ({
-        //           [set.reps]: {
-        //             exerciseId: e.exerciseId,
-        //             datePerformed: self.startTime,
-        //             weight: set.weight,
-        //             reps: set.reps,
-        //           } as PersonalRecord,
-        //         } as NewExerciseRecord)
-        //       : pr
-        //   }, {}),
-        // })
       })
 
       return exercisesSummary
@@ -187,40 +166,6 @@ const WorkoutStoreModel = types
       self.workoutTitle = translate("activeWorkoutScreen.newActiveWorkoutTitle")
     },
   }))
-  // .actions((self) => ({
-  //   summarizeExercises(): ExercisePerformed[] {
-  //     const exercisesSummary: ExercisePerformed[] = []
-  //     const currentRecords = getEnv<RootStoreDependencies>(self).userRepository.user
-  //       .exerciseRecords as Record<string, ExerciseRecord>
-
-  //     self.exercises.forEach((e) => {
-  //       exercisesSummary.push({
-  //         ...e,
-  //         maxWeightSet: e.setsPerformed.reduce(
-  //           (max, set) => (set.weight > max.weight ? set : max),
-  //           e.setsPerformed[0],
-  //         ),
-  //         datePerformed: self.startTime,
-  //         totalReps: e.setsPerformed.reduce((reps, set) => reps + set.reps, 0),
-  //         totalVolume: e.setsPerformed.reduce((volume, set) => volume + set.weight * set.reps, 0),
-  //         newRecords: e.setsPerformed.reduce((pr, set) => {
-  //           return set.weight > (currentRecords?.[e.exerciseId]?.[set.reps]?.weight || 0)
-  //             ? ({
-  //                 [set.reps]: {
-  //                   exerciseId: e.exerciseId,
-  //                   datePerformed: self.startTime,
-  //                   weight: set.weight,
-  //                   reps: set.reps,
-  //                 } as PersonalRecord,
-  //               } as ExerciseRecord)
-  //             : pr
-  //         }, {}),
-  //       })
-  //     })
-
-  //     return exercisesSummary
-  //   },
-  // }))
   .actions((self) => ({
     startNewWorkout(activityId: string) {
       self.resetWorkout()
@@ -251,10 +196,13 @@ const WorkoutStoreModel = types
           })
         })
 
-        console.debug("WorkoutStore exerciseSummary:", self.exerciseSummary)
+        console.debug("WorkoutStore.exerciseSummary:", self.exerciseSummary)
         const workoutId = yield getEnv<RootStoreDependencies>(self).workoutRepository.create({
-          byUser: getEnv<RootStoreDependencies>(self).userRepository.user.userId,
-          visibility: getEnv<RootStoreDependencies>(self).userRepository.user.privateAccount
+          byUser:
+            getEnv<RootStoreDependencies>(self).userRepository.getUserPropFromCacheData("userId"),
+          visibility: getEnv<RootStoreDependencies>(self).userRepository.getUserPropFromCacheData(
+            "privateAccount",
+          )
             ? WorkoutVisibility.Private
             : WorkoutVisibility.Public,
           startTime: self.startTime,
@@ -266,6 +214,7 @@ const WorkoutStoreModel = types
 
         // Update user workout metadata (keep track of workouts performed by user)
         yield getEnv<RootStoreDependencies>(self).userRepository.update(
+          null,
           {
             workoutMetas: {
               [workoutId]: {
@@ -288,7 +237,7 @@ const WorkoutStoreModel = types
             })
           }
         })
-        yield getEnv<RootStoreDependencies>(self).userRepository.update(userUpdate)
+        yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, null)
 
         self.resetWorkout()
       } catch (error) {
@@ -296,31 +245,34 @@ const WorkoutStoreModel = types
       }
     }),
     addExercise(newExerciseId: string) {
-      const newExerciseOrder = self.exercises.length
+      const newExerciseOrder = self.exercises.size
       const newExercise = SingleExercise.create({
         exerciseOrder: newExerciseOrder,
         exerciseId: newExerciseId,
         setsPerformed: [],
       })
-      self.exercises.push(newExercise)
+      self.exercises.put(newExercise)
     },
     removeExercise(exerciseOrder: number) {
-      self.exercises.splice(exerciseOrder, 1)
+      self.exercises.delete(exerciseOrder.toString())
       self.exercises.forEach((e, i) => {
-        e.exerciseOrder = i
+        e.exerciseOrder = parseInt(i)
       })
     },
     addSet(targetExerciseOrder: number, newSetObject: SnapshotIn<typeof SingleExerciseSet>) {
-      const newSetOrder = self.exercises[targetExerciseOrder].setsPerformed.length
+      const exercise = self.exercises.get(targetExerciseOrder as unknown as string)
+      const newSetOrder = exercise.setsPerformed.length
       const newSet = SingleExerciseSet.create({
         setOrder: newSetOrder,
         ...newSetObject,
       })
-      self.exercises[targetExerciseOrder].setsPerformed.push(newSet)
+      exercise.setsPerformed.push(newSet)
     },
     removeSet(targetExerciseOrder: number, targetExerciseSetOrder: number) {
-      self.exercises[targetExerciseOrder].setsPerformed.splice(targetExerciseSetOrder, 1)
-      self.exercises[targetExerciseOrder].setsPerformed.forEach((s, i) => {
+      const targetExercise = self.exercises.get(targetExerciseOrder.toString())
+      const sets = targetExercise.setsPerformed
+      sets.splice(targetExerciseSetOrder, 1)
+      sets.forEach((s, i) => {
         s.setOrder = i
       })
     },

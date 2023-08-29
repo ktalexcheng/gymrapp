@@ -1,15 +1,15 @@
-import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Avatar, Icon, RowView, Screen, Spacer, TabBar, Text } from "app/components"
 import { translate } from "app/i18n"
 import { TabScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
-import { format, getTime, startOfWeek } from "date-fns"
+import { format } from "date-fns"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
 import { FlatList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { SceneMap, TabView } from "react-native-tab-view"
+import { DomainPropType } from "victory-core"
 import {
   VictoryAxis,
   VictoryBar,
@@ -21,7 +21,6 @@ import { colors, spacing } from "../theme"
 import { WorkoutSummaryCard } from "./FinishedWorkout"
 
 const UserActivitiesTabScene: FC = observer(() => {
-  // const mainNavigation = useMainNavigation()
   const { userStore } = useStores()
 
   function getWorkoutData() {
@@ -35,83 +34,94 @@ const UserActivitiesTabScene: FC = observer(() => {
     return <WorkoutSummaryCard {...item} />
   }
 
-  if (userStore.isLoadingWorkouts) return null
+  if (userStore.isLoadingWorkouts) return <Text tx="common.loading" />
+  if (userStore.workouts.size === 0) return <Text tx="profileScreen.noActivityhistory" />
 
-  return userStore.workouts.size > 0 ? (
+  return (
     <FlatList
       data={getWorkoutData()}
       renderItem={renderWorkoutItem}
       ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
     />
-  ) : (
-    <Text tx="profileScreen.noActivityhistory" />
   )
 })
 
-const DashboardTabScene: FC = observer(() => {
-  const { userStore } = useStores()
-  if (userStore.isLoadingWorkouts) return null
+type WeeklyWorkoutChartProps = {
+  data: Map<number, number>
+}
 
-  const workouts = Array.from(userStore.workouts.values())
-  const workoutsWeeklyCount = new Map()
-  workouts.forEach((w) => {
-    // Find start of week (Monday)
-    const weekStart = startOfWeek(
-      (w.workout.endTime as FirebaseFirestoreTypes.Timestamp).toDate(),
-      {
-        weekStartsOn: 1,
-      },
-    )
-    const weekStartTime = getTime(weekStart)
+const WeeklyWorkoutChart: FC<WeeklyWorkoutChartProps> = ({ data }) => {
+  const dataKeys = [...data.keys()]
+  // Note: Domain having the same value for left/right bounds will result in a warning,
+  //       (this happens when there is only one data point)
+  //       to workaround this, we add one to the right bound
+  const entireDomain: DomainPropType = {
+    x: [dataKeys[0], dataKeys[data.size - 1] + 1],
+    y: [0, 7],
+  }
+  const initialZoomDomain: DomainPropType = {
+    x: [dataKeys[Math.max(data.size - 8, 0)], dataKeys[data.size - 1] + 1],
+    y: [0, 7],
+  }
+  const [zoomedDomain, setZoomDomain] = useState(initialZoomDomain)
 
-    if (!workoutsWeeklyCount.has(weekStartTime)) {
-      workoutsWeeklyCount.set(weekStartTime, 0)
-    }
+  const getVisibleData = () => {
+    const filteredData = [...data.entries()].filter(([key]) => {
+      return key >= (zoomedDomain.x?.[0] as number) && key <= (zoomedDomain.x?.[1] as number)
+    })
+    const barChartData = filteredData.map(([key, value]) => {
+      return { weekStartDate: key, workoutsCount: value }
+    })
 
-    workoutsWeeklyCount.set(weekStartTime, workoutsWeeklyCount.get(weekStartTime) + 1)
-  })
-
-  const barChartData = [...workoutsWeeklyCount.entries()].map(([key, value]) => {
-    return { weekStartDate: key, workoutsCount: value }
-  })
+    return barChartData
+  }
 
   // Note: VictoryAxis and VictoryBar throws a warning when there is only 1 x-axis domain value
   return (
+    <VictoryChart
+      domain={entireDomain}
+      containerComponent={
+        <VictoryZoomContainer
+          responsive={false}
+          allowPan={true}
+          allowZoom={false}
+          zoomDimension="x"
+          zoomDomain={zoomedDomain}
+          onZoomDomainChange={setZoomDomain}
+        />
+      }
+    >
+      <VictoryAxis
+        tickFormat={(x: number) => format(x, "MM/dd")}
+        tickValues={getVisibleData().map((d) => d.weekStartDate)}
+        domainPadding={{ x: [spacing.tiny, spacing.tiny] }}
+        tickLabelComponent={<VictoryLabel angle={-45} dy={spacing.tiny} dx={-spacing.tiny * 2} />}
+      />
+      <VictoryAxis dependentAxis tickValues={[1, 2, 3, 4, 5, 6, 7]} />
+      <VictoryBar
+        data={getVisibleData()}
+        x="weekStartDate"
+        y="workoutsCount"
+        labels={({ datum }) => datum.workoutsCount}
+        labelComponent={<VictoryLabel dy={20} />}
+        style={{ data: { fill: colors.actionable }, labels: { fill: "white" } }}
+        barWidth={24}
+        cornerRadius={4}
+      />
+    </VictoryChart>
+  )
+}
+
+const DashboardTabScene: FC = observer(() => {
+  const { userStore } = useStores()
+
+  if (userStore.isLoadingWorkouts) return <Text tx="common.loading" />
+  if (userStore.workouts.size === 0) return <Text tx="profileScreen.noActivityhistory" />
+
+  return (
     <>
       <Text preset="subheading" tx="profileScreen.dashboardWeeklyWorkoutsTitle" />
-      <VictoryChart
-        containerComponent={
-          <VictoryZoomContainer
-            responsive={false}
-            allowPan={true}
-            allowZoom={false}
-            zoomDimension="x"
-            zoomDomain={{
-              x: [
-                barChartData[barChartData.length - 8].weekStartDate,
-                barChartData[barChartData.length - 1].weekStartDate,
-              ],
-            }}
-          />
-        }
-      >
-        <VictoryAxis
-          tickFormat={(x: number) => format(x, "MM/dd")}
-          tickValues={barChartData.map((d) => d.weekStartDate)}
-          domainPadding={{ x: [spacing.tiny, spacing.tiny] }}
-        />
-        <VictoryAxis dependentAxis tickValues={[1, 2, 3, 4, 5, 6, 7]} />
-        <VictoryBar
-          data={barChartData}
-          x="weekStartDate"
-          y="workoutsCount"
-          labels={({ datum }) => datum.workoutsCount}
-          labelComponent={<VictoryLabel dy={20} />}
-          style={{ data: { fill: colors.actionable }, labels: { fill: "white" } }}
-          barWidth={24}
-          cornerRadius={4}
-        />
-      </VictoryChart>
+      <WeeklyWorkoutChart data={userStore.weeklyWorkoutsCount} />
     </>
   )
 })
@@ -158,9 +168,11 @@ export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileSc
     )
   }
 
+  if (!userStore.userProfileExists) return null
+
   return (
     <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$screenContentContainer}>
-      {userStore.isLoading ? (
+      {userStore.isLoadingProfile ? (
         <Text tx="common.loading" />
       ) : (
         <>

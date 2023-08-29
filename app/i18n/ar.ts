@@ -9,6 +9,8 @@ const ar: Translations = {
     loading: "",
     exercise: "",
     bestSet: "",
+    kg: "",
+    lbs: "",
   },
   welcomeScreen: {
     postscript:

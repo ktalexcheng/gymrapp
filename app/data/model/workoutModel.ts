@@ -1,23 +1,22 @@
 import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
+import { ActivityId } from "./activityModel"
 import { ExercisePerformed } from "./exerciseModel"
+import { UserId } from "./userModel"
 
-export enum WorkoutVisibility {
-  Private = "private",
-  Public = "public",
-}
+export type WorkoutId = string
 
 export interface NewWorkout {
-  byUser: string
+  byUser: UserId
   visibility: string
   startTime: Date | FirebaseFirestoreTypes.Timestamp
   endTime: Date | FirebaseFirestoreTypes.Timestamp
   exercises: ExercisePerformed[]
   workoutTitle: string
-  activityId: string
+  activityId: ActivityId
 }
 
 export interface Workout extends NewWorkout {
-  workoutId: string
+  workoutId: WorkoutId
 }
 
 export function isWorkout(value: unknown): value is Workout {

@@ -9,6 +9,8 @@ const ko: Translations = {
     loading: "",
     exercise: "",
     bestSet: "",
+    kg: "",
+    lbs: "",
   },
   welcomeScreen: {
     postscript:

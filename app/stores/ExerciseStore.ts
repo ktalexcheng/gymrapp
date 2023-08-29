@@ -1,5 +1,11 @@
-import { Exercise, ExerciseSettings, NewExercise, User } from "app/data/model"
-import { DefaultExerciseSettings } from "app/screens/ActiveWorkout/defaultExerciseSettings"
+import { ExerciseSource, WeightUnit } from "app/data/constants"
+import {
+  DefaultExerciseSettings,
+  Exercise,
+  ExerciseSettings,
+  NewExercise,
+  User,
+} from "app/data/model"
 import { flow, getEnv, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
@@ -11,13 +17,20 @@ const ExerciseSettingsModel = types
       DefaultExerciseSettings.autoRestTimerEnabled,
     ),
     restTime: types.optional(types.number, DefaultExerciseSettings.restTime),
+    weightUnit: types.optional(
+      types.enumeration(Object.values(WeightUnit)),
+      DefaultExerciseSettings.weightUnit,
+    ),
   })
   .actions(withSetPropAction)
 
 const ExerciseModel = types
   .model({
     exerciseId: types.identifier,
-    exerciseSource: types.enumeration("Source", ["Public", "Private"]),
+    exerciseSource: types.enumeration("exerciseSource", [
+      ExerciseSource.Public,
+      ExerciseSource.Private,
+    ]),
     activityName: types.string,
     exerciseCat1: types.string,
     exerciseCat2: types.string,
@@ -58,18 +71,19 @@ export const ExerciseStoreModel = types
   }))
   .actions(withSetPropAction)
   .actions((self) => ({
-    getExerciseName(exerciesId: string) {
-      return self.allExercises.get(exerciesId).exerciseName
+    getExerciseName(exerciseId: string) {
+      return self.allExercises.get(exerciseId).exerciseName
     },
     setAllExercises(exercises: Exercise[]) {
       self.isLoading = true
 
       if (!exercises || exercises.length === 0) {
         self.isLoading = false
-        console.warn("ExerciseStore.setAllExercises: no exercises available")
+        console.warn("ExerciseStore.setAllExercises: received empty exercises list")
         return
       }
 
+      self.allExercises.clear()
       exercises.forEach((e) => {
         self.allExercises.put(e)
       })
@@ -77,11 +91,12 @@ export const ExerciseStoreModel = types
       self.lastUpdated = new Date()
       self.isLoading = false
     },
-    applyUser() {
+    applyUserSettings() {
       self.isLoading = true
 
-      const exerciseSettings =
-        getEnv<RootStoreDependencies>(self).userRepository.userExerciseSettings
+      const exerciseSettings = getEnv<RootStoreDependencies>(
+        self,
+      ).userRepository.getUserPropFromCacheData("preferences.userExerciseSettings")
 
       // Update exercises with user settings
       if (exerciseSettings) {
@@ -102,6 +117,7 @@ export const ExerciseStoreModel = types
         const exercises: Exercise[] = yield getEnv<RootStoreDependencies>(
           self,
         ).exerciseRepository.getMany()
+        console.debug("ExerciseStore.getAllExercises exercises.length:", exercises.length)
         self.setAllExercises(exercises)
 
         self.isLoading = false
@@ -143,9 +159,13 @@ export const ExerciseStoreModel = types
           .filter((item) => item.exerciseSettings)
 
         if (allExerciseSettings.length > 0) {
-          getEnv<RootStoreDependencies>(self).userRepository.update({
-            allExerciseSettings,
-          } as Partial<User>)
+          getEnv<RootStoreDependencies>(self).userRepository.update(
+            null,
+            {
+              allExerciseSettings,
+            } as Partial<User>,
+            null,
+          )
         }
 
         self.isLoading = false

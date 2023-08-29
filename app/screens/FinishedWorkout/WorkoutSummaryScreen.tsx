@@ -1,10 +1,14 @@
 import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { RowView, Screen, Text } from "app/components"
-import { ExercisePerformed, ExerciseSet, ExerciseSetType } from "app/data/model"
+import { ExerciseSetType, WeightUnit } from "app/data/constants"
+import { ExercisePerformed, ExerciseSet } from "app/data/model"
+import { useWeightUnitTx } from "app/hooks"
+import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
+import { Weight } from "app/utils/weight"
 import { observer } from "mobx-react-lite"
 import React from "react"
 import { View, ViewStyle } from "react-native"
@@ -14,7 +18,8 @@ type ExerciseSummaryProps = {
 }
 
 const ExerciseSummary = (props: ExerciseSummaryProps) => {
-  const { exerciseStore } = useStores()
+  const { exerciseStore, userStore } = useStores()
+  const weightUnitTx = useWeightUnitTx()
   const { exercise } = props
   const exerciseInfo = exerciseStore.allExercises.get(props.exercise.exerciseId)
 
@@ -23,7 +28,8 @@ const ExerciseSummary = (props: ExerciseSummaryProps) => {
   }
 
   function renderSetSummary(set: ExerciseSet, index: number) {
-    let summaryText = `${set.weight} x ${set.reps}`
+    const weight = new Weight(set.weight, WeightUnit.kg, userStore.user.preferences.weightUnit)
+    let summaryText = `${weight.formattedDisplayWeight(1)} ${translate(weightUnitTx)} x ${set.reps}`
     if (set.rpe) summaryText += ` @ ${set.rpe}`
 
     return (

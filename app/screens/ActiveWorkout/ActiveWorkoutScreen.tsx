@@ -139,6 +139,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
     const [timeSinceLastSet, setTimeSinceLastSet] = useState("00:00")
     const rootNavigation = useMainNavigation()
 
+    // @ts-ignore
     useEffect(() => {
       if (workoutStore.inProgress) {
         const intervalId = setInterval(() => {
@@ -302,7 +303,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
             </View>
           </RowView>
 
-          {workoutStore.exercises.map((exercise, _) => (
+          {Array.from(workoutStore.exercises.values()).map((exercise, _) => (
             <ExerciseEntry key={`${exercise.exerciseId}_${exercise.exerciseOrder}`} {...exercise} />
           ))}
 

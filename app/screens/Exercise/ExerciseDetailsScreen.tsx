@@ -1,10 +1,13 @@
 import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { RowView, Screen, Spacer, TabBar, Text } from "app/components"
+import { WeightUnit } from "app/data/constants"
+import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
+import { Weight } from "app/utils/weight"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
 import { FlatList, TextStyle, View, ViewStyle } from "react-native"
@@ -37,26 +40,13 @@ const WorkoutHistoryTabScene: (exerciseId: string) => FC = (exerciseId: string) 
         renderItem={renderWorkoutItem}
         ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
       />
-      // <View>
-      //   {workouts &&
-      //     workouts.map((workout) => {
-      //       return (
-      //         <WorkoutSummaryCard key={workout.workoutId} {...workout} />
-      //         // <RowView key={`${w.workoutId}`}>
-      //         //   <Text>
-      //         //     {(w.startTime as FirebaseFirestoreTypes.Timestamp).toDate().toLocaleString()}
-      //         //   </Text>
-      //         //   <Text>{w.workoutTitle}</Text>
-      //         // </RowView>
-      //       )
-      //     })}
-      // </View>
     )
   })
 
 const PersonalRecordsTabScene: (exerciseId: string) => FC = (exerciseId: string) =>
   observer(() => {
     const { userStore } = useStores()
+    const weightUnitTx = useWeightUnitTx()
     const personalRecords = userStore.user?.exerciseHistory?.[exerciseId]?.personalRecords
 
     if (!personalRecords) return <Text tx="exerciseDetailsScreen.noExerciseHistoryFound" />
@@ -78,15 +68,20 @@ const PersonalRecordsTabScene: (exerciseId: string) => FC = (exerciseId: string)
             preset="bold"
             tx="exerciseDetailsScreen.recordsHeaderRepsLabel"
           />
-          <Text
-            style={$recordsWeightColumn}
-            preset="bold"
-            tx="exerciseDetailsScreen.recordsHeaderWeightLabel"
-          />
+          <Text style={$recordsWeightColumn} preset="bold">
+            {translate("exerciseDetailsScreen.recordsHeaderWeightLabel") +
+              ` (${translate(weightUnitTx)})`}
+          </Text>
         </RowView>
         {Object.entries(sortedPersonalRecords).map(([reps, records]) => {
           const recordsCount = records.length
           const bestRecord = records[recordsCount - 1]
+          const weight = new Weight(
+            bestRecord.weight,
+            WeightUnit.kg,
+            userStore.user.preferences.weightUnit,
+          )
+
           return (
             <RowView key={`${exerciseId}_${reps}`} style={$recordItem}>
               <Text style={$recordsDateColumn}>
@@ -95,7 +90,7 @@ const PersonalRecordsTabScene: (exerciseId: string) => FC = (exerciseId: string)
                   .toLocaleString()}
               </Text>
               <Text style={$recordsRepsColumn}>{reps}</Text>
-              <Text style={$recordsWeightColumn}>{bestRecord.weight}</Text>
+              <Text style={$recordsWeightColumn}>{weight.formattedDisplayWeight(1, true)}</Text>
             </RowView>
           )
         })}

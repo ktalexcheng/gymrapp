@@ -1,4 +1,5 @@
-import { Avatar, Button, Icon, RowView, Screen, Spacer, Text } from "app/components"
+import { Avatar, Button, Dropdown, Icon, RowView, Screen, Spacer, Text } from "app/components"
+import { WeightUnit } from "app/data/constants"
 import { TxKeyPath } from "app/i18n"
 import { useStores } from "app/stores"
 import { colors, spacing, styles } from "app/theme"
@@ -63,6 +64,12 @@ export const UserSettingsScreen = observer(function () {
     userStore.updateProfile(user)
   }
 
+  const setWeightUnit = (weightUnit: WeightUnit) => {
+    const user = userStore.user
+    user.preferences.weightUnit = weightUnit
+    userStore.updateProfile(user)
+  }
+
   return (
     <Screen style={$screenContentContainer}>
       <RowView justifyContent="center">
@@ -74,6 +81,7 @@ export const UserSettingsScreen = observer(function () {
 
       <View>
         <Text tx="userSettingsScreen.preferencesSectionLabel" />
+
         <SwitchSettingTile
           titleTx="userSettingsScreen.privateAccountTitle"
           descriptionTx="userSettingsScreen.privateAccountDescription"
@@ -81,6 +89,16 @@ export const UserSettingsScreen = observer(function () {
           isOffIcon={<Icon name="lock-open-outline" size={30} />}
           isOnIcon={<Icon name="lock-closed" size={30} />}
           onToggle={togglePrivateAccount}
+        />
+
+        <Dropdown
+          onValueChange={(value: WeightUnit) => setWeightUnit(value)}
+          labelTx="userSettingsScreen.weightUnitLabel"
+          itemsList={[
+            { label: WeightUnit.kg, value: WeightUnit.kg },
+            { label: WeightUnit.lbs, value: WeightUnit.lbs },
+          ]}
+          selectedValue={userStore.user.preferences.weightUnit}
         />
       </View>
 

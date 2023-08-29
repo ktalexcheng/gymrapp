@@ -1,20 +1,23 @@
-import { Avatar, Button, Icon, Screen, Text, TextField } from "app/components"
-import { AppLanguage, User } from "app/data/model"
+import { Avatar, Button, Dropdown, Icon, Screen, Text, TextField } from "app/components"
+import { AppLanguage, WeightUnit } from "app/data/constants"
+import { User } from "app/data/model"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
 import * as ImagePicker from "expo-image-picker"
+import { observer } from "mobx-react-lite"
 import React, { useEffect, useRef, useState } from "react"
 import { ImageStyle, TextInput, TouchableOpacity, ViewStyle } from "react-native"
 import { LoadingScreen } from "../LoadingScreen"
 import { SwitchSettingTile } from "../UserSettingsScreen"
 
-export const CreateProfileScreen = () => {
+export const CreateProfileScreen = observer(() => {
   const mainNavigator = useMainNavigation()
   const { authenticationStore: authStore, userStore } = useStores()
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [imagePath, setImagePath] = useState(null)
+  const [weightUnit, setWeightUnit] = useState(WeightUnit.kg)
   const [privateAccount, setPrivateAccount] = useState(false)
   const [firstNameError, setFirstNameError] = useState(false)
   const [lastNameError, setLastNameError] = useState(false)
@@ -71,26 +74,26 @@ export const CreateProfileScreen = () => {
         firstName,
         lastName,
         privateAccount,
+        preferences: {
+          appLocale: AppLanguage.en_US, // TODO: Default to match system locale
+          weightUnit, // TODO: Default to lbs if system locale is en-US
+        },
       } as User
 
       if (imagePath) {
         const avatarUrl = await userStore.uploadUserAvatar(imagePath)
         initialUser.avatarUrl = avatarUrl
-      } else {
-        initialUser.avatarUrl = null
       }
 
       if (userStore.userProfileExists) {
         await userStore.updateProfile(initialUser)
       } else {
         // User profile should already be created upon sign up,
-        // this condition should only be possible during development
+        // this condition should only be possible if connection was lost
+        // or during development
         initialUser.userId = authStore.firebaseUser.uid
         initialUser.email = authStore.firebaseUser.email
         initialUser.providerId = authStore.firebaseUser?.providerId ?? ""
-        initialUser.preferences = {
-          appLocale: AppLanguage.en_US, // TODO: Default to match user system setting
-        }
 
         await userStore.createNewProfile(initialUser)
       }
@@ -113,7 +116,11 @@ export const CreateProfileScreen = () => {
 
       <Text tx="onboarding.uploadAvatarTitle" preset="subheading" />
       <TouchableOpacity style={$avatar} onPress={pickImage}>
-        <Avatar user={userStore.user} size="2xl" />
+        {imagePath ? (
+          <Avatar source={{ uri: imagePath }} size="2xl" />
+        ) : (
+          <Avatar user={userStore.user} size="2xl" />
+        )}
       </TouchableOpacity>
 
       <TextField
@@ -146,10 +153,20 @@ export const CreateProfileScreen = () => {
         onToggle={() => setPrivateAccount(!privateAccount)}
       />
 
+      <Dropdown
+        onValueChange={(value: WeightUnit) => setWeightUnit(value)}
+        labelTx="userSettingsScreen.weightUnitLabel"
+        itemsList={[
+          { label: WeightUnit.kg, value: WeightUnit.kg },
+          { label: WeightUnit.lbs, value: WeightUnit.lbs },
+        ]}
+        selectedValue={WeightUnit.kg}
+      />
+
       <Button tx="onboarding.createProfile" onPress={createProfile} />
     </Screen>
   )
-}
+})
 
 const $screenContentContainer: ViewStyle = {
   paddingVertical: spacing.huge,

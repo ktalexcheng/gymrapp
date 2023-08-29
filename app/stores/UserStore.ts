@@ -1,3 +1,5 @@
+import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
+import { getTime, startOfWeek } from "date-fns"
 import { flow, getEnv, types } from "mobx-state-tree"
 import { User, Workout, isUser, isWorkout } from "../../app/data/model"
 import { createCustomType } from "./helpers/createCustomType"
@@ -26,7 +28,7 @@ export const UserStoreModel = types
       }),
     ),
     isInitializing: true,
-    isLoading: true,
+    isLoadingProfile: true,
     isLoadingWorkouts: true,
     isNewUser: true,
   })
@@ -80,6 +82,32 @@ export const UserStoreModel = types
 
       return !!self.user.privateAccount
     },
+    get weeklyWorkoutsCount() {
+      const workouts = Array.from(self.workouts.values())
+      const weeklyWorkoutsCount = new Map<number, number>()
+      workouts.forEach((w) => {
+        // Find start of week (Monday)
+        const weekStart = startOfWeek(
+          (w.workout.endTime as FirebaseFirestoreTypes.Timestamp).toDate(),
+          {
+            weekStartsOn: 1,
+          },
+        )
+        const weekStartTime = getTime(weekStart)
+
+        if (!weeklyWorkoutsCount.has(weekStartTime)) {
+          weeklyWorkoutsCount.set(weekStartTime, 0)
+        }
+
+        weeklyWorkoutsCount.set(weekStartTime, weeklyWorkoutsCount.get(weekStartTime) + 1)
+      })
+
+      console.debug(
+        "UserStore.weeklyWorkoutsCount weekStartTime.keys():",
+        ...weeklyWorkoutsCount.keys(),
+      )
+      return weeklyWorkoutsCount
+    },
   }))
   .actions((self) => ({
     uploadUserAvatar: flow<string, [imagePath: string]>(function* (imagePath: string) {
@@ -98,14 +126,15 @@ export const UserStoreModel = types
      * this is for the rare case when a user's profile needs to be recreated
      */
     createNewProfile: flow(function* (newUser: User) {
-      self.isLoading = true
+      self.isLoadingProfile = true
 
       try {
         yield getEnv<RootStoreDependencies>(self).userRepository.create(newUser)
         self.user = newUser
 
-        self.isLoading = false
+        self.isLoadingProfile = false
         self.isInitializing = false
+        self.isNewUser = false
       } catch (e) {
         console.error("UserStore.createNewProfile error:", e)
       }
@@ -148,10 +177,10 @@ export const UserStoreModel = types
   .actions((self) => ({
     loadUserWithId: flow(function* (userId: string) {
       console.debug("UserStore.loadUserWIthId called:", userId)
-      self.isLoading = true
+      self.isLoadingProfile = true
 
       try {
-        const user = yield getEnv<RootStoreDependencies>(self).userRepository.get(userId)
+        const user = yield getEnv<RootStoreDependencies>(self).userRepository.get(userId, true)
 
         if (user) {
           self.user = user
@@ -161,7 +190,7 @@ export const UserStoreModel = types
           self.isNewUser = true
         }
 
-        self.isLoading = false
+        self.isLoadingProfile = false
         self.isInitializing = false
       } catch (e) {
         console.error("UserStore.loadUserWIthId error:", e)
@@ -172,19 +201,21 @@ export const UserStoreModel = types
     }),
     setUser(user: User) {
       console.debug("UserStore.setUser called:", user)
+      self.isLoadingProfile = true
       self.user = user
       self.getWorkouts()
+      self.isLoadingProfile = false
     },
     updateProfile: flow(function* (userUpdate: Partial<User>) {
       console.debug("UserStore.updateProfile called")
-      self.isLoading = true
+      self.isLoadingProfile = true
 
       try {
-        yield getEnv<RootStoreDependencies>(self).userRepository.update(userUpdate)
+        yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, null)
         self.user = { ...self.user, ...userUpdate }
         yield self.getWorkouts()
 
-        self.isLoading = false
+        self.isLoadingProfile = false
       } catch (e) {
         console.error("UserStore.updateProfile error:", e)
       }

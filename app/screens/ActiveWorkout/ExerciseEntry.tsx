@@ -1,4 +1,6 @@
-import { ExerciseSet, ExerciseSetType } from "app/data/model"
+import { ExerciseSetType } from "app/data/constants"
+import { useWeightUnitTx } from "app/hooks"
+import { translate } from "app/i18n"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
@@ -7,18 +9,20 @@ import { useStores } from "../../stores"
 import { spacing } from "../../theme"
 import { ExerciseSettingsMenu } from "./ExerciseSettingsMenu"
 import { SetEntry } from "./SetEntry"
-import { DefaultExerciseSettings } from "./defaultExerciseSettings"
 
 export type ExerciseEntryProps = {
   exerciseOrder: number
   exerciseId: string
-  setsPerformed: ExerciseSet[]
+  // setsPerformed: ExerciseSet[]
 }
 
 export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEntryProps) => {
   const { workoutStore, exerciseStore } = useStores()
-
+  const setsPerformed = workoutStore.exercises.get(
+    props.exerciseOrder as unknown as string,
+  ).setsPerformed
   const exerciseName = exerciseStore.allExercises.get(props.exerciseId).exerciseName
+  const weightUnitTx = useWeightUnitTx(props.exerciseId)
 
   function addSet() {
     workoutStore.addSet(props.exerciseOrder, {
@@ -32,10 +36,10 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
         <ExerciseSettingsMenu
           exerciseOrder={props.exerciseOrder}
           exerciseId={props.exerciseId}
-          exerciseSettings={
-            exerciseStore.allExercises.get(props.exerciseId).exerciseSettings ??
-            DefaultExerciseSettings
-          }
+          // exerciseSettings={
+          //   exerciseStore.allExercises.get(props.exerciseId).exerciseSettings ??
+          //   DefaultExerciseSettings
+          // }
         />
       </View>
 
@@ -52,10 +56,9 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
             tx="activeWorkoutScreen.previousColumnHeader"
             style={[$previousColumn, $textAlignCenter]}
           />
-          <Text
-            tx="activeWorkoutScreen.weightColumnHeader"
-            style={[$weightColumn, $textAlignCenter]}
-          />
+          <Text style={[$weightColumn, $textAlignCenter]}>
+            {translate("activeWorkoutScreen.weightColumnHeader") + ` (${translate(weightUnitTx)})`}
+          </Text>
           <Text tx="activeWorkoutScreen.repsColumnHeader" style={[$repsColumn, $textAlignCenter]} />
           <Text tx="activeWorkoutScreen.rpeColumnHeader" style={[$rpeColumn, $textAlignCenter]} />
           <Icon
@@ -66,7 +69,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
           />
         </RowView>
 
-        {props.setsPerformed.map((set, i) => (
+        {setsPerformed.map((set, i) => (
           <SetEntry
             key={i}
             setOrder={i}

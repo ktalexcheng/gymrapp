@@ -1,5 +1,7 @@
+export type ActivityId = string
+
 export interface Activity {
-  activityId: string
+  activityId: ActivityId
   activityName: string
   description: string
 }

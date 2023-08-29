@@ -1,10 +1,6 @@
 import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
+import { AppLanguage, WeightUnit } from "../constants"
 import { ExerciseRecord, ExerciseSettings } from "./exerciseModel"
-
-export enum AppLanguage {
-  en_US = "en-US",
-  zh_TW = "zh-TW",
-}
 
 export interface UserPreferences {
   appLocale: AppLanguage
@@ -12,6 +8,7 @@ export interface UserPreferences {
     exerciseId: string
     exerciseSettings: ExerciseSettings
   }[]
+  weightUnit: WeightUnit
 }
 
 export interface WorkoutMeta {
@@ -30,11 +27,13 @@ export interface ExerciseHistory {
   personalRecords: ExerciseRecord
 }
 
+export type UserId = string
+
 export interface User extends UnregisteredUser {
   firstName: string
   lastName: string
   privateAccount: boolean
-  userId: string
+  userId: UserId
   providerId: string
   preferences: UserPreferences
   avatarUrl?: string

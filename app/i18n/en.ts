@@ -7,6 +7,8 @@ const en = {
     loading: "Loading",
     exercise: "Exercise",
     bestSet: "Best Set",
+    kg: "kg",
+    lbs: "lbs",
   },
   welcomeScreen: {
     postscript:
@@ -85,6 +87,7 @@ const en = {
     deleteAccount: "Delete account",
     deleteAccountConfirmationMessage:
       "This will remove all user data. This action cannot be reversed. Are you sure?",
+    weightUnitLabel: "Weight unit",
   },
   newActivityScreen: {
     startNewWorkoutText: "Start new workout",
@@ -97,7 +100,7 @@ const en = {
     newActiveWorkoutTitle: "New workout",
     finishWorkoutButton: "Finish",
     setOrderColumnHeader: "Set",
-    previousColumnHeader: "Previous",
+    previousColumnHeader: "Prev",
     weightColumnHeader: "Weight",
     repsColumnHeader: "Reps",
     rpeColumnHeader: "RPE",
@@ -124,14 +127,18 @@ const en = {
     noExerciseHistoryFound: "No exercise history found.",
   },
   addExerciseScreen: {
-    exerciseType: "Type",
-    exerciseSubtype: "Subtype",
+    activityName: "Activity Type",
     exerciseCategory: "Category",
+    exerciseSubCategory: "Sub-Category",
     exerciseName: "Name",
     addExerciseButton: "Add exercise",
   },
   exerciseEntrySettings: {
     restTimerEnabledLabel: "Enabled",
+    restTimeLabel: "Rest time",
+    createSupersetLabel: "Create superset",
+    removeExerciseLabel: "Remove exercise",
+    weightUnitLabel: "Weight unit",
   },
 }
 

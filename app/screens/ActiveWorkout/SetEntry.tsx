@@ -1,11 +1,13 @@
+import { DefaultExerciseSettings } from "app/data/model"
+import { useWeight } from "app/hooks"
+import { roundToString } from "app/utils/formatNumber"
 import { observer } from "mobx-react-lite"
-import React, { FC, useState } from "react"
+import React, { FC, useEffect, useState } from "react"
 import { TextStyle, View, ViewStyle } from "react-native"
 import { Swipeable } from "react-native-gesture-handler"
 import { Button, Icon, RowView, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
 import { colors, spacing, thresholds } from "../../theme"
-import { DefaultExerciseSettings } from "./defaultExerciseSettings"
 
 export type SetEntryProps = {
   exerciseOrder: number
@@ -18,14 +20,54 @@ export type SetEntryProps = {
 }
 
 export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
-  const { workoutStore, exerciseStore } = useStores()
-  const { exerciseOrder, setOrder } = props
+  const { workoutStore, exerciseStore, userStore } = useStores()
+  const { exerciseId, exerciseOrder, setOrder } = props
+  // Current exercise set
+  const exerciseSetStore = workoutStore.exercises.get(exerciseOrder as unknown as string)
+    .setsPerformed[setOrder]
+
+  // Exercise settings
+  const exerciseSettings = exerciseStore.allExercises.get(exerciseId).exerciseSettings
+  const restTime = exerciseSettings?.restTime ?? DefaultExerciseSettings.restTime
+  const initDisplayWeightUnit =
+    exerciseSettings?.weightUnit ??
+    userStore.user?.preferences?.weightUnit ??
+    DefaultExerciseSettings.weightUnit
+
+  // States
   const [isNullWeight, setIsNullWeight] = useState(false)
   const [isNullReps, setIsNullReps] = useState(false)
-  const [weight, setWeight] = useState("")
-  const [reps, setReps] = useState("")
-  const [rpe, setRpe] = useState("")
-  const exerciseSetStore = workoutStore.exercises[exerciseOrder].setsPerformed[setOrder]
+  // Weight is always converted and stored in kg,
+  // but depending on user preference will display as kg or lbs (using displayWeight)
+  // const [weight, setWeight] = useState<number>(null)
+  const [displayWeight, weightKg, setDisplayWeight, setDisplayUnit] = useWeight(
+    exerciseSetStore.weight,
+    initDisplayWeightUnit,
+  )
+  const [reps, setReps] = useState<number>(exerciseSetStore.reps)
+  const [rpe, setRpe] = useState<number>(exerciseSetStore.rpe)
+  const [weightInput, setWeightInput] = useState<string>(roundToString(displayWeight, 2, false))
+  const [repsInput, setRepsInput] = useState<string>(reps?.toString())
+  const [rpeInput, setRpeInput] = useState<string>(rpe?.toString())
+
+  useEffect(() => {
+    if (exerciseSettings?.weightUnit) {
+      setDisplayUnit(exerciseSettings.weightUnit)
+    } else if (userStore.user?.preferences?.weightUnit) {
+      setDisplayUnit(userStore.user.preferences.weightUnit)
+    }
+  }, [exerciseSettings?.weightUnit, userStore.user?.preferences?.weightUnit])
+
+  useEffect(() => {
+    setWeightInput(roundToString(displayWeight, 2, false))
+    updateSetStore()
+  }, [displayWeight, reps, rpe])
+
+  function updateSetStore() {
+    exerciseSetStore.updateSetValues("weight", weightKg)
+    exerciseSetStore.updateSetValues("reps", reps)
+    exerciseSetStore.updateSetValues("rpe", rpe)
+  }
 
   function toggleSetStatus() {
     if (exerciseSetStore.isCompleted) {
@@ -33,49 +75,89 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       return
     }
 
-    if (weight && reps) {
+    if (displayWeight && reps) {
       setIsNullWeight(false)
       setIsNullReps(false)
 
-      exerciseSetStore.updateSetValues("weight", weight)
+      exerciseSetStore.updateSetValues("weight", weightKg)
       exerciseSetStore.updateSetValues("reps", reps)
       exerciseSetStore.updateSetValues("rpe", rpe)
 
-      workoutStore.restartRestTimer(
-        exerciseStore.allExercises.get(props.exerciseId).exerciseSettings?.restTime ??
-          DefaultExerciseSettings.restTime,
-      )
+      workoutStore.restartRestTimer(restTime)
 
       exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
     } else {
-      setIsNullWeight(!weight)
+      setIsNullWeight(!displayWeight)
       setIsNullReps(!reps)
     }
   }
 
-  function isLegalPrecision(value: string, decimalPlaces: number) {
-    const decimalIndex = value.indexOf(".")
-    if (decimalPlaces === 0 && decimalIndex !== -1) {
-      return false
+  function isValidPrecision(value: string, decimalPlaces: number) {
+    let isValid = true
+
+    if (!value) isValid = false
+
+    let regexPattern: string
+    if (decimalPlaces > 0) {
+      console.debug("isValidPrecision checking decimals:", decimalPlaces)
+      regexPattern = `^(?!0\\d)([0-9]+(\\.|\\.[0-9]{1,${decimalPlaces}})?)?$`
+    } else {
+      console.debug("isValidPrecision checking integer")
+      regexPattern = `^(?!0\\d)([0-9]+)?$`
+    }
+    const regex = new RegExp(regexPattern)
+    if (!regex.test(value)) {
+      console.debug("isValidPrecision regex failed:", regexPattern)
+      isValid = false
     }
 
-    if (decimalIndex !== -1 && value.substring(decimalIndex + 1).length > decimalPlaces) {
-      return false
+    // Failsafe
+    if (!Number.isFinite(Number(value))) {
+      console.debug("isValidPrecision not a finite number")
+      isValid = false
     }
 
-    return true
+    console.debug("isValidPrecision return isValid", isValid)
+    return isValid
   }
 
   function handleWeightChangeText(value: string) {
-    if (isLegalPrecision(value, 2)) setWeight(value)
+    if (!value) {
+      setWeightInput(null)
+      return
+    }
+
+    if (isValidPrecision(value, 2)) {
+      setWeightInput(value)
+      setDisplayWeight(parseFloat(value))
+    }
   }
 
   function handleRepsChangeText(value: string) {
-    if (isLegalPrecision(value, 0)) setReps(value)
+    if (!value) {
+      setRepsInput(null)
+      return
+    }
+
+    if (isValidPrecision(value, 0)) {
+      setRepsInput(value)
+      setReps(parseInt(value))
+    }
   }
 
   function handleRpeChangeText(value: string) {
-    if (isLegalPrecision(value, 1)) setRpe(value)
+    if (!value) {
+      setRpeInput(null)
+      return
+    }
+
+    if (isValidPrecision(value, 1)) {
+      const num = Number(value)
+      if (num >= 6 && num <= 10) {
+        setRpeInput(value)
+        setRpe(parseFloat(value))
+      }
+    }
   }
 
   function renderRightDelete() {
@@ -112,7 +194,7 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
         <View style={$weightColumn}>
           <TextField
             status={isNullWeight ? "error" : null}
-            value={weight}
+            value={weightInput ?? ""}
             onChangeText={handleWeightChangeText}
             containerStyle={$textFieldContainer}
             textAlign="center"
@@ -125,18 +207,18 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
         <View style={$repsColumn}>
           <TextField
             status={isNullReps ? "error" : null}
-            value={reps}
+            value={repsInput ?? ""}
             onChangeText={handleRepsChangeText}
             containerStyle={$textFieldContainer}
             textAlign="center"
             autoCorrect={false}
             keyboardType="decimal-pad"
-            maxLength={4}
+            maxLength={3}
           />
         </View>
         <View style={$rpeColumn}>
           <TextField
-            value={rpe}
+            value={rpeInput ?? ""}
             onChangeText={handleRpeChangeText}
             containerStyle={$textFieldContainer}
             textAlign="center"

@@ -1,13 +1,7 @@
 import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
+import { ExerciseSetType, ExerciseSource, WeightUnit } from "../constants"
 
-export enum ExerciseSetType {
-  WarmUp = "warmup",
-  Normal = "normal",
-  DropSet = "dropset",
-  Failure = "failure",
-}
-
-export type ExerciseSet = {
+export interface ExerciseSet {
   setType: ExerciseSetType
   weight: number
   reps: number
@@ -16,20 +10,22 @@ export type ExerciseSet = {
 }
 
 // Using Weight and Reps type alias for clarity
-export type Weight = number
-export type Reps = number
-export type PersonalRecord = {
+export type WeightType = number
+export type RepsType = number
+export interface PersonalRecord {
   workoutId: string
   // exerciseId: string
   datePerformed: Date | FirebaseFirestoreTypes.Timestamp
-  reps: Reps
-  weight: Weight
+  reps: RepsType
+  weight: WeightType
 }
-export type ExerciseRecord = Record<Reps, PersonalRecord[]>
-export type NewExerciseRecord = Record<Reps, PersonalRecord>
+export type ExerciseRecord = Record<RepsType, PersonalRecord[]>
+export type NewExerciseRecord = Record<RepsType, PersonalRecord>
+
+export type ExerciseId = string
 
 export interface ExercisePerformed {
-  exerciseId: string
+  exerciseId: ExerciseId
   exerciseOrder: number
   setsPerformed: ExerciseSet[]
   datePerformed: Date | FirebaseFirestoreTypes.Timestamp
@@ -43,9 +39,16 @@ export interface ExercisePerformed {
   // averageRestTime: Duration
 }
 
-export type ExerciseSettings = {
+export interface ExerciseSettings {
   autoRestTimerEnabled: boolean
   restTime: number // In seconds
+  weightUnit: WeightUnit
+}
+
+export const DefaultExerciseSettings: ExerciseSettings = {
+  autoRestTimerEnabled: true,
+  restTime: 120,
+  weightUnit: WeightUnit.kg,
 }
 
 export interface NewExercise {
@@ -56,8 +59,8 @@ export interface NewExercise {
 }
 
 export interface Exercise extends NewExercise {
-  exerciseId: string
-  exerciseSource: "Public" | "Private"
+  exerciseId: ExerciseId
+  exerciseSource: ExerciseSource
   // exerciseSettings?: ExerciseSettings
   exerciseHistory?: ExercisePerformed[]
 }

@@ -67,7 +67,7 @@ export const MainNavigator = observer(function MainNavigator() {
         if (snapshot.empty) return
 
         const exercises = snapshot.docs.map((doc) => {
-          return { exerciseId: doc.id, exerciseSource: "Public", ...doc.data() } as Exercise
+          return { exerciseId: doc.id, ...doc.data() } as Exercise
         })
         exerciseStore.setAllExercises(exercises)
       })

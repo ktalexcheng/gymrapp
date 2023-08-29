@@ -1,7 +1,8 @@
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import { GoogleSignin } from "@react-native-google-signin/google-signin"
 import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
-import { AppLanguage, User } from "../data/model"
+import { AppLanguage, AuthStoreError, WeightUnit } from "../data/constants"
+import { User } from "../data/model"
 import { Env } from "../utils/expo"
 import { createCustomType } from "./helpers/createCustomType"
 import { RootStoreDependencies } from "./helpers/useStores"
@@ -13,20 +14,6 @@ function isFirebaseUser(value: any): value is FirebaseAuthTypes.User {
 }
 
 const FirebaseUserType = createCustomType<FirebaseAuthTypes.User>("FirebaseUser", isFirebaseUser)
-
-enum AuthStoreError {
-  EmailMissingError = "Email is not provided",
-  EmailDuplicateError = "Email is already in use",
-  EmailInvalidError = "Email is invalid",
-  EmailLengthError = "Email is too short",
-  PasswordMissingError = "Password is not set",
-  PasswordWrongError = "Password is wrong",
-  UserNotFoundError = "User not found",
-  TooManyRequestsError = "Too many failed attempts, please try again later",
-  FirstNameMissingError = "First name is not provided",
-  LastNameMissingError = "Last name is not provided",
-  // GenericError = "Something went wrong during authentication",
-}
 
 GoogleSignin.configure({
   webClientId: Env.GOOGLE_CLIENT_ID,
@@ -163,11 +150,11 @@ export const AuthenticationStoreModel = types
         self.firebaseUser = undefined
       }
 
-      try {
-        getEnv<RootStoreDependencies>(self).userRepository.logout()
-      } catch (e) {
-        console.error("AuthenticationStore.invalidateSession error:", e)
-      }
+      // try {
+      //   getEnv<RootStoreDependencies>(self).userRepository.logout()
+      // } catch (e) {
+      //   console.error("AuthenticationStore.invalidateSession error:", e)
+      // }
     },
     resetAuthError() {
       self.authError = undefined
@@ -180,7 +167,7 @@ export const AuthenticationStoreModel = types
     },
     deleteAccount: flow(function* () {
       try {
-        yield getEnv<RootStoreDependencies>(self).userRepository.delete()
+        yield getEnv<RootStoreDependencies>(self).userRepository.delete(self.firebaseUser.uid)
         yield auth().currentUser.delete() // Also signs user out
         self.invalidateSession()
       } catch (error) {
@@ -227,6 +214,7 @@ export const AuthenticationStoreModel = types
             providerId: userCred.additionalUserInfo?.providerId ?? "",
             preferences: {
               appLocale: AppLanguage.en_US, // TODO: Default to match user system setting
+              weightUnit: WeightUnit.kg,
             },
             avatarUrl: null, // TODO: Allow user to upload profile picture
           } as User)

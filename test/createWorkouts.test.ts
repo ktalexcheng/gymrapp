@@ -4,7 +4,7 @@ import * as admin from "firebase-admin"
 import * as fs from "fs"
 import { types } from "mobx-state-tree"
 import * as path from "path"
-import { ExerciseSetType } from "../app/data/model"
+import { ExerciseSetType } from "../app/data/constants"
 import {
   ActivityRepository,
   ExerciseRepository,
@@ -152,7 +152,7 @@ async function createExercisesFromStrongExport(csvPath: string) {
       if (_exerciseIdState !== existingExerciseIds[_exerciseName]) {
         _exerciseIdState = existingExerciseIds[_exerciseName]
         workoutStore.addExercise(_exerciseIdState)
-        _exerciseOrderState = workoutStore.exercises.length - 1
+        _exerciseOrderState = workoutStore.exercises.size - 1
       }
 
       workoutStore.addSet(_exerciseOrderState, {

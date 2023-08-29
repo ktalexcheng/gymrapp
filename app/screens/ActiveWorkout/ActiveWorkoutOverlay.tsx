@@ -13,6 +13,7 @@ export const ActiveWorkoutOverlay = () => {
   const $containerInsets = useSafeAreaInsetsStyle(["top"], "margin")
 
   // Using MobX observer and useEffect will not work for some reason
+  // @ts-ignore
   useEffect(() => {
     if (workoutStore.inProgress) {
       const intervalId = setInterval(() => {

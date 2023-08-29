@@ -43,21 +43,21 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
     <Screen safeAreaEdges={["top", "bottom"]} style={$container}>
       <Dropdown
         onValueChange={selectType}
-        labelTx="addExerciseScreen.exerciseType"
+        labelTx="addExerciseScreen.activityName"
         itemsList={exerciseStore.allExerciseTypes.map((type) => {
           return { label: type, value: type }
         })}
       />
       <Dropdown
         onValueChange={selectSubtype}
-        labelTx="addExerciseScreen.exerciseSubtype"
+        labelTx="addExerciseScreen.exerciseCategory"
         itemsList={exerciseStore.allExerciseSubtypes.map((subtype) => {
           return { label: subtype, value: subtype }
         })}
       />
       <Dropdown
         onValueChange={selectCategory}
-        labelTx="addExerciseScreen.exerciseCategory"
+        labelTx="addExerciseScreen.exerciseSubCategory"
         itemsList={exerciseStore.allExerciseCategories.map((category) => {
           return { label: category, value: category }
         })}

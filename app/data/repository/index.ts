@@ -1,5 +1,6 @@
 export * from "./activityRepository"
 export * from "./baseRepository"
 export * from "./exerciseRepository"
+export * from "./feedRepository"
 export * from "./userRepository"
 export * from "./workoutRepository"

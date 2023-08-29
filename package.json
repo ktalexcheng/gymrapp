@@ -79,7 +79,8 @@
     "reactotron-mst": "3.1.4",
     "reactotron-react-js": "^3.3.7",
     "reactotron-react-native": "5.0.3",
-    "victory-native": "^36.6.11"
+    "victory-native": "^36.6.11",
+    "expo-crypto": "~12.2.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
@@ -195,7 +196,7 @@
       "@typescript-eslint/no-object-literal-type-assertion": 0,
       "@typescript-eslint/no-var-requires": 0,
       "@typescript-eslint/no-unused-vars": [
-        "error",
+        "warn",
         {
           "argsIgnorePattern": "^_",
           "varsIgnorePattern": "^_"
