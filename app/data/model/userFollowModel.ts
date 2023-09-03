@@ -1,5 +1,5 @@
 interface UserFollow {
-  followDate: Date | FirebaseFirestore.Timestamp
+  followDate: Date
 }
 
 export interface UserFollowing extends UserFollow {}

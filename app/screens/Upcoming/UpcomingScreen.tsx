@@ -1,10 +1,17 @@
+import { Screen } from "app/components"
 import React from "react"
-import { Text, View } from "react-native"
+import { Text, ViewStyle } from "react-native"
 
 export const UpcomingScreen = () => {
   return (
-    <View>
+    <Screen safeAreaEdges={["top", "bottom"]} style={$container}>
       <Text>UpcomingScreen</Text>
-    </View>
+    </Screen>
   )
+}
+
+const $container: ViewStyle = {
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
 }

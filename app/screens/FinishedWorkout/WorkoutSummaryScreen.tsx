@@ -1,8 +1,7 @@
-import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { RowView, Screen, Text } from "app/components"
-import { ExerciseSetType, WeightUnit } from "app/data/constants"
-import { ExercisePerformed, ExerciseSet } from "app/data/model"
+import { ExerciseSetType, WeightUnit, WorkoutSource } from "app/data/constants"
+import { ExercisePerformed, ExerciseSet, Workout } from "app/data/model"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
@@ -56,18 +55,24 @@ interface WorkoutSummaryScreenProps
   extends NativeStackScreenProps<MainStackParamList, "WorkoutSummary"> {}
 
 export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenProps) => {
-  const { userStore } = useStores()
+  const { feedStore, userStore } = useStores()
 
-  if (userStore.isLoadingWorkouts) return null
-
-  const { workout } = userStore.workouts.get(route.params.workoutId)
+  let workout: Workout
+  switch (route.params.workoutSource) {
+    case WorkoutSource.User:
+      workout = userStore.workouts.get(route.params.workoutId).workout
+      break
+    case WorkoutSource.Feed:
+      workout = feedStore.feedWorkouts.get(route.params.workoutId).workout
+      break
+    default:
+      throw new Error("Invalid workout source")
+  }
 
   return (
     <Screen safeAreaEdges={["bottom"]} style={$screenContentContainer}>
       <Text preset="heading">{workout.workoutTitle}</Text>
-      <Text preset="subheading">
-        {(workout.endTime as FirebaseFirestoreTypes.Timestamp).toDate().toLocaleString()}
-      </Text>
+      <Text preset="subheading">{workout.startTime.toLocaleString()}</Text>
       {workout.exercises.map((e, _) => {
         return <ExerciseSummary key={e.exerciseId} exercise={e} />
       })}

@@ -1,4 +1,3 @@
-import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { ActivityId } from "./activityModel"
 import { ExercisePerformed } from "./exerciseModel"
 import { UserId } from "./userModel"
@@ -6,10 +5,10 @@ import { UserId } from "./userModel"
 export type WorkoutId = string
 
 export interface NewWorkout {
-  byUser: UserId
+  byUserId: UserId
   visibility: string
-  startTime: Date | FirebaseFirestoreTypes.Timestamp
-  endTime: Date | FirebaseFirestoreTypes.Timestamp
+  startTime: Date
+  endTime: Date
   exercises: ExercisePerformed[]
   workoutTitle: string
   activityId: ActivityId

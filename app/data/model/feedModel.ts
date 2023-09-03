@@ -1,13 +1,16 @@
+import { UserId } from "./userModel"
 import { WorkoutId } from "./workoutModel"
 
 export type FeedItemId = string
 
 export interface UserFeedItem {
   feedItemId: FeedItemId // feedItemId is composed of ${workoutDate}-${byUserId}
+  byUserId: UserId
+  startTime: Date
   workoutId: WorkoutId
 }
 
-export interface UserFeed {
-  lastUpdated: Date
-  feedItems: UserFeedItem[]
-}
+// export interface UserFeed {
+//   lastUpdated: Date
+//   feedItems: UserFeedItem[]
+// }

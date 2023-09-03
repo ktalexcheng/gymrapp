@@ -35,7 +35,7 @@ const SingleExerciseSet = types
   .actions(withSetPropAction)
   .actions((self) => ({
     updateSetValues(prop: "weight" | "reps" | "rpe", value: number) {
-      if (value) {
+      if (value !== null && value !== undefined && value >= 0) {
         self.setProp(prop, value)
       } else {
         self.setProp(prop, undefined)
@@ -50,7 +50,7 @@ const SingleExercise = types
     exerciseOrder: types.identifierNumber,
     exerciseId: types.string,
     setsPerformed: types.optional(ExerciseSets, []),
-    notes: types.maybeNull(types.string),
+    exerciseNotes: types.maybeNull(types.string),
   })
   .actions(withSetPropAction)
 
@@ -65,6 +65,7 @@ const WorkoutStoreModel = types
     inProgress: false,
     restTime: 0,
     restTimeRemaining: 0,
+    restTimeRunning: false,
     lastSetCompletedTime: types.maybe(types.Date),
     workoutTitle: translate("activeWorkoutScreen.newActiveWorkoutTitle"),
     activityId: types.maybe(types.string),
@@ -111,7 +112,7 @@ const WorkoutStoreModel = types
     get exerciseSummary() {
       const exercisesSummary: ExercisePerformed[] = []
       const exerciseHistory =
-        getEnv<RootStoreDependencies>(self).userRepository.getUserPropFromCacheData(
+        getEnv<RootStoreDependencies>(self).privateUserRepository.getUserPropFromCacheData(
           "exerciseHistory",
         )
 
@@ -135,7 +136,7 @@ const WorkoutStoreModel = types
           if (s.weight > ((recordsCount && exerciseRepRecord[recordsCount - 1].weight) || 0)) {
             newRecords[s.reps] = {
               // exerciseId: e.exerciseId,
-              datePerformed: self.endTime,
+              datePerformed: self.startTime,
               weight: s.weight,
               reps: s.reps,
             } as PersonalRecord
@@ -145,7 +146,7 @@ const WorkoutStoreModel = types
         exercisesSummary.push({
           ...e,
           maxWeightSet,
-          datePerformed: self.endTime,
+          datePerformed: self.startTime,
           totalReps,
           totalVolume,
           newRecords,
@@ -196,13 +197,15 @@ const WorkoutStoreModel = types
           })
         })
 
-        console.debug("WorkoutStore.exerciseSummary:", self.exerciseSummary)
-        const workoutId = yield getEnv<RootStoreDependencies>(self).workoutRepository.create({
-          byUser:
-            getEnv<RootStoreDependencies>(self).userRepository.getUserPropFromCacheData("userId"),
-          visibility: getEnv<RootStoreDependencies>(self).userRepository.getUserPropFromCacheData(
-            "privateAccount",
-          )
+        // console.debug("WorkoutStore.exerciseSummary:", self.exerciseSummary)
+        const newWorkout = {
+          byUserId:
+            getEnv<RootStoreDependencies>(self).privateUserRepository.getUserPropFromCacheData(
+              "userId",
+            ),
+          visibility: getEnv<RootStoreDependencies>(
+            self,
+          ).privateUserRepository.getUserPropFromCacheData("privateAccount")
             ? WorkoutVisibility.Private
             : WorkoutVisibility.Public,
           startTime: self.startTime,
@@ -210,15 +213,19 @@ const WorkoutStoreModel = types
           exercises: self.exerciseSummary,
           workoutTitle: self.workoutTitle,
           activityId: self.activityId,
-        } as NewWorkout)
+        } as NewWorkout
+        // console.debug("WorkoutStore.saveWorkout newWorkout:", newWorkout)
+        const workoutId = yield getEnv<RootStoreDependencies>(self).workoutRepository.create(
+          newWorkout,
+        )
 
         // Update user workout metadata (keep track of workouts performed by user)
-        yield getEnv<RootStoreDependencies>(self).userRepository.update(
+        yield getEnv<RootStoreDependencies>(self).privateUserRepository.update(
           null,
           {
             workoutMetas: {
               [workoutId]: {
-                endTime: self.endTime,
+                startTime: self.startTime,
               },
             },
           } as Partial<User>,
@@ -237,7 +244,11 @@ const WorkoutStoreModel = types
             })
           }
         })
-        yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, null)
+        yield getEnv<RootStoreDependencies>(self).privateUserRepository.update(
+          null,
+          userUpdate,
+          null,
+        )
 
         self.resetWorkout()
       } catch (error) {
@@ -280,9 +291,16 @@ const WorkoutStoreModel = types
   .actions((self) => {
     let intervalId
 
-    const setRestTime = (time: number) => {
-      self.restTime = time
-      self.restTimeRemaining = time
+    const setRestTime = (seconds: number) => {
+      const _seconds = seconds < 0 ? 0 : seconds
+      self.restTime = _seconds
+      self.restTimeRemaining = _seconds
+    }
+
+    const adjustRestTime = (seconds: number) => {
+      self.restTime = self.restTime + seconds < 0 ? 0 : self.restTime + seconds
+      self.restTimeRemaining =
+        self.restTimeRemaining + seconds < 0 ? 0 : self.restTimeRemaining + seconds
     }
 
     const startRestTimer = () => {
@@ -293,23 +311,38 @@ const WorkoutStoreModel = types
         } else {
           console.debug("WorkoutStore.startRestTimer cleared")
           clearInterval(intervalId)
+          self.setProp("restTimeRunning", false)
         }
       }, 1000)
+      self.restTimeRunning = true
     }
 
     const stopRestTimer = () => {
       if (intervalId) {
         clearInterval(intervalId)
+        self.restTimeRunning = false
       }
     }
 
-    const restartRestTimer = (time: number) => {
+    const resetRestTimer = () => {
       stopRestTimer()
-      setRestTime(time)
+      setRestTime(self.restTime)
+    }
+
+    const restartRestTimer = (seconds: number) => {
+      stopRestTimer()
+      setRestTime(seconds)
       startRestTimer()
     }
 
-    return { setRestTime, startRestTimer, stopRestTimer, restartRestTimer }
+    return {
+      setRestTime,
+      adjustRestTime,
+      startRestTimer,
+      pauseRestTimer: stopRestTimer,
+      resetRestTimer,
+      restartRestTimer,
+    }
   })
 
 export { ExerciseSets, WorkoutStoreModel }

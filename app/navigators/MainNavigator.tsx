@@ -1,5 +1,6 @@
 import firestore from "@react-native-firebase/firestore"
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
+import { WorkoutSource } from "app/data/constants"
 import { Exercise, User } from "app/data/model"
 import {
   ActiveWorkoutScreen,
@@ -28,7 +29,7 @@ export type MainStackParamList = {
   ExerciseManager: undefined
   ExerciseDetails: { exerciseId: string }
   UserSettings: undefined
-  WorkoutSummary: { workoutId: string }
+  WorkoutSummary: { workoutId: string; workoutSource: WorkoutSource }
   OnboardingNavigator: undefined
 }
 
@@ -40,16 +41,23 @@ export type MainStackScreenProps<T extends keyof MainStackParamList> = NativeSta
 const MainStack = createNativeStackNavigator<MainStackParamList>()
 
 export const MainNavigator = observer(function MainNavigator() {
-  const { authenticationStore: authStore, userStore, activityStore, exerciseStore } = useStores()
+  const {
+    authenticationStore: authStore,
+    userStore,
+    activityStore,
+    exerciseStore,
+    feedStore,
+  } = useStores()
 
-  // Listen to database update
   useEffect(() => {
     console.debug("MainNavigator.useEffect [] called")
     exerciseStore.getAllExercises()
     activityStore.getAllActivities()
+    feedStore.refreshFeedItems()
 
+    // Listen to database update
     const userSubscriber = firestore()
-      .collection("users")
+      .collection("usersPrivate")
       .doc(authStore.firebaseUser.uid)
       .onSnapshot(
         (snapshot) => {
@@ -61,6 +69,7 @@ export const MainNavigator = observer(function MainNavigator() {
         (e) => console.error("MainNavigator.userSubscriber.onSnapshot error:", e),
       )
 
+    // Listen to database update
     const exercisesSubscriber = firestore()
       .collection("exercises")
       .onSnapshot((snapshot) => {

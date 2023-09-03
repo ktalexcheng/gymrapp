@@ -88,18 +88,22 @@ const SaveWorkoutDialog: FC<SaveWorkoutDialogProps> = function SaveWorkoutDialog
 
 const RestTimerProgressBar: FC = observer(() => {
   const { workoutStore } = useStores()
+  const rootNavigation = useMainNavigation()
 
   const progressBarWidth = 75
 
   const $timeProgressContainer: ViewStyle = {
     width: progressBarWidth,
+    height: "80%",
     borderWidth: 2,
     borderRadius: 10,
     borderColor: colors.actionable,
     overflow: "hidden",
+    alignItems: "center",
   }
 
   const $timeProgressRemainingContainer: ViewStyle = {
+    height: "100%",
     width: Math.floor((workoutStore.restTimeRemaining / workoutStore.restTime) * 100) + "%",
     backgroundColor: colors.actionable,
   }
@@ -107,13 +111,13 @@ const RestTimerProgressBar: FC = observer(() => {
   const $restTimeDisplayView: ViewStyle | TextStyle = {
     position: "absolute",
     height: "100%",
-    width: "100%",
-    alignItems: "center",
+    width: progressBarWidth,
     textAlign: "center",
+    textAlignVertical: "center",
   }
 
   return (
-    <>
+    <TouchableOpacity onPress={() => rootNavigation.navigate("RestTimer")}>
       {workoutStore.restTimeRemaining > 0 ? (
         <RowView style={$timeProgressContainer}>
           <View style={$timeProgressRemainingContainer} />
@@ -124,7 +128,7 @@ const RestTimerProgressBar: FC = observer(() => {
       ) : (
         <Icon name="stopwatch-outline" color="black" size={30} />
       )}
-    </>
+    </TouchableOpacity>
   )
 })
 
@@ -220,9 +224,11 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
     const $workoutHeaderRow: ViewStyle = {
       justifyContent: "space-between",
       alignItems: "center",
+      height: 50,
     }
 
     const $minimizeAndTimer: ViewStyle = {
+      alignItems: "center",
       flex: 2,
     }
 

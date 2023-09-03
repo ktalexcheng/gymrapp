@@ -96,7 +96,7 @@ export const ExerciseStoreModel = types
 
       const exerciseSettings = getEnv<RootStoreDependencies>(
         self,
-      ).userRepository.getUserPropFromCacheData("preferences.userExerciseSettings")
+      ).privateUserRepository.getUserPropFromCacheData("preferences.userExerciseSettings")
 
       // Update exercises with user settings
       if (exerciseSettings) {
@@ -159,7 +159,7 @@ export const ExerciseStoreModel = types
           .filter((item) => item.exerciseSettings)
 
         if (allExerciseSettings.length > 0) {
-          getEnv<RootStoreDependencies>(self).userRepository.update(
+          getEnv<RootStoreDependencies>(self).privateUserRepository.update(
             null,
             {
               allExerciseSettings,

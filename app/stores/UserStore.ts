@@ -1,4 +1,3 @@
-import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { getTime, startOfWeek } from "date-fns"
 import { flow, getEnv, types } from "mobx-state-tree"
 import { User, Workout, isUser, isWorkout } from "../../app/data/model"
@@ -6,7 +5,7 @@ import { createCustomType } from "./helpers/createCustomType"
 import { RootStoreDependencies } from "./helpers/useStores"
 
 const UserType = createCustomType<User>("User", isUser)
-const WorkoutType = createCustomType<Workout>("Workout", isWorkout)
+export const WorkoutType = createCustomType<Workout>("Workout", isWorkout)
 
 function isEmptyField(value: any) {
   if (value === undefined || value === null || value === "") {
@@ -87,12 +86,9 @@ export const UserStoreModel = types
       const weeklyWorkoutsCount = new Map<number, number>()
       workouts.forEach((w) => {
         // Find start of week (Monday)
-        const weekStart = startOfWeek(
-          (w.workout.endTime as FirebaseFirestoreTypes.Timestamp).toDate(),
-          {
-            weekStartsOn: 1,
-          },
-        )
+        const weekStart = startOfWeek(w.workout.startTime, {
+          weekStartsOn: 1,
+        })
         const weekStartTime = getTime(weekStart)
 
         if (!weeklyWorkoutsCount.has(weekStartTime)) {
@@ -112,9 +108,9 @@ export const UserStoreModel = types
   .actions((self) => ({
     uploadUserAvatar: flow<string, [imagePath: string]>(function* (imagePath: string) {
       try {
-        const avatarUrl = yield getEnv<RootStoreDependencies>(self).userRepository.uploadAvatar(
-          imagePath,
-        )
+        const avatarUrl = yield getEnv<RootStoreDependencies>(
+          self,
+        ).privateUserRepository.uploadAvatar(imagePath)
 
         return avatarUrl
       } catch (e) {
@@ -129,7 +125,7 @@ export const UserStoreModel = types
       self.isLoadingProfile = true
 
       try {
-        yield getEnv<RootStoreDependencies>(self).userRepository.create(newUser)
+        yield getEnv<RootStoreDependencies>(self).privateUserRepository.create(newUser)
         self.user = newUser
 
         self.isLoadingProfile = false
@@ -173,6 +169,22 @@ export const UserStoreModel = types
       }
       console.debug("UserStore.getWorkouts done")
     }),
+    followUser: flow(function* (followeeUserId: string) {
+      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield privateUserRepository.followUser(followeeUserId)
+      } catch (e) {
+        console.error("UserStore.followUser error:", e)
+      }
+    }),
+    unfollowUser: flow(function* (followeeUserId: string) {
+      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield privateUserRepository.unfollowUser(followeeUserId)
+      } catch (e) {
+        console.error("UserStore.unfollowUser error:", e)
+      }
+    }),
   }))
   .actions((self) => ({
     loadUserWithId: flow(function* (userId: string) {
@@ -180,7 +192,10 @@ export const UserStoreModel = types
       self.isLoadingProfile = true
 
       try {
-        const user = yield getEnv<RootStoreDependencies>(self).userRepository.get(userId, true)
+        const { privateUserRepository, feedRepository } = getEnv<RootStoreDependencies>(self)
+        feedRepository.setCollectionPath(`feeds/${userId}/feedItems`)
+        privateUserRepository.setUserId(userId)
+        const user = yield privateUserRepository.get(userId, true)
 
         if (user) {
           self.user = user
@@ -211,7 +226,11 @@ export const UserStoreModel = types
       self.isLoadingProfile = true
 
       try {
-        yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, null)
+        yield getEnv<RootStoreDependencies>(self).privateUserRepository.update(
+          null,
+          userUpdate,
+          null,
+        )
         self.user = { ...self.user, ...userUpdate }
         yield self.getWorkouts()
 

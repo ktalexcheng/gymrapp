@@ -12,6 +12,7 @@
 import firestore from "@react-native-firebase/firestore"
 import functions from "@react-native-firebase/functions"
 import fbStorage from "@react-native-firebase/storage"
+import * as Device from "expo-device"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import { NativeBaseProvider } from "native-base"
@@ -70,8 +71,14 @@ const config = {
 
 // Firebase emulator setup
 if (__DEV__) {
-  const localIp = "192.168.50.176" // For physical device, use local IP on network
-  // const localIp = "localhost" // For emulators
+  let localIp
+  if (Device.isDevice) {
+    console.debug("Running on physical device")
+    localIp = "192.168.50.176" // For physical device, use local IP on network
+  } else {
+    console.debug("Running on emulator")
+    localIp = "localhost" // For emulators
+  }
   firestore().useEmulator(localIp, 8080)
   functions().useEmulator(localIp, 5001)
   fbStorage().useEmulator(localIp, 9199)

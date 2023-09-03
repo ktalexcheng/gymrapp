@@ -1,11 +1,16 @@
 // Repository for feed data
 
-import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { FeedItemId, UserFeedItem } from "../model"
 import { BaseRepository } from "./baseRepository"
 
 export class FeedRepository extends BaseRepository<UserFeedItem, FeedItemId> {
-  constructor(firestoreClient: FirebaseFirestoreTypes.Module) {
+  constructor(firestoreClient) {
     super("FeedRepository", firestoreClient, "feeds", "feedItemId")
+  }
+
+  async get(id: string, refresh = false): Promise<UserFeedItem> {
+    const user = super.get(id, refresh)
+
+    return user
   }
 }

@@ -1,4 +1,3 @@
-import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { AppLanguage, WeightUnit } from "../constants"
 import { ExerciseRecord, ExerciseSettings } from "./exerciseModel"
 
@@ -12,7 +11,7 @@ export interface UserPreferences {
 }
 
 export interface WorkoutMeta {
-  endTime: Date | FirebaseFirestoreTypes.Timestamp
+  startTime: Date
 }
 
 export interface UnregisteredUser {
@@ -43,5 +42,5 @@ export interface User extends UnregisteredUser {
 }
 
 export function isUser(value: unknown): value is User {
-  return value && typeof value === "object" && (value as User).email !== undefined
+  return value && typeof value === "object" && (value as User).userId !== undefined
 }

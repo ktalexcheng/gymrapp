@@ -11,6 +11,7 @@ const ar: Translations = {
     bestSet: "",
     kg: "",
     lbs: "",
+    appTitle: "",
   },
   welcomeScreen: {
     postscript:
@@ -42,6 +43,7 @@ const ar: Translations = {
   exerciseDetailsScreen: undefined,
   addExerciseScreen: undefined,
   exerciseEntrySettings: undefined,
+  feedScreen: undefined,
 }
 
 export default ar

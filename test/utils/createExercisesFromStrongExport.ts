@@ -1,18 +1,8 @@
-import firestore from "@react-native-firebase/firestore"
+import * as firestore from "@google-cloud/firestore"
 import { parse } from "csv-parse"
-import * as admin from "firebase-admin"
 import * as fs from "fs"
-import { types } from "mobx-state-tree"
-import * as path from "path"
-import { ExerciseSetType } from "../app/data/constants"
-import {
-  ActivityRepository,
-  ExerciseRepository,
-  UserRepository,
-  WorkoutRepository,
-} from "../app/data/repository"
-import { UserStoreModel } from "../app/stores/UserStore"
-import { WorkoutStoreModel } from "../app/stores/WorkoutStore"
+import { ExerciseSetType } from "../../app/data/constants"
+import { MockRootStore } from "./mockRootStore"
 
 interface StrongExportDatum {
   Date: Date
@@ -44,7 +34,7 @@ async function readCSV<T>(filePath: string, delimiter: string): Promise<T[]> {
   let lineNum = 1
 
   return new Promise((resolve, reject) => {
-    fs.createReadStream(path.resolve(__dirname, filePath))
+    fs.createReadStream(filePath)
       .pipe(parse({ delimiter, from_line: 1 }))
       .on("data", function (row: string[]) {
         if (lineNum === 1) {
@@ -52,7 +42,13 @@ async function readCSV<T>(filePath: string, delimiter: string): Promise<T[]> {
         } else {
           const _rowData: { [key: string]: any } = {}
           headers.forEach((columnNum, columnName) => {
-            _rowData[columnName] = row[columnNum]
+            // Try to convert to number, if successful, save it as a number
+            const _num = Number(row[columnNum])
+            if (!isNaN(_num)) {
+              _rowData[columnName] = _num
+            } else {
+              _rowData[columnName] = row[columnNum]
+            }
           })
 
           result.push(_rowData as T)
@@ -69,25 +65,23 @@ async function readCSV<T>(filePath: string, delimiter: string): Promise<T[]> {
   })
 }
 
-/**
- *
- * @param {string} csvPath Path to CSV file exported from Strong
- */
-async function createExercisesFromStrongExport(csvPath: string) {
-  // Setup connection to Firebase
-  admin.initializeApp()
-  const db = admin.firestore()
-
+export async function createExercisesFromStrongExport(
+  firestoreClient: firestore.Firestore,
+  rootStore: MockRootStore,
+  csvPath: string,
+  byUserEmail: string,
+) {
   // Get user ID
-  const userSnapshot = await db
-    .collection("users")
-    .where("email", "==", "user@test.com")
+  const userSnapshot = await firestoreClient
+    .collection("usersPrivate")
+    .where("email", "==", byUserEmail)
     .limit(1)
     .get()
   const userId = userSnapshot.docs[0].id
+  rootStore.userStore.loadUserWithId(userId)
 
   // Get activity ID
-  const activitySnapshot = await db
+  const activitySnapshot = await firestoreClient
     .collection("activities")
     .where("activityName", "==", "Gym")
     .limit(1)
@@ -101,27 +95,8 @@ async function createExercisesFromStrongExport(csvPath: string) {
   const missingExercises = new Set()
   const existingExerciseIds = {}
 
-  // Set up MST stores
-  const rootStore = types
-    .model("RootStore")
-    .props({
-      userStore: types.optional(UserStoreModel, {}),
-      workoutStore: types.optional(WorkoutStoreModel, {}),
-    })
-    .create(
-      {},
-      {
-        userRepository: new UserRepository(db),
-        activityRepository: new ActivityRepository(db),
-        exerciseRepository: new ExerciseRepository(db),
-        workoutRepository: new WorkoutRepository(db),
-      },
-    )
-  // const rootStore = useStores()
-  const { workoutStore, userStore } = rootStore
-  await userStore.loadUserWithId(userId)
-
   // Convert data and write to Firestore
+  const { workoutStore } = rootStore
   workoutStore.resetWorkout()
   workoutStore.startNewWorkout(gymActivityId)
   let _dateState = null
@@ -133,7 +108,7 @@ async function createExercisesFromStrongExport(csvPath: string) {
     // Check for exercise in DB
     const _exerciseName = d["Exercise Name"]
     if (!missingExercises.has(_exerciseName) && !(_exerciseName in existingExerciseIds)) {
-      const exerciseSnapshot = await db
+      const exerciseSnapshot = await firestoreClient
         .collection("exercises")
         .where("exerciseName", "==", _exerciseName)
         .limit(1)
@@ -158,17 +133,18 @@ async function createExercisesFromStrongExport(csvPath: string) {
       workoutStore.addSet(_exerciseOrderState, {
         setType: ExerciseSetType.Normal,
       })
-      const _setOrder = workoutStore.exercises[_exerciseOrderState].setsPerformed.length - 1
-      const _set = workoutStore.exercises[_exerciseOrderState].setsPerformed[_setOrder]
-      _set.updateSetValues("weight", d.Weight.toString())
-      _set.updateSetValues("reps", d.Reps.toString())
-      _set.updateSetValues("rpe", d.RPE.toString())
+      const _setOrder = workoutStore.exercises.get(_exerciseOrderState).setsPerformed.length - 1
+      const _set = workoutStore.exercises.get(_exerciseOrderState).setsPerformed[_setOrder]
+      _set.updateSetValues("weight", d.Weight ?? 0)
+      _set.updateSetValues("reps", d.Reps)
+      _set.updateSetValues("rpe", d.RPE)
       _set.setProp("isCompleted", true)
     }
 
     // Push if it is the last observation for the current date group
     if (_dateState && _dateState !== csvData[i + 1]?.Date) {
-      console.debug("saving workout:", _dateState)
+      // console.debug("saving workout:", _dateState)
+      workoutStore.setProp("startTime", new Date(d.Date))
       workoutStore.setProp("endTime", new Date(d.Date))
       workoutStore.setProp("workoutTitle", d["Workout Name"])
       workoutStore.endWorkout()
@@ -183,18 +159,3 @@ async function createExercisesFromStrongExport(csvPath: string) {
   console.debug(missingExercises)
   console.debug(existingExerciseIds)
 }
-
-jest.mock("react-native/Libraries/EventEmitter/NativeEventEmitter")
-
-jest
-  .spyOn(firestore.FieldValue, "arrayUnion")
-  .mockImplementation(admin.firestore.FieldValue.arrayUnion)
-jest
-  .spyOn(firestore.FieldPath, "documentId")
-  .mockImplementation(admin.firestore.FieldPath.documentId)
-
-describe("Create sample workouts", () => {
-  test("Create sample workouts", async () => {
-    await createExercisesFromStrongExport("data/sample_workouts.csv")
-  })
-})

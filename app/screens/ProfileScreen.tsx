@@ -1,5 +1,6 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Avatar, Icon, RowView, Screen, Spacer, TabBar, Text } from "app/components"
+import { WorkoutSource } from "app/data/constants"
 import { translate } from "app/i18n"
 import { TabScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
@@ -25,9 +26,14 @@ const UserActivitiesTabScene: FC = observer(() => {
 
   function getWorkoutData() {
     const workouts = Array.from(userStore.workouts.values())
-    workouts.sort((a, b) => (a.workout.endTime > b.workout.endTime ? -1 : 1))
+    workouts.sort((a, b) => (a.workout.startTime > b.workout.startTime ? -1 : 1))
 
-    return workouts
+    return workouts.map((workout) => {
+      return {
+        ...workout,
+        workoutSource: WorkoutSource.User,
+      }
+    })
   }
 
   function renderWorkoutItem({ item }) {
@@ -54,13 +60,13 @@ const WeeklyWorkoutChart: FC<WeeklyWorkoutChartProps> = ({ data }) => {
   const dataKeys = [...data.keys()]
   // Note: Domain having the same value for left/right bounds will result in a warning,
   //       (this happens when there is only one data point)
-  //       to workaround this, we add one to the right bound
+  //       to workaround this, we pad the domain by one on each side
   const entireDomain: DomainPropType = {
-    x: [dataKeys[0], dataKeys[data.size - 1] + 1],
+    x: [dataKeys[0] - 1, dataKeys[data.size - 1] + 1],
     y: [0, 7],
   }
   const initialZoomDomain: DomainPropType = {
-    x: [dataKeys[Math.max(data.size - 8, 0)], dataKeys[data.size - 1] + 1],
+    x: [dataKeys[Math.max(data.size - 8, 0)] - 1, dataKeys[data.size - 1] + 1],
     y: [0, 7],
   }
   const [zoomedDomain, setZoomDomain] = useState(initialZoomDomain)

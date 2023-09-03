@@ -4,7 +4,7 @@ import { UserId } from "./userModel"
 export interface GymRecord {
   rank: number
   holderUid: UserId
-  date: Date | FirebaseFirestoreTypes.Timestamp
+  date: Date
   gymId: string
 }
 

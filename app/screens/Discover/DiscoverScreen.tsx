@@ -1,10 +1,17 @@
+import { Screen } from "app/components"
 import React from "react"
-import { Text, View } from "react-native"
+import { Text, ViewStyle } from "react-native"
 
 export const DiscoverScreen = () => {
   return (
-    <View>
+    <Screen safeAreaEdges={["top", "bottom"]} style={$container}>
       <Text>DiscoverScreen</Text>
-    </View>
+    </Screen>
   )
+}
+
+const $container: ViewStyle = {
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
 }

@@ -4,7 +4,7 @@ import { translate } from "app/i18n"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
-import { Icon, RowView, Text } from "../../components"
+import { Icon, RowView, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
 import { spacing } from "../../theme"
 import { ExerciseSettingsMenu } from "./ExerciseSettingsMenu"
@@ -18,9 +18,8 @@ export type ExerciseEntryProps = {
 
 export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEntryProps) => {
   const { workoutStore, exerciseStore } = useStores()
-  const setsPerformed = workoutStore.exercises.get(
-    props.exerciseOrder as unknown as string,
-  ).setsPerformed
+  const thisExercise = workoutStore.exercises.get(props.exerciseOrder as unknown as string)
+  const setsPerformed = thisExercise.setsPerformed
   const exerciseName = exerciseStore.allExercises.get(props.exerciseId).exerciseName
   const weightUnitTx = useWeightUnitTx(props.exerciseId)
 
@@ -45,7 +44,15 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
 
       <View style={$exercise}>
         <Text preset="bold">{"#" + props.exerciseOrder + " " + exerciseName}</Text>
-        <Text tx="activeWorkoutScreen.addNotesPlaceholder" />
+        <TextField
+          containerStyle={$exerciseNotesContainer}
+          inputWrapperStyle={$exerciseNotesInputWrapper}
+          style={$exerciseNotesInputStyle}
+          multiline={true}
+          value={thisExercise.exerciseNotes}
+          onChangeText={(text) => thisExercise.setProp("exerciseNotes", text)}
+          placeholderTx="activeWorkoutScreen.addNotesPlaceholder"
+        />
 
         <RowView style={$exerciseSetsHeader}>
           <Text
@@ -88,6 +95,20 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
     </View>
   )
 })
+
+const $exerciseNotesContainer: ViewStyle = {
+  marginTop: spacing.medium,
+  width: "90%",
+}
+
+const $exerciseNotesInputWrapper: ViewStyle = {
+  borderWidth: 0,
+  minHeight: 12,
+}
+
+const $exerciseNotesInputStyle: ViewStyle = {
+  marginHorizontal: spacing.tiny,
+}
 
 const $setOrderColumn: ViewStyle = {
   flex: 1,

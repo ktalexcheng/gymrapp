@@ -156,7 +156,7 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
                     >
                       {translate("exerciseEntrySettings.weightUnitLabel")}
                     </Menu.Item>
-                    <Menu.Item>{translate("exerciseEntrySettings.createSupersetLabel")}</Menu.Item>
+                    {/* <Menu.Item>{translate("exerciseEntrySettings.createSupersetLabel")}</Menu.Item> */}
                     <Menu.Item onPress={removeExercise}>
                       {translate("exerciseEntrySettings.removeExerciseLabel")}
                     </Menu.Item>

@@ -1,17 +1,23 @@
 import { Spacing, spacing } from "app/theme"
 import React, { FC } from "react"
-import { View, ViewStyle } from "react-native"
+import { View, ViewProps } from "react-native"
 
-type SpacerProps = {
+interface SpacerProps extends React.PropsWithChildren<ViewProps> {
   type: "horizontal" | "vertical"
-  size: Spacing
+  size?: Spacing
 }
 
-export const Spacer: FC<SpacerProps> = ({ type: direction, size }: SpacerProps) => {
-  const $spacer: ViewStyle = {
-    height: direction === "vertical" ? spacing[size] : 0,
-    width: direction === "horizontal" ? spacing[size] : 0,
-  }
+export const Spacer: FC<SpacerProps> = (props: SpacerProps) => {
+  const { type, size, style: styleOverride } = props
 
-  return <View style={$spacer}></View>
+  const spacingSize = spacing[size] ?? spacing.medium
+  const $spacer = [
+    {
+      height: type === "vertical" ? spacingSize : 0,
+      width: type === "horizontal" ? spacingSize : 0,
+    },
+    styleOverride,
+  ]
+
+  return <View style={$spacer} />
 }

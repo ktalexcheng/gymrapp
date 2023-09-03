@@ -1,4 +1,3 @@
-import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { ExerciseSetType, ExerciseSource, WeightUnit } from "../constants"
 
 export interface ExerciseSet {
@@ -15,7 +14,7 @@ export type RepsType = number
 export interface PersonalRecord {
   workoutId: string
   // exerciseId: string
-  datePerformed: Date | FirebaseFirestoreTypes.Timestamp
+  datePerformed: Date
   reps: RepsType
   weight: WeightType
 }
@@ -28,11 +27,12 @@ export interface ExercisePerformed {
   exerciseId: ExerciseId
   exerciseOrder: number
   setsPerformed: ExerciseSet[]
-  datePerformed: Date | FirebaseFirestoreTypes.Timestamp
+  datePerformed: Date
   totalVolume: number // Store as kg, convert to user preferred unit as necessary
   totalReps: number
   maxWeightSet: ExerciseSet
   newRecords: NewExerciseRecord
+  exerciseNotes: string
   // weightPr?: ExerciseSet
   // volumePr?: ExerciseSet
   // timeSpent: Duration

@@ -4,11 +4,12 @@ const en = {
     cancel: "Cancel",
     back: "Back",
     delete: "Delete",
-    loading: "Loading",
+    loading: "Loading...",
     exercise: "Exercise",
     bestSet: "Best Set",
     kg: "kg",
     lbs: "lbs",
+    appTitle: "GymRapp",
   },
   welcomeScreen: {
     postscript:
@@ -71,6 +72,10 @@ const en = {
     firstNameLabel: "First name",
     lastNameLabel: "Last name",
   },
+  feedScreen: {
+    emptyFeed: "Start following people to see their workouts here",
+    noMoreFeedItems: "Oops, no more workouts to show",
+  },
   profileScreen: {
     userSettings: "Settings",
     activitiesTabLabel: "Activities",
@@ -117,6 +122,14 @@ const en = {
     timeElapsedLabel: "Time elapsed:",
     totalVolumeLabel: "Total volume:",
     timeSinceLastSetLabel: "Resting (set):",
+  },
+  restTimerScreen: {
+    startTimer: "Start",
+    pauseTimer: "Pause",
+    resumeTimer: "Resume",
+    resetTimer: "Reset",
+    subtract15Seconds: "-15s",
+    add15Seconds: "+15s",
   },
   exerciseDetailsScreen: {
     personalRecordsLabel: "Personal Records",

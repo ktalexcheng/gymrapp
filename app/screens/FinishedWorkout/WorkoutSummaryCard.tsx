@@ -1,12 +1,11 @@
-import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
-import { RowView, Spacer, Text } from "app/components"
-import { WeightUnit } from "app/data/constants"
-import { Workout } from "app/data/model"
+import { Avatar, RowView, Spacer, Text } from "app/components"
+import { WeightUnit, WorkoutSource } from "app/data/constants"
+import { User, Workout } from "app/data/model"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
-import { colors, styles } from "app/theme"
+import { colors, spacing, styles } from "app/theme"
 import { Weight } from "app/utils/weight"
 import React, { FC } from "react"
 import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
@@ -14,12 +13,14 @@ import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 type WorkoutSummaryCardProps = {
   workoutId: string
   workout: Workout
+  workoutSource: WorkoutSource
+  byUser?: User
   highlightExerciseId?: string
 }
 
 export const WorkoutSummaryCard: FC = (props: WorkoutSummaryCardProps) => {
   // const { workoutId, workout }: { workoutId: string; workout: Workout } = item
-  const { workoutId, workout, highlightExerciseId } = props
+  const { workoutId, workout, workoutSource, byUser, highlightExerciseId } = props
   const { exerciseStore, userStore } = useStores()
   const mainNavigation = useMainNavigation()
   const weightUnitTx = useWeightUnitTx()
@@ -28,19 +29,30 @@ export const WorkoutSummaryCard: FC = (props: WorkoutSummaryCardProps) => {
     justifyContent: "space-between",
   }
 
+  const $byUserHeader: ViewStyle = {
+    alignItems: "center",
+    gap: spacing.small,
+    marginBottom: spacing.small,
+  }
+
   return (
-    <TouchableOpacity onPress={() => mainNavigation.navigate("WorkoutSummary", { workoutId })}>
+    <TouchableOpacity
+      onPress={() => mainNavigation.navigate("WorkoutSummary", { workoutId, workoutSource })}
+    >
       <View style={styles.listItem}>
+        {byUser && (
+          <RowView style={$byUserHeader}>
+            <Avatar user={byUser} size="sm" />
+            <Text preset="bold">{`${byUser.firstName} ${byUser.lastName}`}</Text>
+          </RowView>
+        )}
         <RowView style={$workoutItemHeader}>
           <Text>{workout.workoutTitle}</Text>
-          <Text>
-            {(workout.endTime as FirebaseFirestoreTypes.Timestamp).toDate().toLocaleString()}
-          </Text>
+          <Text>{workout.startTime.toLocaleString()}</Text>
         </RowView>
         <Spacer type="vertical" size="small" />
         <RowView style={$workoutItemHeader}>
           <Text preset="bold" tx="common.exercise" />
-          {/* <Text preset="bold" tx="common.bestSet" /> */}
           <Text preset="bold">{translate("common.bestSet") + ` (${translate(weightUnitTx)})`}</Text>
         </RowView>
         {workout.exercises.map((e, i) => {

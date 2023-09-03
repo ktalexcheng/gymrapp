@@ -1,6 +1,15 @@
 // we always make sure 'react-native' gets included first
+import * as admin from "firebase-admin"
 import * as ReactNative from "react-native"
-import mockFile from "./mockFile"
+import mockFile from "./data/mockFile"
+
+declare const tron // eslint-disable-line @typescript-eslint/no-unused-vars
+
+// Note: Disable jest.useFakeTimers() for now in order to properly catch timeout using firebase-admin
+// jest.useFakeTimers()
+declare global {
+  let __TEST__
+}
 
 // libraries to mock
 jest.doMock("react-native", () => {
@@ -34,10 +43,17 @@ jest.mock("i18n-js", () => ({
   },
 }))
 
-declare const tron // eslint-disable-line @typescript-eslint/no-unused-vars
+jest.mock("react-native/Libraries/EventEmitter/NativeEventEmitter")
 
-// Note: Disable for now in order to properly catch timeout using firebase-admin
-// jest.useFakeTimers()
-declare global {
-  let __TEST__
-}
+// @react-native-firebase relies on native modules that will not work in the jest environment
+jest.mock("@react-native-firebase/firestore", () => {
+  return {
+    ...jest.requireActual("@react-native-firebase/firestore"),
+    FieldValue: admin.firestore.FieldValue,
+    FieldPath: admin.firestore.FieldPath,
+    FirebaseFirestoreTypes: {
+      ...jest.requireActual("@react-native-firebase/firestore").FirebaseFirestoreTypes,
+      Timestamp: admin.firestore.Timestamp,
+    },
+  }
+})

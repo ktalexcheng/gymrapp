@@ -32,13 +32,13 @@ type CacheDataMany<T> = {
   data: T[]
   type: CacheDataType.Many
 }
-type CacheData<T> = { timestamp: Date } & (CacheDataSingle<T> | CacheDataMany<T>)
+type CacheData<T> = { timestamp: number } & (CacheDataSingle<T> | CacheDataMany<T>)
 interface RepositoryCache<T> extends Map<string, CacheData<T>> {}
 
 export class BaseRepository<T, D> implements IBaseRepository<T, D> {
   #repositoryId: string
   #firestoreClient: FirebaseFirestoreTypes.Module
-  #collectionName: string
+  #collectionPath: string
   #firestoreCollection: FirebaseFirestoreTypes.CollectionReference
   #documentIdField: string
   #fieldNameMap?: { [key: string]: string }
@@ -49,15 +49,15 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
   constructor(
     repositoryId: string,
     firestoreClient: FirebaseFirestoreTypes.Module,
-    collectionName: string,
+    collectionPath: string,
     documentIdField: string,
     fieldNameMap?: { [key: string]: string },
   ) {
     this.#repositoryId = repositoryId
     this.#firestoreClient = firestoreClient
-    this.#collectionName = collectionName
+    this.#collectionPath = collectionPath
     this.#documentIdField = documentIdField
-    this.#firestoreCollection = this.#firestoreClient.collection(this.#collectionName)
+    this.#firestoreCollection = this.#firestoreClient.collection(this.#collectionPath)
 
     if (fieldNameMap && documentIdField in fieldNameMap) {
       throw new RepositoryError(
@@ -68,7 +68,12 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     this.#fieldNameMap = fieldNameMap
   }
 
-  #renameFields(data: any, map: { [key: string]: string }): any {
+  setCollectionPath(collectionPath: string) {
+    this.#collectionPath = collectionPath
+    this.#firestoreCollection = this.#firestoreClient.collection(collectionPath)
+  }
+
+  _renameFields(data: any, map: { [key: string]: string }): any {
     const renamedData = {}
     for (const key in data) {
       if (key in map) {
@@ -81,24 +86,61 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     return renamedData
   }
 
-  #sourceToRepRename(data: any): any {
-    this.#renameFields(data, this.#fieldNameMap)
+  _sourceToRepRename(data: any): any {
+    this._renameFields(data, this.#fieldNameMap)
   }
 
-  #repToSourceRename(data: any): any {
+  _repToSourceRename(data: any): any {
     const reversedFieldNameMap = Object.keys(this.#fieldNameMap).reduce((acc, key) => {
       acc[this.#fieldNameMap[key]] = key
       return acc
     }, {})
 
-    this.#renameFields(data, reversedFieldNameMap)
+    this._renameFields(data, reversedFieldNameMap)
+  }
+
+  /**
+   * Rename data fields if a fieldNameMap is provided, convert firestore Timestamp to JS Date, and include document ID in the data object
+   * @param {FirebaseFirestoreTypes.DocumentSnapshot} snapshot Document snapshot from firestore
+   * @returns {T} Data object with renamed fields, firestore Timestamp converted to JS Date, and document ID included
+   */
+  _processDocumentSnapshot<T>(snapshot: FirebaseFirestoreTypes.DocumentSnapshot): T {
+    const data = snapshot.data()
+
+    // Rename data fields if a fieldNameMap is provided
+    const renamedData = this.#fieldNameMap ? this._sourceToRepRename(data) : data
+
+    // If a data field type is firestore's Timestamp, perform .toDate() on it
+    // to convert it to a JS Date object
+    // Note: Simpler condition (renamedData[key] instanceof firestore.Timestamp) not used
+    // because it does not work with firebase-admin for testing purposes
+    for (const key in renamedData) {
+      if (
+        Object.prototype.toString.call(renamedData[key]) === "[object Object]" &&
+        "toDate" in renamedData[key]
+      ) {
+        renamedData[key] = (renamedData[key] as FirebaseFirestoreTypes.Timestamp).toDate()
+      }
+    }
+
+    // Include document ID in the data object
+    const renamedDataWithId = { ...renamedData, [this.#documentIdField]: snapshot.id }
+
+    return renamedDataWithId
+  }
+
+  _setCacheData(cacheKey: string, cacheData: CacheData<T>) {
+    this.#cache.set(cacheKey, cacheData)
   }
 
   getCacheData(cacheKey: string): CacheData<T> {
     if (this.#cache.has(cacheKey)) {
       const cacheData = this.#cache.get(cacheKey)
 
-      if (cacheData.timestamp.getTime() + this.#cacheLifespan > Date.now()) {
+      // TODO: Never invalidate cache for now so the condition is always true,
+      // but we should implement a way to invalidate cache based on a timestamp
+      // e.g. cacheData.timestamp.getTime() + this.#cacheLifespan > new Date.now()
+      if (cacheData.timestamp + this.#cacheLifespan > 0) {
         return cacheData
       }
     }
@@ -106,8 +148,12 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     return null
   }
 
-  #setCacheData(cacheKey: string, cacheData: CacheData<T>) {
-    this.#cache.set(cacheKey, cacheData)
+  get repositoryId(): string {
+    return this.#repositoryId
+  }
+
+  get firestoreClient(): FirebaseFirestoreTypes.Module {
+    return this.#firestoreClient
   }
 
   async createCacheKeyFromString(s: string): Promise<string> {
@@ -119,7 +165,7 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
       throw new RepositoryError(this.#repositoryId, "No document ID provided for get() method")
     }
 
-    const cacheKey = await this.createCacheKeyFromString(id as string)
+    const cacheKey = id as string
     if (!refresh) {
       const cacheData = this.getCacheData(cacheKey)
       if (cacheData) return cacheData.data as T
@@ -129,18 +175,52 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
       const snapshot = await this.#firestoreCollection.doc(id as string).get()
       if (!snapshot.exists) return null
 
-      const data = snapshot.data() as T
-      const renamedData = this.#fieldNameMap ? this.#sourceToRepRename(data) : data
-      const renamedDataWithId = { ...renamedData, [this.#documentIdField]: snapshot.id }
+      const data = this._processDocumentSnapshot<T>(snapshot)
 
-      this.#setCacheData(cacheKey, {
-        timestamp: new Date(),
-        data: renamedDataWithId,
+      this._setCacheData(cacheKey, {
+        timestamp: Date.now(),
+        data,
         type: CacheDataType.Single,
       })
-      return renamedDataWithId
+      return data
     } catch (e) {
       throw new RepositoryError(this.#repositoryId, `Error getting document by ID: ${e}`)
+    }
+  }
+
+  async getByFilter(
+    orderByField: string | FirebaseFirestoreTypes.FieldPath,
+    orderDirection: "asc" | "desc",
+    limit: number,
+    afterFieldValue?: string | FirebaseFirestoreTypes.FieldPath,
+    beforeFieldValue?: string | FirebaseFirestoreTypes.FieldPath,
+  ): Promise<T[]> {
+    if (!orderByField || !limit) {
+      throw new RepositoryError(
+        this.#repositoryId,
+        "sortBy and limit must be provided for getByFilter() method",
+      )
+    }
+
+    const query = this.#firestoreCollection.orderBy(orderByField, orderDirection).limit(limit)
+    if (afterFieldValue) {
+      query.startAfter(afterFieldValue)
+    }
+    if (beforeFieldValue) {
+      query.endBefore(beforeFieldValue)
+    }
+
+    try {
+      const snapshot = await query.get()
+      const allData: T[] = []
+      snapshot.forEach((doc) => {
+        const data = this._processDocumentSnapshot<T>(doc)
+        allData.push(data)
+      })
+
+      return allData
+    } catch (e) {
+      throw new RepositoryError(this.#repositoryId, `Error getting documents by filter: ${e}`)
     }
   }
 
@@ -156,7 +236,7 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     }
 
     const querySnapshots: FirebaseFirestoreTypes.QuerySnapshot[] = []
-    const query = this.#firestoreClient.collection(this.#collectionName)
+    const query = this.#firestoreCollection
     try {
       if (ids && ids.length > 0) {
         while (ids.length) {
@@ -173,26 +253,21 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
         querySnapshots.push(snapshot)
       }
     } catch (e) {
-      throw new RepositoryError(this.#repositoryId, `Error getting documents by filter: ${e}`)
+      throw new RepositoryError(this.#repositoryId, `Error getting documents by IDs: ${e}`)
     }
 
     const allData: T[] = []
     if (querySnapshots.length) {
       querySnapshots.forEach((snapshot) => {
         snapshot.forEach((doc) => {
-          const _data = doc.data() as T
-          const _renamedData = this.#fieldNameMap ? this.#sourceToRepRename(_data) : _data
-
-          allData.push({
-            ..._renamedData,
-            [this.#documentIdField]: doc.id,
-          } as T)
+          const data = this._processDocumentSnapshot<T>(doc)
+          allData.push(data)
         })
       })
     }
 
-    this.#setCacheData(cacheKey, {
-      timestamp: new Date(),
+    this._setCacheData(cacheKey, {
+      timestamp: Date.now(),
       data: allData,
       type: CacheDataType.Many,
     })
@@ -205,24 +280,33 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     }
 
     // If document id is included in data, use set() instead of add()
-    let docIdAssigned = false
+    let docId = null
     if (this.#documentIdField in data) {
-      docIdAssigned = true
+      docId = data[this.#documentIdField]
     }
 
-    const renamedData = this.#fieldNameMap ? this.#repToSourceRename(data) : data
+    const renamedData = this.#fieldNameMap ? this._repToSourceRename(data) : data
     try {
       let newDocRef: FirebaseFirestoreTypes.DocumentReference = null
-      if (docIdAssigned) {
-        newDocRef = this.#firestoreCollection.doc(data[this.#documentIdField] as string)
+      if (docId) {
+        newDocRef = this.#firestoreCollection.doc(docId)
         await newDocRef.set(renamedData)
       } else {
         newDocRef = await this.#firestoreCollection.add(renamedData)
+        docId = newDocRef.id
       }
 
+      this._setCacheData(docId, {
+        timestamp: Date.now(),
+        data: {
+          [this.#documentIdField]: docId,
+          ...data,
+        } as T,
+        type: CacheDataType.Single,
+      })
       return newDocRef.id as D
     } catch (e) {
-      console.error("something", { data, renamedData })
+      console.error("Error creating document with data:", { data, renamedData })
       throw new RepositoryError(this.#repositoryId, `Error creating document: ${e}`)
     }
   }
@@ -232,8 +316,8 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
       throw new RepositoryError(this.#repositoryId, "No document ID provided for update() method")
     }
 
+    const renamedData = this.#fieldNameMap ? this._repToSourceRename(data) : data
     try {
-      const renamedData = this.#fieldNameMap ? this.#repToSourceRename(data) : data
       const docRef = this.#firestoreCollection.doc(id as string)
 
       if (useSetMerge) {
@@ -241,7 +325,16 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
       } else {
         await docRef.update(renamedData)
       }
+
+      const snapshot = await docRef.get()
+      const data = this._processDocumentSnapshot<T>(snapshot)
+      this._setCacheData(id as string, {
+        timestamp: Date.now(),
+        data,
+        type: CacheDataType.Single,
+      })
     } catch (e) {
+      console.error("Error updating document with data:", { data, renamedData })
       throw new RepositoryError(this.#repositoryId, `Error updating document: ${e}`)
     }
   }

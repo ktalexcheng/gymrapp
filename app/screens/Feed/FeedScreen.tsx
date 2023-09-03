@@ -1,29 +1,65 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { Screen, Text } from "app/components"
+import { Screen, Spacer, Text } from "app/components"
+import { WorkoutSource } from "app/data/constants"
 import { TabScreenProps } from "app/navigators"
+import { useStores } from "app/stores"
+import { styles } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
-import { ViewStyle } from "react-native"
-// import { useNavigation } from "@react-navigation/native"
-// import { useStores } from "app/models"
+import { FlatList, View } from "react-native"
+import { WorkoutSummaryCard } from "../FinishedWorkout"
 
 interface FeedScreenProps extends NativeStackScreenProps<TabScreenProps<"Profile">> {}
 
 export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
-  // Pull in one of our MST stores
-  // const { someStore, anotherStore } = useStores()
+  const { feedStore } = useStores()
 
-  // Pull in navigation via hook
-  // const navigation = useNavigation()
+  function getFeedWorkoutData() {
+    return feedStore.feedItems.map((item) => {
+      return {
+        ...feedStore.feedWorkouts.get(item.workoutId),
+        byUser: feedStore.feedUsers.get(item.byUserId).user,
+        workoutSource: WorkoutSource.Feed,
+      }
+    })
+  }
+
+  function renderFeedWorkoutItem({ item }) {
+    return <WorkoutSummaryCard {...item} />
+  }
+
+  function renderScreen() {
+    if (feedStore.isLoading) {
+      return (
+        <View style={styles.centeredContainer}>
+          <Text tx="common.loading" />
+        </View>
+      )
+    }
+
+    if (feedStore.feedItems.length === 0) {
+      return (
+        <View style={styles.centeredContainer}>
+          <Text tx="feedScreen.emptyFeed" />
+        </View>
+      )
+    }
+
+    return (
+      <FlatList
+        data={getFeedWorkoutData()}
+        renderItem={renderFeedWorkoutItem}
+        ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
+      />
+    )
+  }
+
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} style={$container}>
-      <Text text="feed" />
+    <Screen safeAreaEdges={["top", "bottom"]} style={styles.screenContainer}>
+      <View style={styles.headingContainer}>
+        <Text tx="common.appTitle" preset="heading" />
+      </View>
+      {renderScreen()}
     </Screen>
   )
 })
-
-const $container: ViewStyle = {
-  flex: 1,
-  justifyContent: "center",
-  alignItems: "center",
-}

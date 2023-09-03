@@ -149,12 +149,6 @@ export const AuthenticationStoreModel = types
           .catch((e) => self.catchAuthError("invalidateSession", e))
         self.firebaseUser = undefined
       }
-
-      // try {
-      //   getEnv<RootStoreDependencies>(self).userRepository.logout()
-      // } catch (e) {
-      //   console.error("AuthenticationStore.invalidateSession error:", e)
-      // }
     },
     resetAuthError() {
       self.authError = undefined
@@ -167,7 +161,9 @@ export const AuthenticationStoreModel = types
     },
     deleteAccount: flow(function* () {
       try {
-        yield getEnv<RootStoreDependencies>(self).userRepository.delete(self.firebaseUser.uid)
+        yield getEnv<RootStoreDependencies>(self).privateUserRepository.delete(
+          self.firebaseUser.uid,
+        )
         yield auth().currentUser.delete() // Also signs user out
         self.invalidateSession()
       } catch (error) {
@@ -205,7 +201,7 @@ export const AuthenticationStoreModel = types
 
         if (userCred) {
           self.setFirebaseUser(userCred.user)
-          yield getEnv<RootStoreDependencies>(self).userRepository.create({
+          yield getEnv<RootStoreDependencies>(self).privateUserRepository.create({
             userId: userCred.user.uid,
             privateAccount: true,
             email: userCred.user.email,
@@ -242,7 +238,7 @@ export const AuthenticationStoreModel = types
 
         if (userCred.additionalUserInfo.isNewUser) {
           const user = createUserFromFirebaseUserCred(userCred)
-          getEnv<RootStoreDependencies>(self).userRepository.create(user)
+          getEnv<RootStoreDependencies>(self).privateUserRepository.create(user)
         }
 
         self.isAuthenticating = false

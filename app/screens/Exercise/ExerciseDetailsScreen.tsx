@@ -1,4 +1,3 @@
-import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { RowView, Screen, Spacer, TabBar, Text } from "app/components"
 import { WeightUnit } from "app/data/constants"
@@ -25,7 +24,7 @@ const WorkoutHistoryTabScene: (exerciseId: string) => FC = (exerciseId: string) 
       const workouts = Array.from(userStore.workouts.values()).filter(({ workoutId }) => {
         return exerciseHistory.includes(workoutId)
       })
-      workouts.sort((a, b) => (a.workout.endTime > b.workout.endTime ? -1 : 1))
+      workouts.sort((a, b) => (a.workout.startTime > b.workout.startTime ? -1 : 1))
 
       return workouts
     }
@@ -84,11 +83,7 @@ const PersonalRecordsTabScene: (exerciseId: string) => FC = (exerciseId: string)
 
           return (
             <RowView key={`${exerciseId}_${reps}`} style={$recordItem}>
-              <Text style={$recordsDateColumn}>
-                {(bestRecord.datePerformed as FirebaseFirestoreTypes.Timestamp)
-                  .toDate()
-                  .toLocaleString()}
-              </Text>
+              <Text style={$recordsDateColumn}>{bestRecord.datePerformed.toLocaleString()}</Text>
               <Text style={$recordsRepsColumn}>{reps}</Text>
               <Text style={$recordsWeightColumn}>{weight.formattedDisplayWeight(1, true)}</Text>
             </RowView>
