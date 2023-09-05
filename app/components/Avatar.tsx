@@ -1,5 +1,5 @@
 import { User } from "app/data/model"
-import { IAvatarProps, Avatar as NBAvatar } from "native-base"
+import { IAvatarProps, Avatar as NBAvatar, View } from "native-base"
 import React from "react"
 
 export interface AvatarProps extends IAvatarProps {
@@ -15,8 +15,10 @@ export const Avatar = (props: AvatarProps) => {
   const placeholderText: string = [user?.firstName?.[0], user?.lastName?.[0]].join("")
 
   return (
-    <NBAvatar source={source ?? userAvatarSource} size={size}>
-      {placeholderText}
-    </NBAvatar>
+    <View>
+      <NBAvatar source={source ?? userAvatarSource} size={size}>
+        {placeholderText}
+      </NBAvatar>
+    </View>
   )
 }

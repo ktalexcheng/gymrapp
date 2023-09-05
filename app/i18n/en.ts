@@ -122,6 +122,7 @@ const en = {
     timeElapsedLabel: "Time elapsed:",
     totalVolumeLabel: "Total volume:",
     timeSinceLastSetLabel: "Resting (set):",
+    rpeNullLabel: "None",
   },
   restTimerScreen: {
     startTimer: "Start",
@@ -140,6 +141,8 @@ const en = {
     noExerciseHistoryFound: "No exercise history found.",
   },
   addExerciseScreen: {
+    disclaimer:
+      "Exercises you create will not be shared with other users and will not participate in the leaderboard.",
     activityName: "Activity Type",
     exerciseCategory: "Category",
     exerciseSubCategory: "Sub-Category",

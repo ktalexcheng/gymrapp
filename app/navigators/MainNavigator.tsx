@@ -18,6 +18,7 @@ import { observer } from "mobx-react-lite"
 import React, { useEffect } from "react"
 import { HomeTabNavigator } from "./HomeTabNavigator"
 import { OnboardingNavigator } from "./OnboardingNavigator"
+import { useMainNavigation } from "./navigationUtilities"
 
 export type MainStackParamList = {
   HomeTabNavigator: undefined
@@ -48,6 +49,7 @@ export const MainNavigator = observer(function MainNavigator() {
     exerciseStore,
     feedStore,
   } = useStores()
+  const mainNavigation = useMainNavigation()
 
   useEffect(() => {
     console.debug("MainNavigator.useEffect [] called")
@@ -58,10 +60,9 @@ export const MainNavigator = observer(function MainNavigator() {
     // Listen to database update
     const userSubscriber = firestore()
       .collection("usersPrivate")
-      .doc(authStore.firebaseUser.uid)
+      .doc(authStore.userId)
       .onSnapshot(
         (snapshot) => {
-          console.debug("MainNavigator.userSubscriber.onSnapshot snapshot:", snapshot.data())
           if (!snapshot.exists) return
 
           userStore.setUser(snapshot.data() as User)
@@ -86,6 +87,14 @@ export const MainNavigator = observer(function MainNavigator() {
       exercisesSubscriber()
     }
   }, [])
+
+  useEffect(() => {
+    console.debug("HomeTabNavigator.useEffect [userStore.profileIncomplete] called")
+    if (userStore.profileIncomplete) {
+      console.debug("Profile is incomplete, navigating to OnboardingNavigator")
+      mainNavigation.navigate("OnboardingNavigator")
+    }
+  }, [userStore.profileIncomplete])
 
   return (
     <MainStack.Navigator

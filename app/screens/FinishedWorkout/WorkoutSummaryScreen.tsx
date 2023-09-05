@@ -1,5 +1,5 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { RowView, Screen, Text } from "app/components"
+import { RowView, Screen, Spacer, Text } from "app/components"
 import { ExerciseSetType, WeightUnit, WorkoutSource } from "app/data/constants"
 import { ExercisePerformed, ExerciseSet, Workout } from "app/data/model"
 import { useWeightUnitTx } from "app/hooks"
@@ -27,7 +27,7 @@ const ExerciseSummary = (props: ExerciseSummaryProps) => {
   }
 
   function renderSetSummary(set: ExerciseSet, index: number) {
-    const weight = new Weight(set.weight, WeightUnit.kg, userStore.user.preferences.weightUnit)
+    const weight = new Weight(set.weight, WeightUnit.kg, userStore.getUserPreference("weightUnit"))
     let summaryText = `${weight.formattedDisplayWeight(1)} ${translate(weightUnitTx)} x ${set.reps}`
     if (set.rpe) summaryText += ` @ ${set.rpe}`
 
@@ -46,6 +46,8 @@ const ExerciseSummary = (props: ExerciseSummaryProps) => {
   return (
     <View style={$exerciseSummaryContainer}>
       <Text preset="bold">{exerciseInfo.exerciseName}</Text>
+      <Text preset="light">{exercise.exerciseNotes}</Text>
+      <Spacer type="vertical" size="small" />
       {exercise.setsPerformed.map((s, i) => renderSetSummary(s, i))}
     </View>
   )

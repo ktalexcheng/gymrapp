@@ -12,6 +12,12 @@ module.exports = {
   // Note: firebase-admin is meant for node.js
   //       set testEnvironment: "node" in order to use firebase-admin
   testEnvironment: "node",
-  setupFiles: ["<rootDir>/test/setup.ts"],
-  testTimeout: 60000,
+  setupFiles: [
+    "<rootDir>/test/setup.ts",
+    "<rootDir>/node_modules/@react-native-google-signin/google-signin/jest/build/setup.js",
+  ],
+  testTimeout: 600000,
+  moduleNameMapper: {
+    "^app/(.*)$": "<rootDir>/app/$1",
+  },
 }

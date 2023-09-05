@@ -14,7 +14,6 @@ export const ExerciseManagerScreen: FC<ExerciseManagerScreenProps> = observer(({
   const $containerInsets = useSafeAreaInsetsStyle(["bottom", "left", "right"])
 
   function handleSelectExercise(exerciseId: string) {
-    console.debug("TODO: Goto exercise details:", exerciseId)
     navigation.navigate("ExerciseDetails", { exerciseId })
   }
 

@@ -99,6 +99,25 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     this._renameFields(data, reversedFieldNameMap)
   }
 
+  _covertFirestoreTimestampToDate(data: any): any {
+    for (const key in data) {
+      // If a data field type is firestore's Timestamp, perform .toDate() on it
+      // to convert it to a JS Date object
+      // Note: Simpler condition (renamedData[key] instanceof firestore.Timestamp) not used
+      // because it does not work with firebase-admin (used in testing)
+      if (
+        Object.prototype.toString.call(data[key]) === "[object Object]" &&
+        "toDate" in data[key]
+      ) {
+        data[key] = (data[key] as FirebaseFirestoreTypes.Timestamp).toDate()
+      } else if (data[key] instanceof Object) {
+        this._covertFirestoreTimestampToDate(data[key])
+      }
+    }
+
+    return data
+  }
+
   /**
    * Rename data fields if a fieldNameMap is provided, convert firestore Timestamp to JS Date, and include document ID in the data object
    * @param {FirebaseFirestoreTypes.DocumentSnapshot} snapshot Document snapshot from firestore
@@ -109,19 +128,7 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
 
     // Rename data fields if a fieldNameMap is provided
     const renamedData = this.#fieldNameMap ? this._sourceToRepRename(data) : data
-
-    // If a data field type is firestore's Timestamp, perform .toDate() on it
-    // to convert it to a JS Date object
-    // Note: Simpler condition (renamedData[key] instanceof firestore.Timestamp) not used
-    // because it does not work with firebase-admin for testing purposes
-    for (const key in renamedData) {
-      if (
-        Object.prototype.toString.call(renamedData[key]) === "[object Object]" &&
-        "toDate" in renamedData[key]
-      ) {
-        renamedData[key] = (renamedData[key] as FirebaseFirestoreTypes.Timestamp).toDate()
-      }
-    }
+    this._covertFirestoreTimestampToDate(renamedData)
 
     // Include document ID in the data object
     const renamedDataWithId = { ...renamedData, [this.#documentIdField]: snapshot.id }
@@ -184,6 +191,7 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
       })
       return data
     } catch (e) {
+      console.error("Error getting document by ID:", { id, refresh })
       throw new RepositoryError(this.#repositoryId, `Error getting document by ID: ${e}`)
     }
   }
@@ -220,6 +228,13 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
 
       return allData
     } catch (e) {
+      console.error("Error getting document by filter:", {
+        orderByField,
+        orderDirection,
+        limit,
+        afterFieldValue,
+        beforeFieldValue,
+      })
       throw new RepositoryError(this.#repositoryId, `Error getting documents by filter: ${e}`)
     }
   }
@@ -253,6 +268,10 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
         querySnapshots.push(snapshot)
       }
     } catch (e) {
+      console.error("Error getting document by IDs:", {
+        ids,
+        refresh,
+      })
       throw new RepositoryError(this.#repositoryId, `Error getting documents by IDs: ${e}`)
     }
 
@@ -334,7 +353,7 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
         type: CacheDataType.Single,
       })
     } catch (e) {
-      console.error("Error updating document with data:", { data, renamedData })
+      console.error("Error updating document with data:", { id, useSetMerge, data, renamedData })
       throw new RepositoryError(this.#repositoryId, `Error updating document: ${e}`)
     }
   }
@@ -347,6 +366,7 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     try {
       await this.#firestoreCollection.doc(id as string).delete()
     } catch (e) {
+      console.error("Error deleting document:", { id })
       throw new RepositoryError(this.#repositoryId, `Error deleting document: ${e}`)
     }
   }

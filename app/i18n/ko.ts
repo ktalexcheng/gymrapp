@@ -44,6 +44,7 @@ const ko: Translations = {
   addExerciseScreen: undefined,
   exerciseEntrySettings: undefined,
   feedScreen: undefined,
+  restTimerScreen: undefined,
 }
 
 export default ko

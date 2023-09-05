@@ -1,5 +1,4 @@
 import { WeightUnit } from "app/data/constants"
-import { DefaultExerciseSettings } from "app/data/model"
 import { translate } from "app/i18n"
 import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
 import { observer } from "mobx-react-lite"
@@ -17,19 +16,16 @@ export type ExerciseSettingsProps = {
 
 export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
   (props: ExerciseSettingsProps) => {
-    const { workoutStore, exerciseStore, userStore } = useStores()
-    const exerciseSettings = exerciseStore.allExercises.get(props.exerciseId).exerciseSettings
-    const weightUnit =
-      exerciseSettings?.weightUnit ??
-      userStore.user?.preferences?.weightUnit ??
-      DefaultExerciseSettings.weightUnit
+    const { workoutStore, exerciseStore } = useStores()
+    const exercise = exerciseStore.allExercises.get(props.exerciseId)
+    const weightUnit = exercise.getExerciseSetting("weightUnit")
 
     const [page, setPage] = useState("")
     const [restTimerEnabled, setRestTimerEnabled] = useState(
-      exerciseSettings?.autoRestTimerEnabled ?? false,
+      exercise.getExerciseSetting("autoRestTimerEnabled"),
     )
     const [restTimeIndex, setRestTimeIndex] = useState(
-      Math.trunc((exerciseSettings?.restTime ?? DefaultExerciseSettings.restTime) / 5) - 1,
+      Math.trunc(exercise.getExerciseSetting("restTime") / 5) - 1,
     )
 
     const restTimeList = Array(60)

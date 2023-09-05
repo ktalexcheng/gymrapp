@@ -1,10 +1,11 @@
 import { ExerciseSource, WeightUnit } from "app/data/constants"
 import {
-  DefaultExerciseSettings,
   Exercise,
+  ExerciseId,
   ExerciseSettings,
   NewExercise,
   User,
+  UserPreferences,
 } from "app/data/model"
 import { flow, getEnv, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
@@ -12,15 +13,9 @@ import { withSetPropAction } from "./helpers/withSetPropAction"
 
 const ExerciseSettingsModel = types
   .model({
-    autoRestTimerEnabled: types.optional(
-      types.boolean,
-      DefaultExerciseSettings.autoRestTimerEnabled,
-    ),
-    restTime: types.optional(types.number, DefaultExerciseSettings.restTime),
-    weightUnit: types.optional(
-      types.enumeration(Object.values(WeightUnit)),
-      DefaultExerciseSettings.weightUnit,
-    ),
+    autoRestTimerEnabled: types.maybe(types.boolean),
+    restTime: types.maybe(types.number),
+    weightUnit: types.maybe(types.enumeration(Object.values(WeightUnit))),
   })
   .actions(withSetPropAction)
 
@@ -38,6 +33,19 @@ const ExerciseModel = types
     exerciseSettings: types.maybe(ExerciseSettingsModel),
   })
   .actions(withSetPropAction)
+  .actions((self) => ({
+    getExerciseSetting(pref: keyof ExerciseSettings) {
+      const settingValue = self?.exerciseSettings?.[pref]
+
+      // If exercise specific settings is not set, return the default user preference
+      if (settingValue === undefined) {
+        const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+        return privateUserRepository.getUserPreference(pref)
+      }
+
+      return settingValue
+    },
+  }))
 
 export const ExerciseStoreModel = types
   .model("ExerciseStore")
@@ -96,7 +104,7 @@ export const ExerciseStoreModel = types
 
       const exerciseSettings = getEnv<RootStoreDependencies>(
         self,
-      ).privateUserRepository.getUserPropFromCacheData("preferences.userExerciseSettings")
+      ).privateUserRepository.getUserPropFromCacheData("preferences.exerciseSpecificSettings")
 
       // Update exercises with user settings
       if (exerciseSettings) {
@@ -125,7 +133,11 @@ export const ExerciseStoreModel = types
         console.error("ExerciseStore.getAllExercises error:", e)
       }
     }),
-    updateExerciseSetting(exerciseId, exerciseSettingsId, exerciseSettingsValue) {
+    updateExerciseSetting(
+      exerciseId,
+      exerciseSettingsId: keyof ExerciseSettings,
+      exerciseSettingsValue,
+    ) {
       if (!self.allExercises.has(exerciseId)) {
         console.warn("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseId")
         return
@@ -146,25 +158,20 @@ export const ExerciseStoreModel = types
       self.isLoading = true
 
       try {
-        const allExerciseSettings: {
-          exerciseId: string
-          exerciseSettings: ExerciseSettings
-        }[] = Array.from(self.allExercises.values())
-          .map((e) => {
-            return {
-              exerciseId: e.exerciseId,
-              exerciseSettings: e.exerciseSettings,
-            }
-          })
-          .filter((item) => item.exerciseSettings)
+        const exerciseSpecificSettings: Map<ExerciseId, ExerciseSettings> = Array.from(
+          self.allExercises.values(),
+        ).reduce((acc, e) => {
+          if (!e.exerciseSettings) acc.set(e.exerciseId, e.exerciseSettings)
+          return acc
+        }, new Map<ExerciseId, ExerciseSettings>())
 
-        if (allExerciseSettings.length > 0) {
+        if (exerciseSpecificSettings.size > 0) {
           getEnv<RootStoreDependencies>(self).privateUserRepository.update(
             null,
             {
-              allExerciseSettings,
+              preferences: exerciseSpecificSettings as Partial<UserPreferences>,
             } as Partial<User>,
-            null,
+            true,
           )
         }
 

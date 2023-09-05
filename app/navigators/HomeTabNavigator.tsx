@@ -3,7 +3,7 @@ import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
 import { observer } from "mobx-react-lite"
-import React, { useEffect, useState } from "react"
+import React, { useState } from "react"
 import { Modal, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Icon, Text } from "../components"
@@ -92,13 +92,14 @@ export const HomeTabNavigator = observer(() => {
   const { userStore, workoutStore } = useStores()
   const mainNavigation = useMainNavigation()
 
-  useEffect(() => {
-    console.debug("HomeTabNavigator.useEffect [userStore.profileIncomplete] called")
-    if (userStore.profileIncomplete) {
-      console.debug("Profile is incomplete, navigating to OnboardingNavigator")
-      mainNavigation.navigate("OnboardingNavigator")
-    }
-  }, [userStore.profileIncomplete])
+  // This redirect makes more sense in the MainNavigator
+  // useEffect(() => {
+  //   console.debug("HomeTabNavigator.useEffect [userStore.profileIncomplete] called")
+  //   if (userStore.profileIncomplete) {
+  //     console.debug("Profile is incomplete, navigating to OnboardingNavigator")
+  //     mainNavigation.navigate("OnboardingNavigator")
+  //   }
+  // }, [userStore.profileIncomplete])
 
   return (
     <>

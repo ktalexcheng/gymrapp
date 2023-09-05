@@ -1,5 +1,6 @@
 import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
-import storage from "@react-native-firebase/storage"
+import storage, { FirebaseStorageTypes } from "@react-native-firebase/storage"
+import { DefaultUserPreferences } from "../constants"
 import { User, UserFollowing, UserId } from "../model"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
@@ -33,18 +34,18 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
         if (prop.has(key)) {
           prop = prop.get(key)
         } else {
-          console.warn(
-            `PrivateUserRepository.getUserPropFromCacheData warning: Invalid key ${key} in propPath: ${propPath}`,
-          )
+          // console.warn(
+          //   `PrivateUserRepository.getUserPropFromCacheData warning: Invalid key ${key} in propPath: ${propPath}`,
+          // )
           return undefined
         }
       } else if (prop instanceof Object) {
         if (key in prop) {
           prop = prop[key]
         } else {
-          console.warn(
-            `PrivateUserRepository.getUserPropFromCacheData warning: Invalid key ${key} in propPath: ${propPath}`,
-          )
+          // console.warn(
+          //   `PrivateUserRepository.getUserPropFromCacheData warning: Invalid key ${key} in propPath: ${propPath}`,
+          // )
           return undefined
         }
       }
@@ -53,17 +54,43 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
     return prop
   }
 
+  getUserPreference(pref: keyof typeof DefaultUserPreferences) {
+    const prefPath = `preferences.${pref}`
+    const prefValue = this.getUserPropFromCacheData(prefPath)
+    if (prefValue === undefined) {
+      return DefaultUserPreferences[pref]
+    }
+
+    return prefValue
+  }
+
   setUserId(userId: string): void {
     this.#userId = userId
   }
 
   async update(id: UserId, data: Partial<User>, useSetMerge = false): Promise<void> {
-    super.update(id ?? this.#userId, data, useSetMerge)
+    await super.update(id ?? this.#userId, data, useSetMerge)
   }
 
   async uploadAvatar(imagePath: string): Promise<string> {
+    // If imagePath is already a hyperlink, download and reupload to storage
+    let imageBlob: Blob
+    if (imagePath.startsWith("http")) {
+      try {
+        const response = await fetch(imagePath)
+        imageBlob = await response.blob()
+      } catch (e) {
+        console.error("PrivateUserRepository.uploadAvatar error getting image:", e)
+      }
+    }
+
     const avatarRef = storage().ref(`${this.#userId}/profile/avatar`)
-    const uploadTask = avatarRef.putFile(imagePath)
+    let uploadTask: FirebaseStorageTypes.Task
+    if (imageBlob) {
+      uploadTask = avatarRef.put(imageBlob)
+    } else {
+      uploadTask = avatarRef.putFile(imagePath)
+    }
 
     uploadTask.on(
       "state_changed",

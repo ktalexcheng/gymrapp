@@ -1,9 +1,9 @@
 import * as firestore from "@google-cloud/firestore"
-import { MockRootStore } from "test/utils/mockRootStore"
+import { RootStore } from "../../../app/stores/RootStore"
 
 export async function createNewUserFollows(
   firestoreClient: firestore.Firestore,
-  rootStore: MockRootStore,
+  rootStore: RootStore,
   followerEmail: string,
   followeeEmail: string,
 ) {

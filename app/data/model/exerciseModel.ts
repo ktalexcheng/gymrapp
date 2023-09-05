@@ -1,4 +1,5 @@
 import { ExerciseSetType, ExerciseSource, WeightUnit } from "../constants"
+import { WorkoutId } from "./workoutModel"
 
 export interface ExerciseSet {
   setType: ExerciseSetType
@@ -12,7 +13,7 @@ export interface ExerciseSet {
 export type WeightType = number
 export type RepsType = number
 export interface PersonalRecord {
-  workoutId: string
+  workoutId: WorkoutId
   // exerciseId: string
   datePerformed: Date
   reps: RepsType
@@ -45,12 +46,6 @@ export interface ExerciseSettings {
   weightUnit: WeightUnit
 }
 
-export const DefaultExerciseSettings: ExerciseSettings = {
-  autoRestTimerEnabled: true,
-  restTime: 120,
-  weightUnit: WeightUnit.kg,
-}
-
 export interface NewExercise {
   activityName: string
   exerciseCat1: string
@@ -61,6 +56,5 @@ export interface NewExercise {
 export interface Exercise extends NewExercise {
   exerciseId: ExerciseId
   exerciseSource: ExerciseSource
-  // exerciseSettings?: ExerciseSettings
   exerciseHistory?: ExercisePerformed[]
 }

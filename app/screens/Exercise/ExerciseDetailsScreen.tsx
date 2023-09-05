@@ -1,6 +1,7 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { RowView, Screen, Spacer, TabBar, Text } from "app/components"
 import { WeightUnit } from "app/data/constants"
+import { ExerciseRecord } from "app/data/model"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
@@ -13,10 +14,10 @@ import { FlatList, TextStyle, View, ViewStyle } from "react-native"
 import { SceneMap, TabView } from "react-native-tab-view"
 import { WorkoutSummaryCard } from "../FinishedWorkout"
 
-const WorkoutHistoryTabScene: (exerciseId: string) => FC = (exerciseId: string) =>
+const WorkoutHistoryTabScene = (exerciseId: string) =>
   observer(() => {
     const { userStore } = useStores()
-    const exerciseHistory = userStore.user?.exerciseHistory?.[exerciseId]?.performedWorkouts
+    const exerciseHistory = userStore.user?.exerciseHistory?.[exerciseId]?.performedWorkoutIds
 
     if (!exerciseHistory) return <Text tx="exerciseDetailsScreen.noExerciseHistoryFound" />
 
@@ -42,17 +43,18 @@ const WorkoutHistoryTabScene: (exerciseId: string) => FC = (exerciseId: string) 
     )
   })
 
-const PersonalRecordsTabScene: (exerciseId: string) => FC = (exerciseId: string) =>
+const PersonalRecordsTabScene = (exerciseId: string) =>
   observer(() => {
     const { userStore } = useStores()
     const weightUnitTx = useWeightUnitTx()
-    const personalRecords = userStore.user?.exerciseHistory?.[exerciseId]?.personalRecords
+    const personalRecords = userStore.user?.exerciseHistory?.[exerciseId]
+      ?.personalRecords as ExerciseRecord
 
     if (!personalRecords) return <Text tx="exerciseDetailsScreen.noExerciseHistoryFound" />
 
     const sortedPersonalRecords = Object.fromEntries(
       Object.entries(personalRecords).sort((a, b) => parseInt(a[0]) - parseInt(b[0])),
-    )
+    ) as ExerciseRecord
 
     return (
       <View>
@@ -78,7 +80,7 @@ const PersonalRecordsTabScene: (exerciseId: string) => FC = (exerciseId: string)
           const weight = new Weight(
             bestRecord.weight,
             WeightUnit.kg,
-            userStore.user.preferences.weightUnit,
+            userStore.getUserPreference("weightUnit"),
           )
 
           return (

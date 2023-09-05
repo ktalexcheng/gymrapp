@@ -4,7 +4,7 @@ import { useStores } from "app/stores"
 import { spacing } from "app/theme"
 import React, { FC, useState } from "react"
 import { ViewStyle } from "react-native"
-import { Button, Dropdown, Screen, TextField } from "../../components"
+import { Button, Dropdown, Screen, Spacer, Text, TextField } from "../../components"
 import { MainStackScreenProps } from "../../navigators"
 
 interface AddExerciseScreenProps extends MainStackScreenProps<"CreateExercise"> {}
@@ -41,6 +41,8 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
 
   return (
     <Screen safeAreaEdges={["top", "bottom"]} style={$container}>
+      <Text tx="addExerciseScreen.disclaimer" preset="formHelper" />
+      <Spacer type="vertical" size="massive" />
       <Dropdown
         onValueChange={selectType}
         labelTx="addExerciseScreen.activityName"

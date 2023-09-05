@@ -3,11 +3,11 @@ import { AppLanguage, WeightUnit } from "app/data/constants"
 import { User } from "app/data/model"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
-import { spacing } from "app/theme"
+import { colors, spacing } from "app/theme"
 import * as ImagePicker from "expo-image-picker"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useRef, useState } from "react"
-import { ImageStyle, TextInput, TouchableOpacity, ViewStyle } from "react-native"
+import { ImageStyle, TextInput, TouchableOpacity, View, ViewStyle } from "react-native"
 import { LoadingScreen } from "../LoadingScreen"
 import { SwitchSettingTile } from "../UserSettingsScreen"
 
@@ -25,12 +25,10 @@ export const CreateProfileScreen = observer(() => {
   const lastNameInputRef = useRef<TextInput>()
 
   useEffect(() => {
-    if (userStore.user) {
-      setFirstName(userStore.user.firstName)
-      setLastName(userStore.user.lastName)
-      setImagePath(userStore.user.avatarUrl)
-    }
-  }, [userStore.user])
+    setFirstName(userStore?.user?.firstName ?? authStore.firstName)
+    setLastName(userStore?.user?.lastName ?? authStore.lastName)
+    setImagePath(userStore?.user?.avatarUrl ?? authStore.avatarUrl)
+  }, [userStore.user, authStore.firebaseUserCredential])
 
   const isInvalidForm = () => {
     let errorFound = false
@@ -91,9 +89,9 @@ export const CreateProfileScreen = observer(() => {
         // User profile should already be created upon sign up,
         // this condition should only be possible if connection was lost
         // or during development
-        initialUser.userId = authStore.firebaseUser.uid
-        initialUser.email = authStore.firebaseUser.email
-        initialUser.providerId = authStore.firebaseUser?.providerId ?? ""
+        initialUser.userId = authStore.userId
+        initialUser.email = authStore.email
+        initialUser.providerId = authStore.providerId
 
         await userStore.createNewProfile(initialUser)
       }
@@ -106,6 +104,10 @@ export const CreateProfileScreen = observer(() => {
     setIsProcessing(false)
   }
 
+  const removeAvatar = () => {
+    setImagePath(null)
+  }
+
   if (isProcessing) {
     return <LoadingScreen />
   }
@@ -115,13 +117,22 @@ export const CreateProfileScreen = observer(() => {
       <Text tx="onboarding.onboardingTitle" preset="heading" />
 
       <Text tx="onboarding.uploadAvatarTitle" preset="subheading" />
-      <TouchableOpacity style={$avatar} onPress={pickImage}>
-        {imagePath ? (
-          <Avatar source={{ uri: imagePath }} size="2xl" />
-        ) : (
-          <Avatar user={userStore.user} size="2xl" />
-        )}
-      </TouchableOpacity>
+      <View style={$avatar}>
+        <Icon
+          name="close-circle"
+          color={colors.actionable}
+          containerStyle={$removeAvatarButton}
+          onPress={removeAvatar}
+          size={30}
+        />
+        <TouchableOpacity onPress={pickImage}>
+          {imagePath ? (
+            <Avatar source={{ uri: imagePath }} size="2xl" />
+          ) : (
+            <Avatar user={userStore.user} size="2xl" />
+          )}
+        </TouchableOpacity>
+      </View>
 
       <TextField
         status={firstNameError ? "error" : null}
@@ -179,4 +190,9 @@ const $textField: ViewStyle = {
 
 const $avatar: ImageStyle = {
   alignSelf: "center",
+}
+
+const $removeAvatarButton: ImageStyle = {
+  position: "absolute",
+  zIndex: 1,
 }

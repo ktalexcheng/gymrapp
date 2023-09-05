@@ -1,8 +1,8 @@
 import * as firestore from "@google-cloud/firestore"
 import { parse } from "csv-parse"
 import * as fs from "fs"
-import { ExerciseSetType } from "../../app/data/constants"
-import { MockRootStore } from "./mockRootStore"
+import { ExerciseSetType } from "../../../app/data/constants"
+import { RootStore } from "../../../app/stores/RootStore"
 
 interface StrongExportDatum {
   Date: Date
@@ -65,9 +65,9 @@ async function readCSV<T>(filePath: string, delimiter: string): Promise<T[]> {
   })
 }
 
-export async function createExercisesFromStrongExport(
+export async function createWorkoutsFromStrongExport(
   firestoreClient: firestore.Firestore,
-  rootStore: MockRootStore,
+  rootStore: RootStore,
   csvPath: string,
   byUserEmail: string,
 ) {
@@ -127,14 +127,14 @@ export async function createExercisesFromStrongExport(
       if (_exerciseIdState !== existingExerciseIds[_exerciseName]) {
         _exerciseIdState = existingExerciseIds[_exerciseName]
         workoutStore.addExercise(_exerciseIdState)
-        _exerciseOrderState = workoutStore.exercises.size - 1
+        _exerciseOrderState = workoutStore.exercises.length - 1
       }
 
       workoutStore.addSet(_exerciseOrderState, {
         setType: ExerciseSetType.Normal,
       })
-      const _setOrder = workoutStore.exercises.get(_exerciseOrderState).setsPerformed.length - 1
-      const _set = workoutStore.exercises.get(_exerciseOrderState).setsPerformed[_setOrder]
+      const _setOrder = workoutStore.exercises.at(_exerciseOrderState).setsPerformed.length - 1
+      const _set = workoutStore.exercises.at(_exerciseOrderState).setsPerformed[_setOrder]
       _set.updateSetValues("weight", d.Weight ?? 0)
       _set.updateSetValues("reps", d.Reps)
       _set.updateSetValues("rpe", d.RPE)

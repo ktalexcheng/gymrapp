@@ -1,6 +1,6 @@
 import { getTime, startOfWeek } from "date-fns"
 import { flow, getEnv, types } from "mobx-state-tree"
-import { User, Workout, isUser, isWorkout } from "../../app/data/model"
+import { ExerciseId, User, UserPreferences, Workout, isUser, isWorkout } from "../../app/data/model"
 import { createCustomType } from "./helpers/createCustomType"
 import { RootStoreDependencies } from "./helpers/useStores"
 
@@ -98,14 +98,23 @@ export const UserStoreModel = types
         weeklyWorkoutsCount.set(weekStartTime, weeklyWorkoutsCount.get(weekStartTime) + 1)
       })
 
-      console.debug(
-        "UserStore.weeklyWorkoutsCount weekStartTime.keys():",
-        ...weeklyWorkoutsCount.keys(),
-      )
+      // console.debug(
+      //   "UserStore.weeklyWorkoutsCount weekStartTime.keys():",
+      //   ...weeklyWorkoutsCount.keys(),
+      // )
       return weeklyWorkoutsCount
     },
   }))
   .actions((self) => ({
+    invalidateSession: () => {
+      self.userId = undefined
+      self.user = undefined
+      self.workouts.clear()
+      self.isInitializing = true
+      self.isLoadingProfile = true
+      self.isLoadingWorkouts = true
+      self.isNewUser = true
+    },
     uploadUserAvatar: flow<string, [imagePath: string]>(function* (imagePath: string) {
       try {
         const avatarUrl = yield getEnv<RootStoreDependencies>(
@@ -120,6 +129,8 @@ export const UserStoreModel = types
     /**
      * Creating a profile should usually be done right after signing up
      * this is for the rare case when a user's profile needs to be recreated
+     * e.g. when a user deletes their account and signs up again
+     * e.g. for testing purposes
      */
     createNewProfile: flow(function* (newUser: User) {
       self.isLoadingProfile = true
@@ -185,6 +196,33 @@ export const UserStoreModel = types
         console.error("UserStore.unfollowUser error:", e)
       }
     }),
+    getUserPreference(pref: keyof UserPreferences) {
+      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+      return privateUserRepository.getUserPreference(pref)
+    },
+    getSetFromLastWorkout(exerciseId: ExerciseId, setOrder: number) {
+      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+
+      const exerciseHistory = privateUserRepository.getUserPropFromCacheData(
+        "exerciseHistory",
+      ) as User["exerciseHistory"]
+      if (!exerciseHistory) return null
+
+      // TODO: Even though we define it as a Map, it is not being parsed into a Map
+      // when fetched from Firestore. This is a workaround for now
+      const exerciseHistoryItem = exerciseHistory?.[exerciseId]
+      if (!exerciseHistoryItem) return null
+
+      const workoutsCount = exerciseHistoryItem.performedWorkoutIds.length
+      const latestWorkoutId = exerciseHistoryItem.performedWorkoutIds[workoutsCount - 1]
+      const latestWorkout = self.workouts.get(latestWorkoutId)
+      const lastPerformedSet = latestWorkout.workout.exercises.filter(
+        (e) => e.exerciseId === exerciseId,
+      )[0].setsPerformed?.[setOrder]
+      if (!lastPerformedSet) return null
+
+      return lastPerformedSet
+    },
   }))
   .actions((self) => ({
     loadUserWithId: flow(function* (userId: string) {
@@ -215,7 +253,6 @@ export const UserStoreModel = types
       console.debug("UserStore.loadUserWIthId done")
     }),
     setUser(user: User) {
-      console.debug("UserStore.setUser called:", user)
       self.isLoadingProfile = true
       self.user = user
       self.getWorkouts()
@@ -229,7 +266,7 @@ export const UserStoreModel = types
         yield getEnv<RootStoreDependencies>(self).privateUserRepository.update(
           null,
           userUpdate,
-          null,
+          true,
         )
         self.user = { ...self.user, ...userUpdate }
         yield self.getWorkouts()

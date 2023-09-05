@@ -9,6 +9,7 @@
  * The app navigation resides in ./app/navigators, so head over there
  * if you're interested in adding screens and navigators.
  */
+import auth from "@react-native-firebase/auth"
 import firestore from "@react-native-firebase/firestore"
 import functions from "@react-native-firebase/functions"
 import fbStorage from "@react-native-firebase/storage"
@@ -79,6 +80,7 @@ if (__DEV__) {
     console.debug("Running on emulator")
     localIp = "localhost" // For emulators
   }
+  auth().useEmulator(`http://${localIp}:9099`)
   firestore().useEmulator(localIp, 8080)
   functions().useEmulator(localIp, 5001)
   fbStorage().useEmulator(localIp, 9199)

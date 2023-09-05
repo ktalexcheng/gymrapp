@@ -4,8 +4,9 @@ import { spacing } from "./spacing"
 
 export const styles = StyleSheet.create({
   centeredContainer: {
+    height: "100%",
+    width: "100%",
     alignItems: "center",
-    flex: 1,
     justifyContent: "center",
   },
   flex1: {

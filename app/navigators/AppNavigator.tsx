@@ -63,10 +63,11 @@ const AppStack = observer(function AppStack() {
     if (user) {
       console.debug("onAuthStateChanged valid user:", user)
       authStore.setFirebaseUser(user)
-      userStore.loadUserWithId(authStore.firebaseUser.uid)
+      userStore.loadUserWithId(authStore.userId)
     } else {
       console.debug("onAuthStateChanged invalid user, invalidating session")
       authStore.invalidateSession()
+      userStore.invalidateSession()
     }
 
     if (initializing) setInitializing(false)

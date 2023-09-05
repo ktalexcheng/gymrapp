@@ -59,7 +59,7 @@ export const WorkoutSummaryCard: FC = (props: WorkoutSummaryCardProps) => {
           const bestWeight = new Weight(
             e.maxWeightSet.weight,
             WeightUnit.kg,
-            userStore.user.preferences.weightUnit,
+            userStore.getUserPreference("weightUnit"),
           )
 
           let bestSet = `${bestWeight.formattedDisplayWeight(1)} x ${e.maxWeightSet.reps}`

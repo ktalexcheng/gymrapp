@@ -18,7 +18,7 @@ export type ExerciseEntryProps = {
 
 export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEntryProps) => {
   const { workoutStore, exerciseStore } = useStores()
-  const thisExercise = workoutStore.exercises.get(props.exerciseOrder as unknown as string)
+  const thisExercise = workoutStore.exercises.at(props.exerciseOrder)
   const setsPerformed = thisExercise.setsPerformed
   const exerciseName = exerciseStore.allExercises.get(props.exerciseId).exerciseName
   const weightUnitTx = useWeightUnitTx(props.exerciseId)
@@ -32,14 +32,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
   return (
     <View>
       <View style={$exerciseSettingsButton}>
-        <ExerciseSettingsMenu
-          exerciseOrder={props.exerciseOrder}
-          exerciseId={props.exerciseId}
-          // exerciseSettings={
-          //   exerciseStore.allExercises.get(props.exerciseId).exerciseSettings ??
-          //   DefaultExerciseSettings
-          // }
-        />
+        <ExerciseSettingsMenu exerciseOrder={props.exerciseOrder} exerciseId={props.exerciseId} />
       </View>
 
       <View style={$exercise}>

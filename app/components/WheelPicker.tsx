@@ -50,6 +50,7 @@ export const WheelPickerFlat: FC<WheelPickerProps> = (props) => {
 
   const $container: ViewStyle = {}
 
+  console.debug("WheelPickerFlat initialScrollIndex", initialScrollIndex)
   return (
     <View
       style={[$container, { height: itemHeight * 3 }]}
@@ -63,6 +64,11 @@ export const WheelPickerFlat: FC<WheelPickerProps> = (props) => {
         showsVerticalScrollIndicator={false}
         onMomentumScrollEnd={momentumScrollEnd}
         initialScrollIndex={initialScrollIndex ?? 0}
+        getItemLayout={(_, index) => ({
+          length: itemHeight,
+          offset: itemHeight * index,
+          index,
+        })}
       />
       <View style={[styles.indicator, { top: itemHeight }]} />
       <View style={[styles.indicator, { top: itemHeight * 2 }]} />

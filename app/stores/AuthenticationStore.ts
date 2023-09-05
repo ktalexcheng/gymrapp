@@ -8,12 +8,15 @@ import { createCustomType } from "./helpers/createCustomType"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
-function isFirebaseUser(value: any): value is FirebaseAuthTypes.User {
+function isFirebaseUserCredential(value: any): value is FirebaseAuthTypes.UserCredential {
   if (value === undefined) return false
-  return (value as FirebaseAuthTypes.User).uid !== undefined
+  return (value as FirebaseAuthTypes.UserCredential).user !== undefined
 }
 
-const FirebaseUserType = createCustomType<FirebaseAuthTypes.User>("FirebaseUser", isFirebaseUser)
+const FirebaseUserCredentialType = createCustomType<FirebaseAuthTypes.UserCredential>(
+  "FirebaseUserCredential",
+  isFirebaseUserCredential,
+)
 
 GoogleSignin.configure({
   webClientId: Env.GOOGLE_CLIENT_ID,
@@ -37,7 +40,7 @@ function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.User
 export const AuthenticationStoreModel = types
   .model("AuthenticationStore")
   .props({
-    firebaseUser: FirebaseUserType,
+    firebaseUserCredential: FirebaseUserCredentialType,
     isAuthenticating: true,
   })
   .volatile((_) => ({
@@ -48,10 +51,10 @@ export const AuthenticationStoreModel = types
     authError: "",
   }))
   .views((self) => ({
-    // isAuthenticated() checks if firebaseUser exists in store
-    // firebaseUser can only exist if we got the credentials from Firebase
+    // isAuthenticated() checks if firebaseUserCredential exists in store
+    // firebaseUserCredential can only exist if we got the credentials from Firebase
     get isAuthenticated() {
-      return !self.isAuthenticating && !!self.firebaseUser
+      return !self.isAuthenticating && !!self.firebaseUserCredential
     },
     get signInCredentialsError() {
       switch (true) {
@@ -90,6 +93,24 @@ export const AuthenticationStoreModel = types
 
       // return null
     },
+    get userId() {
+      return self.firebaseUserCredential?.user.uid ?? null
+    },
+    get firstName() {
+      return self.firebaseUserCredential.user.displayName?.split(" ")[0] ?? ""
+    },
+    get lastName() {
+      return self.firebaseUserCredential.user.displayName?.split(" ")[1] ?? ""
+    },
+    get avatarUrl() {
+      return self.firebaseUserCredential.user.photoURL ?? ""
+    },
+    get email() {
+      return self.firebaseUserCredential.user.email ?? ""
+    },
+    get providerId() {
+      return self.firebaseUserCredential.user.providerId ?? ""
+    },
   }))
   .actions(withSetPropAction)
   .actions((self) => ({
@@ -124,10 +145,22 @@ export const AuthenticationStoreModel = types
     },
   }))
   .actions((self) => ({
+    // This is specifically to only overwrite the user property of firebaseUserCredential
+    // because for some reason that is what onAuthStateChanged() returns
     setFirebaseUser(firebaseUser: FirebaseAuthTypes.User) {
       self.isAuthenticating = true
       if (!firebaseUser) throw new Error("AuthenticationStore.setFirebaseUser failed")
-      self.firebaseUser = firebaseUser
+      self.firebaseUserCredential = {
+        ...self.firebaseUserCredential,
+        user: firebaseUser,
+      }
+      self.isAuthenticating = false
+    },
+    setFirebaseUserCredential(firebaseUserCredential: FirebaseAuthTypes.UserCredential) {
+      self.isAuthenticating = true
+      if (!firebaseUserCredential)
+        throw new Error("AuthenticationStore.setFirebaseUserCredential failed")
+      self.firebaseUserCredential = firebaseUserCredential
       self.isAuthenticating = false
     },
     setLoginEmail(email: string) {
@@ -143,11 +176,11 @@ export const AuthenticationStoreModel = types
       self.newLastName = lastName
     },
     invalidateSession() {
-      if (self.firebaseUser) {
+      if (self.firebaseUserCredential) {
         auth()
           .signOut()
           .catch((e) => self.catchAuthError("invalidateSession", e))
-        self.firebaseUser = undefined
+        self.firebaseUserCredential = undefined
       }
     },
     resetAuthError() {
@@ -161,9 +194,7 @@ export const AuthenticationStoreModel = types
     },
     deleteAccount: flow(function* () {
       try {
-        yield getEnv<RootStoreDependencies>(self).privateUserRepository.delete(
-          self.firebaseUser.uid,
-        )
+        yield getEnv<RootStoreDependencies>(self).privateUserRepository.delete(self.userId)
         yield auth().currentUser.delete() // Also signs user out
         self.invalidateSession()
       } catch (error) {
@@ -181,7 +212,7 @@ export const AuthenticationStoreModel = types
           .catch((e) => self.catchAuthError("signInWithEmail", e))
 
         if (userCred) {
-          self.setFirebaseUser(userCred.user)
+          self.setFirebaseUserCredential(userCred)
         }
 
         self.isAuthenticating = false
@@ -200,7 +231,7 @@ export const AuthenticationStoreModel = types
           .catch((e) => self.catchAuthError("signUpWithEmail", e))
 
         if (userCred) {
-          self.setFirebaseUser(userCred.user)
+          self.setFirebaseUserCredential(userCred)
           yield getEnv<RootStoreDependencies>(self).privateUserRepository.create({
             userId: userCred.user.uid,
             privateAccount: true,
@@ -234,7 +265,7 @@ export const AuthenticationStoreModel = types
         // Sign-in the user with the credential
         const userCred = yield auth().signInWithCredential(googleCredential)
 
-        self.setFirebaseUser(userCred.user)
+        self.setFirebaseUserCredential(userCred)
 
         if (userCred.additionalUserInfo.isNewUser) {
           const user = createUserFromFirebaseUserCred(userCred)

@@ -44,6 +44,7 @@ const ar: Translations = {
   addExerciseScreen: undefined,
   exerciseEntrySettings: undefined,
   feedScreen: undefined,
+  restTimerScreen: undefined,
 }
 
 export default ar

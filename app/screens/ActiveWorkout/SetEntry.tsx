@@ -1,11 +1,13 @@
-import { DefaultExerciseSettings } from "app/data/model"
+import { WeightUnit } from "app/data/constants"
 import { useWeight } from "app/hooks"
+import { translate } from "app/i18n"
 import { roundToString } from "app/utils/formatNumber"
+import { Weight } from "app/utils/weight"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
-import { TextStyle, View, ViewStyle } from "react-native"
+import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { Swipeable } from "react-native-gesture-handler"
-import { Button, Icon, RowView, Text, TextField } from "../../components"
+import { Button, Dropdown, Icon, RowView, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
 import { colors, spacing, thresholds } from "../../theme"
 
@@ -23,50 +25,53 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const { workoutStore, exerciseStore, userStore } = useStores()
   const { exerciseId, exerciseOrder, setOrder } = props
   // Current exercise set
-  const exerciseSetStore = workoutStore.exercises.get(exerciseOrder as unknown as string)
-    .setsPerformed[setOrder]
+  const exerciseSetStore = workoutStore.exercises.at(exerciseOrder).setsPerformed[setOrder]
+
+  // Set from previous workout
+  const setFromLastWorkout = userStore.getSetFromLastWorkout(exerciseId, setOrder)
 
   // Exercise settings
-  const exerciseSettings = exerciseStore.allExercises.get(exerciseId).exerciseSettings
-  const restTime = exerciseSettings?.restTime ?? DefaultExerciseSettings.restTime
-  const initDisplayWeightUnit =
-    exerciseSettings?.weightUnit ??
-    userStore.user?.preferences?.weightUnit ??
-    DefaultExerciseSettings.weightUnit
+  const exercise = exerciseStore.allExercises.get(exerciseId)
+  const restTimeSetting = exercise.getExerciseSetting("restTime")
+  const weightUnitSetting = exercise.getExerciseSetting("weightUnit")
 
   // States
   const [isNullWeight, setIsNullWeight] = useState(false)
   const [isNullReps, setIsNullReps] = useState(false)
   // Weight is always converted and stored in kg,
-  // but depending on user preference will display as kg or lbs (using displayWeight)
-  // const [weight, setWeight] = useState<number>(null)
+  // but depending on user preference will display as kg or lbs (using displayWeight).
+  // Input state and actual weight state are separate to allow for input validation
   const [displayWeight, weightKg, setDisplayWeight, setDisplayUnit] = useWeight(
     exerciseSetStore.weight,
-    initDisplayWeightUnit,
+    weightUnitSetting,
   )
   const [reps, setReps] = useState<number>(exerciseSetStore.reps)
   const [rpe, setRpe] = useState<number>(exerciseSetStore.rpe)
   const [weightInput, setWeightInput] = useState<string>(roundToString(displayWeight, 2, false))
   const [repsInput, setRepsInput] = useState<string>(reps?.toString())
   const [rpeInput, setRpeInput] = useState<string>(rpe?.toString())
-
-  useEffect(() => {
-    if (exerciseSettings?.weightUnit) {
-      setDisplayUnit(exerciseSettings.weightUnit)
-    } else if (userStore.user?.preferences?.weightUnit) {
-      setDisplayUnit(userStore.user.preferences.weightUnit)
+  const rpeList = Array.from({ length: 9 }, (_, i) => {
+    const rpe = 6 + 0.5 * i
+    return {
+      label: rpe.toString(),
+      value: rpe.toString(),
     }
-  }, [exerciseSettings?.weightUnit, userStore.user?.preferences?.weightUnit])
+  })
+  // Using empty string as the first item in the list to allow for clearing the dropdown
+  rpeList.unshift({ label: translate("activeWorkoutScreen.rpeNullLabel"), value: null })
 
   useEffect(() => {
-    setWeightInput(roundToString(displayWeight, 2, false))
+    setDisplayUnit(weightUnitSetting)
+  }, [weightUnitSetting])
+
+  useEffect(() => {
     updateSetStore()
   }, [displayWeight, reps, rpe])
 
   function updateSetStore() {
     exerciseSetStore.updateSetValues("weight", weightKg)
     exerciseSetStore.updateSetValues("reps", reps)
-    exerciseSetStore.updateSetValues("rpe", rpe)
+    exerciseSetStore.updateSetValues("rpe", rpe ?? null)
   }
 
   function toggleSetStatus() {
@@ -75,16 +80,11 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       return
     }
 
-    if (displayWeight && reps) {
+    if (weightKg && reps) {
       setIsNullWeight(false)
       setIsNullReps(false)
-
-      exerciseSetStore.updateSetValues("weight", weightKg)
-      exerciseSetStore.updateSetValues("reps", reps)
-      exerciseSetStore.updateSetValues("rpe", rpe)
-
-      workoutStore.restartRestTimer(restTime)
-
+      updateSetStore()
+      workoutStore.restartRestTimer(restTimeSetting)
       exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
     } else {
       setIsNullWeight(!displayWeight)
@@ -147,7 +147,8 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 
   function handleRpeChangeText(value: string) {
     if (!value) {
-      setRpeInput(null)
+      // Must set to empty string, a null or undefined will not clear the dropdown
+      setRpeInput("")
       return
     }
 
@@ -185,12 +186,42 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     )
   }
 
+  const renderPreviousSetText = () => {
+    if (!setFromLastWorkout) return "-"
+
+    const weightUnit = userStore.getUserPreference("weightUnit")
+    const prevWeight = new Weight(setFromLastWorkout.weight, WeightUnit.kg, weightUnit)
+
+    let prevSet = `${prevWeight.formattedDisplayWeight(1)} ${weightUnit} x ${
+      setFromLastWorkout.reps
+    }`
+    if (setFromLastWorkout.rpe) {
+      prevSet += ` @ ${setFromLastWorkout.rpe}`
+    }
+
+    return prevSet
+  }
+
+  const copyPreviousSet = () => {
+    if (!setFromLastWorkout) return
+
+    // RPE will not be copied as it should be set by the user
+    handleWeightChangeText(roundToString(setFromLastWorkout.weight, 2, false))
+    handleRepsChangeText(roundToString(setFromLastWorkout.reps, 0, false))
+  }
+
   return (
     <Swipeable renderRightActions={renderRightDelete} rightThreshold={thresholds.swipeableRight}>
       <RowView style={$exerciseSet}>
         <Text text={props.setOrder.toString()} style={[$setOrderColumn, $textAlignCenter]} />
         {/* TODO: Find last set record that is the same set order */}
-        <Text text="N/A" style={[$previousColumn, $textAlignCenter]} />
+        <TouchableOpacity
+          disabled={!setFromLastWorkout}
+          onPress={copyPreviousSet}
+          style={$previousColumn}
+        >
+          <Text text={renderPreviousSetText()} style={$textAlignCenter} />
+        </TouchableOpacity>
         <View style={$weightColumn}>
           <TextField
             status={isNullWeight ? "error" : null}
@@ -217,7 +248,7 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
           />
         </View>
         <View style={$rpeColumn}>
-          <TextField
+          {/* <TextField
             value={rpeInput ?? ""}
             onChangeText={handleRpeChangeText}
             containerStyle={$textFieldContainer}
@@ -225,6 +256,13 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
             autoCorrect={false}
             keyboardType="decimal-pad"
             maxLength={3}
+          /> */}
+          <Dropdown
+            containerStyle={$textFieldContainer}
+            dropdownIcon={<View />}
+            selectedValue={rpeInput}
+            onValueChange={handleRpeChangeText}
+            itemsList={rpeList}
           />
         </View>
         <View style={[$isCompletedColumn, $textAlignCenter]}>
