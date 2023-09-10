@@ -1,9 +1,9 @@
-import { AppLanguage, WeightUnit } from "../constants"
+import { AppLocale, WeightUnit } from "../constants"
 import { ExerciseId, ExerciseRecord, ExerciseSettings } from "./exerciseModel"
 import { WorkoutId } from "./workoutModel"
 
 export interface UserPreferences {
-  appLocale: AppLanguage
+  appLocale: AppLocale
   weightUnit: WeightUnit
   autoRestTimerEnabled: boolean
   restTime: number
@@ -37,7 +37,7 @@ export interface User extends UnregisteredUser {
   preferences: UserPreferences
   avatarUrl?: string
   workoutMetas?: Record<WorkoutId, WorkoutMeta>
-  exerciseHistory: Record<ExerciseId, ExerciseHistory>
+  exerciseHistory?: Record<ExerciseId, ExerciseHistory>
 }
 
 export function isUser(value: unknown): value is User {

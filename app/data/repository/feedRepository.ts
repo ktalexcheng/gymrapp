@@ -1,16 +1,22 @@
 // Repository for feed data
 
 import { FeedItemId, UserFeedItem } from "../model"
-import { BaseRepository } from "./baseRepository"
+import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class FeedRepository extends BaseRepository<UserFeedItem, FeedItemId> {
   constructor(firestoreClient) {
-    super("FeedRepository", firestoreClient, "feeds", "feedItemId")
+    super("FeedRepository", firestoreClient, null, "feedItemId")
   }
 
-  async get(id: string, refresh = false): Promise<UserFeedItem> {
-    const user = super.get(id, refresh)
+  setUserId(userId: string): void {
+    super.setCollectionPath(`feeds/${userId}/feedItems`)
+  }
 
-    return user
+  create(): never {
+    throw new RepositoryError(this.constructor.name, "Method not allowed.")
+  }
+
+  delete(): never {
+    throw new RepositoryError(this.constructor.name, "Method not allowed.")
   }
 }

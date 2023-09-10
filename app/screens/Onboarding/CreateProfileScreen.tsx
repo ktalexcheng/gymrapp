@@ -1,5 +1,5 @@
 import { Avatar, Button, Dropdown, Icon, Screen, Text, TextField } from "app/components"
-import { AppLanguage, WeightUnit } from "app/data/constants"
+import { AppLocale, WeightUnit } from "app/data/constants"
 import { User } from "app/data/model"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
@@ -73,7 +73,7 @@ export const CreateProfileScreen = observer(() => {
         lastName,
         privateAccount,
         preferences: {
-          appLocale: AppLanguage.en_US, // TODO: Default to match system locale
+          appLocale: AppLocale.en_US, // TODO: Default to match system locale
           weightUnit, // TODO: Default to lbs if system locale is en-US
         },
       } as User

@@ -136,7 +136,9 @@ export const UserStoreModel = types
       self.isLoadingProfile = true
 
       try {
-        yield getEnv<RootStoreDependencies>(self).privateUserRepository.create(newUser)
+        const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+        privateUserRepository.setUserId(newUser.userId)
+        yield privateUserRepository.create(newUser)
         self.user = newUser
 
         self.isLoadingProfile = false
@@ -230,9 +232,12 @@ export const UserStoreModel = types
       self.isLoadingProfile = true
 
       try {
-        const { privateUserRepository, feedRepository } = getEnv<RootStoreDependencies>(self)
+        const { privateUserRepository, privateExerciseRepository, feedRepository } =
+          getEnv<RootStoreDependencies>(self)
         feedRepository.setCollectionPath(`feeds/${userId}/feedItems`)
         privateUserRepository.setUserId(userId)
+        privateExerciseRepository.setUserId(userId)
+
         const user = yield privateUserRepository.get(userId, true)
 
         if (user) {
@@ -276,5 +281,14 @@ export const UserStoreModel = types
         console.error("UserStore.updateProfile error:", e)
       }
       console.debug("UserStore.updateProfile done")
+    }),
+    deleteProfile: flow(function* () {
+      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield privateUserRepository.delete(self.userId)
+      } catch (e) {
+        console.error("UserStore.deleteProfile error:", e)
+      }
+      self.invalidateSession()
     }),
   }))

@@ -2,6 +2,7 @@ import firestore from "@react-native-firebase/firestore"
 import {
   ExerciseRepository,
   FeedRepository,
+  PrivateExerciseRepository,
   PrivateUserRepository,
   PublicUserRepository,
   WorkoutRepository,
@@ -29,6 +30,7 @@ export interface RootStoreDependencies {
   publicUserRepository: PublicUserRepository
   activityRepository: ActivityRepository
   exerciseRepository: ExerciseRepository
+  privateExerciseRepository: PrivateExerciseRepository
   workoutRepository: WorkoutRepository
   feedRepository: FeedRepository
 }
@@ -38,6 +40,7 @@ const _rootStore = RootStoreModel.create({}, {
   publicUserRepository: new PublicUserRepository(firestore()),
   activityRepository: new ActivityRepository(firestore()),
   exerciseRepository: new ExerciseRepository(firestore()),
+  privateExerciseRepository: new PrivateExerciseRepository(firestore()),
   workoutRepository: new WorkoutRepository(firestore()),
   feedRepository: new FeedRepository(firestore()),
 } as RootStoreDependencies)

@@ -45,6 +45,7 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
   #cache: RepositoryCache<T> = new Map()
   #cacheLifespan = 1000 * 60 * 5 // 5 minutes in milliseconds
   #getAllCacheKey = "getAll"
+  #repositoryInitialized = false
 
   constructor(
     repositoryId: string,
@@ -53,24 +54,35 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     documentIdField: string,
     fieldNameMap?: { [key: string]: string },
   ) {
-    this.#repositoryId = repositoryId
-    this.#firestoreClient = firestoreClient
-    this.#collectionPath = collectionPath
-    this.#documentIdField = documentIdField
-    this.#firestoreCollection = this.#firestoreClient.collection(this.#collectionPath)
-
     if (fieldNameMap && documentIdField in fieldNameMap) {
       throw new RepositoryError(
         this.#repositoryId,
         `Document ID field ${documentIdField} cannot be renamed in fieldNameMap`,
       )
     }
+
     this.#fieldNameMap = fieldNameMap
+    this.#repositoryId = repositoryId
+    this.#firestoreClient = firestoreClient
+    this.#documentIdField = documentIdField
+
+    // The collection path could be late-bound and left empty at construction time
+    if (collectionPath) this.setCollectionPath(collectionPath)
+  }
+
+  checkRepositoryInitialized() {
+    if (!this.#repositoryInitialized) {
+      throw new RepositoryError(
+        this.#repositoryId,
+        "Repository not initialized. If collection path is late-bound, call setCollectionPath() before using repository methods.",
+      )
+    }
   }
 
   setCollectionPath(collectionPath: string) {
     this.#collectionPath = collectionPath
     this.#firestoreCollection = this.#firestoreClient.collection(collectionPath)
+    this.#repositoryInitialized = true
   }
 
   _renameFields(data: any, map: { [key: string]: string }): any {
@@ -163,11 +175,17 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     return this.#firestoreClient
   }
 
+  get firestoreCollection(): FirebaseFirestoreTypes.CollectionReference {
+    return this.#firestoreCollection
+  }
+
   async createCacheKeyFromString(s: string): Promise<string> {
     return await crypto.digestStringAsync(crypto.CryptoDigestAlgorithm.MD5, s)
   }
 
   async get(id: D, refresh = false): Promise<T> {
+    this.checkRepositoryInitialized()
+
     if (!id) {
       throw new RepositoryError(this.#repositoryId, "No document ID provided for get() method")
     }
@@ -203,6 +221,8 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     afterFieldValue?: string | FirebaseFirestoreTypes.FieldPath,
     beforeFieldValue?: string | FirebaseFirestoreTypes.FieldPath,
   ): Promise<T[]> {
+    this.checkRepositoryInitialized()
+
     if (!orderByField || !limit) {
       throw new RepositoryError(
         this.#repositoryId,
@@ -240,6 +260,8 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
   }
 
   async getMany(ids?: D[], refresh = false): Promise<T[]> {
+    this.checkRepositoryInitialized()
+
     let cacheKey = this.#getAllCacheKey
     if (ids && ids.length > 0) {
       const sortedIds = ids ? ids.sort() : null
@@ -294,6 +316,8 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
   }
 
   async create(data: Partial<T>): Promise<D> {
+    this.checkRepositoryInitialized()
+
     if (!data) {
       throw new RepositoryError(this.#repositoryId, "No data provided for create() method")
     }
@@ -331,6 +355,8 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
   }
 
   async update(id: D, data: Partial<T>, useSetMerge = false): Promise<void> {
+    this.checkRepositoryInitialized()
+
     if (!id) {
       throw new RepositoryError(this.#repositoryId, "No document ID provided for update() method")
     }
@@ -359,6 +385,8 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
   }
 
   async delete(id: D): Promise<void> {
+    this.checkRepositoryInitialized()
+
     if (!id) {
       throw new RepositoryError(this.#repositoryId, "No document ID provided for delete() method")
     }

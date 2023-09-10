@@ -46,8 +46,12 @@ const ExerciseSummary = (props: ExerciseSummaryProps) => {
   return (
     <View style={$exerciseSummaryContainer}>
       <Text preset="bold">{exerciseInfo.exerciseName}</Text>
-      <Text preset="light">{exercise.exerciseNotes}</Text>
-      <Spacer type="vertical" size="small" />
+      {exercise.exerciseNotes && (
+        <>
+          <Text preset="light">{exercise.exerciseNotes}</Text>
+          <Spacer type="vertical" size="small" />
+        </>
+      )}
       {exercise.setsPerformed.map((s, i) => renderSetSummary(s, i))}
     </View>
   )

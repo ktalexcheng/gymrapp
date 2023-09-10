@@ -180,11 +180,14 @@ export const ExerciseStoreModel = types
         console.error("ExerciseStore.uploadExerciseSettings error:", error)
       }
     }),
-    createNewExercise: flow(function* (newExercise: NewExercise) {
+    createPrivateExercise: flow(function* (newExercise: NewExercise) {
       self.isLoading = true
 
       try {
-        yield getEnv(self).exerciseRepository.create(newExercise)
+        yield getEnv(self).exerciseRepository.create({
+          ...newExercise,
+          exerciseSource: ExerciseSource.Private,
+        })
 
         self.isLoading = false
       } catch (e) {

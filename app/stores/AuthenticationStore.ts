@@ -1,7 +1,7 @@
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import { GoogleSignin } from "@react-native-google-signin/google-signin"
 import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
-import { AppLanguage, AuthStoreError, WeightUnit } from "../data/constants"
+import { AppLocale, AuthStoreError, WeightUnit } from "../data/constants"
 import { User } from "../data/model"
 import { Env } from "../utils/expo"
 import { createCustomType } from "./helpers/createCustomType"
@@ -32,7 +32,7 @@ function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.User
     providerId: firebaseUserCred.additionalUserInfo?.providerId ?? "",
     avatarUrl: firebaseUserCred.user?.photoURL ?? "",
     preferences: {
-      appLocale: AppLanguage.en_US, // TODO: Default to match user system setting
+      appLocale: AppLocale.en_US, // TODO: Default to match user system setting
     },
   } as User
 }
@@ -175,14 +175,16 @@ export const AuthenticationStoreModel = types
     setNewLastName(lastName: string) {
       self.newLastName = lastName
     },
-    invalidateSession() {
+    invalidateSession: flow(function* () {
       if (self.firebaseUserCredential) {
-        auth()
-          .signOut()
-          .catch((e) => self.catchAuthError("invalidateSession", e))
+        try {
+          yield auth().signOut()
+        } catch (e) {
+          self.catchAuthError("invalidateSession", e)
+        }
         self.firebaseUserCredential = undefined
       }
-    },
+    }),
     resetAuthError() {
       self.authError = undefined
     },
@@ -196,7 +198,7 @@ export const AuthenticationStoreModel = types
       try {
         yield getEnv<RootStoreDependencies>(self).privateUserRepository.delete(self.userId)
         yield auth().currentUser.delete() // Also signs user out
-        self.invalidateSession()
+        yield self.invalidateSession()
       } catch (error) {
         self.catchAuthError("deleteAccount", error)
       }
@@ -232,7 +234,9 @@ export const AuthenticationStoreModel = types
 
         if (userCred) {
           self.setFirebaseUserCredential(userCred)
-          yield getEnv<RootStoreDependencies>(self).privateUserRepository.create({
+          const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+          privateUserRepository.setUserId(userCred.user.uid)
+          yield privateUserRepository.create({
             userId: userCred.user.uid,
             privateAccount: true,
             email: userCred.user.email,
@@ -240,7 +244,7 @@ export const AuthenticationStoreModel = types
             lastName: self.newLastName,
             providerId: userCred.additionalUserInfo?.providerId ?? "",
             preferences: {
-              appLocale: AppLanguage.en_US, // TODO: Default to match user system setting
+              appLocale: AppLocale.en_US, // TODO: Default to match user system setting
               weightUnit: WeightUnit.kg,
             },
             avatarUrl: null, // TODO: Allow user to upload profile picture

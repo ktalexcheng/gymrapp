@@ -28,7 +28,7 @@ import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { ErrorBoundary } from "./screens/ErrorScreen/ErrorBoundary"
 import { setupReactotron } from "./services/reactotron"
 import { useInitialRootStore } from "./stores"
-import { customFontsToLoad } from "./theme"
+import { customFontsToLoad, nativeBaseTheme } from "./theme"
 import "./utils/ignoreWarnings"
 import * as storage from "./utils/storage"
 
@@ -136,7 +136,7 @@ function App(props: AppProps) {
   // otherwise, we're ready to render the app
   return (
     <GestureHandlerRootView style={$gestureHandlerRootView}>
-      <NativeBaseProvider>
+      <NativeBaseProvider theme={nativeBaseTheme}>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <ErrorBoundary catchErrors={Config.catchErrors}>
             <AppNavigator

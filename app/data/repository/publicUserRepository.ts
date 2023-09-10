@@ -1,5 +1,5 @@
 import { User, UserId } from "../model"
-import { BaseRepository } from "./baseRepository"
+import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class PublicUserRepository extends BaseRepository<User, UserId> {
   constructor(firebaseClient) {
@@ -7,14 +7,14 @@ export class PublicUserRepository extends BaseRepository<User, UserId> {
   }
 
   create(): never {
-    throw new Error("Method not allowed.")
+    throw new RepositoryError(this.constructor.name, "Method not allowed.")
   }
 
   update(): never {
-    throw new Error("Method not allowed.")
+    throw new RepositoryError(this.constructor.name, "Method not allowed.")
   }
 
   delete(): never {
-    throw new Error("Method not allowed.")
+    throw new RepositoryError(this.constructor.name, "Method not allowed.")
   }
 }

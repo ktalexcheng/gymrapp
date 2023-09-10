@@ -68,11 +68,20 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
     this.#userId = userId
   }
 
+  checkRepositoryInitialized(): void {
+    super.checkRepositoryInitialized()
+    if (!this.#userId) {
+      throw new RepositoryError(this.repositoryId, "Repository not initialized with userId")
+    }
+  }
+
   async update(id: UserId, data: Partial<User>, useSetMerge = false): Promise<void> {
     await super.update(id ?? this.#userId, data, useSetMerge)
   }
 
   async uploadAvatar(imagePath: string): Promise<string> {
+    this.checkRepositoryInitialized()
+
     // If imagePath is already a hyperlink, download and reupload to storage
     let imageBlob: Blob
     if (imagePath.startsWith("http")) {
@@ -80,7 +89,7 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
         const response = await fetch(imagePath)
         imageBlob = await response.blob()
       } catch (e) {
-        console.error("PrivateUserRepository.uploadAvatar error getting image:", e)
+        throw new RepositoryError(this.repositoryId, `uploadAvatar error getting image: ${e}`)
       }
     }
 
@@ -105,7 +114,7 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
         )
       },
       (error) => {
-        console.error("PrivateUserRepository.uploadAvatar error:", error)
+        throw new RepositoryError(this.repositoryId, `uploadAvatar error on upload task: ${error}`)
       },
     )
 
@@ -119,6 +128,8 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
   }
 
   async followUser(followeeUserId: UserId): Promise<void> {
+    this.checkRepositoryInitialized()
+
     const userFollowingsDocRef = this.#userFollowsCollection
       .doc(this.#userId)
       .collection(this.#userFollowingsCollectionName)
@@ -137,6 +148,8 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
   }
 
   async unfollowUser(followeeUserId: UserId): Promise<void> {
+    this.checkRepositoryInitialized()
+
     const userFollowingsDocRef = this.#userFollowsCollection
       .doc(this.#userId)
       .collection(this.#userFollowingsCollectionName)

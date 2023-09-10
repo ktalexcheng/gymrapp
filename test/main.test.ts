@@ -1,10 +1,11 @@
-import { ExerciseSetType } from "app/data/constants"
+import { AppLocale, ExerciseSetType, WeightUnit } from "app/data/constants"
 import { ExerciseSet, User } from "app/data/model"
 import * as admin from "firebase-admin"
 import {
   ActivityRepository,
   ExerciseRepository,
   FeedRepository,
+  PrivateExerciseRepository,
   PrivateUserRepository,
   PublicUserRepository,
   WorkoutRepository,
@@ -12,21 +13,32 @@ import {
 import { RootStore, RootStoreModel } from "../app/stores/RootStore"
 
 describe("Main test suite", () => {
-  let rootStore: RootStore
   let firestoreClient: admin.firestore.Firestore
-  const testUserEmail = "jest@test.com"
+  const maxRetries = 5 // For tests that trigger Firebase Functions, we might need to wait for the function to complete
+  const retryDelay = 1000 // ms
 
-  beforeEach(async () => {
-    // Setup connection to Firebase
-    admin.initializeApp()
-    firestoreClient = admin.firestore()
+  const testUserMainEmail = "jest@test.com"
+  const testUser2Email = "jest2@test.com"
+  // rootStoreTestUserMain is its own variable simply because it is used often
+  let rootStoreTestUserMain: RootStore
+  const testUserRootStores = new Map<string, RootStore>()
 
+  const createTestUserAuth = async (email: string) => {
+    const userRecord = await admin.auth().createUser({
+      email,
+      password: "password",
+    })
+    return userRecord.uid
+  }
+
+  const rootStoreFactory = async (firstName, lastName, testUserEmail) => {
     // Setup MST stores
-    rootStore = RootStoreModel.create(
+    const rootStore = RootStoreModel.create(
       {},
       {
         privateUserRepository: new PrivateUserRepository(firestoreClient),
         publicUserRepository: new PublicUserRepository(firestoreClient),
+        privateExerciseRepository: new PrivateExerciseRepository(firestoreClient),
         activityRepository: new ActivityRepository(firestoreClient),
         exerciseRepository: new ExerciseRepository(firestoreClient),
         workoutRepository: new WorkoutRepository(firestoreClient),
@@ -35,26 +47,75 @@ describe("Main test suite", () => {
     )
 
     // Create test user
-    const { authenticationStore: authStore, userStore } = rootStore
-    authStore.setLoginEmail(testUserEmail)
-    authStore.setLoginPassword("password")
-    authStore.setNewFirstName("Jest")
-    authStore.setNewLastName("Test")
-    await authStore.signUpWithEmail()
-    await userStore.loadUserWithId(authStore.userId)
-  })
+    /**
+     * Note: We cannot use the AuthenticationStore to create test users because
+     * the @react-native-firebase/auth library is stateful so we will not be able
+     * to manage multiple users at the same time. Using the firebase-admin library instead.
+     */
+    const { userStore } = rootStore
+    const testUserId = await createTestUserAuth(testUserEmail)
+    await userStore.createNewProfile({
+      userId: testUserId,
+      firstName,
+      lastName,
+      email: testUserEmail,
+      privateAccount: false,
+      providerId: "Jest",
+      preferences: {
+        appLocale: AppLocale.en_US,
+        weightUnit: WeightUnit.kg,
+        autoRestTimerEnabled: false,
+        restTime: 0,
+      },
+      exerciseHistory: {},
+    })
+    await userStore.loadUserWithId(testUserId)
+    testUserRootStores.set(testUserEmail, rootStore)
 
-  afterEach(async () => {
-    // Delete test user
-    const { authenticationStore: authStore, userStore } = rootStore
-    await authStore.deleteAccount()
-    await userStore.invalidateSession()
-  })
+    return rootStore
+  }
 
-  const getTestUserSnapshotData = async () => {
+  const deleteAllDocumentsInCollection = async (collectionPath: string) => {
+    const collectionRef = firestoreClient.collection(collectionPath)
+    const documents = await collectionRef.listDocuments()
+    for (const doc of documents) {
+      await doc.delete()
+    }
+  }
+
+  const testUserCleanup = async (testUserStore: RootStore) => {
+    const { userStore } = testUserStore
+    const userId = userStore.userId
+
+    // Delete user from Firebase Authentication
+    await admin.auth().deleteUser(userId)
+
+    // Delete document in "usersPrivate" collection
+    await userStore.deleteProfile()
+
+    // Delete document in "workouts" collection where byUserId == userID
+    const workouts = await firestoreClient
+      .collection("workouts")
+      .where("byUserId", "==", userId)
+      .get()
+    for (const workoutDoc of workouts.docs) {
+      await workoutDoc.ref.delete()
+    }
+
+    // Delete documents in "feeds/{userId}/feedItems" collection
+    await deleteAllDocumentsInCollection(`feeds/${userId}/feedItems`)
+
+    // Delete documents in "userFollows/{userId}/followers" collection
+    await deleteAllDocumentsInCollection(`userFollows/${userId}/followers`)
+
+    // Delete documents in "userFollows/{userId}/followings" collection
+    await deleteAllDocumentsInCollection(`userFollows/${userId}/followings`)
+  }
+
+  const getUserUsingEmail = async (email: string) => {
     const userSnapshot = await firestoreClient
       .collection("usersPrivate")
-      .where("email", "==", testUserEmail)
+      .where("email", "==", email)
       .limit(1)
       .get()
 
@@ -66,24 +127,77 @@ describe("Main test suite", () => {
     return undefined
   }
 
-  describe("FeedStore", () => {
-    test("FeedStore.refreshFeedItems() should fetch feed items", async () => {
-      const { feedStore, userStore } = rootStore
-      // Get user ID
-      const testUser = await getTestUserSnapshotData()
-      await userStore.loadUserWithId(testUser.userId)
+  const retryExpectAsync = async (expectFn: () => Promise<void>) => {
+    let retries = 0
+    while (retries < maxRetries - 1) {
+      try {
+        console.debug(Date.now(), "retryExpectAsync() attempt:", retries)
+        await expectFn()
+        console.debug(Date.now(), "retryExpectAsync() success")
+        return
+      } catch (e) {
+        retries++
+        await new Promise((resolve) => setTimeout(resolve, retryDelay))
+      }
+    }
 
-      await feedStore.refreshFeedItems()
-      expect(feedStore.feedItems.length).toBeGreaterThan(0)
-      expect(feedStore.feedItems.length).toBeLessThanOrEqual(50)
-      expect(feedStore.feedWorkouts.size).toBeGreaterThan(0)
-      expect(feedStore.feedWorkouts.size).toBeLessThanOrEqual(50)
+    // Do not wrap last retry in try-catch block to capture failures
+    await expectFn()
+  }
+
+  beforeEach(async () => {
+    // Setup connection to Firebase
+    firestoreClient = admin.firestore()
+
+    // Setup MST stores for main test user
+    rootStoreTestUserMain = await rootStoreFactory("Jest", "Test", testUserMainEmail)
+
+    // Create other test users
+    await rootStoreFactory("Jest 2", "Test", testUser2Email)
+  })
+
+  afterEach(async () => {
+    // Delete test user and all other test users
+    for (const testUserStore of testUserRootStores.values()) {
+      await testUserCleanup(testUserStore)
+    }
+  })
+
+  describe("Integration tests", () => {
+    test("When a followee creates a workout, the follower should see it in their feed", async () => {
+      // Let the other test user follow the main test user
+      const { userStore: userStoreTestUser2 } = testUserRootStores.get(testUser2Email)
+      const testUserMain = await getUserUsingEmail(testUserMainEmail)
+      await userStoreTestUser2.followUser(testUserMain.userId)
+
+      // Let main test user create a workout
+      const { workoutStore } = rootStoreTestUserMain
+      workoutStore.startNewWorkout("test")
+      workoutStore.addExercise("test-exercise-id")
+      workoutStore.addSet(0, {
+        setType: ExerciseSetType.Normal,
+        weight: 100,
+        reps: 10,
+        isCompleted: true,
+      } as ExerciseSet)
+      workoutStore.endWorkout()
+      await workoutStore.saveWorkout()
+
+      // Check that the other test user has the workout in their feed
+      const { feedStore: feedStoreTestUser2 } = testUserRootStores.get(testUser2Email)
+      const expectFeedItems = async () => {
+        await feedStoreTestUser2.refreshFeedItems()
+        expect(feedStoreTestUser2.feedItems.length).toBe(1)
+        expect(feedStoreTestUser2.feedWorkouts.size).toBe(1)
+      }
+
+      return retryExpectAsync(expectFeedItems)
     })
   })
 
   describe("WorkoutStore", () => {
-    test.only("WorkoutStore should manage exercises and sets order correctly", () => {
-      const { workoutStore } = rootStore
+    test("WorkoutStore should manage exercises and sets order correctly", () => {
+      const { workoutStore } = rootStoreTestUserMain
       workoutStore.startNewWorkout("test")
       workoutStore.addExercise("test-exercise-id-1")
       workoutStore.addSet(0, {
@@ -114,7 +228,7 @@ describe("Main test suite", () => {
     })
 
     test("WorkoutStore.saveWorkout() should create new workout document and update user workoutMetas and exerciseHistory", async () => {
-      const { workoutStore } = rootStore
+      const { workoutStore } = rootStoreTestUserMain
       workoutStore.startNewWorkout("test")
       workoutStore.addExercise("test-exercise-id")
       workoutStore.addSet(0, {
@@ -126,7 +240,7 @@ describe("Main test suite", () => {
       workoutStore.endWorkout()
       await workoutStore.saveWorkout()
 
-      const userData = await getTestUserSnapshotData()
+      const userData = await getUserUsingEmail(testUserMainEmail)
       // Check workoutMetas has been updated
       expect(Object.keys(userData.workoutMetas).length).toEqual(1)
       Object.entries(userData.workoutMetas).forEach(([_, workoutMeta]) => {
@@ -156,4 +270,15 @@ describe("Main test suite", () => {
       })
     })
   })
+
+  // describe("ExerciseStore", () => {
+  //   test("ExerciseStore.updateExerciseSetting() should update exercise settings", async () => {
+  //     const { exerciseStore } = rootStoreTestUserMain
+
+  //     await exerciseStore.getAllExercises()
+  //     const exerciseId = exerciseStore.allExercises.keys().next().value
+  //     exerciseStore.updateExerciseSetting(exerciseId, "isFavourite", true)
+  //     expect(exerciseStore.allExercises.get(exerciseId).exerciseSettings.isFavourite).toEqual(true)
+  //   }
+  // })
 })

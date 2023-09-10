@@ -1,7 +1,5 @@
 // we always make sure 'react-native' gets included first
-import { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import * as admin from "firebase-admin"
-import { UserRecord } from "firebase-admin/lib/auth/user-record"
 
 declare const tron // eslint-disable-line @typescript-eslint/no-unused-vars
 
@@ -68,37 +66,57 @@ jest.mock("@react-native-firebase/firestore", () => {
   }
 })
 
-jest.mock("@react-native-firebase/auth", () => {
-  let currentUser: UserRecord
-  return {
-    // ...jest.requireActual("@react-native-firebase/auth"),
-    __esModule: true,
-    default: () => ({
-      createUserWithEmailAndPassword: async (email: string, password: string) => {
-        const userRecord = await admin.auth().createUser({
-          email,
-          password,
-        })
-        currentUser = userRecord
+// Do this in setup so it is done only once for all tests
+admin.initializeApp()
 
-        return {
-          user: {
-            uid: userRecord.uid,
-            email: userRecord.email,
-          },
-          additionalUserInfo: {
-            providerId: "jest-mock",
-          },
-        } as FirebaseAuthTypes.UserCredential
-      },
-      signOut: async () => {
-        currentUser = undefined
-      },
-      currentUser: {
-        delete: async () => {
-          await admin.auth().deleteUser(currentUser.uid)
-        },
-      },
-    }),
-  }
-})
+// jest.mock("@react-native-firebase/auth", () => {
+//   return {
+//     // ...jest.requireActual("@react-native-firebase/auth"),
+//     __esModule: true,
+//     default: jest.fn(() => {
+//       let currentUser: UserRecord
+
+//       return {
+//         createUserWithEmailAndPassword: async (email: string, password: string) => {
+//           const userRecord = await admin.auth().createUser({
+//             email,
+//             password,
+//           })
+//           currentUser = userRecord
+
+//           return {
+//             user: {
+//               uid: userRecord.uid,
+//               email: userRecord.email,
+//             },
+//             additionalUserInfo: {
+//               providerId: "jest-mock",
+//             },
+//           } as FirebaseAuthTypes.UserCredential
+//         },
+//         signInWithEmailAndPassword: async (email: string, password: string) => {
+//           const userRecord = await admin.auth().getUserByEmail(email)
+//           currentUser = userRecord
+
+//           return {
+//             user: {
+//               uid: userRecord.uid,
+//               email: userRecord.email,
+//             },
+//             additionalUserInfo: {
+//               providerId: "jest-mock",
+//             },
+//           } as FirebaseAuthTypes.UserCredential
+//         },
+//         signOut: async () => {
+//           currentUser = undefined
+//         },
+//         currentUser: {
+//           delete: async () => {
+//             await admin.auth().deleteUser(currentUser.uid)
+//           },
+//         },
+//       }
+//     }),
+//   }
+// })

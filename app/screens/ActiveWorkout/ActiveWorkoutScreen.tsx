@@ -118,7 +118,7 @@ const RestTimerProgressBar: FC = observer(() => {
 
   return (
     <TouchableOpacity onPress={() => rootNavigation.navigate("RestTimer")}>
-      {workoutStore.restTimeRemaining > 0 ? (
+      {workoutStore.restTimeRunning ? (
         <RowView style={$timeProgressContainer}>
           <View style={$timeProgressRemainingContainer} />
           <Text style={$restTimeDisplayView} numberOfLines={1}>

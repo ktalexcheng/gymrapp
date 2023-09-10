@@ -9,7 +9,7 @@ import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { Swipeable } from "react-native-gesture-handler"
 import { Button, Dropdown, Icon, RowView, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
-import { colors, spacing, thresholds } from "../../theme"
+import { colors, spacing, styles, thresholds } from "../../theme"
 
 export type SetEntryProps = {
   exerciseOrder: number
@@ -210,9 +210,13 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     handleRepsChangeText(roundToString(setFromLastWorkout.reps, 0, false))
   }
 
+  const $exerciseSetCompletion: ViewStyle = {
+    backgroundColor: exerciseSetStore.isCompleted ? colors.success : colors.background,
+  }
+
   return (
     <Swipeable renderRightActions={renderRightDelete} rightThreshold={thresholds.swipeableRight}>
-      <RowView style={$exerciseSet}>
+      <RowView style={[$exerciseSet, $exerciseSetCompletion]}>
         <Text text={props.setOrder.toString()} style={[$setOrderColumn, $textAlignCenter]} />
         {/* TODO: Find last set record that is the same set order */}
         <TouchableOpacity
@@ -227,6 +231,7 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
             status={isNullWeight ? "error" : null}
             value={weightInput ?? ""}
             onChangeText={handleWeightChangeText}
+            inputWrapperStyle={styles.transparentBackground}
             containerStyle={$textFieldContainer}
             textAlign="center"
             autoCorrect={false}
@@ -240,6 +245,7 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
             status={isNullReps ? "error" : null}
             value={repsInput ?? ""}
             onChangeText={handleRepsChangeText}
+            inputWrapperStyle={styles.transparentBackground}
             containerStyle={$textFieldContainer}
             textAlign="center"
             autoCorrect={false}
@@ -248,21 +254,14 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
           />
         </View>
         <View style={$rpeColumn}>
-          {/* <TextField
-            value={rpeInput ?? ""}
-            onChangeText={handleRpeChangeText}
-            containerStyle={$textFieldContainer}
-            textAlign="center"
-            autoCorrect={false}
-            keyboardType="decimal-pad"
-            maxLength={3}
-          /> */}
           <Dropdown
             containerStyle={$textFieldContainer}
-            dropdownIcon={<View />}
+            dropdownIcon={<></>}
             selectedValue={rpeInput}
             onValueChange={handleRpeChangeText}
             itemsList={rpeList}
+            textAlign="center"
+            size="md"
           />
         </View>
         <View style={[$isCompletedColumn, $textAlignCenter]}>
@@ -313,7 +312,6 @@ const $exerciseSet: ViewStyle = {
   justifyContent: "space-around",
   alignItems: "center",
   marginTop: spacing.tiny,
-  backgroundColor: colors.background,
 }
 
 const $textFieldContainer: ViewStyle = {

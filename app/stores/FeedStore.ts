@@ -33,7 +33,7 @@ export const FeedStoreModel = types
   })
   .actions((self) => ({
     loadFeedItems: flow(function* () {
-      console.debug("FeedStore.getFeedItems called")
+      console.debug("FeedStore.loadFeedItems called")
       self.isLoading = true
       const { feedRepository, workoutRepository, publicUserRepository } =
         getEnv<RootStoreDependencies>(self)
@@ -47,7 +47,7 @@ export const FeedStoreModel = types
           self.oldestFeedItemId,
         )
       } catch (e) {
-        console.error("FeedStore.getFeedItems error", e)
+        console.error("FeedStore.loadFeedItems error", e)
       }
       self.feedItems.push(...userFeedItems)
 
@@ -73,6 +73,7 @@ export const FeedStoreModel = types
       }
 
       self.isLoading = false
+      console.debug("FeedStore.loadFeedItems done")
     }),
   }))
   .actions((self) => ({

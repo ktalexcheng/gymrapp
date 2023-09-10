@@ -30,7 +30,7 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
   }
 
   function addExercise() {
-    exerciseStore.createNewExercise({
+    exerciseStore.createPrivateExercise({
       activityName,
       exerciseCat1,
       exerciseCat2,
