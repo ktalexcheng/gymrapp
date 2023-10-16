@@ -1,11 +1,18 @@
+import { DefaultUserPreferences } from "app/data/constants"
+import { Gym, GymDetails, GymId } from "app/data/model"
+import { translate } from "app/i18n"
+import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
+import { getNestedField } from "app/utils/getNestedField"
 import { getTime, startOfWeek } from "date-fns"
+import { LocationObject } from "expo-location"
 import { flow, getEnv, types } from "mobx-state-tree"
+import Toast from "react-native-root-toast"
 import { ExerciseId, User, UserPreferences, Workout, isUser, isWorkout } from "../../app/data/model"
 import { createCustomType } from "./helpers/createCustomType"
 import { RootStoreDependencies } from "./helpers/useStores"
 
 const UserType = createCustomType<User>("User", isUser)
-export const WorkoutType = createCustomType<Workout>("Workout", isWorkout)
+const WorkoutType = createCustomType<Workout>("Workout", isWorkout)
 
 function isEmptyField(value: any) {
   if (value === undefined || value === null || value === "") {
@@ -26,7 +33,6 @@ export const UserStoreModel = types
         workout: WorkoutType,
       }),
     ),
-    isInitializing: true,
     isLoadingProfile: true,
     isLoadingWorkouts: true,
     isNewUser: true,
@@ -35,9 +41,9 @@ export const UserStoreModel = types
     get profileIncomplete() {
       console.debug("UserStore.profileIncomplete called")
       // If store has not been initialized, we cannot reliably determine status
-      // Return true to prevent flashing of the onboarding stack before store can be
+      // Return false to prevent flashing of the onboarding stack before store can be
       // initialized with user data
-      if (self.isInitializing) return false
+      if (self.isLoadingProfile) return false
 
       if (self.isNewUser) return true
       if (self.user === null || self.user === undefined) return true
@@ -73,14 +79,6 @@ export const UserStoreModel = types
       )
       return self.user.email
     },
-    get isPrivate() {
-      if (!self.user) {
-        console.warn("UserStore.isPrivate: User profile not available")
-        return undefined
-      }
-
-      return !!self.user.privateAccount
-    },
     get weeklyWorkoutsCount() {
       const workouts = Array.from(self.workouts.values())
       const weeklyWorkoutsCount = new Map<number, number>()
@@ -110,7 +108,6 @@ export const UserStoreModel = types
       self.userId = undefined
       self.user = undefined
       self.workouts.clear()
-      self.isInitializing = true
       self.isLoadingProfile = true
       self.isLoadingWorkouts = true
       self.isNewUser = true
@@ -139,10 +136,8 @@ export const UserStoreModel = types
         const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
         privateUserRepository.setUserId(newUser.userId)
         yield privateUserRepository.create(newUser)
-        self.user = newUser
 
         self.isLoadingProfile = false
-        self.isInitializing = false
         self.isNewUser = false
       } catch (e) {
         console.error("UserStore.createNewProfile error:", e)
@@ -198,33 +193,10 @@ export const UserStoreModel = types
         console.error("UserStore.unfollowUser error:", e)
       }
     }),
-    getUserPreference(pref: keyof UserPreferences) {
+    getUserLocation: flow(function* () {
       const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
-      return privateUserRepository.getUserPreference(pref)
-    },
-    getSetFromLastWorkout(exerciseId: ExerciseId, setOrder: number) {
-      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
-
-      const exerciseHistory = privateUserRepository.getUserPropFromCacheData(
-        "exerciseHistory",
-      ) as User["exerciseHistory"]
-      if (!exerciseHistory) return null
-
-      // TODO: Even though we define it as a Map, it is not being parsed into a Map
-      // when fetched from Firestore. This is a workaround for now
-      const exerciseHistoryItem = exerciseHistory?.[exerciseId]
-      if (!exerciseHistoryItem) return null
-
-      const workoutsCount = exerciseHistoryItem.performedWorkoutIds.length
-      const latestWorkoutId = exerciseHistoryItem.performedWorkoutIds[workoutsCount - 1]
-      const latestWorkout = self.workouts.get(latestWorkoutId)
-      const lastPerformedSet = latestWorkout.workout.exercises.filter(
-        (e) => e.exerciseId === exerciseId,
-      )[0].setsPerformed?.[setOrder]
-      if (!lastPerformedSet) return null
-
-      return lastPerformedSet
-    },
+      return yield privateUserRepository.getUserLocation()
+    }) as () => Promise<LocationObject>,
   }))
   .actions((self) => ({
     loadUserWithId: flow(function* (userId: string) {
@@ -241,6 +213,7 @@ export const UserStoreModel = types
         const user = yield privateUserRepository.get(userId, true)
 
         if (user) {
+          console.debug("UserStore.loadUserWIthId user:", user)
           self.user = user
           self.isNewUser = false
           yield self.getWorkouts()
@@ -249,7 +222,6 @@ export const UserStoreModel = types
         }
 
         self.isLoadingProfile = false
-        self.isInitializing = false
       } catch (e) {
         console.error("UserStore.loadUserWIthId error:", e)
       }
@@ -259,7 +231,8 @@ export const UserStoreModel = types
     }),
     setUser(user: User) {
       self.isLoadingProfile = true
-      self.user = user
+      console.debug("UserStore.setUser user:", user)
+      self.user = convertFirestoreTimestampToDate(user)
       self.getWorkouts()
       self.isLoadingProfile = false
     },
@@ -290,5 +263,79 @@ export const UserStoreModel = types
         console.error("UserStore.deleteProfile error:", e)
       }
       self.invalidateSession()
+    }),
+    getProp<T>(propPath: string): T {
+      const value = getNestedField(self, propPath) as T
+
+      // Array and Map (object) must not be mutated, so we need to return a copy
+      if (Array.isArray(value)) {
+        console.debug("UserStore.getProp:", propPath, "value is array")
+        return [...value] as T
+      } else if (value instanceof Object) {
+        // TODO: This seems to cause the app to hang
+        console.debug("UserStore.getProp:", propPath, "value is object")
+        return { ...value } as T
+      }
+
+      return value
+    },
+    getUserPreference<T>(pref: keyof UserPreferences): T {
+      const prefPath = `preferences.${pref}`
+      const prefValue = getNestedField(self.user, prefPath)
+      if (prefValue === undefined) {
+        return DefaultUserPreferences[pref] as T
+      }
+      return prefValue as T
+    },
+    getSetFromLastWorkout(exerciseId: ExerciseId, setOrder: number) {
+      const exerciseHistory = getNestedField(
+        self.user,
+        "exerciseHistory",
+      ) as User["exerciseHistory"]
+      if (!exerciseHistory) return null
+
+      const exerciseHistoryItem = exerciseHistory?.[exerciseId]
+      if (!exerciseHistoryItem) return null
+
+      const workoutsCount = exerciseHistoryItem.performedWorkoutIds.length
+      const latestWorkoutId = exerciseHistoryItem.performedWorkoutIds[workoutsCount - 1]
+      const latestWorkout = self.workouts.get(latestWorkoutId)
+      const lastPerformedSet = latestWorkout.workout.exercises.filter(
+        (e) => e.exerciseId === exerciseId,
+      )[0].setsPerformed?.[setOrder]
+      if (!lastPerformedSet) return null
+
+      return lastPerformedSet
+    },
+    isInMyGyms(gymId: GymId) {
+      return !!self.user?.myGyms?.find((myGym) => myGym.gymId === gymId)
+    },
+  }))
+  .actions((self) => ({
+    addToMyGyms: flow(function* (gym: GymDetails) {
+      console.debug("UserStore.addToMyGyms called user:", self.user)
+      if (self.isInMyGyms(gym.gymId)) {
+        Toast.show(translate("gymDetailsScreen.alreadyAddedToMyGymsLabel"), {
+          duration: Toast.durations.SHORT,
+        })
+        return
+      }
+
+      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+      const updatedUser = yield privateUserRepository.addToMyGyms(gym)
+      self.user = updatedUser
+    }),
+    removeFromMyGyms: flow(function* (gym: Gym | GymDetails) {
+      console.debug("UserStore.removeFromMyGyms called user:", self.user)
+      if (!self.isInMyGyms(gym.gymId)) {
+        Toast.show(translate("gymDetailsScreen.alreadyRemovedFromMyGymsLabel"), {
+          duration: Toast.durations.SHORT,
+        })
+        return
+      }
+
+      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+      const updatedUser = yield privateUserRepository.removeFromMyGyms(gym)
+      self.user = updatedUser
     }),
   }))

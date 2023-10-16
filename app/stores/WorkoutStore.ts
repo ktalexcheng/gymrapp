@@ -6,6 +6,7 @@ import { ExerciseSetType, WorkoutVisibility } from "../../app/data/constants"
 import {
   ExercisePerformed,
   ExerciseSet,
+  Gym,
   NewExerciseRecord,
   NewWorkout,
   PersonalRecord,
@@ -70,6 +71,8 @@ const WorkoutStoreModel = types
     lastSetCompletedTime: types.maybe(types.Date),
     workoutTitle: translate("activeWorkoutScreen.newActiveWorkoutTitle"),
     activityId: types.maybe(types.string),
+    performedAtGymId: types.maybe(types.string),
+    performedAtGymName: types.maybe(types.string),
   })
   .views((self) => ({
     get isAllSetsCompleted() {
@@ -113,9 +116,7 @@ const WorkoutStoreModel = types
     get exerciseSummary() {
       const exercisesSummary: ExercisePerformed[] = []
       const exerciseHistory =
-        getEnv<RootStoreDependencies>(self).privateUserRepository.getUserPropFromCacheData(
-          "exerciseHistory",
-        )
+        getEnv<RootStoreDependencies>(self).privateUserRepository.getUserProp("exerciseHistory")
 
       self.exercises.forEach((e) => {
         const exerciseRecord = exerciseHistory && exerciseHistory?.[e.exerciseId]?.personalRecords
@@ -166,6 +167,20 @@ const WorkoutStoreModel = types
       self.restTimeRemaining = 0
       self.exercises = Exercises.create()
       self.workoutTitle = translate("activeWorkoutScreen.newActiveWorkoutTitle")
+      self.performedAtGymId = undefined
+      self.performedAtGymName = undefined
+    },
+    cleanUpWorkout() {
+      // Remove incompleted sets
+      self.exercises.forEach((e) => {
+        e.setsPerformed.forEach((s) => {
+          !s.isCompleted && destroy(s)
+        })
+      })
+    },
+    setGym(gym: Gym) {
+      self.performedAtGymId = gym.gymId
+      self.performedAtGymName = gym.gymName
     },
   }))
   .actions((self) => ({
@@ -192,24 +207,15 @@ const WorkoutStoreModel = types
           return
         }
 
-        // Remove incompleted sets
-        self.exercises.forEach((e) => {
-          e.setsPerformed.forEach((s) => {
-            !s.isCompleted && destroy(s)
-          })
-        })
+        self.cleanUpWorkout()
 
         // console.debug("WorkoutStore.exerciseSummary:", self.exerciseSummary)
+        const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+        const userId = yield privateUserRepository.getUserProp("userId")
+        const privateAccount = yield privateUserRepository.getUserProp("privateAccount")
         const newWorkout = {
-          byUserId:
-            getEnv<RootStoreDependencies>(self).privateUserRepository.getUserPropFromCacheData(
-              "userId",
-            ),
-          visibility: getEnv<RootStoreDependencies>(
-            self,
-          ).privateUserRepository.getUserPropFromCacheData("privateAccount")
-            ? WorkoutVisibility.Private
-            : WorkoutVisibility.Public,
+          byUserId: userId,
+          visibility: privateAccount ? WorkoutVisibility.Private : WorkoutVisibility.Public,
           startTime: self.startTime,
           endTime: self.endTime,
           exercises: self.exerciseSummary,
@@ -253,6 +259,7 @@ const WorkoutStoreModel = types
         )
 
         self.resetWorkout()
+        return workoutId
       } catch (error) {
         console.error("WorkoutStore.saveWorkout error:", error)
       }

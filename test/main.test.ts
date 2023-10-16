@@ -68,6 +68,7 @@ describe("Main test suite", () => {
         restTime: 0,
       },
       exerciseHistory: {},
+      myGyms: [],
     })
     await userStore.loadUserWithId(testUserId)
     testUserRootStores.set(testUserEmail, rootStore)
@@ -271,14 +272,17 @@ describe("Main test suite", () => {
     })
   })
 
-  // describe("ExerciseStore", () => {
-  //   test("ExerciseStore.updateExerciseSetting() should update exercise settings", async () => {
-  //     const { exerciseStore } = rootStoreTestUserMain
+  describe("ExerciseStore", () => {
+    test.only("ExerciseStore.updateExerciseSetting() should update exercise settings", async () => {
+      const { exerciseStore } = rootStoreTestUserMain
+      await exerciseStore.getAllExercises()
 
-  //     await exerciseStore.getAllExercises()
-  //     const exerciseId = exerciseStore.allExercises.keys().next().value
-  //     exerciseStore.updateExerciseSetting(exerciseId, "isFavourite", true)
-  //     expect(exerciseStore.allExercises.get(exerciseId).exerciseSettings.isFavourite).toEqual(true)
-  //   }
-  // })
+      const exerciseId = exerciseStore.allExercises.keys().next().value
+      const exercise = exerciseStore.allExercises.get(exerciseId)
+      expect(exercise.exerciseSettings).toBeUndefined()
+
+      exerciseStore.updateExerciseSetting(exerciseId, "weightUnit", WeightUnit.kg)
+      expect(exercise.exerciseSettings.weightUnit).toEqual(WeightUnit.kg)
+    })
+  })
 })

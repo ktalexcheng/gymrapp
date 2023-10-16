@@ -27,6 +27,10 @@ export interface ButtonProps extends PressableProps {
    */
   text?: TextProps["text"]
   /**
+   * Numbers of button text lines to display and cutoff with ellipsis.
+   */
+  numberOfLines?: TextProps["numberOfLines"]
+  /**
    * Optional options to pass to i18n. Useful for interpolation
    * as well as explicitly setting locale or translation fallbacks.
    */
@@ -77,6 +81,7 @@ export function Button(props: ButtonProps) {
   const {
     tx,
     text,
+    numberOfLines,
     txOptions,
     style: $viewStyleOverride,
     pressedStyle: $pressedViewStyleOverride,
@@ -110,7 +115,13 @@ export function Button(props: ButtonProps) {
         <>
           {!!LeftAccessory && <LeftAccessory style={$leftAccessoryStyle} pressableState={state} />}
 
-          <Text tx={tx} text={text} txOptions={txOptions} style={$textStyle(state)}>
+          <Text
+            tx={tx}
+            text={text}
+            numberOfLines={numberOfLines}
+            txOptions={txOptions}
+            style={$textStyle(state)}
+          >
             {children}
           </Text>
 
@@ -164,7 +175,7 @@ const $viewPresets = {
     { backgroundColor: colors.palette.neutral800 },
   ] as StyleProp<ViewStyle>,
 
-  text: [$baseViewStyle, { backgroundColor: null }] as StyleProp<ViewStyle>,
+  text: [$baseViewStyle, { backgroundColor: null, minHeight: null }] as StyleProp<ViewStyle>,
 }
 
 const $textPresets: Record<Presets, StyleProp<TextStyle>> = {

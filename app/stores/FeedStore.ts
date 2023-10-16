@@ -1,7 +1,9 @@
-import { User, UserFeedItem } from "app/data/model"
+import { User, UserFeedItem, Workout, isWorkout } from "app/data/model"
 import { flow, getEnv, types } from "mobx-state-tree"
-import { WorkoutType } from "./UserStore"
+import { createCustomType } from "./helpers/createCustomType"
 import { RootStoreDependencies } from "./helpers/useStores"
+
+const WorkoutType = createCustomType<Workout>("Workout", isWorkout)
 
 export const FeedStoreModel = types
   .model("FeedStoreModel")

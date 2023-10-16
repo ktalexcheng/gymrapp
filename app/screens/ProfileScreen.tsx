@@ -5,12 +5,12 @@ import { translate } from "app/i18n"
 import { TabScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
-import { format } from "date-fns"
+import { format, milliseconds } from "date-fns"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
 import { FlatList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { SceneMap, TabView } from "react-native-tab-view"
-import { DomainPropType } from "victory-core"
+import { DomainPropType, DomainTuple } from "victory-core"
 import {
   VictoryAxis,
   VictoryBar,
@@ -53,33 +53,77 @@ const UserActivitiesTabScene: FC = observer(() => {
 })
 
 type WeeklyWorkoutChartProps = {
+  // data is a map of week start date (in milliseconds) to number of workouts
   data: Map<number, number>
 }
 
+type VictoryDomainType = {
+  x?: DomainTuple
+  y?: DomainTuple
+}
+
 const WeeklyWorkoutChart: FC<WeeklyWorkoutChartProps> = ({ data }) => {
+  // Constant for date arithmetics
+  const weekAsMilliseconds = milliseconds({ weeks: 1 })
+
+  // data parameter contains the entire data set, but we only want to show the visible data
   const dataKeys = [...data.keys()]
-  // Note: Domain having the same value for left/right bounds will result in a warning,
-  //       (this happens when there is only one data point)
-  //       to workaround this, we pad the domain by one on each side
+  // Construct zoom domain
+  // We want to show a T-8 weeks window of data
+  // If there is < 8 weeks of data, we need still need to set
+  // zoom domain to T-8 weeks for proper bar spacing
+  const maxX = Math.max(...dataKeys)
+  const maxXMinus8Weeks = maxX - weekAsMilliseconds * 8
+  const maxY = Math.max(7, ...data.values())
+  // Domain having the same value for left/right bounds will result in a warning,
+  // (this happens when there is only one data point)
+  // also, we need to pad the domain by a week on both ends to show the first and last bar
   const entireDomain: DomainPropType = {
-    x: [dataKeys[0] - 1, dataKeys[data.size - 1] + 1],
-    y: [0, 7],
+    x: [Math.min(maxXMinus8Weeks, dataKeys[0]) - weekAsMilliseconds, maxX + weekAsMilliseconds],
+    y: [0, maxY],
   }
   const initialZoomDomain: DomainPropType = {
-    x: [dataKeys[Math.max(data.size - 8, 0)] - 1, dataKeys[data.size - 1] + 1],
-    y: [0, 7],
+    x: [maxXMinus8Weeks - weekAsMilliseconds, maxX + weekAsMilliseconds],
+    y: [0, maxY],
   }
-  const [zoomedDomain, setZoomDomain] = useState(initialZoomDomain)
+  const [zoomedDomain, setZoomDomain] = useState<VictoryDomainType>(initialZoomDomain)
+
+  const filterData = (minX, maxX) => {
+    return [...data.entries()].filter(([key]) => {
+      return key >= minX && key <= maxX
+    })
+  }
 
   const getVisibleData = () => {
-    const filteredData = [...data.entries()].filter(([key]) => {
-      return key >= (zoomedDomain.x?.[0] as number) && key <= (zoomedDomain.x?.[1] as number)
-    })
-    const barChartData = filteredData.map(([key, value]) => {
+    const visibleData = filterData(zoomedDomain.x?.[0], zoomedDomain.x?.[1])
+    const barChartData = visibleData.map(([key, value]) => {
       return { weekStartDate: key, workoutsCount: value }
     })
-
     return barChartData
+  }
+
+  const handleZoomDomainChange = (domain: { x: DomainTuple; y: DomainTuple }) => {
+    // Updated zoomed domain for Y axis to match the max value of visible data
+    const visibleData = filterData(domain.x[0], domain.x[1])
+    const maxY = Math.max(7, ...visibleData.map(([, value]) => value))
+    const updatedZoomDomain = {
+      x: domain.x,
+      y: [domain.y[0], maxY] as DomainTuple,
+    }
+    setZoomDomain(updatedZoomDomain)
+  }
+
+  const getXTickValues = () => {
+    const tickValuesX = getVisibleData().map((d) => d.weekStartDate)
+    return tickValuesX
+  }
+
+  const getYTickValues = () => {
+    const tickValuesY = []
+    for (let i = 0; i <= (zoomedDomain.y[1] as number); i++) {
+      tickValuesY.push(i)
+    }
+    return tickValuesY
   }
 
   // Note: VictoryAxis and VictoryBar throws a warning when there is only 1 x-axis domain value
@@ -91,19 +135,17 @@ const WeeklyWorkoutChart: FC<WeeklyWorkoutChartProps> = ({ data }) => {
           responsive={false}
           allowPan={true}
           allowZoom={false}
-          zoomDimension="x"
           zoomDomain={zoomedDomain}
-          onZoomDomainChange={setZoomDomain}
+          onZoomDomainChange={handleZoomDomainChange}
         />
       }
     >
       <VictoryAxis
         tickFormat={(x: number) => format(x, "MM/dd")}
-        tickValues={getVisibleData().map((d) => d.weekStartDate)}
-        domainPadding={{ x: [spacing.tiny, spacing.tiny] }}
-        tickLabelComponent={<VictoryLabel angle={-45} dy={spacing.tiny} dx={-spacing.tiny * 2} />}
+        tickValues={getXTickValues()}
+        tickLabelComponent={<VictoryLabel angle={-45} dy={-spacing.tiny} dx={-spacing.tiny * 4} />}
       />
-      <VictoryAxis dependentAxis tickValues={[1, 2, 3, 4, 5, 6, 7]} />
+      <VictoryAxis dependentAxis tickValues={getYTickValues()} />
       <VictoryBar
         data={getVisibleData()}
         x="weekStartDate"

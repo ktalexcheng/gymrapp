@@ -1,4 +1,5 @@
 import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
+import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import * as crypto from "expo-crypto"
 
 export class RepositoryError extends Error {
@@ -14,7 +15,7 @@ export interface IBaseRepository<T, D> {
   get(id: D, refresh?: boolean): Promise<T>
   getMany(ids?: D[], refresh?: boolean): Promise<T[]>
   create(data: Partial<T>): Promise<D>
-  update(id: D, data: Partial<T>, useSetMerge: boolean): Promise<void>
+  update(id: D, data: Partial<T>, useSetMerge: boolean): Promise<T>
   delete(id: D): Promise<void>
 }
 
@@ -38,7 +39,6 @@ interface RepositoryCache<T> extends Map<string, CacheData<T>> {}
 export class BaseRepository<T, D> implements IBaseRepository<T, D> {
   #repositoryId: string
   #firestoreClient: FirebaseFirestoreTypes.Module
-  #collectionPath: string
   #firestoreCollection: FirebaseFirestoreTypes.CollectionReference
   #documentIdField: string
   #fieldNameMap?: { [key: string]: string }
@@ -80,7 +80,6 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
   }
 
   setCollectionPath(collectionPath: string) {
-    this.#collectionPath = collectionPath
     this.#firestoreCollection = this.#firestoreClient.collection(collectionPath)
     this.#repositoryInitialized = true
   }
@@ -111,25 +110,6 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     this._renameFields(data, reversedFieldNameMap)
   }
 
-  _covertFirestoreTimestampToDate(data: any): any {
-    for (const key in data) {
-      // If a data field type is firestore's Timestamp, perform .toDate() on it
-      // to convert it to a JS Date object
-      // Note: Simpler condition (renamedData[key] instanceof firestore.Timestamp) not used
-      // because it does not work with firebase-admin (used in testing)
-      if (
-        Object.prototype.toString.call(data[key]) === "[object Object]" &&
-        "toDate" in data[key]
-      ) {
-        data[key] = (data[key] as FirebaseFirestoreTypes.Timestamp).toDate()
-      } else if (data[key] instanceof Object) {
-        this._covertFirestoreTimestampToDate(data[key])
-      }
-    }
-
-    return data
-  }
-
   /**
    * Rename data fields if a fieldNameMap is provided, convert firestore Timestamp to JS Date, and include document ID in the data object
    * @param {FirebaseFirestoreTypes.DocumentSnapshot} snapshot Document snapshot from firestore
@@ -140,12 +120,12 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
 
     // Rename data fields if a fieldNameMap is provided
     const renamedData = this.#fieldNameMap ? this._sourceToRepRename(data) : data
-    this._covertFirestoreTimestampToDate(renamedData)
+    const processedData = convertFirestoreTimestampToDate(renamedData)
 
     // Include document ID in the data object
-    const renamedDataWithId = { ...renamedData, [this.#documentIdField]: snapshot.id }
+    const processedDataWithId = { ...processedData, [this.#documentIdField]: snapshot.id }
 
-    return renamedDataWithId
+    return processedDataWithId
   }
 
   _setCacheData(cacheKey: string, cacheData: CacheData<T>) {
@@ -159,7 +139,8 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
       // TODO: Never invalidate cache for now so the condition is always true,
       // but we should implement a way to invalidate cache based on a timestamp
       // e.g. cacheData.timestamp.getTime() + this.#cacheLifespan > new Date.now()
-      if (cacheData.timestamp + this.#cacheLifespan > 0) {
+      // TODO: Always invalidate cache for now
+      if (cacheData.timestamp + this.#cacheLifespan < 0) {
         return cacheData
       }
     }
@@ -264,7 +245,7 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
 
     let cacheKey = this.#getAllCacheKey
     if (ids && ids.length > 0) {
-      const sortedIds = ids ? ids.sort() : null
+      const sortedIds = ids.sort()
       cacheKey = await this.createCacheKeyFromString(sortedIds.join(","))
     }
     if (!refresh) {
@@ -354,7 +335,7 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     }
   }
 
-  async update(id: D, data: Partial<T>, useSetMerge = false): Promise<void> {
+  async update(id: D, data: Partial<T>, useSetMerge = false): Promise<T> {
     this.checkRepositoryInitialized()
 
     if (!id) {
@@ -378,6 +359,8 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
         data,
         type: CacheDataType.Single,
       })
+
+      return data
     } catch (e) {
       console.error("Error updating document with data:", { id, useSetMerge, data, renamedData })
       throw new RepositoryError(this.#repositoryId, `Error updating document: ${e}`)

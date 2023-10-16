@@ -1,6 +1,7 @@
-import { Screen } from "app/components"
+import { Screen, Text } from "app/components"
+import { spacing } from "app/theme"
 import React from "react"
-import { Text, ViewStyle } from "react-native"
+import { ViewStyle } from "react-native"
 
 export const DiscoverScreen = () => {
   return (
@@ -12,6 +13,7 @@ export const DiscoverScreen = () => {
 
 const $container: ViewStyle = {
   flex: 1,
+  padding: spacing.screenPadding,
   justifyContent: "center",
   alignItems: "center",
 }

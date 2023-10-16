@@ -50,7 +50,16 @@
         "backgroundColor": "#191015"
       }
     },
-    "plugins": ["expo-localization", "@react-native-firebase/app"],
+    "plugins": [
+      "expo-localization",
+      "@react-native-firebase/app",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "f5644dcf-c1f4-47a8-b64c-712e94371abb"

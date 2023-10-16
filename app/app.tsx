@@ -20,6 +20,7 @@ import { NativeBaseProvider } from "native-base"
 import React from "react"
 import { ViewStyle } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
+import { RootSiblingParent } from "react-native-root-siblings"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 import Config from "./config"
 import "./i18n"
@@ -137,15 +138,17 @@ function App(props: AppProps) {
   return (
     <GestureHandlerRootView style={$gestureHandlerRootView}>
       <NativeBaseProvider theme={nativeBaseTheme}>
-        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-          <ErrorBoundary catchErrors={Config.catchErrors}>
-            <AppNavigator
-              linking={linking}
-              initialState={initialNavigationState}
-              onStateChange={onNavigationStateChange}
-            />
-          </ErrorBoundary>
-        </SafeAreaProvider>
+        <RootSiblingParent>
+          <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+            <ErrorBoundary catchErrors={Config.catchErrors}>
+              <AppNavigator
+                linking={linking}
+                initialState={initialNavigationState}
+                onStateChange={onNavigationStateChange}
+              />
+            </ErrorBoundary>
+          </SafeAreaProvider>
+        </RootSiblingParent>
       </NativeBaseProvider>
     </GestureHandlerRootView>
   )

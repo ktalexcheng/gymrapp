@@ -1,5 +1,6 @@
 import { AppLocale, WeightUnit } from "../constants"
 import { ExerciseId, ExerciseRecord, ExerciseSettings } from "./exerciseModel"
+import { Gym } from "./gymModel"
 import { WorkoutId } from "./workoutModel"
 
 export interface UserPreferences {
@@ -7,7 +8,7 @@ export interface UserPreferences {
   weightUnit: WeightUnit
   autoRestTimerEnabled: boolean
   restTime: number
-  exerciseSpecificSettings?: Record<ExerciseId, ExerciseSettings>
+  exerciseSpecificSettings?: Map<ExerciseId, ExerciseSettings>
 }
 
 export interface WorkoutMeta {
@@ -29,10 +30,11 @@ export interface ExerciseHistory {
 export type UserId = string
 
 export interface User extends UnregisteredUser {
+  userId: UserId
   firstName: string
   lastName: string
+  myGyms: Gym[]
   privateAccount: boolean
-  userId: UserId
   providerId: string
   preferences: UserPreferences
   avatarUrl?: string
@@ -40,6 +42,7 @@ export interface User extends UnregisteredUser {
   exerciseHistory?: Record<ExerciseId, ExerciseHistory>
 }
 
-export function isUser(value: unknown): value is User {
-  return value && typeof value === "object" && (value as User).userId !== undefined
+export function isUser(value: any): value is User {
+  if (typeof value !== "object") return false
+  return (value as User).userId !== undefined
 }

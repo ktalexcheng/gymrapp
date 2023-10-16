@@ -38,7 +38,6 @@ const EmptyActivityScreen = () => {
   return null
 }
 
-// TODO: Create pop up buttons for new activity, new food entry, or new weight entry
 const NewActivityButton = () => {
   const navigation = useMainNavigation()
   const [modalVisible, setModalVisible] = useState(false)

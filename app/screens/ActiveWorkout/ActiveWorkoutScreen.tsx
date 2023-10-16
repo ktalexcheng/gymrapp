@@ -1,12 +1,16 @@
+import { WorkoutSource } from "app/data/constants"
+import { Gym } from "app/data/model"
+import { useUserLocation } from "app/hooks"
+import { translate } from "app/i18n"
 import { MainStackScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
 import { Modal, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
-import { Icon, RowView, Screen, Text, TextField } from "../../components"
+import { Button, Icon, RowView, Screen, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
-import { colors, fontSize, spacing } from "../../theme"
+import { colors, fontSize, spacing, styles } from "../../theme"
 import { ExerciseEntry } from "./ExerciseEntry"
 
 type SaveWorkoutDialogProps = {
@@ -20,10 +24,10 @@ type SaveWorkoutDialogProps = {
 const SaveWorkoutDialog: FC<SaveWorkoutDialogProps> = function SaveWorkoutDialog(
   props: SaveWorkoutDialogProps,
 ) {
-  const [allSetsCompleted, setAlSetsCompleted] = useState(props.isAllSetsCompleted)
+  const [allSetsCompleted, setAllSetsCompleted] = useState(props.isAllSetsCompleted)
 
   useEffect(() => {
-    setAlSetsCompleted(props.isAllSetsCompleted)
+    setAllSetsCompleted(props.isAllSetsCompleted)
   }, [props.visible, props.isAllSetsCompleted])
 
   const $saveDialogContainer: ViewStyle = {
@@ -73,7 +77,7 @@ const SaveWorkoutDialog: FC<SaveWorkoutDialogProps> = function SaveWorkoutDialog
         ) : (
           <View style={$saveDialog}>
             <Text tx="activeWorkoutScreen.dialogRemoveIncompletedSets" />
-            <TouchableOpacity onPress={() => setAlSetsCompleted(true)}>
+            <TouchableOpacity onPress={() => setAllSetsCompleted(true)}>
               <Text tx="activeWorkoutScreen.confirmRemoveIncompletedSets" />
             </TouchableOpacity>
             <TouchableOpacity onPress={props.onCancel}>
@@ -88,7 +92,7 @@ const SaveWorkoutDialog: FC<SaveWorkoutDialogProps> = function SaveWorkoutDialog
 
 const RestTimerProgressBar: FC = observer(() => {
   const { workoutStore } = useStores()
-  const rootNavigation = useMainNavigation()
+  const mainNavigation = useMainNavigation()
 
   const progressBarWidth = 75
 
@@ -117,7 +121,7 @@ const RestTimerProgressBar: FC = observer(() => {
   }
 
   return (
-    <TouchableOpacity onPress={() => rootNavigation.navigate("RestTimer")}>
+    <TouchableOpacity onPress={() => mainNavigation.navigate("RestTimer")}>
       {workoutStore.restTimeRunning ? (
         <RowView style={$timeProgressContainer}>
           <View style={$timeProgressRemainingContainer} />
@@ -136,12 +140,42 @@ interface ActiveWorkoutScreenProps extends MainStackScreenProps<"ActiveWorkout">
 
 export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
   function ActiveWorkoutScreen({ navigation }) {
-    const { workoutStore, exerciseStore } = useStores()
+    const { userStore, workoutStore, exerciseStore, gymStore } = useStores()
     const [showSaveDialog, setShowSaveDialog] = useState(false)
     const [workoutTitle, setWorkoutTitle] = useState(workoutStore.workoutTitle)
     const [timeElapsed, setTimeElapsed] = useState("00:00:00")
     const [timeSinceLastSet, setTimeSinceLastSet] = useState("00:00")
-    const rootNavigation = useMainNavigation()
+    const mainNavigation = useMainNavigation()
+    const [userLocation, isGettingUserLocation] = useUserLocation()
+    const [gym, setGym] = useState<Gym>()
+
+    useEffect(() => {
+      if (!isGettingUserLocation) {
+        const userMyGyms = userStore.getProp<Gym[]>("user.myGyms")
+        if (userMyGyms && userMyGyms.length > 0) {
+          gymStore
+            .getClosestGym(
+              userLocation,
+              userMyGyms.map((gym) => gym.gymId),
+            )
+            .then((closestGym) => {
+              if (closestGym.gym) {
+                setGym(closestGym.gym)
+                workoutStore.setGym(closestGym.gym)
+              }
+            })
+            .catch((e) => {
+              console.error("ActiveWorkoutScreen.useEffect getClosestGym error:", e)
+            })
+        }
+      }
+    }, [userLocation, isGettingUserLocation])
+
+    useEffect(() => {
+      if (workoutStore.performedAtGymId && workoutStore.performedAtGymName) {
+        setGym({ gymId: workoutStore.performedAtGymId, gymName: workoutStore.performedAtGymName })
+      }
+    }, [workoutStore.performedAtGymId, workoutStore.performedAtGymName])
 
     // @ts-ignore
     useEffect(() => {
@@ -169,20 +203,25 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
       setShowSaveDialog(true)
     }
 
-    function saveWorkout() {
+    async function saveWorkout() {
       workoutStore.endWorkout()
-      workoutStore.saveWorkout()
+      const workoutId = await workoutStore.saveWorkout()
       exerciseStore.uploadExerciseSettings()
       setShowSaveDialog(false)
 
-      // TODO: Navigate to workout summary
-      rootNavigation.navigate("HomeTabNavigator")
+      mainNavigation.reset({
+        index: 1,
+        routes: [
+          { name: "HomeTabNavigator" },
+          { name: "WorkoutSummary", params: { workoutId, workoutSource: WorkoutSource.User } },
+        ],
+      })
     }
 
     function discardWorkout() {
       workoutStore.endWorkout()
       setShowSaveDialog(false)
-      rootNavigation.navigate("HomeTabNavigator")
+      mainNavigation.navigate("HomeTabNavigator")
     }
 
     function cancelEndWorkout() {
@@ -269,7 +308,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
                 name="chevron-down-outline"
                 color="black"
                 size={30}
-                onPress={() => rootNavigation.navigate("HomeTabNavigator")}
+                onPress={() => mainNavigation.navigate("HomeTabNavigator")}
               />
               <RestTimerProgressBar />
             </RowView>
@@ -293,7 +332,18 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
             />
           </RowView>
 
-          {/* TODO: Dynamically update metrics as workout progresses */}
+          <RowView style={styles.alignCenter}>
+            <Icon name="location-sharp" color="black" size={30} />
+            <Button
+              preset="text"
+              numberOfLines={1}
+              textStyle={{}}
+              onPress={() => mainNavigation.navigate("GymPicker")}
+            >
+              {gym ? gym.gymName : translate("activeWorkoutScreen.setCurrentGymLabel")}
+            </Button>
+          </RowView>
+
           <RowView style={$metricsRow}>
             <View style={$metric}>
               <Text tx="activeWorkoutScreen.timeElapsedLabel" style={$metricLabel} />

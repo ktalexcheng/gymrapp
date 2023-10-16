@@ -3,10 +3,10 @@ import { Screen, Spacer, Text } from "app/components"
 import { WorkoutSource } from "app/data/constants"
 import { TabScreenProps } from "app/navigators"
 import { useStores } from "app/stores"
-import { styles } from "app/theme"
+import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
-import { FlatList, View } from "react-native"
+import { FlatList, View, ViewStyle } from "react-native"
 import { WorkoutSummaryCard } from "../FinishedWorkout"
 
 interface FeedScreenProps extends NativeStackScreenProps<TabScreenProps<"Profile">> {}
@@ -56,10 +56,14 @@ export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
 
   return (
     <Screen safeAreaEdges={["top", "bottom"]} style={styles.screenContainer}>
-      <View style={styles.headingContainer}>
+      <View style={$headingContainer}>
         <Text tx="common.appTitle" preset="heading" />
       </View>
       {renderScreen()}
     </Screen>
   )
 })
+
+const $headingContainer: ViewStyle = {
+  marginBottom: spacing.large,
+}

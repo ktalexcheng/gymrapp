@@ -1,4 +1,5 @@
 import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
+import { GoogleMapsPlaceDetails, PlaceId } from "app/services/api"
 import { UserId } from "./userModel"
 
 export interface GymRecord {
@@ -22,12 +23,27 @@ export interface GymLeaderboard {
   volumeRecord: Record<number, VolumeRecord>
 }
 
-export type GymId = string
+export type GymId = PlaceId
 
 export interface Gym {
   gymId: GymId
-  gymLocation: FirebaseFirestoreTypes.GeoPoint
   gymName: string
-  gymMembers: string[]
+}
+
+export interface GymDetails extends Gym {
+  // gymId: GymId
+  // gymName: string
+  googleMapsPlaceDetails: GoogleMapsPlaceDetails
+  gymLocation: FirebaseFirestoreTypes.GeoPoint
+  gymMembersCount: number
   gymLeaderboard: GymLeaderboard
+}
+
+export interface GymSearchResult {
+  gymId: GymId
+  gymName: string
+  gymAddress: string
+  gymMembersCount: number
+  gymIconUrl: string
+  gymIconBackgroundColor: string
 }

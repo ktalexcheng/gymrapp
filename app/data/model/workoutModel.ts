@@ -12,6 +12,8 @@ export interface NewWorkout {
   exercises: ExercisePerformed[]
   workoutTitle: string
   activityId: ActivityId
+  performedAtGymId?: string
+  performedAtGymName?: string
 }
 
 export interface Workout extends NewWorkout {

@@ -1,5 +1,7 @@
 export * from "./exerciseModel"
 export * from "./feedModel"
+export * from "./gymModel"
+export * from "./locationModel"
 export * from "./userFollowModel"
 export * from "./userModel"
 export * from "./workoutModel"

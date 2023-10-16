@@ -1,4 +1,5 @@
 import { WeightUnit } from "app/data/constants"
+import { useExerciseSetting } from "app/hooks/useExerciseSetting"
 import { translate } from "app/i18n"
 import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
 import { observer } from "mobx-react-lite"
@@ -11,22 +12,19 @@ import { useStores } from "../../stores"
 export type ExerciseSettingsProps = {
   exerciseOrder: number
   exerciseId: string
-  // exerciseSettings: ExerciseSettings
 }
 
 export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
   (props: ExerciseSettingsProps) => {
+    const { exerciseId } = props
     const { workoutStore, exerciseStore } = useStores()
-    const exercise = exerciseStore.allExercises.get(props.exerciseId)
-    const weightUnit = exercise.getExerciseSetting("weightUnit")
-
+    const [weightUnitSetting] = useExerciseSetting<WeightUnit>(exerciseId, "weightUnit")
+    const [restTimerEnabledSetting] = useExerciseSetting<boolean>(
+      exerciseId,
+      "autoRestTimerEnabled",
+    )
+    const [restTimeSetting] = useExerciseSetting<number>(exerciseId, "restTime")
     const [page, setPage] = useState("")
-    const [restTimerEnabled, setRestTimerEnabled] = useState(
-      exercise.getExerciseSetting("autoRestTimerEnabled"),
-    )
-    const [restTimeIndex, setRestTimeIndex] = useState(
-      Math.trunc(exercise.getExerciseSetting("restTime") / 5) - 1,
-    )
 
     const restTimeList = Array(60)
       .fill(null)
@@ -39,24 +37,15 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
       })
 
     function updateRestTimerEnabled(status: boolean) {
-      console.debug("ExerciseId", props.exerciseId, "Rest time toggled:", status)
-      exerciseStore.updateExerciseSetting(props.exerciseId, "autoRestTimerEnabled", status)
-      setRestTimerEnabled(status)
+      exerciseStore.updateExerciseSetting(exerciseId, "autoRestTimerEnabled", status)
     }
 
     function updateRestTime(index: number) {
-      console.debug(
-        "ExerciseId",
-        props.exerciseId,
-        "Rest time selected:",
-        restTimeList[index].value,
-      )
-      exerciseStore.updateExerciseSetting(props.exerciseId, "restTime", restTimeList[index].value)
-      setRestTimeIndex(index)
+      exerciseStore.updateExerciseSetting(exerciseId, "restTime", restTimeList[index].value)
     }
 
     function updateWeightUnit(weightUnit: WeightUnit) {
-      exerciseStore.updateExerciseSetting(props.exerciseId, "weightUnit", weightUnit)
+      exerciseStore.updateExerciseSetting(exerciseId, "weightUnit", weightUnit)
     }
 
     function removeExercise() {
@@ -90,19 +79,19 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
                     <HStack justifyContent="space-between">
                       <Text tx="exerciseEntrySettings.restTimerEnabledLabel" />
                       <Switch
-                        isChecked={restTimerEnabled}
+                        isChecked={restTimerEnabledSetting}
                         onToggle={() => {
-                          updateRestTimerEnabled(!restTimerEnabled)
+                          updateRestTimerEnabled(!restTimerEnabledSetting)
                         }}
                       />
                     </HStack>
                     <View>
                       <WheelPickerFlat
-                        enabled={restTimerEnabled}
+                        enabled={restTimerEnabledSetting}
                         items={restTimeList}
                         onIndexChange={updateRestTime}
                         itemHeight={30}
-                        initialScrollIndex={restTimeIndex}
+                        initialScrollIndex={restTimeSetting / 5 - 1}
                       />
                     </View>
                   </Popover.Body>
@@ -124,7 +113,9 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
                         return (
                           <TouchableOpacity onPress={() => updateWeightUnit(item)}>
                             <RowView>
-                              {weightUnit === item ? <Icon name="checkmark" size={16} /> : null}
+                              {weightUnitSetting === item ? (
+                                <Icon name="checkmark" size={16} />
+                              ) : null}
                               <Text>{WeightUnit[item]}</Text>
                             </RowView>
                           </TouchableOpacity>

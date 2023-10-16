@@ -7,6 +7,7 @@ import {
   User,
   UserPreferences,
 } from "app/data/model"
+import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { flow, getEnv, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
@@ -33,19 +34,6 @@ const ExerciseModel = types
     exerciseSettings: types.maybe(ExerciseSettingsModel),
   })
   .actions(withSetPropAction)
-  .actions((self) => ({
-    getExerciseSetting(pref: keyof ExerciseSettings) {
-      const settingValue = self?.exerciseSettings?.[pref]
-
-      // If exercise specific settings is not set, return the default user preference
-      if (settingValue === undefined) {
-        const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
-        return privateUserRepository.getUserPreference(pref)
-      }
-
-      return settingValue
-    },
-  }))
 
 export const ExerciseStoreModel = types
   .model("ExerciseStore")
@@ -79,8 +67,11 @@ export const ExerciseStoreModel = types
   }))
   .actions(withSetPropAction)
   .actions((self) => ({
+    getExercise(exerciseId: string) {
+      return self.allExercises.get(exerciseId)
+    },
     getExerciseName(exerciseId: string) {
-      return self.allExercises.get(exerciseId).exerciseName
+      return self.allExercises.get(exerciseId)?.exerciseName
     },
     setAllExercises(exercises: Exercise[]) {
       self.isLoading = true
@@ -91,6 +82,8 @@ export const ExerciseStoreModel = types
         return
       }
 
+      exercises = convertFirestoreTimestampToDate(exercises)
+
       self.allExercises.clear()
       exercises.forEach((e) => {
         self.allExercises.put(e)
@@ -99,12 +92,13 @@ export const ExerciseStoreModel = types
       self.lastUpdated = new Date()
       self.isLoading = false
     },
-    applyUserSettings() {
+    applyUserSettings: flow(function* () {
       self.isLoading = true
 
-      const exerciseSettings = getEnv<RootStoreDependencies>(
-        self,
-      ).privateUserRepository.getUserPropFromCacheData("preferences.exerciseSpecificSettings")
+      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+      const exerciseSettings = yield privateUserRepository.getUserProp(
+        "preferences.exerciseSpecificSettings",
+      )
 
       // Update exercises with user settings
       if (exerciseSettings) {
@@ -114,7 +108,7 @@ export const ExerciseStoreModel = types
       }
 
       self.isLoading = false
-    },
+    }),
   }))
   .actions((self) => ({
     getAllExercises: flow(function* () {
@@ -149,6 +143,7 @@ export const ExerciseStoreModel = types
 
       const exercise = self.allExercises.get(exerciseId)
       if (!exercise.exerciseSettings) {
+        console.debug("ExerciseStoreModel.updateExerciseSetting: Creating new exerciseSettings")
         exercise.exerciseSettings = ExerciseSettingsModel.create()
       }
       exercise.exerciseSettings.setProp(exerciseSettingsId, exerciseSettingsValue)
@@ -158,7 +153,7 @@ export const ExerciseStoreModel = types
       self.isLoading = true
 
       try {
-        const exerciseSpecificSettings: Map<ExerciseId, ExerciseSettings> = Array.from(
+        const exerciseSpecificSettings: UserPreferences["exerciseSpecificSettings"] = Array.from(
           self.allExercises.values(),
         ).reduce((acc, e) => {
           if (!e.exerciseSettings) acc.set(e.exerciseId, e.exerciseSettings)

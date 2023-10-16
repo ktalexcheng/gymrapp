@@ -33,7 +33,7 @@ export function createCustomType<T>(typeName: string, isT: (value: unknown) => b
     },
     getValidationMessage(value: any) {
       if (isT(value) || value === undefined) return ""
-      return `"${value}" does not look like a ${typeName} type`
+      return `custom type snapshot "${value}" does not look like a ${typeName} type`
     },
   })
 }

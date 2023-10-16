@@ -9,8 +9,8 @@ import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
 function isFirebaseUserCredential(value: any): value is FirebaseAuthTypes.UserCredential {
-  if (value === undefined) return false
-  return (value as FirebaseAuthTypes.UserCredential).user !== undefined
+  if (typeof value !== "object") return false
+  return (value as any).user !== undefined
 }
 
 const FirebaseUserCredentialType = createCustomType<FirebaseAuthTypes.UserCredential>(
@@ -247,7 +247,7 @@ export const AuthenticationStoreModel = types
               appLocale: AppLocale.en_US, // TODO: Default to match user system setting
               weightUnit: WeightUnit.kg,
             },
-            avatarUrl: null, // TODO: Allow user to upload profile picture
+            avatarUrl: null,
           } as User)
         }
 

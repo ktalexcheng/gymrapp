@@ -20,7 +20,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
   const { workoutStore, exerciseStore } = useStores()
   const thisExercise = workoutStore.exercises.at(props.exerciseOrder)
   const setsPerformed = thisExercise.setsPerformed
-  const exerciseName = exerciseStore.allExercises.get(props.exerciseId).exerciseName
+  const exerciseName = exerciseStore.getExerciseName(props.exerciseId)
   const weightUnitTx = useWeightUnitTx(props.exerciseId)
 
   function addSet() {

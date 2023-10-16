@@ -1,7 +1,7 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { RowView, Screen, Spacer, TabBar, Text } from "app/components"
 import { WeightUnit } from "app/data/constants"
-import { ExerciseRecord } from "app/data/model"
+import { ExerciseRecord, WorkoutId } from "app/data/model"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
@@ -17,7 +17,10 @@ import { WorkoutSummaryCard } from "../FinishedWorkout"
 const WorkoutHistoryTabScene = (exerciseId: string) =>
   observer(() => {
     const { userStore } = useStores()
-    const exerciseHistory = userStore.user?.exerciseHistory?.[exerciseId]?.performedWorkoutIds
+    // const exerciseHistory = userStore.user?.exerciseHistory?.[exerciseId]?.performedWorkoutIds
+    const exerciseHistory = userStore.getProp<WorkoutId[]>(
+      `user.exerciseHistory.${exerciseId}.performedWorkoutIds`,
+    )
 
     if (!exerciseHistory) return <Text tx="exerciseDetailsScreen.noExerciseHistoryFound" />
 
@@ -46,9 +49,13 @@ const WorkoutHistoryTabScene = (exerciseId: string) =>
 const PersonalRecordsTabScene = (exerciseId: string) =>
   observer(() => {
     const { userStore } = useStores()
+    const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
     const weightUnitTx = useWeightUnitTx()
-    const personalRecords = userStore.user?.exerciseHistory?.[exerciseId]
-      ?.personalRecords as ExerciseRecord
+    // const personalRecords = userStore.user?.exerciseHistory?.[exerciseId]
+    //   ?.personalRecords as ExerciseRecord
+    const personalRecords = userStore.getProp<ExerciseRecord>(
+      `user.exerciseHistory.${exerciseId}.personalRecords`,
+    )
 
     if (!personalRecords) return <Text tx="exerciseDetailsScreen.noExerciseHistoryFound" />
 
@@ -77,11 +84,7 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
         {Object.entries(sortedPersonalRecords).map(([reps, records]) => {
           const recordsCount = records.length
           const bestRecord = records[recordsCount - 1]
-          const weight = new Weight(
-            bestRecord.weight,
-            WeightUnit.kg,
-            userStore.getUserPreference("weightUnit"),
-          )
+          const weight = new Weight(bestRecord.weight, WeightUnit.kg, userWeightUnit)
 
           return (
             <RowView key={`${exerciseId}_${reps}`} style={$recordItem}>
@@ -100,7 +103,7 @@ type ExerciseDetailsScreenProps = NativeStackScreenProps<MainStackParamList, "Ex
 export const ExerciseDetailsScreen: FC = observer(({ route }: ExerciseDetailsScreenProps) => {
   const exerciseId = route.params.exerciseId
   const { exerciseStore } = useStores()
-  const exercise = exerciseStore.allExercises.get(exerciseId)
+  const exerciseName = exerciseStore.getExerciseName(exerciseId)
   const [tabIndex, setTabIndex] = useState(0)
 
   if (exerciseStore.isLoading) return null
@@ -135,7 +138,7 @@ export const ExerciseDetailsScreen: FC = observer(({ route }: ExerciseDetailsScr
 
   return (
     <Screen safeAreaEdges={["bottom"]} contentContainerStyle={$screenContentContainer}>
-      <Text preset="heading">{exercise.exerciseName}</Text>
+      <Text preset="heading">{exerciseName}</Text>
       <TabView
         navigationState={{ index: tabIndex, routes }}
         renderScene={renderScene}

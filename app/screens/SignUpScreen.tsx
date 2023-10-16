@@ -112,7 +112,7 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
         containerStyle={$textField}
         autoCapitalize="words"
         autoCorrect={false}
-        labelTx="signUpScreen.firstNameLabel"
+        labelTx="common.firstName"
         onSubmitEditing={() => newLastNameInputRef.current?.focus()}
       />
 
@@ -123,7 +123,7 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
         containerStyle={$textField}
         autoCapitalize="words"
         autoCorrect={false}
-        labelTx="signUpScreen.lastNameLabel"
+        labelTx="common.lastName"
         onSubmitEditing={() => newEmailInputRef.current?.focus()}
       />
 

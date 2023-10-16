@@ -1,5 +1,7 @@
 import { WeightUnit } from "app/data/constants"
+import { ExerciseSet } from "app/data/model"
 import { useWeight } from "app/hooks"
+import { useExerciseSetting } from "app/hooks/useExerciseSetting"
 import { translate } from "app/i18n"
 import { roundToString } from "app/utils/formatNumber"
 import { Weight } from "app/utils/weight"
@@ -22,18 +24,17 @@ export type SetEntryProps = {
 }
 
 export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
-  const { workoutStore, exerciseStore, userStore } = useStores()
+  const { workoutStore, userStore } = useStores()
   const { exerciseId, exerciseOrder, setOrder } = props
   // Current exercise set
   const exerciseSetStore = workoutStore.exercises.at(exerciseOrder).setsPerformed[setOrder]
 
   // Set from previous workout
-  const setFromLastWorkout = userStore.getSetFromLastWorkout(exerciseId, setOrder)
+  const setFromLastWorkout = userStore.getSetFromLastWorkout(exerciseId, setOrder) as ExerciseSet
 
   // Exercise settings
-  const exercise = exerciseStore.allExercises.get(exerciseId)
-  const restTimeSetting = exercise.getExerciseSetting("restTime")
-  const weightUnitSetting = exercise.getExerciseSetting("weightUnit")
+  const [restTimeSetting] = useExerciseSetting<number>(exerciseId, "restTime")
+  const [weightUnitSetting] = useExerciseSetting<WeightUnit>(exerciseId, "weightUnit")
 
   // States
   const [isNullWeight, setIsNullWeight] = useState(false)
@@ -47,9 +48,9 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   )
   const [reps, setReps] = useState<number>(exerciseSetStore.reps)
   const [rpe, setRpe] = useState<number>(exerciseSetStore.rpe)
-  const [weightInput, setWeightInput] = useState<string>(roundToString(displayWeight, 2, false))
-  const [repsInput, setRepsInput] = useState<string>(reps?.toString())
-  const [rpeInput, setRpeInput] = useState<string>(rpe?.toString())
+  const [weightInput, setWeightInput] = useState<string>("")
+  const [repsInput, setRepsInput] = useState<string>("")
+  const [rpeInput, setRpeInput] = useState<string>("")
   const rpeList = Array.from({ length: 9 }, (_, i) => {
     const rpe = 6 + 0.5 * i
     return {
@@ -66,6 +67,9 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 
   useEffect(() => {
     updateSetStore()
+    setWeightInput(roundToString(displayWeight, 2, false))
+    setRepsInput(reps?.toString())
+    setRpeInput(rpe?.toString())
   }, [displayWeight, reps, rpe])
 
   function updateSetStore() {
@@ -189,10 +193,9 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const renderPreviousSetText = () => {
     if (!setFromLastWorkout) return "-"
 
-    const weightUnit = userStore.getUserPreference("weightUnit")
-    const prevWeight = new Weight(setFromLastWorkout.weight, WeightUnit.kg, weightUnit)
+    const prevWeight = new Weight(setFromLastWorkout.weight, WeightUnit.kg, weightUnitSetting)
 
-    let prevSet = `${prevWeight.formattedDisplayWeight(1)} ${weightUnit} x ${
+    let prevSet = `${prevWeight.formattedDisplayWeight(1)} ${weightUnitSetting} x ${
       setFromLastWorkout.reps
     }`
     if (setFromLastWorkout.rpe) {
@@ -218,7 +221,6 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     <Swipeable renderRightActions={renderRightDelete} rightThreshold={thresholds.swipeableRight}>
       <RowView style={[$exerciseSet, $exerciseSetCompletion]}>
         <Text text={props.setOrder.toString()} style={[$setOrderColumn, $textAlignCenter]} />
-        {/* TODO: Find last set record that is the same set order */}
         <TouchableOpacity
           disabled={!setFromLastWorkout}
           onPress={copyPreviousSet}

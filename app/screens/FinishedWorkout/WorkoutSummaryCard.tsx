@@ -24,6 +24,7 @@ export const WorkoutSummaryCard: FC = (props: WorkoutSummaryCardProps) => {
   const { exerciseStore, userStore } = useStores()
   const mainNavigation = useMainNavigation()
   const weightUnitTx = useWeightUnitTx()
+  const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
 
   const $workoutItemHeader: ViewStyle = {
     justifyContent: "space-between",
@@ -39,7 +40,7 @@ export const WorkoutSummaryCard: FC = (props: WorkoutSummaryCardProps) => {
     <TouchableOpacity
       onPress={() => mainNavigation.navigate("WorkoutSummary", { workoutId, workoutSource })}
     >
-      <View style={styles.listItem}>
+      <View style={styles.listItemContainer}>
         {byUser && (
           <RowView style={$byUserHeader}>
             <Avatar user={byUser} size="sm" />
@@ -56,11 +57,7 @@ export const WorkoutSummaryCard: FC = (props: WorkoutSummaryCardProps) => {
           <Text preset="bold">{translate("common.bestSet") + ` (${translate(weightUnitTx)})`}</Text>
         </RowView>
         {workout.exercises.map((e, i) => {
-          const bestWeight = new Weight(
-            e.maxWeightSet.weight,
-            WeightUnit.kg,
-            userStore.getUserPreference("weightUnit"),
-          )
+          const bestWeight = new Weight(e.maxWeightSet.weight, WeightUnit.kg, userWeightUnit)
 
           let bestSet = `${bestWeight.formattedDisplayWeight(1)} x ${e.maxWeightSet.reps}`
           if (e.maxWeightSet.rpe) {

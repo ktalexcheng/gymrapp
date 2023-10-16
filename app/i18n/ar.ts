@@ -12,6 +12,9 @@ const ar: Translations = {
     kg: "",
     lbs: "",
     appTitle: "",
+    leaderboard: "",
+    firstName: "",
+    lastName: "",
   },
   welcomeScreen: {
     postscript:
@@ -32,12 +35,11 @@ const ar: Translations = {
       button: "لنحاول هذا مرّة أخرى",
     },
   },
-  onboarding: undefined,
   tabNavigator: undefined,
   signInScreen: undefined,
   signUpScreen: undefined,
   profileScreen: undefined,
-  userSettingsScreen: undefined,
+  editProfileForm: undefined,
   newActivityScreen: undefined,
   activeWorkoutScreen: undefined,
   exerciseDetailsScreen: undefined,
@@ -45,6 +47,10 @@ const ar: Translations = {
   exerciseEntrySettings: undefined,
   feedScreen: undefined,
   restTimerScreen: undefined,
+  userSettingsScreen: undefined,
+  createNewGymScreen: undefined,
+  gymSearchScreen: undefined,
+  gymDetailsScreen: undefined,
 }
 
 export default ar

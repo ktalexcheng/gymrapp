@@ -10,6 +10,9 @@ const en = {
     kg: "kg",
     lbs: "lbs",
     appTitle: "GymRapp",
+    leaderboard: "Leaderboard",
+    firstName: "First name",
+    lastName: "Last name",
   },
   welcomeScreen: {
     postscript:
@@ -29,13 +32,6 @@ const en = {
       content: "No data found yet. Try clicking the button to refresh or reload the app.",
       button: "Let's try this again",
     },
-  },
-  onboarding: {
-    personaTypeLabel: "Are you a coach?",
-    onboardingTitle: "Create your profile",
-    uploadAvatarTitle: "Set your avatar",
-    uploadAvatarPlaceholder: "Choose a picture",
-    createProfile: "I'm done, let's go!",
   },
   tabNavigator: {
     feedTab: "Feed",
@@ -69,8 +65,6 @@ const en = {
     passwordFieldPlaceholder: "Super secret password here",
     confirmPasswordFieldPlaceholder: "Type your password again",
     passwordMismatchLabel: "Passwords do not match",
-    firstNameLabel: "First name",
-    lastNameLabel: "Last name",
   },
   feedScreen: {
     emptyFeed: "Start following people to see their workouts here",
@@ -84,15 +78,36 @@ const en = {
     noActivityhistory: "No activity history",
     coachsCenterButtonLabel: "Coach's Center",
   },
-  userSettingsScreen: {
+  editProfileForm: {
+    editProfileTitle: "Create your profile",
+    personaTypeLabel: "Are you a coach?",
+    uploadAvatarLabel: "Set your avatar",
+    uploadAvatarPlaceholder: "Choose a picture",
+    myGymsLabel: "My gyms",
+    myGymsDescription: "Add gyms you frequently visit to your profile",
+    addGymButtonLabel: "Add gym",
     preferencesSectionLabel: "Preferences",
     privateAccountTitle: "Private account",
     privateAccountDescription:
       "Private account activity is only visible to friends. Activities must be performed with a public profile to participate in the leaderboard.",
+    weightUnitLabel: "Weight unit",
+    appLocaleLabel: "App language",
+    autoRestTimerLabel: "Auto rest timer",
+    autoRestTimerDescription: "Automatically start rest timer after each set.",
+    defaultRestTimeLabel: "Default rest time",
+    defaultRestTimeSelectorLabel: "Select default rest time:",
+    saveProfileChanges: "Save changes",
+    alertDialogTitle: "Discard changes?",
+    alertDialogDiscardChangesMessage:
+      "There are unsaved changes. Are you sure you want to discard them?",
+    alertDialogResume: "Keep editing",
+    alertDialogDiscard: "Discard",
+  },
+  userSettingsScreen: {
+    logout: "Logout",
     deleteAccount: "Delete account",
     deleteAccountConfirmationMessage:
       "This will remove all user data. This action cannot be reversed. Are you sure?",
-    weightUnitLabel: "Weight unit",
   },
   newActivityScreen: {
     startNewWorkoutText: "Start new workout",
@@ -103,6 +118,7 @@ const en = {
   },
   activeWorkoutScreen: {
     newActiveWorkoutTitle: "New workout",
+    setCurrentGymLabel: "Set current gym",
     finishWorkoutButton: "Finish",
     setOrderColumnHeader: "Set",
     previousColumnHeader: "Prev",
@@ -155,6 +171,45 @@ const en = {
     createSupersetLabel: "Create superset",
     removeExerciseLabel: "Remove exercise",
     weightUnitLabel: "Weight unit",
+  },
+  createNewGymScreen: {
+    createNewGymTitle: "Create a new gym",
+    gymNameLabel: "Gym name",
+    gymNamePlaceholder: "Enter gym name",
+    gymLocationLabel: "Gym address",
+    gymLocationPlaceholder: "Enter gym address",
+    createNewGymButtonLabel: "Create gym",
+    checkingGymExistsLabel: "Checking if gym exists...",
+    gymsNearYouLabel: "Gyms near you",
+    noGymsFoundLabel: "No gyms found around your area",
+    gettingUserLocationLabel: "Getting current location...",
+    locationPermissionRequiredLabel: "Location permission is required",
+    locationPermissionRequiredMessage:
+      "Location permission is required to verify gym location. Please enable location permission in your device settings.",
+  },
+  gymPickerScreen: {
+    gymPickerTitle: "Select the gym you are at",
+    selectFromMyGymsLabel: "Your favorite gyms",
+    emptyMyGymsLabel: "You have no favorite gyms",
+    searchForGymLabel: "Search for gyms",
+    gettingUserLocationLabel: "Getting current location...",
+    locationTooFarMessage:
+      "Your location seems too far from this gym, is this the right gym? You must be within 500 meters of the gym to check in.",
+  },
+  gymSearchScreen: {
+    gymSearchTitle: "Search for gyms",
+    searchBarPlaceholder: "Gym name",
+    moreCharactersRequiredLabel: "Enter at least 3 characters",
+    searchingGymsLabel: "Searching for gyms...",
+    noGymsFoundLabel: "No gyms found",
+    notWhatYouAreLookingForLabel: "Not what you are looking for?",
+    createNewGymButtonLabel: "Create a new gym",
+  },
+  gymDetailsScreen: {
+    addToMyGymsLabel: "Add to my gyms",
+    removeFromMyGymsLabel: "Remove from my gyms",
+    alreadyAddedToMyGymsLabel: "Already added to my gyms",
+    alreadyRemovedFromMyGymsLabel: "Already removed from my gyms",
   },
 }
 

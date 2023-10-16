@@ -3,6 +3,7 @@ import { ActivityStoreModel } from "./ActivityStore"
 import { AuthenticationStoreModel } from "./AuthenticationStore"
 import { ExerciseStoreModel } from "./ExerciseStore"
 import { FeedStoreModel } from "./FeedStore"
+import { GymStoreModel } from "./GymStore"
 import { UserStoreModel } from "./UserStore"
 import { WorkoutStoreModel } from "./WorkoutStore"
 /**
@@ -15,6 +16,7 @@ export const RootStoreModel = types.model("RootStore").props({
   workoutStore: types.optional(WorkoutStoreModel, {}),
   exerciseStore: types.optional(ExerciseStoreModel, {}),
   feedStore: types.optional(FeedStoreModel, {}),
+  gymStore: types.optional(GymStoreModel, {}),
 })
 
 /**

@@ -8,11 +8,13 @@ import {
   ExerciseDetailsScreen,
   ExerciseManagerScreen,
   ExercisePickerScreen,
+  GymPickerScreen,
   NewWorkoutScreen,
   RestTimerScreen,
   UserSettingsScreen,
   WorkoutSummaryScreen,
 } from "app/screens"
+import { CreateNewGymScreen, GymDetailsScreen, GymSearchScreen } from "app/screens/Gym"
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React, { useEffect } from "react"
@@ -24,6 +26,7 @@ export type MainStackParamList = {
   HomeTabNavigator: undefined
   NewWorkout: undefined
   ActiveWorkout: undefined
+  GymPicker: undefined
   ExercisePicker: undefined
   CreateExercise: undefined
   RestTimer: undefined
@@ -32,6 +35,9 @@ export type MainStackParamList = {
   UserSettings: undefined
   WorkoutSummary: { workoutId: string; workoutSource: WorkoutSource }
   OnboardingNavigator: undefined
+  GymSearch: undefined
+  CreateNewGym: { searchString: string }
+  GymDetails: { gymId: string }
 }
 
 export type MainStackScreenProps<T extends keyof MainStackParamList> = NativeStackScreenProps<
@@ -102,12 +108,12 @@ export const MainNavigator = observer(function MainNavigator() {
       initialRouteName={"HomeTabNavigator"}
     >
       <MainStack.Screen name="OnboardingNavigator" component={OnboardingNavigator} />
-
       <MainStack.Screen name="HomeTabNavigator" component={HomeTabNavigator} />
 
       <MainStack.Group>
         <MainStack.Screen name="NewWorkout" component={NewWorkoutScreen} />
         <MainStack.Screen name="ActiveWorkout" component={ActiveWorkoutScreen} />
+        <MainStack.Screen name="GymPicker" component={GymPickerScreen} />
         <MainStack.Screen
           name="ExercisePicker"
           options={{ headerShown: true }}
@@ -135,6 +141,24 @@ export const MainNavigator = observer(function MainNavigator() {
           name="ExerciseDetails"
           options={{ headerShown: true }}
           component={ExerciseDetailsScreen}
+        />
+      </MainStack.Group>
+
+      <MainStack.Group>
+        <MainStack.Screen
+          name="GymSearch"
+          options={{ headerShown: true }}
+          component={GymSearchScreen}
+        />
+        <MainStack.Screen
+          name="CreateNewGym"
+          options={{ headerShown: true }}
+          component={CreateNewGymScreen}
+        />
+        <MainStack.Screen
+          name="GymDetails"
+          options={{ headerShown: true }}
+          component={GymDetailsScreen}
         />
       </MainStack.Group>
 

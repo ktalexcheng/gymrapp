@@ -1,7 +1,8 @@
-import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
+import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import storage, { FirebaseStorageTypes } from "@react-native-firebase/storage"
-import { DefaultUserPreferences } from "../constants"
-import { User, UserFollowing, UserId } from "../model"
+import { getNestedField } from "app/utils/getNestedField"
+import * as Location from "expo-location"
+import { Gym, GymDetails, User, UserFollowing, UserId } from "../model"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class PrivateUserRepository extends BaseRepository<User, UserId> {
@@ -16,52 +17,15 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
     this.#userFollowsCollection = this.firestoreClient.collection(this.#userFollowsCollectionName)
   }
 
-  getUserPropFromCacheData(propPath: string): any {
-    const cacheData = this.getCacheData(this.#userId)
-    if (!cacheData) return null
-
-    const keys = propPath.split(".")
-    let prop = cacheData.data as unknown
-    for (const key of keys) {
-      if (prop === null || prop === undefined) {
-        console.warn(
-          `PrivateUserRepository.getUserPropFromCacheData warning: Invalid propPath or cache data: ${propPath}`,
-        )
-        return undefined
-      }
-
-      if (prop instanceof Map) {
-        if (prop.has(key)) {
-          prop = prop.get(key)
-        } else {
-          // console.warn(
-          //   `PrivateUserRepository.getUserPropFromCacheData warning: Invalid key ${key} in propPath: ${propPath}`,
-          // )
-          return undefined
-        }
-      } else if (prop instanceof Object) {
-        if (key in prop) {
-          prop = prop[key]
-        } else {
-          // console.warn(
-          //   `PrivateUserRepository.getUserPropFromCacheData warning: Invalid key ${key} in propPath: ${propPath}`,
-          // )
-          return undefined
-        }
-      }
-    }
-
-    return prop
-  }
-
-  getUserPreference(pref: keyof typeof DefaultUserPreferences) {
-    const prefPath = `preferences.${pref}`
-    const prefValue = this.getUserPropFromCacheData(prefPath)
-    if (prefValue === undefined) {
-      return DefaultUserPreferences[pref]
-    }
-
-    return prefValue
+  /**
+   * Retrieves the value of a property in the user document
+   * Primarily for sharing user properties across different stores (other than UserStore)
+   * @param propPath Dot-notation path to the property, e.g. "preferences.restTime"
+   * @returns Value of the property, or undefined if the property does not exist
+   */
+  async getUserProp(propPath: string): Promise<any> {
+    const user = await this.get(this.#userId, false)
+    return getNestedField(user, propPath)
   }
 
   setUserId(userId: string): void {
@@ -75,8 +39,8 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
     }
   }
 
-  async update(id: UserId, data: Partial<User>, useSetMerge = false): Promise<void> {
-    await super.update(id ?? this.#userId, data, useSetMerge)
+  async update(id: UserId, data: Partial<User>, useSetMerge = false): Promise<User> {
+    return await super.update(id ?? this.#userId, data, useSetMerge)
   }
 
   async uploadAvatar(imagePath: string): Promise<string> {
@@ -165,5 +129,73 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
     } catch (e) {
       throw new RepositoryError(this.repositoryId, `unfollowUser error: ${e}`)
     }
+  }
+
+  async getUserLocation() {
+    console.debug("PrivateUserRepository.getUserLocation called")
+    const { status } = await Location.requestForegroundPermissionsAsync()
+    if (status !== Location.PermissionStatus.GRANTED) {
+      console.debug("PrivateUserRepository.getUserLocation status !== granted")
+      return undefined
+    }
+
+    const location = await Location.getCurrentPositionAsync({})
+    return location
+  }
+
+  async addToMyGyms(gym: GymDetails) {
+    const userUpdate = {
+      myGyms: firestore.FieldValue.arrayUnion({ gymId: gym.gymId, gymName: gym.gymName }),
+    }
+
+    try {
+      await this.firestoreClient.runTransaction(async (tx) => {
+        tx.update(this.firestoreCollection.doc(this.#userId), userUpdate)
+
+        const gymMembersCollection = this.firestoreClient
+          .collection("gyms")
+          .doc(gym.gymId)
+          .collection("gymMembers")
+        tx.set(gymMembersCollection.doc(this.#userId), {
+          dateAdded: firestore.FieldValue.serverTimestamp(),
+        })
+      })
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `addToMyGyms error: ${e}`)
+    }
+
+    // Do not include the final read operation in the transaction
+    // See: https://firebase.google.com/docs/firestore/manage-data/transactions#transactions
+    const updatedUser = await this.get(this.#userId, true)
+    console.debug("addToMyGyms updatedUser:", updatedUser)
+    console.debug("addToMyGyms new cached data:", this.getCacheData(this.#userId))
+    return updatedUser
+  }
+
+  async removeFromMyGyms(gym: Gym | GymDetails) {
+    const userUpdate = {
+      myGyms: firestore.FieldValue.arrayRemove({ gymId: gym.gymId, gymName: gym.gymName }),
+    }
+
+    try {
+      await this.firestoreClient.runTransaction(async (tx) => {
+        tx.update(this.firestoreCollection.doc(this.#userId), userUpdate)
+
+        const gymMembersCollection = this.firestoreClient
+          .collection("gyms")
+          .doc(gym.gymId)
+          .collection("gymMembers")
+        tx.delete(gymMembersCollection.doc(this.#userId))
+      })
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `removeFromMyGyms error: ${e}`)
+    }
+
+    // Do not include the final read operation in the transaction
+    // See: https://firebase.google.com/docs/firestore/manage-data/transactions#transactions
+    const updatedUser = await this.get(this.#userId, true)
+    console.debug("removeFromMyGyms updatedUser:", updatedUser)
+    console.debug("removeFromMyGyms new cached data:", this.getCacheData(this.#userId))
+    return updatedUser
   }
 }

@@ -54,10 +54,22 @@ export const styles = StyleSheet.create({
   flex3: {
     flex: 3,
   },
-  headingContainer: {
-    marginBottom: spacing.small,
+  flex4: {
+    flex: 4,
   },
-  listItem: {
+  flex5: {
+    flex: 5,
+  },
+  alignCenter: {
+    alignItems: "center",
+  },
+  textAlignCenter: {
+    textAlign: "center",
+  },
+  justifyCenter: {
+    justifyContent: "center",
+  },
+  listItemContainer: {
     borderColor: colors.separator,
     borderRadius: 10,
     borderWidth: 1,
@@ -65,5 +77,8 @@ export const styles = StyleSheet.create({
   },
   screenContainer: {
     padding: spacing.screenPadding,
+  },
+  formFieldTopMargin: {
+    marginTop: spacing.large,
   },
 })

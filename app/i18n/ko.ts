@@ -12,6 +12,9 @@ const ko: Translations = {
     kg: "",
     lbs: "",
     appTitle: "",
+    leaderboard: "",
+    firstName: "",
+    lastName: "",
   },
   welcomeScreen: {
     postscript:
@@ -32,12 +35,11 @@ const ko: Translations = {
       button: "다시 시도해봅시다",
     },
   },
-  onboarding: undefined,
   tabNavigator: undefined,
   signInScreen: undefined,
   signUpScreen: undefined,
   profileScreen: undefined,
-  userSettingsScreen: undefined,
+  editProfileForm: undefined,
   newActivityScreen: undefined,
   activeWorkoutScreen: undefined,
   exerciseDetailsScreen: undefined,
@@ -45,6 +47,10 @@ const ko: Translations = {
   exerciseEntrySettings: undefined,
   feedScreen: undefined,
   restTimerScreen: undefined,
+  userSettingsScreen: undefined,
+  createNewGymScreen: undefined,
+  gymSearchScreen: undefined,
+  gymDetailsScreen: undefined,
 }
 
 export default ko

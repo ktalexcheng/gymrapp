@@ -44,6 +44,7 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
       <Text tx="addExerciseScreen.disclaimer" preset="formHelper" />
       <Spacer type="vertical" size="massive" />
       <Dropdown
+        size="md"
         onValueChange={selectType}
         labelTx="addExerciseScreen.activityName"
         itemsList={exerciseStore.allExerciseTypes.map((type) => {
@@ -51,6 +52,7 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
         })}
       />
       <Dropdown
+        size="md"
         onValueChange={selectSubtype}
         labelTx="addExerciseScreen.exerciseCategory"
         itemsList={exerciseStore.allExerciseSubtypes.map((subtype) => {
@@ -58,6 +60,7 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
         })}
       />
       <Dropdown
+        size="md"
         onValueChange={selectCategory}
         labelTx="addExerciseScreen.exerciseSubCategory"
         itemsList={exerciseStore.allExerciseCategories.map((category) => {

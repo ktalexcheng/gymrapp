@@ -61,11 +61,11 @@ const AppStack = observer(function AppStack() {
   async function onAuthStateChanged(user) {
     // Update authentication and user data
     if (user) {
-      console.debug("onAuthStateChanged valid user:", user)
+      console.debug("onAuthStateChanged received valid user")
       authStore.setFirebaseUser(user)
       userStore.loadUserWithId(authStore.userId)
     } else {
-      console.debug("onAuthStateChanged invalid user, invalidating session")
+      console.debug("onAuthStateChanged received invalid user, invalidating session")
       authStore.invalidateSession()
       userStore.invalidateSession()
     }
