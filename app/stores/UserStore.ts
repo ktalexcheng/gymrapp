@@ -114,9 +114,9 @@ export const UserStoreModel = types
     },
     uploadUserAvatar: flow<string, [imagePath: string]>(function* (imagePath: string) {
       try {
-        const avatarUrl = yield getEnv<RootStoreDependencies>(
-          self,
-        ).privateUserRepository.uploadAvatar(imagePath)
+        const avatarUrl = yield getEnv<RootStoreDependencies>(self).userRepository.uploadAvatar(
+          imagePath,
+        )
 
         return avatarUrl
       } catch (e) {
@@ -133,9 +133,9 @@ export const UserStoreModel = types
       self.isLoadingProfile = true
 
       try {
-        const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
-        privateUserRepository.setUserId(newUser.userId)
-        yield privateUserRepository.create(newUser)
+        const { userRepository } = getEnv<RootStoreDependencies>(self)
+        userRepository.setUserId(newUser.userId)
+        yield userRepository.create(newUser)
 
         self.isLoadingProfile = false
         self.isNewUser = false
@@ -177,25 +177,35 @@ export const UserStoreModel = types
       }
       console.debug("UserStore.getWorkouts done")
     }),
+    getForeignUser: flow(function* (userId: string) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      const user = yield userRepository.get(userId, false)
+      return user
+    }),
     followUser: flow(function* (followeeUserId: string) {
-      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
       try {
-        yield privateUserRepository.followUser(followeeUserId)
+        yield userRepository.followUser(followeeUserId)
       } catch (e) {
         console.error("UserStore.followUser error:", e)
       }
     }),
     unfollowUser: flow(function* (followeeUserId: string) {
-      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
       try {
-        yield privateUserRepository.unfollowUser(followeeUserId)
+        yield userRepository.unfollowUser(followeeUserId)
       } catch (e) {
         console.error("UserStore.unfollowUser error:", e)
       }
     }),
+    isFollowingUser: flow(function* (followeeUserId: string) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      const isFollowing = yield userRepository.isFollowingUser(followeeUserId)
+      return isFollowing
+    }),
     getUserLocation: flow(function* () {
-      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
-      return yield privateUserRepository.getUserLocation()
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      return yield userRepository.getUserLocation()
     }) as () => Promise<LocationObject>,
   }))
   .actions((self) => ({
@@ -204,13 +214,13 @@ export const UserStoreModel = types
       self.isLoadingProfile = true
 
       try {
-        const { privateUserRepository, privateExerciseRepository, feedRepository } =
+        const { userRepository, privateExerciseRepository, feedRepository } =
           getEnv<RootStoreDependencies>(self)
         feedRepository.setCollectionPath(`feeds/${userId}/feedItems`)
-        privateUserRepository.setUserId(userId)
+        userRepository.setUserId(userId)
         privateExerciseRepository.setUserId(userId)
 
-        const user = yield privateUserRepository.get(userId, true)
+        const user = yield userRepository.get(userId, true)
 
         if (user) {
           console.debug("UserStore.loadUserWIthId user:", user)
@@ -241,11 +251,7 @@ export const UserStoreModel = types
       self.isLoadingProfile = true
 
       try {
-        yield getEnv<RootStoreDependencies>(self).privateUserRepository.update(
-          null,
-          userUpdate,
-          true,
-        )
+        yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, true)
         self.user = { ...self.user, ...userUpdate }
         yield self.getWorkouts()
 
@@ -256,9 +262,9 @@ export const UserStoreModel = types
       console.debug("UserStore.updateProfile done")
     }),
     deleteProfile: flow(function* () {
-      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
       try {
-        yield privateUserRepository.delete(self.userId)
+        yield userRepository.delete(self.userId)
       } catch (e) {
         console.error("UserStore.deleteProfile error:", e)
       }
@@ -321,8 +327,8 @@ export const UserStoreModel = types
         return
       }
 
-      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
-      const updatedUser = yield privateUserRepository.addToMyGyms(gym)
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      const updatedUser = yield userRepository.addToMyGyms(gym)
       self.user = updatedUser
     }),
     removeFromMyGyms: flow(function* (gym: Gym | GymDetails) {
@@ -334,8 +340,8 @@ export const UserStoreModel = types
         return
       }
 
-      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
-      const updatedUser = yield privateUserRepository.removeFromMyGyms(gym)
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      const updatedUser = yield userRepository.removeFromMyGyms(gym)
       self.user = updatedUser
     }),
   }))

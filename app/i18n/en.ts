@@ -13,6 +13,15 @@ const en = {
     leaderboard: "Leaderboard",
     firstName: "First name",
     lastName: "Last name",
+    search: {
+      inputPlaceholder: "Search for something",
+      moreCharactersRequiredMessage: "Enter at least 3 characters",
+      isSearchingMessage: "Searching...",
+      noResultsFoundMessage: "No results found",
+    },
+    activities: "Activities",
+    followers: "Followers",
+    following: "Following",
   },
   welcomeScreen: {
     postscript:
@@ -210,6 +219,23 @@ const en = {
     removeFromMyGymsLabel: "Remove from my gyms",
     alreadyAddedToMyGymsLabel: "Already added to my gyms",
     alreadyRemovedFromMyGymsLabel: "Already removed from my gyms",
+  },
+  discoverScreen: {
+    discoverTitle: "Discover",
+    allCategoriesLabel: "All",
+    usersCategoryLabel: "Users",
+    gymsCategoryLabel: "Gyms",
+    searchPlaceholder: "Search for something",
+    isSearchingMessage: "Searching...",
+    noResultsFoundMessage: "No results found",
+  },
+  profileVisitorViewScreen: {
+    dateJoinedLabel: "Date joined",
+    followButtonLabel: "Follow",
+    unfollowButtonLabel: "Unfollow",
+    followRequestSentMessage: "Follow request sent",
+    followRequestAcceptedMessage: "You have rejected this user's follow request",
+    followRequestRejectedMessage: "You have rejected this user's follow request",
   },
 }
 

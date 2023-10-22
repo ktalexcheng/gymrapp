@@ -4,8 +4,7 @@ import {
   FeedRepository,
   GymRepository,
   PrivateExerciseRepository,
-  PrivateUserRepository,
-  PublicUserRepository,
+  UserRepository,
   WorkoutRepository,
 } from "app/data/repository"
 import { ActivityRepository } from "app/data/repository/activityRepository"
@@ -27,8 +26,7 @@ import { setupRootStore } from "./setupRootStore"
  * instantiating it, although that should be rare.
  */
 export interface RootStoreDependencies {
-  privateUserRepository: PrivateUserRepository
-  publicUserRepository: PublicUserRepository
+  userRepository: UserRepository
   activityRepository: ActivityRepository
   exerciseRepository: ExerciseRepository
   privateExerciseRepository: PrivateExerciseRepository
@@ -39,8 +37,7 @@ export interface RootStoreDependencies {
 
 const _firestoreClient = firestore()
 const _rootStore = RootStoreModel.create({}, {
-  privateUserRepository: new PrivateUserRepository(_firestoreClient),
-  publicUserRepository: new PublicUserRepository(_firestoreClient),
+  userRepository: new UserRepository(_firestoreClient),
   activityRepository: new ActivityRepository(_firestoreClient),
   exerciseRepository: new ExerciseRepository(_firestoreClient),
   privateExerciseRepository: new PrivateExerciseRepository(_firestoreClient),

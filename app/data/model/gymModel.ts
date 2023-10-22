@@ -1,8 +1,9 @@
 import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { GoogleMapsPlaceDetails, PlaceId } from "app/services/api"
+import { baseMetadata } from "./baseModel"
 import { UserId } from "./userModel"
 
-export interface GymRecord {
+export interface GymRecord extends baseMetadata {
   rank: number
   holderUid: UserId
   date: Date
@@ -25,7 +26,7 @@ export interface GymLeaderboard {
 
 export type GymId = PlaceId
 
-export interface Gym {
+export interface Gym extends baseMetadata {
   gymId: GymId
   gymName: string
 }

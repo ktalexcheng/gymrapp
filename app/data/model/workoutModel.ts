@@ -1,10 +1,11 @@
 import { ActivityId } from "./activityModel"
+import { baseMetadata } from "./baseModel"
 import { ExercisePerformed } from "./exerciseModel"
 import { UserId } from "./userModel"
 
 export type WorkoutId = string
 
-export interface NewWorkout {
+export interface NewWorkout extends baseMetadata {
   byUserId: UserId
   visibility: string
   startTime: Date

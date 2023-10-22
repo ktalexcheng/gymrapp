@@ -10,6 +10,7 @@ import {
   ExercisePickerScreen,
   GymPickerScreen,
   NewWorkoutScreen,
+  ProfileVisitorViewScreen,
   RestTimerScreen,
   UserSettingsScreen,
   WorkoutSummaryScreen,
@@ -38,6 +39,7 @@ export type MainStackParamList = {
   GymSearch: undefined
   CreateNewGym: { searchString: string }
   GymDetails: { gymId: string }
+  ProfileVisitorView: { userId: string }
 }
 
 export type MainStackScreenProps<T extends keyof MainStackParamList> = NativeStackScreenProps<
@@ -65,7 +67,7 @@ export const MainNavigator = observer(function MainNavigator() {
 
     // Listen to database update
     const userSubscriber = firestore()
-      .collection("usersPrivate")
+      .collection("users")
       .doc(authStore.userId)
       .onSnapshot(
         (snapshot) => {
@@ -172,6 +174,7 @@ export const MainNavigator = observer(function MainNavigator() {
         options={{ headerShown: true }}
         component={WorkoutSummaryScreen}
       />
+      <MainStack.Screen name="ProfileVisitorView" component={ProfileVisitorViewScreen} />
     </MainStack.Navigator>
   )
 })

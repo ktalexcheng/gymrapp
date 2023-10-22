@@ -3,29 +3,27 @@ import {
   ActivityRepository,
   ExerciseRepository,
   FeedRepository,
-  PrivateUserRepository,
-  PublicUserRepository,
+  UserRepository,
   WorkoutRepository,
 } from "../../app/data/repository"
 import { RootStoreModel } from "../../app/stores/RootStore"
-import { createNewUserFollows } from "./utils/createNewUserFollows"
-import { createWorkoutsFromStrongExport } from "./utils/createWorkoutsFromStrongExport"
+import { createNewUserFollows } from "../utils/createNewUserFollows"
+import { createWorkoutsFromStrongExport } from "../utils/createWorkoutsFromStrongExport"
 
-describe("Create sample workouts", () => {
+// Only leveraging the test framework to easily run these scripts
+describe.skip("Create sample workouts", () => {
   let rootStore
   let firestoreClient
 
   beforeEach(() => {
     // Setup connection to Firebase
-    admin.initializeApp()
     firestoreClient = admin.firestore()
 
     // Setup MST stores
     rootStore = RootStoreModel.create(
       {},
       {
-        privateUserRepository: new PrivateUserRepository(firestoreClient),
-        publicUserRepository: new PublicUserRepository(firestoreClient),
+        userRepository: new UserRepository(firestoreClient),
         activityRepository: new ActivityRepository(firestoreClient),
         exerciseRepository: new ExerciseRepository(firestoreClient),
         workoutRepository: new WorkoutRepository(firestoreClient),
@@ -34,16 +32,16 @@ describe("Create sample workouts", () => {
     )
   })
 
-  test.skip("Create sample workouts", async () => {
+  test("Create sample workouts", async () => {
     await createWorkoutsFromStrongExport(
       firestoreClient,
       rootStore,
-      "/Users/alexcheng/AppDev/gymrapp/test/data/sample_workouts.csv",
+      "/Users/alexcheng/AppDev/gymrapp/test/data/sample_workouts_strong.csv",
       "user2@test.com",
     )
   })
 
-  test.skip("Test fan-out on follow", async () => {
+  test("Test fan-out on follow", async () => {
     await createNewUserFollows(firestoreClient, rootStore, "user@test.com", "user2@test.com")
   })
 })

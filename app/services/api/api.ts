@@ -8,7 +8,7 @@
 import functions, { FirebaseFunctionsTypes } from "@react-native-firebase/functions"
 import { ApisauceInstance, create } from "apisauce"
 import { AppLocale } from "app/data/constants"
-import { GymSearchResult, LatLongCoords } from "app/data/model"
+import { GymSearchResult, LatLongCoords, UserSearchResult } from "app/data/model"
 import { getDistance } from "geolib"
 import Config from "../../config"
 import type {
@@ -95,6 +95,19 @@ export class Api {
     } catch (e) {
       console.error("searchGyms error:", e)
       throw new Error("Error searching gyms.")
+    }
+  }
+
+  async searchUsers(query: string): Promise<UserSearchResult[]> {
+    try {
+      const users = await this.firebaseFunctionsClient.httpsCallable("userSearchByString")({
+        searchString: query,
+      })
+      const searchResult = users.data as UserSearchResult[]
+      return searchResult
+    } catch (e) {
+      console.error("searchUsers error:", e)
+      throw new Error("Error searching users.")
     }
   }
 

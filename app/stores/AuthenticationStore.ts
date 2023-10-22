@@ -196,7 +196,7 @@ export const AuthenticationStoreModel = types
     },
     deleteAccount: flow(function* () {
       try {
-        yield getEnv<RootStoreDependencies>(self).privateUserRepository.delete(self.userId)
+        yield getEnv<RootStoreDependencies>(self).userRepository.delete(self.userId)
         yield auth().currentUser.delete() // Also signs user out
         yield self.invalidateSession()
       } catch (error) {
@@ -234,9 +234,9 @@ export const AuthenticationStoreModel = types
 
         if (userCred) {
           self.setFirebaseUserCredential(userCred)
-          const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
-          privateUserRepository.setUserId(userCred.user.uid)
-          yield privateUserRepository.create({
+          const { userRepository } = getEnv<RootStoreDependencies>(self)
+          userRepository.setUserId(userCred.user.uid)
+          yield userRepository.create({
             userId: userCred.user.uid,
             privateAccount: true,
             email: userCred.user.email,
@@ -273,7 +273,7 @@ export const AuthenticationStoreModel = types
 
         if (userCred.additionalUserInfo.isNewUser) {
           const user = createUserFromFirebaseUserCred(userCred)
-          getEnv<RootStoreDependencies>(self).privateUserRepository.create(user)
+          getEnv<RootStoreDependencies>(self).userRepository.create(user)
         }
 
         self.isAuthenticating = false

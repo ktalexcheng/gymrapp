@@ -1,16 +1,34 @@
-import { AppLocale, ExerciseSetType, WeightUnit } from "app/data/constants"
+import { ExerciseSetType, WeightUnit } from "app/data/constants"
 import { ExerciseSet, User } from "app/data/model"
 import * as admin from "firebase-admin"
+import { firestore } from "firebase-admin"
 import {
   ActivityRepository,
   ExerciseRepository,
   FeedRepository,
   PrivateExerciseRepository,
-  PrivateUserRepository,
-  PublicUserRepository,
+  UserRepository,
   WorkoutRepository,
 } from "../app/data/repository"
 import { RootStore, RootStoreModel } from "../app/stores/RootStore"
+import { createNewUser } from "./utils/createNewUser"
+import { deleteCollection } from "./utils/deleteCollection"
+import { retryExpectAsync } from "./utils/retryExpectAsync"
+
+const getUserUsingEmail = async (firestoreClient: firestore.Firestore, email: string) => {
+  const userSnapshot = await firestoreClient
+    .collection("users")
+    .where("email", "==", email)
+    .limit(1)
+    .get()
+
+  if (!userSnapshot.empty) {
+    const userDoc = userSnapshot.docs[0]
+    return userDoc.data() as User
+  }
+
+  return undefined
+}
 
 describe("Main test suite", () => {
   let firestoreClient: admin.firestore.Firestore
@@ -23,21 +41,12 @@ describe("Main test suite", () => {
   let rootStoreTestUserMain: RootStore
   const testUserRootStores = new Map<string, RootStore>()
 
-  const createTestUserAuth = async (email: string) => {
-    const userRecord = await admin.auth().createUser({
-      email,
-      password: "password",
-    })
-    return userRecord.uid
-  }
-
-  const rootStoreFactory = async (firstName, lastName, testUserEmail) => {
+  const rootStoreFactory = async (firestoreClient, firstName, lastName, testUserEmail) => {
     // Setup MST stores
     const rootStore = RootStoreModel.create(
       {},
       {
-        privateUserRepository: new PrivateUserRepository(firestoreClient),
-        publicUserRepository: new PublicUserRepository(firestoreClient),
+        userRepository: new UserRepository(firestoreClient),
         privateExerciseRepository: new PrivateExerciseRepository(firestoreClient),
         activityRepository: new ActivityRepository(firestoreClient),
         exerciseRepository: new ExerciseRepository(firestoreClient),
@@ -52,36 +61,10 @@ describe("Main test suite", () => {
      * the @react-native-firebase/auth library is stateful so we will not be able
      * to manage multiple users at the same time. Using the firebase-admin library instead.
      */
-    const { userStore } = rootStore
-    const testUserId = await createTestUserAuth(testUserEmail)
-    await userStore.createNewProfile({
-      userId: testUserId,
-      firstName,
-      lastName,
-      email: testUserEmail,
-      privateAccount: false,
-      providerId: "Jest",
-      preferences: {
-        appLocale: AppLocale.en_US,
-        weightUnit: WeightUnit.kg,
-        autoRestTimerEnabled: false,
-        restTime: 0,
-      },
-      exerciseHistory: {},
-      myGyms: [],
-    })
-    await userStore.loadUserWithId(testUserId)
+    await createNewUser(rootStore, testUserEmail, firstName, lastName)
     testUserRootStores.set(testUserEmail, rootStore)
 
     return rootStore
-  }
-
-  const deleteAllDocumentsInCollection = async (collectionPath: string) => {
-    const collectionRef = firestoreClient.collection(collectionPath)
-    const documents = await collectionRef.listDocuments()
-    for (const doc of documents) {
-      await doc.delete()
-    }
   }
 
   const testUserCleanup = async (testUserStore: RootStore) => {
@@ -91,7 +74,7 @@ describe("Main test suite", () => {
     // Delete user from Firebase Authentication
     await admin.auth().deleteUser(userId)
 
-    // Delete document in "usersPrivate" collection
+    // Delete document in "users" collection
     await userStore.deleteProfile()
 
     // Delete document in "workouts" collection where byUserId == userID
@@ -104,46 +87,13 @@ describe("Main test suite", () => {
     }
 
     // Delete documents in "feeds/{userId}/feedItems" collection
-    await deleteAllDocumentsInCollection(`feeds/${userId}/feedItems`)
+    await deleteCollection(firestoreClient, `feeds/${userId}/feedItems`)
 
     // Delete documents in "userFollows/{userId}/followers" collection
-    await deleteAllDocumentsInCollection(`userFollows/${userId}/followers`)
+    await deleteCollection(firestoreClient, `userFollows/${userId}/followers`)
 
-    // Delete documents in "userFollows/{userId}/followings" collection
-    await deleteAllDocumentsInCollection(`userFollows/${userId}/followings`)
-  }
-
-  const getUserUsingEmail = async (email: string) => {
-    const userSnapshot = await firestoreClient
-      .collection("usersPrivate")
-      .where("email", "==", email)
-      .limit(1)
-      .get()
-
-    if (!userSnapshot.empty) {
-      const userDoc = userSnapshot.docs[0]
-      return userDoc.data() as User
-    }
-
-    return undefined
-  }
-
-  const retryExpectAsync = async (expectFn: () => Promise<void>) => {
-    let retries = 0
-    while (retries < maxRetries - 1) {
-      try {
-        console.debug(Date.now(), "retryExpectAsync() attempt:", retries)
-        await expectFn()
-        console.debug(Date.now(), "retryExpectAsync() success")
-        return
-      } catch (e) {
-        retries++
-        await new Promise((resolve) => setTimeout(resolve, retryDelay))
-      }
-    }
-
-    // Do not wrap last retry in try-catch block to capture failures
-    await expectFn()
+    // Delete documents in "userFollows/{userId}/following" collection
+    await deleteCollection(firestoreClient, `userFollows/${userId}/following`)
   }
 
   beforeEach(async () => {
@@ -151,10 +101,15 @@ describe("Main test suite", () => {
     firestoreClient = admin.firestore()
 
     // Setup MST stores for main test user
-    rootStoreTestUserMain = await rootStoreFactory("Jest", "Test", testUserMainEmail)
+    rootStoreTestUserMain = await rootStoreFactory(
+      firestoreClient,
+      "Jest",
+      "Test",
+      testUserMainEmail,
+    )
 
     // Create other test users
-    await rootStoreFactory("Jest 2", "Test", testUser2Email)
+    await rootStoreFactory(firestoreClient, "Jest 2", "Test", testUser2Email)
   })
 
   afterEach(async () => {
@@ -168,7 +123,7 @@ describe("Main test suite", () => {
     test("When a followee creates a workout, the follower should see it in their feed", async () => {
       // Let the other test user follow the main test user
       const { userStore: userStoreTestUser2 } = testUserRootStores.get(testUser2Email)
-      const testUserMain = await getUserUsingEmail(testUserMainEmail)
+      const testUserMain = await getUserUsingEmail(firestoreClient, testUserMainEmail)
       await userStoreTestUser2.followUser(testUserMain.userId)
 
       // Let main test user create a workout
@@ -192,7 +147,14 @@ describe("Main test suite", () => {
         expect(feedStoreTestUser2.feedWorkouts.size).toBe(1)
       }
 
-      return retryExpectAsync(expectFeedItems)
+      return retryExpectAsync(expectFeedItems, retryDelay, maxRetries)
+    })
+  })
+
+  describe("UserStore", () => {
+    test("should create a new user document in Firestore", async () => {
+      const userData = await getUserUsingEmail(firestoreClient, testUserMainEmail)
+      expect(userData).toBeDefined()
     })
   })
 
@@ -241,7 +203,7 @@ describe("Main test suite", () => {
       workoutStore.endWorkout()
       await workoutStore.saveWorkout()
 
-      const userData = await getUserUsingEmail(testUserMainEmail)
+      const userData = await getUserUsingEmail(firestoreClient, testUserMainEmail)
       // Check workoutMetas has been updated
       expect(Object.keys(userData.workoutMetas).length).toEqual(1)
       Object.entries(userData.workoutMetas).forEach(([_, workoutMeta]) => {

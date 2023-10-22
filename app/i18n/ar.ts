@@ -15,6 +15,10 @@ const ar: Translations = {
     leaderboard: "",
     firstName: "",
     lastName: "",
+    search: undefined,
+    activities: "",
+    followers: "",
+    following: "",
   },
   welcomeScreen: {
     postscript:
@@ -51,6 +55,9 @@ const ar: Translations = {
   createNewGymScreen: undefined,
   gymSearchScreen: undefined,
   gymDetailsScreen: undefined,
+  gymPickerScreen: undefined,
+  discoverScreen: undefined,
+  profileVisitorViewScreen: undefined,
 }
 
 export default ar

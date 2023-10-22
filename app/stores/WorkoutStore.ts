@@ -116,7 +116,7 @@ const WorkoutStoreModel = types
     get exerciseSummary() {
       const exercisesSummary: ExercisePerformed[] = []
       const exerciseHistory =
-        getEnv<RootStoreDependencies>(self).privateUserRepository.getUserProp("exerciseHistory")
+        getEnv<RootStoreDependencies>(self).userRepository.getUserProp("exerciseHistory")
 
       self.exercises.forEach((e) => {
         const exerciseRecord = exerciseHistory && exerciseHistory?.[e.exerciseId]?.personalRecords
@@ -210,9 +210,9 @@ const WorkoutStoreModel = types
         self.cleanUpWorkout()
 
         // console.debug("WorkoutStore.exerciseSummary:", self.exerciseSummary)
-        const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
-        const userId = yield privateUserRepository.getUserProp("userId")
-        const privateAccount = yield privateUserRepository.getUserProp("privateAccount")
+        const { userRepository } = getEnv<RootStoreDependencies>(self)
+        const userId = yield userRepository.getUserProp("userId")
+        const privateAccount = yield userRepository.getUserProp("privateAccount")
         const newWorkout = {
           byUserId: userId,
           visibility: privateAccount ? WorkoutVisibility.Private : WorkoutVisibility.Public,
@@ -228,7 +228,7 @@ const WorkoutStoreModel = types
         )
 
         // Update user workout metadata (keep track of workouts performed by user)
-        yield getEnv<RootStoreDependencies>(self).privateUserRepository.update(
+        yield getEnv<RootStoreDependencies>(self).userRepository.update(
           null,
           {
             workoutMetas: {
@@ -252,11 +252,7 @@ const WorkoutStoreModel = types
             })
           }
         })
-        yield getEnv<RootStoreDependencies>(self).privateUserRepository.update(
-          null,
-          userUpdate,
-          false,
-        )
+        yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, false)
 
         self.resetWorkout()
         return workoutId

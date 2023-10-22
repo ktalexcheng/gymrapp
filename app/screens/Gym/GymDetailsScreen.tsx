@@ -14,7 +14,7 @@ export const GymDetailsScreen: FC = observer(({ route }: GymDetailsScreenProps) 
   const gymId = route.params.gymId
   const { gymStore, userStore } = useStores()
   const [gymDetails, setGymDetails] = useState<GymDetails>(null)
-  const [refreshing, setRefreshing] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshGymDetailsKey, setRefreshGymDetailsKey] = useState(0)
 
   useEffect(() => {
@@ -22,16 +22,16 @@ export const GymDetailsScreen: FC = observer(({ route }: GymDetailsScreenProps) 
       .getGymById(gymId)
       .then((gym) => {
         setGymDetails(gym)
-        setRefreshing(false)
+        setIsRefreshing(false)
       })
       .catch((e) => {
         console.error("GymDetailsScreen.useEffect getGymById error:", e)
-        setRefreshing(false)
+        setIsRefreshing(false)
       })
   }, [gymId, refreshGymDetailsKey])
 
   const refreshGymDetails = () => {
-    setRefreshing(true)
+    setIsRefreshing(true)
     setRefreshGymDetailsKey((prev) => prev + 1)
   }
 
@@ -69,10 +69,6 @@ export const GymDetailsScreen: FC = observer(({ route }: GymDetailsScreenProps) 
     )
   }
 
-  const renderRefreshControl = () => {
-    return <RefreshControl refreshing={refreshing} onRefresh={refreshGymDetails} />
-  }
-
   if (!gymDetails) return null
 
   return (
@@ -80,7 +76,9 @@ export const GymDetailsScreen: FC = observer(({ route }: GymDetailsScreenProps) 
       safeAreaEdges={["bottom"]}
       style={$container}
       preset="scroll"
-      ScrollViewProps={{ refreshControl: renderRefreshControl() }}
+      ScrollViewProps={{
+        refreshControl: <RefreshControl refreshing={isRefreshing} onRefresh={refreshGymDetails} />,
+      }}
     >
       <Text text={gymDetails.gymName} preset="heading" />
       <Spacer type="vertical" size="tiny" />

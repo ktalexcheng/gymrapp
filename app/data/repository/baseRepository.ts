@@ -310,6 +310,8 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     }
 
     const renamedData = this.#fieldNameMap ? this._repToSourceRename(data) : data
+    // Attach _createdAt timestamp to all data created
+    renamedData._createdAt = firestore.FieldValue.serverTimestamp()
     try {
       let newDocRef: FirebaseFirestoreTypes.DocumentReference = null
       if (docId) {
@@ -343,6 +345,8 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     }
 
     const renamedData = this.#fieldNameMap ? this._repToSourceRename(data) : data
+    // Attach _modifiedAt timestamp to all data created
+    renamedData._modifiedAt = firestore.FieldValue.serverTimestamp()
     try {
       const docRef = this.#firestoreCollection.doc(id as string)
 

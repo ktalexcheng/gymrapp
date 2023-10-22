@@ -1,0 +1,5 @@
+userId,firstName,lastName,email,providerId,privateAccount,avatarUrl
+"mockUserId1","User 1","Mock","user1@mock.com","mock",0,""
+"mockUserId2","User 2","Mock","user2@mock.com","mock",0,""
+"mockUserId3","User 3","Mock","user3@mock.com","mock",0,""
+"mockUserId4","User 4","Mock","user4@mock.com","mock",0,""

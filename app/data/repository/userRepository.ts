@@ -5,15 +5,15 @@ import * as Location from "expo-location"
 import { Gym, GymDetails, User, UserFollowing, UserId } from "../model"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
-export class PrivateUserRepository extends BaseRepository<User, UserId> {
+export class UserRepository extends BaseRepository<User, UserId> {
   #userId: string
   #userFollowsCollectionName = "userFollows"
-  #userFollowingsCollectionName = "followings"
+  #userFollowingCollectionName = "following"
   #userFollowersCollectionName = "followers"
   #userFollowsCollection: FirebaseFirestoreTypes.CollectionReference
 
   constructor(firebaseClient) {
-    super("PrivateUserRepository", firebaseClient, "usersPrivate", "userId")
+    super("UserRepository", firebaseClient, "users", "userId")
     this.#userFollowsCollection = this.firestoreClient.collection(this.#userFollowsCollectionName)
   }
 
@@ -69,7 +69,7 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
       "state_changed",
       (taskSnapshot) => {
         console.debug(
-          "PrivateUserRepository.uploadAvatar task update:",
+          "UserRepository.uploadAvatar task update:",
           taskSnapshot.state,
           "; progress (bytes):",
           taskSnapshot.bytesTransferred,
@@ -84,7 +84,7 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
 
     let imageUrl: string
     await uploadTask.then(async () => {
-      console.debug("PrivateUserRepository.uploadAvatar upload done")
+      console.debug("UserRepository.uploadAvatar upload done")
       imageUrl = await avatarRef.getDownloadURL()
     })
 
@@ -92,11 +92,12 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
   }
 
   async followUser(followeeUserId: UserId): Promise<void> {
+    console.debug("UserRepository.followUser called")
     this.checkRepositoryInitialized()
 
-    const userFollowingsDocRef = this.#userFollowsCollection
+    const userFollowingDocRef = this.#userFollowsCollection
       .doc(this.#userId)
-      .collection(this.#userFollowingsCollectionName)
+      .collection(this.#userFollowingCollectionName)
       .doc(followeeUserId)
     const followeeFollowersDocRef = this.#userFollowsCollection
       .doc(followeeUserId)
@@ -104,7 +105,7 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
       .doc(this.#userId)
 
     try {
-      await userFollowingsDocRef.set({ followDate: new Date() } as UserFollowing)
+      await userFollowingDocRef.set({ followDate: new Date() } as UserFollowing)
       await followeeFollowersDocRef.set({ followDate: new Date() } as UserFollowing)
     } catch (e) {
       throw new RepositoryError(this.repositoryId, `followUser error: ${e}`)
@@ -112,11 +113,12 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
   }
 
   async unfollowUser(followeeUserId: UserId): Promise<void> {
+    console.debug("UserRepository.unfollowUser called")
     this.checkRepositoryInitialized()
 
-    const userFollowingsDocRef = this.#userFollowsCollection
+    const userFollowingDocRef = this.#userFollowsCollection
       .doc(this.#userId)
-      .collection(this.#userFollowingsCollectionName)
+      .collection(this.#userFollowingCollectionName)
       .doc(followeeUserId)
     const followeeFollowersDocRef = this.#userFollowsCollection
       .doc(followeeUserId)
@@ -124,18 +126,32 @@ export class PrivateUserRepository extends BaseRepository<User, UserId> {
       .doc(this.#userId)
 
     try {
-      await userFollowingsDocRef.delete()
+      await userFollowingDocRef.delete()
       await followeeFollowersDocRef.delete()
     } catch (e) {
       throw new RepositoryError(this.repositoryId, `unfollowUser error: ${e}`)
     }
   }
 
+  async isFollowingUser(followeeUserId: UserId): Promise<boolean> {
+    console.debug("UserRepository.isFollowingUser called")
+    this.checkRepositoryInitialized()
+
+    const userFollowingDocRef = this.#userFollowsCollection
+      .doc(this.#userId)
+      .collection(this.#userFollowingCollectionName)
+      .doc(followeeUserId)
+
+    const userFollowingDoc = await userFollowingDocRef.get()
+    console.debug("UserRepository.isFollowingUser.exists", userFollowingDoc.exists)
+    return userFollowingDoc.exists
+  }
+
   async getUserLocation() {
-    console.debug("PrivateUserRepository.getUserLocation called")
+    console.debug("UserRepository.getUserLocation called")
     const { status } = await Location.requestForegroundPermissionsAsync()
     if (status !== Location.PermissionStatus.GRANTED) {
-      console.debug("PrivateUserRepository.getUserLocation status !== granted")
+      console.debug("UserRepository.getUserLocation status !== granted")
       return undefined
     }
 

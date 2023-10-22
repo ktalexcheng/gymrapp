@@ -95,8 +95,8 @@ export const ExerciseStoreModel = types
     applyUserSettings: flow(function* () {
       self.isLoading = true
 
-      const { privateUserRepository } = getEnv<RootStoreDependencies>(self)
-      const exerciseSettings = yield privateUserRepository.getUserProp(
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      const exerciseSettings = yield userRepository.getUserProp(
         "preferences.exerciseSpecificSettings",
       )
 
@@ -161,7 +161,7 @@ export const ExerciseStoreModel = types
         }, new Map<ExerciseId, ExerciseSettings>())
 
         if (exerciseSpecificSettings.size > 0) {
-          getEnv<RootStoreDependencies>(self).privateUserRepository.update(
+          getEnv<RootStoreDependencies>(self).userRepository.update(
             null,
             {
               preferences: exerciseSpecificSettings as Partial<UserPreferences>,

@@ -3,7 +3,7 @@ import { BaseRepository } from "./baseRepository"
 
 export class PrivateExerciseRepository extends BaseRepository<Exercise, ExerciseId> {
   constructor(firebaseClient) {
-    super("PrivateUserExerciseRepository", firebaseClient, null, "exerciseId")
+    super("PrivateExerciseRepository", firebaseClient, null, "exerciseId")
   }
 
   setUserId(userId: string): void {

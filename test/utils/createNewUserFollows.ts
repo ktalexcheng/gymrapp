@@ -1,5 +1,5 @@
 import * as firestore from "@google-cloud/firestore"
-import { RootStore } from "../../../app/stores/RootStore"
+import { RootStore } from "../../app/stores/RootStore"
 
 export async function createNewUserFollows(
   firestoreClient: firestore.Firestore,
@@ -9,7 +9,7 @@ export async function createNewUserFollows(
 ) {
   const { userStore } = rootStore
   const followerSnapshot = await firestoreClient
-    .collection("usersPrivate")
+    .collection("users")
     .where("email", "==", followerEmail)
     .limit(1)
     .get()
@@ -17,7 +17,7 @@ export async function createNewUserFollows(
   userStore.loadUserWithId(followerUserId)
 
   const followeeSnapshot = await firestoreClient
-    .collection("usersPrivate")
+    .collection("users")
     .where("email", "==", followeeEmail)
     .limit(1)
     .get()

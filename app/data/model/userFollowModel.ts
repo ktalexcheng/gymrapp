@@ -4,4 +4,4 @@ interface UserFollow {
 
 export interface UserFollowing extends UserFollow {}
 
-export interface UserFollower extends UserFollow {}
+export interface UserFollowers extends UserFollow {}

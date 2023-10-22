@@ -37,7 +37,7 @@ export const FeedStoreModel = types
     loadFeedItems: flow(function* () {
       console.debug("FeedStore.loadFeedItems called")
       self.isLoading = true
-      const { feedRepository, workoutRepository, publicUserRepository } =
+      const { feedRepository, workoutRepository, userRepository } =
         getEnv<RootStoreDependencies>(self)
 
       let userFeedItems: UserFeedItem[]
@@ -68,7 +68,7 @@ export const FeedStoreModel = types
 
         // Get users for feed items
         const feedUserIds = userFeedItems.map((feedItem) => feedItem.byUserId)
-        const feedUsers = yield publicUserRepository.getMany(feedUserIds)
+        const feedUsers = yield userRepository.getMany(feedUserIds)
         for (const user of feedUsers) {
           self.feedUsers.put({ userId: user.userId, user })
         }

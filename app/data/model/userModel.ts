@@ -1,4 +1,5 @@
 import { AppLocale, WeightUnit } from "../constants"
+import { baseMetadata } from "./baseModel"
 import { ExerciseId, ExerciseRecord, ExerciseSettings } from "./exerciseModel"
 import { Gym } from "./gymModel"
 import { WorkoutId } from "./workoutModel"
@@ -15,7 +16,7 @@ export interface WorkoutMeta {
   startTime: Date
 }
 
-export interface UnregisteredUser {
+export interface UnregisteredUser extends baseMetadata {
   email: string
   firstName?: string
   lastName?: string
@@ -40,6 +41,15 @@ export interface User extends UnregisteredUser {
   avatarUrl?: string
   workoutMetas?: Record<WorkoutId, WorkoutMeta>
   exerciseHistory?: Record<ExerciseId, ExerciseHistory>
+  followersCount?: number
+  followingCount?: number
+}
+
+export interface UserSearchResult {
+  userId: UserId
+  firstName: string
+  lastName: string
+  avatarUrl?: string
 }
 
 export function isUser(value: any): value is User {
