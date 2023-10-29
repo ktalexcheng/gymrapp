@@ -12,7 +12,7 @@ export class UserRepository extends BaseRepository<User, UserId> {
   #userFollowersCollectionName = "followers"
   #userFollowsCollection: FirebaseFirestoreTypes.CollectionReference
 
-  constructor(firebaseClient) {
+  constructor(firebaseClient?) {
     super("UserRepository", firebaseClient, "users", "userId")
     this.#userFollowsCollection = this.firestoreClient.collection(this.#userFollowsCollectionName)
   }

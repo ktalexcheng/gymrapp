@@ -1,4 +1,4 @@
-import { ExerciseSource, WeightUnit } from "app/data/constants"
+import { ExerciseSource, ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import {
   Exercise,
   ExerciseId,
@@ -31,6 +31,11 @@ const ExerciseModel = types
     exerciseCat1: types.string,
     exerciseCat2: types.string,
     exerciseName: types.string,
+    volumeType: types.enumeration("exerciseVolumeType", [
+      ExerciseVolumeType.Reps,
+      ExerciseVolumeType.Time,
+    ]),
+    hasLeaderboard: types.boolean,
     exerciseSettings: types.maybe(ExerciseSettingsModel),
   })
   .actions(withSetPropAction)
@@ -42,31 +47,43 @@ export const ExerciseStoreModel = types
     lastUpdated: types.maybe(types.Date),
     isLoading: true,
   })
-  .views((self) => ({
-    get allExerciseTypes() {
-      const arr = Array.from(self.allExercises.values())
-      const types = new Set(arr.map((item) => item.activityName))
+  // .views((self) => ({
+  //   get allActivityTypes() {
+  //     const arr = Array.from(self.allExercises.values())
+  //     const types = new Set(arr.map((item) => item.activityName))
 
-      return Array.from(types)
-    },
-    get allExerciseSubtypes() {
-      const arr = Array.from(self.allExercises.values())
-      const subtypes = new Set(arr.map((item) => item.exerciseCat1))
+  //     return Array.from(types)
+  //   },
+  //   get allExerciseCat1() {
+  //     const arr = Array.from(self.allExercises.values())
+  //     const subtypes = new Set(arr.map((item) => item.exerciseCat1))
 
-      return Array.from(subtypes)
-    },
-    get allExerciseCategories() {
-      const arr = Array.from(self.allExercises.values())
-      const categories = new Set(arr.map((item) => item.exerciseCat2))
+  //     return Array.from(subtypes)
+  //   },
+  //   get allExerciseCat2() {
+  //     const arr = Array.from(self.allExercises.values())
+  //     const categories = new Set(arr.map((item) => item.exerciseCat2))
 
-      return Array.from(categories)
-    },
-    get isAllExercisesEmpty() {
-      return self.allExercises.size === 0
-    },
-  }))
+  //     return Array.from(categories)
+  //   },
+  //   get volumeType() {
+  //     const arr = Array.from(self.allExercises.values())
+  //     const volumeTypes = new Set(arr.map((item) => item.volumeType))
+
+  //     return Array.from(volumeTypes)
+  //   },
+  //   get isAllExercisesEmpty() {
+  //     return self.allExercises.size === 0
+  //   },
+  // }))
   .actions(withSetPropAction)
   .actions((self) => ({
+    getPropEnumValues(propName: keyof Exercise) {
+      const arr = Array.from(self.allExercises.values())
+      const propValues = new Set(arr.map((item) => item[propName]))
+
+      return Array.from(propValues)
+    },
     getExercise(exerciseId: string) {
       return self.allExercises.get(exerciseId)
     },
@@ -115,12 +132,17 @@ export const ExerciseStoreModel = types
       self.isLoading = true
 
       try {
-        // Fetch exercises and user settings
-        const exercises: Exercise[] = yield getEnv<RootStoreDependencies>(
-          self,
-        ).exerciseRepository.getMany()
+        // Fetch exercises
+        const { exerciseRepository, privateExerciseRepository } =
+          getEnv<RootStoreDependencies>(self)
+        const exercises: Exercise[] = yield exerciseRepository.getMany()
+        const privateExercises: Exercise[] = yield privateExerciseRepository.getMany()
         console.debug("ExerciseStore.getAllExercises exercises.length:", exercises.length)
-        self.setAllExercises(exercises)
+        console.debug(
+          "ExerciseStore.getAllExercises privateExercises.length:",
+          privateExercises.length,
+        )
+        self.setAllExercises([...exercises, ...privateExercises])
 
         self.isLoading = false
       } catch (e) {
@@ -179,11 +201,19 @@ export const ExerciseStoreModel = types
       self.isLoading = true
 
       try {
-        yield getEnv(self).exerciseRepository.create({
+        const { privateExerciseRepository } = getEnv<RootStoreDependencies>(self)
+        const _newExercise = {
           ...newExercise,
+          hasLeaderboard: false,
           exerciseSource: ExerciseSource.Private,
+        }
+        const newExerciseId = yield privateExerciseRepository.create(_newExercise)
+        self.allExercises.put({
+          ..._newExercise,
+          exerciseId: newExerciseId,
         })
 
+        self.lastUpdated = new Date()
         self.isLoading = false
       } catch (e) {
         console.error("ExerciseStore.createNewExercise error:", e)

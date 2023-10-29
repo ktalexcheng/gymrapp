@@ -35,6 +35,12 @@ export const nativeBaseTheme = extendTheme({
 })
 
 export const styles = StyleSheet.create({
+  fullHeight: {
+    height: "100%",
+  },
+  fullWidth: {
+    width: "100%",
+  },
   centeredContainer: {
     height: "100%",
     width: "100%",
@@ -76,9 +82,13 @@ export const styles = StyleSheet.create({
     padding: spacing.extraSmall,
   },
   screenContainer: {
+    flex: 1,
     padding: spacing.screenPadding,
   },
   formFieldTopMargin: {
     marginTop: spacing.large,
+  },
+  disabled: {
+    opacity: 0.5,
   },
 })

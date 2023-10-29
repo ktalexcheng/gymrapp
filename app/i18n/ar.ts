@@ -19,6 +19,9 @@ const ar: Translations = {
     activities: "",
     followers: "",
     following: "",
+    comments: "",
+    copiedToClipboard: "",
+    selected: "",
   },
   welcomeScreen: {
     postscript:
@@ -58,6 +61,7 @@ const ar: Translations = {
   gymPickerScreen: undefined,
   discoverScreen: undefined,
   profileVisitorViewScreen: undefined,
+  workoutSummaryScreen: undefined,
 }
 
 export default ar

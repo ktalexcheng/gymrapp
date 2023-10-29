@@ -4,9 +4,9 @@ import { useUserLocation } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
-import { spacing } from "app/theme"
+import { spacing, styles } from "app/theme"
 import React, { FC, useEffect, useState } from "react"
-import { View, ViewStyle } from "react-native"
+import { RefreshControl, View, ViewStyle } from "react-native"
 import Toast from "react-native-root-toast"
 import { Button, Screen, Text } from "../../components"
 import { GymSearchBar } from "../Gym/GymSearchBar"
@@ -16,15 +16,19 @@ export const GymPickerScreen: FC = () => {
   const [myGyms, setMyGyms] = useState<Gym[]>()
   const [userLocation, isGettingUserLocation] = useUserLocation()
   const mainNavigation = useMainNavigation()
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
+    setIsRefreshing(true)
     if (!userStore.isLoadingProfile) {
       const _myGyms = userStore.getProp<Gym[]>("user.myGyms")
       if (_myGyms) {
         setMyGyms(_myGyms)
       }
     }
-  }, [userStore.user])
+    setIsRefreshing(false)
+  }, [userStore.user, refreshKey])
 
   const setWorkoutGym = (gym: Gym) => {
     if (isGettingUserLocation) {
@@ -75,12 +79,26 @@ export const GymPickerScreen: FC = () => {
   }
 
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} style={$container}>
+    <Screen
+      safeAreaEdges={["top", "bottom"]}
+      preset="scroll"
+      ScrollViewProps={{
+        refreshControl: (
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => setRefreshKey((prev) => prev + 1)}
+          />
+        ),
+      }}
+      style={$container}
+    >
       <Text tx="gymPickerScreen.gymPickerTitle" preset="heading" />
       <Text tx="gymPickerScreen.selectFromMyGymsLabel" preset="subheading" />
       <View style={$myGymsContainer}>{renderMyGymsItem()}</View>
       <Text tx="gymPickerScreen.searchForGymLabel" preset="subheading" />
-      <GymSearchBar onPressResultItemCallback={(gym) => () => setWorkoutGym(gym)} />
+      <View style={styles.flex1}>
+        <GymSearchBar onPressResultItemCallback={(gym) => () => setWorkoutGym(gym)} />
+      </View>
     </Screen>
   )
 }

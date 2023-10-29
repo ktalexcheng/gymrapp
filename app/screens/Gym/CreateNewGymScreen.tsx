@@ -133,7 +133,7 @@ export const CreateNewGymScreen: FC = ({ route }: CreateNewGymScreenProps) => {
   }
 
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} style={styles.screenContainer}>
+    <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={styles.screenContainer}>
       <Text tx="createNewGymScreen.createNewGymTitle" preset="heading" />
       <TextField
         labelTx="createNewGymScreen.gymNameLabel"

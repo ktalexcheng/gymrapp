@@ -1,3 +1,4 @@
+import { TxKeyPath, translate } from "app/i18n"
 import { ISelectProps, Select } from "native-base"
 import React, { FC } from "react"
 import { StyleProp, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
@@ -42,6 +43,14 @@ export interface DropdownProps extends ISelectProps {
    * List of items to display in dropdown
    */
   itemsList?: { label: string; value: string }[]
+  /**
+   * The placeholder text to display for first item in the dropdown that deselects the current value
+   */
+  clearSelectionPlaceholderTx?: TxKeyPath
+  /**
+   * Callback to deselect the current value
+   */
+  clearSelectionCallback?: () => void
 }
 
 /**
@@ -53,8 +62,10 @@ export const Dropdown: FC<DropdownProps> = function Dropdown(props: DropdownProp
     label,
     labelTxOptions,
     status,
-    itemsList: itemList,
+    itemsList,
     LabelTextProps,
+    clearSelectionPlaceholderTx,
+    clearSelectionCallback,
     containerStyle: $containerStyleOverride,
     dropdownStyle: $dropdownStyleOverride,
     itemStyle: $itemStyleOverride,
@@ -70,6 +81,8 @@ export const Dropdown: FC<DropdownProps> = function Dropdown(props: DropdownProp
 
   const $itemStyles = [$itemStyle, $itemStyleOverride]
 
+  const allowClearSelection = !!clearSelectionPlaceholderTx && !!clearSelectionCallback
+
   return (
     <TouchableOpacity activeOpacity={1} style={$containerStyles} accessibilityState={{ disabled }}>
       {!!(label || labelTx) && (
@@ -84,7 +97,15 @@ export const Dropdown: FC<DropdownProps> = function Dropdown(props: DropdownProp
       )}
 
       <Select style={$dropdownStyles} {...ISelectProps}>
-        {itemList.map((e) => (
+        {allowClearSelection && (
+          <Select.Item
+            key="clearSelection"
+            style={[$itemStyles, $clearSelectionItemStyle]}
+            label={translate(clearSelectionPlaceholderTx)}
+            value={undefined}
+          />
+        )}
+        {itemsList.map((e) => (
           <Select.Item key={e.value} style={$itemStyles} label={e.label} value={e.value} />
         ))}
       </Select>
@@ -118,4 +139,8 @@ const $itemStyle: TextStyle = {
   // paddingHorizontal: 0,
   // marginVertical: spacing.extraSmall,
   // marginHorizontal: spacing.small,
+}
+
+const $clearSelectionItemStyle: TextStyle = {
+  fontStyle: "italic",
 }

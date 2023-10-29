@@ -3,6 +3,14 @@ import { baseMetadata } from "./baseModel"
 import { ExercisePerformed } from "./exerciseModel"
 import { UserId } from "./userModel"
 
+export type CommentId = string
+
+export interface WorkoutComment extends baseMetadata {
+  commentId: CommentId
+  byUserId: UserId
+  comment: string
+}
+
 export type WorkoutId = string
 
 export interface NewWorkout extends baseMetadata {
@@ -19,6 +27,14 @@ export interface NewWorkout extends baseMetadata {
 
 export interface Workout extends NewWorkout {
   workoutId: WorkoutId
+  // comments?: WorkoutComment[]
+  // likedByUserIds?: UserId[]
+}
+
+export interface WorkoutInteraction {
+  workoutId: WorkoutId
+  comments?: WorkoutComment[]
+  likedByUserIds?: UserId[]
 }
 
 export function isWorkout(value: unknown): value is Workout {

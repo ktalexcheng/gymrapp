@@ -1,9 +1,11 @@
 import { useNavigation } from "@react-navigation/native"
-import { NewExercise } from "app/data/model"
+import { Exercise, NewExercise } from "app/data/model"
+import { translate } from "app/i18n"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
 import React, { FC, useState } from "react"
 import { ViewStyle } from "react-native"
+import Toast from "react-native-root-toast"
 import { Button, Dropdown, Screen, Spacer, Text, TextField } from "../../components"
 import { MainStackScreenProps } from "../../navigators"
 
@@ -13,30 +15,37 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
   const [activityName, setActivityName] = useState("")
   const [exerciseCat1, setExerciseCat1] = useState("")
   const [exerciseCat2, setExerciseCat2] = useState("")
+  const [volumeType, setVolumeType] = useState("")
   const [exerciseName, setExerciseName] = useState("")
   const { exerciseStore } = useStores()
   const navigation = useNavigation()
 
-  function selectType(value: string) {
-    setActivityName(value)
-  }
+  async function addExercise() {
+    if (!activityName || !exerciseCat1 || !volumeType || !exerciseName) {
+      Toast.show(translate("addExerciseScreen.requiredFieldsMissingMessage", { duration: 500 }))
+      return
+    }
 
-  function selectSubtype(value: string) {
-    setExerciseCat1(value)
-  }
-
-  function selectCategory(value: string) {
-    setExerciseCat2(value)
-  }
-
-  function addExercise() {
-    exerciseStore.createPrivateExercise({
+    await exerciseStore.createPrivateExercise({
       activityName,
       exerciseCat1,
       exerciseCat2,
       exerciseName,
+      volumeType,
     } as NewExercise)
+
     navigation.goBack()
+  }
+
+  function getDropdownValues(propName: keyof Exercise) {
+    const dropdownValues = exerciseStore
+      .getPropEnumValues(propName)
+      .map((type) => {
+        return { label: type, value: type }
+      })
+      .filter((dropdownValue) => dropdownValue.value !== "")
+    dropdownValues.sort((a, b) => (a.label < b.label ? -1 : 1))
+    return dropdownValues
   }
 
   return (
@@ -45,27 +54,29 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
       <Spacer type="vertical" size="massive" />
       <Dropdown
         size="md"
-        onValueChange={selectType}
-        labelTx="addExerciseScreen.activityName"
-        itemsList={exerciseStore.allExerciseTypes.map((type) => {
-          return { label: type, value: type }
-        })}
+        onValueChange={setActivityName}
+        labelTx="addExerciseScreen.activityType"
+        itemsList={getDropdownValues("activityName")}
       />
       <Dropdown
         size="md"
-        onValueChange={selectSubtype}
-        labelTx="addExerciseScreen.exerciseCategory"
-        itemsList={exerciseStore.allExerciseSubtypes.map((subtype) => {
-          return { label: subtype, value: subtype }
-        })}
+        onValueChange={setExerciseCat1}
+        labelTx="addExerciseScreen.exerciseCat1"
+        itemsList={getDropdownValues("exerciseCat1")}
       />
       <Dropdown
         size="md"
-        onValueChange={selectCategory}
-        labelTx="addExerciseScreen.exerciseSubCategory"
-        itemsList={exerciseStore.allExerciseCategories.map((category) => {
-          return { label: category, value: category }
-        })}
+        onValueChange={setExerciseCat2}
+        labelTx="addExerciseScreen.exerciseCat2"
+        itemsList={getDropdownValues("exerciseCat2")}
+        clearSelectionPlaceholderTx="addExerciseScreen.setAsBlankLabel"
+        clearSelectionCallback={() => setExerciseCat2("")}
+      />
+      <Dropdown
+        size="md"
+        onValueChange={setVolumeType}
+        labelTx="addExerciseScreen.volumeType"
+        itemsList={getDropdownValues("volumeType")}
       />
       <TextField
         onChangeText={setExerciseName}

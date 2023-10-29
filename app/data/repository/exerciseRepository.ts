@@ -2,7 +2,7 @@ import { Exercise, ExerciseId } from "../model"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class ExerciseRepository extends BaseRepository<Exercise, ExerciseId> {
-  constructor(firebaseClient) {
+  constructor(firebaseClient?) {
     super("ExerciseRepository", firebaseClient, "exercises", "exerciseId")
   }
 

@@ -24,13 +24,16 @@ export type SetEntryProps = {
 }
 
 export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
-  const { workoutStore, userStore } = useStores()
+  const { workoutStore, userStore, feedStore } = useStores()
   const { exerciseId, exerciseOrder, setOrder } = props
   // Current exercise set
   const exerciseSetStore = workoutStore.exercises.at(exerciseOrder).setsPerformed[setOrder]
 
   // Set from previous workout
-  const setFromLastWorkout = userStore.getSetFromLastWorkout(exerciseId, setOrder) as ExerciseSet
+  const lastWorkoutId = userStore.getExerciseLastWorkoutId(exerciseId)
+  const setFromLastWorkout =
+    lastWorkoutId &&
+    (feedStore.getSetFromWorkout(lastWorkoutId, exerciseId, setOrder) as ExerciseSet)
 
   // Exercise settings
   const [restTimeSetting] = useExerciseSetting<number>(exerciseId, "restTime")

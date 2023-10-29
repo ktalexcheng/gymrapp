@@ -16,7 +16,7 @@ import { WorkoutSummaryCard } from "../FinishedWorkout"
 
 const WorkoutHistoryTabScene = (exerciseId: string) =>
   observer(() => {
-    const { userStore } = useStores()
+    const { userStore, feedStore } = useStores()
     // const exerciseHistory = userStore.user?.exerciseHistory?.[exerciseId]?.performedWorkoutIds
     const exerciseHistory = userStore.getProp<WorkoutId[]>(
       `user.exerciseHistory.${exerciseId}.performedWorkoutIds`,
@@ -25,7 +25,7 @@ const WorkoutHistoryTabScene = (exerciseId: string) =>
     if (!exerciseHistory) return <Text tx="exerciseDetailsScreen.noExerciseHistoryFound" />
 
     function getWorkoutData() {
-      const workouts = Array.from(userStore.workouts.values()).filter(({ workoutId }) => {
+      const workouts = Array.from(feedStore.userWorkouts.values()).filter(({ workoutId }) => {
         return exerciseHistory.includes(workoutId)
       })
       workouts.sort((a, b) => (a.workout.startTime > b.workout.startTime ? -1 : 1))

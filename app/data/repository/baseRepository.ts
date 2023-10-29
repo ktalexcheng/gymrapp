@@ -49,7 +49,7 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
 
   constructor(
     repositoryId: string,
-    firestoreClient: FirebaseFirestoreTypes.Module,
+    firestoreClient: FirebaseFirestoreTypes.Module = firestore(),
     collectionPath: string,
     documentIdField: string,
     fieldNameMap?: { [key: string]: string },
@@ -136,11 +136,10 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     if (this.#cache.has(cacheKey)) {
       const cacheData = this.#cache.get(cacheKey)
 
-      // TODO: Never invalidate cache for now so the condition is always true,
-      // but we should implement a way to invalidate cache based on a timestamp
-      // e.g. cacheData.timestamp.getTime() + this.#cacheLifespan > new Date.now()
-      // TODO: Always invalidate cache for now
-      if (cacheData.timestamp + this.#cacheLifespan < 0) {
+      // Never invalidate cache during dev
+      if (__DEV__) {
+        return cacheData
+      } else if (Date.now() - cacheData.timestamp < this.#cacheLifespan) {
         return cacheData
       }
     }
@@ -211,12 +210,12 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
       )
     }
 
-    const query = this.#firestoreCollection.orderBy(orderByField, orderDirection).limit(limit)
+    let query = this.#firestoreCollection.orderBy(orderByField, orderDirection).limit(limit)
     if (afterFieldValue) {
-      query.startAfter(afterFieldValue)
+      query = query.startAfter(afterFieldValue)
     }
     if (beforeFieldValue) {
-      query.endBefore(beforeFieldValue)
+      query = query.endBefore(beforeFieldValue)
     }
 
     try {
@@ -240,6 +239,8 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     }
   }
 
+  // TODO: Might be a more efficient way of doing this?
+  // Maybe individual queries for each ID (to leverage cache) and then merge the results?
   async getMany(ids?: D[], refresh = false): Promise<T[]> {
     this.checkRepositoryInitialized()
 
@@ -353,18 +354,26 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
       if (useSetMerge) {
         await docRef.set(renamedData, { merge: true })
       } else {
-        await docRef.update(renamedData)
+        // When using update() method, if the document doesn't exist, it will throw an error
+        // so we need to catch the error and create it first
+        try {
+          await docRef.update(renamedData)
+        } catch (e) {
+          if (e.code === "firestore/not-found") {
+            await this.create({ [this.#documentIdField]: id, ...data })
+          }
+        }
       }
 
       const snapshot = await docRef.get()
-      const data = this._processDocumentSnapshot<T>(snapshot)
+      const snapshotData = this._processDocumentSnapshot<T>(snapshot)
       this._setCacheData(id as string, {
         timestamp: Date.now(),
-        data,
+        data: snapshotData,
         type: CacheDataType.Single,
       })
 
-      return data
+      return snapshotData
     } catch (e) {
       console.error("Error updating document with data:", { id, useSetMerge, data, renamedData })
       throw new RepositoryError(this.#repositoryId, `Error updating document: ${e}`)

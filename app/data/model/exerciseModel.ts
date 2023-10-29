@@ -1,4 +1,4 @@
-import { ExerciseSetType, ExerciseSource, WeightUnit } from "../constants"
+import { ExerciseSetType, ExerciseSource, ExerciseVolumeType, WeightUnit } from "../constants"
 import { WorkoutId } from "./workoutModel"
 
 export interface ExerciseSet {
@@ -51,10 +51,12 @@ export interface NewExercise {
   exerciseCat1: string
   exerciseCat2: string
   exerciseName: string
+  volumeType: ExerciseVolumeType
 }
 
 export interface Exercise extends NewExercise {
   exerciseId: ExerciseId
   exerciseSource: ExerciseSource
+  hasLeaderboard: boolean
   exerciseHistory?: ExercisePerformed[]
 }

@@ -7,51 +7,59 @@ import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { colors, spacing, styles } from "app/theme"
 import { Weight } from "app/utils/weight"
+import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import { WorkoutSocialButtonGroup } from "./WorkoutSocialButtonGroup"
 
 type WorkoutSummaryCardProps = {
+  workoutSource: WorkoutSource
   workoutId: string
   workout: Workout
-  workoutSource: WorkoutSource
-  byUser?: User
+  byUser: User
   highlightExerciseId?: string
 }
 
-export const WorkoutSummaryCard: FC = (props: WorkoutSummaryCardProps) => {
-  // const { workoutId, workout }: { workoutId: string; workout: Workout } = item
-  const { workoutId, workout, workoutSource, byUser, highlightExerciseId } = props
+export const WorkoutSummaryCard: FC = observer((props: WorkoutSummaryCardProps) => {
+  const { workoutSource, workoutId, workout, byUser, highlightExerciseId } = props
   const { exerciseStore, userStore } = useStores()
   const mainNavigation = useMainNavigation()
   const weightUnitTx = useWeightUnitTx()
   const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
 
-  const $workoutItemHeader: ViewStyle = {
-    justifyContent: "space-between",
-  }
-
-  const $byUserHeader: ViewStyle = {
-    alignItems: "center",
-    gap: spacing.small,
-    marginBottom: spacing.small,
-  }
-
   return (
     <TouchableOpacity
-      onPress={() => mainNavigation.navigate("WorkoutSummary", { workoutId, workoutSource })}
+      onPress={() =>
+        mainNavigation.navigate("WorkoutSummary", {
+          workoutSource,
+          workoutId,
+          jumpToComments: false,
+        })
+      }
     >
       <View style={styles.listItemContainer}>
         {byUser && (
           <RowView style={$byUserHeader}>
-            <Avatar user={byUser} size="sm" />
-            <Text preset="bold">{`${byUser.firstName} ${byUser.lastName}`}</Text>
+            <RowView style={styles.alignCenter}>
+              <Avatar user={byUser} size="sm" />
+              <Spacer type="horizontal" size="small" />
+              <Text preset="bold">{`${byUser.firstName} ${byUser.lastName}`}</Text>
+            </RowView>
+            <Text>{workout.startTime.toLocaleString()}</Text>
           </RowView>
         )}
-        <RowView style={$workoutItemHeader}>
-          <Text>{workout.workoutTitle}</Text>
-          <Text>{workout.startTime.toLocaleString()}</Text>
-        </RowView>
-        <Spacer type="vertical" size="small" />
+        <Text>{workout.workoutTitle}</Text>
+        <WorkoutSocialButtonGroup
+          workoutSource={workoutSource}
+          workoutId={workoutId}
+          onPressComments={() =>
+            mainNavigation.navigate("WorkoutSummary", {
+              workoutSource,
+              workoutId,
+              jumpToComments: true,
+            })
+          }
+        />
         <RowView style={$workoutItemHeader}>
           <Text preset="bold" tx="common.exercise" />
           <Text preset="bold">{translate("common.bestSet") + ` (${translate(weightUnitTx)})`}</Text>
@@ -87,4 +95,14 @@ export const WorkoutSummaryCard: FC = (props: WorkoutSummaryCardProps) => {
       </View>
     </TouchableOpacity>
   )
+})
+
+const $workoutItemHeader: ViewStyle = {
+  justifyContent: "space-between",
+}
+
+const $byUserHeader: ViewStyle = {
+  alignItems: "center",
+  marginBottom: spacing.small,
+  justifyContent: "space-between",
 }

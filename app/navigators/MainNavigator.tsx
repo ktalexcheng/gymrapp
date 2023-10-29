@@ -34,7 +34,7 @@ export type MainStackParamList = {
   ExerciseManager: undefined
   ExerciseDetails: { exerciseId: string }
   UserSettings: undefined
-  WorkoutSummary: { workoutId: string; workoutSource: WorkoutSource }
+  WorkoutSummary: { workoutSource: WorkoutSource; workoutId: string; jumpToComments: boolean }
   OnboardingNavigator: undefined
   GymSearch: undefined
   CreateNewGym: { searchString: string }
@@ -64,6 +64,7 @@ export const MainNavigator = observer(function MainNavigator() {
     exerciseStore.getAllExercises()
     activityStore.getAllActivities()
     feedStore.refreshFeedItems()
+    feedStore.loadUserWorkouts()
 
     // Listen to database update
     const userSubscriber = firestore()

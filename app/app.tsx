@@ -85,6 +85,11 @@ if (__DEV__) {
   firestore().useEmulator(localIp, 8080)
   functions().useEmulator(localIp, 5001)
   fbStorage().useEmulator(localIp, 9199)
+
+  // See: https://github.com/firebase/firebase-js-sdk/issues/3838
+  firestore().settings({
+    persistence: false,
+  })
 }
 
 interface AppProps {

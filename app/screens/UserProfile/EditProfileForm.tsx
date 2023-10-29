@@ -351,9 +351,9 @@ export const EditProfileForm = observer(() => {
         descriptionTx="editProfileForm.autoRestTimerDescription"
         containerStyle={styles.formFieldTopMargin}
         toggleState={autoRestTimerEnabled}
-        isOffIcon={<Icon name="radio-button-off" size={30} />}
-        isOnIcon={<Icon name="radio-button-on" size={30} />}
-        onToggle={() => setAutoRestTimerEnabled(!autoRestTimerEnabled)}
+        // isOffIcon={<Icon name="radio-button-off" size={30} />}
+        // isOnIcon={<Icon name="radio-button-on" size={30} />}
+        onToggle={() => setAutoRestTimerEnabled((prev) => !prev)}
       />
 
       <Modal
@@ -370,12 +370,13 @@ export const EditProfileForm = observer(() => {
           </View>
         </View>
       </Modal>
-      <View style={styles.formFieldTopMargin}>
+      <View style={[styles.formFieldTopMargin, !autoRestTimerEnabled && styles.disabled]}>
         <Text tx="editProfileForm.defaultRestTimeLabel" preset="formLabel" />
         <Spacer type="vertical" size="small" />
         <TouchableOpacity
           style={styles.listItemContainer}
           onPress={() => setShowRestTimePicker(true)}
+          disabled={!autoRestTimerEnabled}
         >
           <Text>{formatSecondsAsTime(restTime)}</Text>
         </TouchableOpacity>

@@ -3,16 +3,15 @@ import { Gym, GymDetails, GymId } from "app/data/model"
 import { translate } from "app/i18n"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { getNestedField } from "app/utils/getNestedField"
-import { getTime, startOfWeek } from "date-fns"
 import { LocationObject } from "expo-location"
 import { flow, getEnv, types } from "mobx-state-tree"
 import Toast from "react-native-root-toast"
-import { ExerciseId, User, UserPreferences, Workout, isUser, isWorkout } from "../../app/data/model"
+import { ExerciseId, User, UserPreferences, isUser } from "../../app/data/model"
 import { createCustomType } from "./helpers/createCustomType"
 import { RootStoreDependencies } from "./helpers/useStores"
 
 const UserType = createCustomType<User>("User", isUser)
-const WorkoutType = createCustomType<Workout>("Workout", isWorkout)
+// const WorkoutType = createCustomType<Workout>("Workout", isWorkout)
 
 function isEmptyField(value: any) {
   if (value === undefined || value === null || value === "") {
@@ -27,14 +26,27 @@ export const UserStoreModel = types
   .props({
     userId: types.maybeNull(types.string),
     user: UserType,
-    workouts: types.map(
-      types.model({
-        workoutId: types.identifier,
-        workout: WorkoutType,
-      }),
-    ),
+    // workouts: types.map(
+    //   types.model({
+    //     workoutId: types.identifier,
+    //     workout: WorkoutType,
+    //   }),
+    // ),
+    // workoutInteractions: types.map(
+    //   types.model({
+    //     workoutId: types.identifier,
+    //     likedByUserIds: types.array(types.string),
+    //     comments: types.array(
+    //       types.model({
+    //         byUserId: types.string,
+    //         comment: types.string,
+    //         _createdAt: types.Date,
+    //       }),
+    //     ),
+    //   }),
+    // ),
     isLoadingProfile: true,
-    isLoadingWorkouts: true,
+    // isLoadingWorkouts: true,
     isNewUser: true,
   })
   .views((self) => ({
@@ -79,37 +91,37 @@ export const UserStoreModel = types
       )
       return self.user.email
     },
-    get weeklyWorkoutsCount() {
-      const workouts = Array.from(self.workouts.values())
-      const weeklyWorkoutsCount = new Map<number, number>()
-      workouts.forEach((w) => {
-        // Find start of week (Monday)
-        const weekStart = startOfWeek(w.workout.startTime, {
-          weekStartsOn: 1,
-        })
-        const weekStartTime = getTime(weekStart)
+    // get weeklyWorkoutsCount() {
+    //   const workouts = Array.from(self.workouts.values())
+    //   const weeklyWorkoutsCount = new Map<number, number>()
+    //   workouts.forEach((w) => {
+    //     // Find start of week (Monday)
+    //     const weekStart = startOfWeek(w.workout.startTime, {
+    //       weekStartsOn: 1,
+    //     })
+    //     const weekStartTime = getTime(weekStart)
 
-        if (!weeklyWorkoutsCount.has(weekStartTime)) {
-          weeklyWorkoutsCount.set(weekStartTime, 0)
-        }
+    //     if (!weeklyWorkoutsCount.has(weekStartTime)) {
+    //       weeklyWorkoutsCount.set(weekStartTime, 0)
+    //     }
 
-        weeklyWorkoutsCount.set(weekStartTime, weeklyWorkoutsCount.get(weekStartTime) + 1)
-      })
+    //     weeklyWorkoutsCount.set(weekStartTime, weeklyWorkoutsCount.get(weekStartTime) + 1)
+    //   })
 
-      // console.debug(
-      //   "UserStore.weeklyWorkoutsCount weekStartTime.keys():",
-      //   ...weeklyWorkoutsCount.keys(),
-      // )
-      return weeklyWorkoutsCount
-    },
+    //   // console.debug(
+    //   //   "UserStore.weeklyWorkoutsCount weekStartTime.keys():",
+    //   //   ...weeklyWorkoutsCount.keys(),
+    //   // )
+    //   return weeklyWorkoutsCount
+    // },
   }))
   .actions((self) => ({
     invalidateSession: () => {
       self.userId = undefined
       self.user = undefined
-      self.workouts.clear()
+      // self.workouts.clear()
       self.isLoadingProfile = true
-      self.isLoadingWorkouts = true
+      // self.isLoadingWorkouts = true
       self.isNewUser = true
     },
     uploadUserAvatar: flow<string, [imagePath: string]>(function* (imagePath: string) {
@@ -143,40 +155,49 @@ export const UserStoreModel = types
         console.error("UserStore.createNewProfile error:", e)
       }
     }),
-    getWorkouts: flow(function* () {
-      console.debug("UserStore.getWorkouts called")
-      try {
-        self.isLoadingWorkouts = true
+    // getWorkouts: flow(function* () {
+    //   console.debug("UserStore.getWorkouts called")
+    //   try {
+    //     self.isLoadingWorkouts = true
 
-        if (!self.user?.workoutMetas) {
-          self.isLoadingWorkouts = false
-          return
-        }
+    //     if (!self.user?.workoutMetas) {
+    //       self.isLoadingWorkouts = false
+    //       return
+    //     }
 
-        const workoutIds = Object.keys(self.user.workoutMetas)
-        const workouts: Workout[] = yield getEnv<RootStoreDependencies>(
-          self,
-        ).workoutRepository.getMany(workoutIds)
+    //     const { workoutRepository, workoutInteractionRepository } =
+    //       getEnv<RootStoreDependencies>(self)
+    //     const workoutIds = Object.keys(self.user.workoutMetas)
+    //     const workouts: Workout[] = yield workoutRepository.getMany(workoutIds)
 
-        if (!workouts) {
-          console.debug("UserStore.getWorkouts no workouts found")
-          self.isLoadingWorkouts = false
-          return
-        }
+    //     if (!workouts) {
+    //       console.debug("UserStore.getWorkouts no workouts found")
+    //       self.isLoadingWorkouts = false
+    //       return
+    //     }
 
-        workouts.forEach((w) => {
-          self.workouts.put({
-            workoutId: w.workoutId,
-            workout: w,
-          })
-        })
+    //     workouts.forEach((w) => {
+    //       self.workouts.put({
+    //         workoutId: w.workoutId,
+    //         workout: w,
+    //       })
+    //     })
 
-        self.isLoadingWorkouts = false
-      } catch (e) {
-        console.error("UserStore.getWorkouts error:", e)
-      }
-      console.debug("UserStore.getWorkouts done")
-    }),
+    //     const workoutInteractions = yield workoutInteractionRepository.getMany(workoutIds)
+    //     workoutInteractions.forEach((interaction) => {
+    //       self.workoutInteractions.put({
+    //         workoutId: interaction.workoutId,
+    //         likedByUserIds: interaction.likedByUserIds,
+    //         comments: interaction.comments,
+    //       })
+    //     })
+
+    //     self.isLoadingWorkouts = false
+    //   } catch (e) {
+    //     console.error("UserStore.getWorkouts error:", e)
+    //   }
+    //   console.debug("UserStore.getWorkouts done")
+    // }),
     getForeignUser: flow(function* (userId: string) {
       const { userRepository } = getEnv<RootStoreDependencies>(self)
       const user = yield userRepository.get(userId, false)
@@ -207,6 +228,24 @@ export const UserStoreModel = types
       const { userRepository } = getEnv<RootStoreDependencies>(self)
       return yield userRepository.getUserLocation()
     }) as () => Promise<LocationObject>,
+    // updateWorkout(workoutId: WorkoutId, workout: Workout) {
+    //   self.workouts.put({ workoutId, workout: { workoutId, ...workout } })
+    // },
+    getExerciseLastWorkoutId(exerciseId: ExerciseId) {
+      const exerciseHistory = getNestedField(
+        self.user,
+        "exerciseHistory",
+      ) as User["exerciseHistory"]
+      if (!exerciseHistory) return null
+
+      const exerciseHistoryItem = exerciseHistory?.[exerciseId]
+      if (!exerciseHistoryItem) return null
+
+      const workoutsCount = exerciseHistoryItem.performedWorkoutIds.length
+      const lastWorkoutId = exerciseHistoryItem.performedWorkoutIds[workoutsCount - 1]
+
+      return lastWorkoutId
+    },
   }))
   .actions((self) => ({
     loadUserWithId: flow(function* (userId: string) {
@@ -223,10 +262,10 @@ export const UserStoreModel = types
         const user = yield userRepository.get(userId, true)
 
         if (user) {
-          console.debug("UserStore.loadUserWIthId user:", user)
+          // console.debug("UserStore.loadUserWIthId user:", user)
           self.user = user
           self.isNewUser = false
-          yield self.getWorkouts()
+          // yield self.getWorkouts()
         } else {
           self.isNewUser = true
         }
@@ -243,7 +282,7 @@ export const UserStoreModel = types
       self.isLoadingProfile = true
       console.debug("UserStore.setUser user:", user)
       self.user = convertFirestoreTimestampToDate(user)
-      self.getWorkouts()
+      // self.getWorkouts()
       self.isLoadingProfile = false
     },
     updateProfile: flow(function* (userUpdate: Partial<User>) {
@@ -253,7 +292,7 @@ export const UserStoreModel = types
       try {
         yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, true)
         self.user = { ...self.user, ...userUpdate }
-        yield self.getWorkouts()
+        // yield self.getWorkouts()
 
         self.isLoadingProfile = false
       } catch (e) {
@@ -293,26 +332,26 @@ export const UserStoreModel = types
       }
       return prefValue as T
     },
-    getSetFromLastWorkout(exerciseId: ExerciseId, setOrder: number) {
-      const exerciseHistory = getNestedField(
-        self.user,
-        "exerciseHistory",
-      ) as User["exerciseHistory"]
-      if (!exerciseHistory) return null
+    // getSetFromLastWorkout(exerciseId: ExerciseId, setOrder: number) {
+    //   const exerciseHistory = getNestedField(
+    //     self.user,
+    //     "exerciseHistory",
+    //   ) as User["exerciseHistory"]
+    //   if (!exerciseHistory) return null
 
-      const exerciseHistoryItem = exerciseHistory?.[exerciseId]
-      if (!exerciseHistoryItem) return null
+    //   const exerciseHistoryItem = exerciseHistory?.[exerciseId]
+    //   if (!exerciseHistoryItem) return null
 
-      const workoutsCount = exerciseHistoryItem.performedWorkoutIds.length
-      const latestWorkoutId = exerciseHistoryItem.performedWorkoutIds[workoutsCount - 1]
-      const latestWorkout = self.workouts.get(latestWorkoutId)
-      const lastPerformedSet = latestWorkout.workout.exercises.filter(
-        (e) => e.exerciseId === exerciseId,
-      )[0].setsPerformed?.[setOrder]
-      if (!lastPerformedSet) return null
+    //   const workoutsCount = exerciseHistoryItem.performedWorkoutIds.length
+    //   const latestWorkoutId = exerciseHistoryItem.performedWorkoutIds[workoutsCount - 1]
+    //   const latestWorkout = self.workouts.get(latestWorkoutId)
+    //   const lastPerformedSet = latestWorkout.workout.exercises.filter(
+    //     (e) => e.exerciseId === exerciseId,
+    //   )[0].setsPerformed?.[setOrder]
+    //   if (!lastPerformedSet) return null
 
-      return lastPerformedSet
-    },
+    //   return lastPerformedSet
+    // },
     isInMyGyms(gymId: GymId) {
       return !!self.user?.myGyms?.find((myGym) => myGym.gymId === gymId)
     },

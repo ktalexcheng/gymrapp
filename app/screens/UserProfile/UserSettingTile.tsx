@@ -1,29 +1,23 @@
-import { RowView, Spacer, Text } from "app/components"
+import { RowView, Spacer, Text, Toggle } from "app/components"
 import { TxKeyPath } from "app/i18n"
 import { styles } from "app/theme"
-import React, { useState } from "react"
+import React from "react"
 import { TouchableOpacity, View, ViewStyle } from "react-native"
 
 type SwitchSettingTileProps = {
   titleTx: TxKeyPath
   descriptionTx: TxKeyPath
   toggleState: boolean
-  onToggle: (newState: boolean) => void
-  isOnIcon: React.ReactNode
-  isOffIcon: React.ReactNode
+  onToggle: () => void
+  isOnIcon?: React.ReactNode
+  isOffIcon?: React.ReactNode
   containerStyle?: ViewStyle
 }
 
 export const SwitchSettingTile: React.FC<SwitchSettingTileProps> = (
   props: SwitchSettingTileProps,
 ) => {
-  const { containerStyle: $containerStyleOverride } = props
-  const [isOn, setIsOn] = useState(props.toggleState)
-
-  const _onToggle = () => {
-    props.onToggle(!isOn)
-    setIsOn(!isOn)
-  }
+  const { toggleState, onToggle, containerStyle: $containerStyleOverride } = props
 
   const $tileView: ViewStyle = {
     alignItems: "center",
@@ -37,6 +31,18 @@ export const SwitchSettingTile: React.FC<SwitchSettingTileProps> = (
     flex: 1,
   }
 
+  const SwitchIcon = () => {
+    if (props.isOnIcon || props.isOffIcon) {
+      return (
+        <TouchableOpacity onPress={onToggle} style={$iconButton}>
+          {toggleState ? props.isOnIcon : props.isOffIcon}
+        </TouchableOpacity>
+      )
+    } else {
+      return <Toggle variant="switch" value={toggleState} onPress={onToggle} />
+    }
+  }
+
   return (
     <View style={$containerStyleOverride}>
       <Text preset="formLabel" tx={props.titleTx} />
@@ -45,9 +51,7 @@ export const SwitchSettingTile: React.FC<SwitchSettingTileProps> = (
         <View style={$description}>
           <Text tx={props.descriptionTx} />
         </View>
-        <TouchableOpacity onPress={_onToggle} style={$iconButton}>
-          {isOn ? props.isOnIcon : props.isOffIcon}
-        </TouchableOpacity>
+        <SwitchIcon />
       </RowView>
     </View>
   )

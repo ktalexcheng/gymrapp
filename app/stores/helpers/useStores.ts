@@ -1,13 +1,4 @@
-import firestore from "@react-native-firebase/firestore"
-import {
-  ExerciseRepository,
-  FeedRepository,
-  GymRepository,
-  PrivateExerciseRepository,
-  UserRepository,
-  WorkoutRepository,
-} from "app/data/repository"
-import { ActivityRepository } from "app/data/repository/activityRepository"
+import { repositorySingletons } from "app/data/repository"
 import { createContext, useContext, useEffect, useState } from "react"
 import { setReactotronRootStore } from "../../services/reactotron"
 import { RootStore, RootStoreModel } from "../RootStore"
@@ -25,26 +16,9 @@ import { setupRootStore } from "./setupRootStore"
  * very large), you may want to use a different strategy than immediately
  * instantiating it, although that should be rare.
  */
-export interface RootStoreDependencies {
-  userRepository: UserRepository
-  activityRepository: ActivityRepository
-  exerciseRepository: ExerciseRepository
-  privateExerciseRepository: PrivateExerciseRepository
-  workoutRepository: WorkoutRepository
-  feedRepository: FeedRepository
-  gymRepository: GymRepository
-}
+export type RootStoreDependencies = typeof repositorySingletons
 
-const _firestoreClient = firestore()
-const _rootStore = RootStoreModel.create({}, {
-  userRepository: new UserRepository(_firestoreClient),
-  activityRepository: new ActivityRepository(_firestoreClient),
-  exerciseRepository: new ExerciseRepository(_firestoreClient),
-  privateExerciseRepository: new PrivateExerciseRepository(_firestoreClient),
-  workoutRepository: new WorkoutRepository(_firestoreClient),
-  feedRepository: new FeedRepository(_firestoreClient),
-  gymRepository: new GymRepository(_firestoreClient),
-} as RootStoreDependencies)
+const _rootStore = RootStoreModel.create({}, repositorySingletons)
 
 /**
  * The RootStoreContext provides a way to access

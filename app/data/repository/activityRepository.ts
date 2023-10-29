@@ -2,7 +2,7 @@ import { Activity, ActivityId } from "../model/activityModel"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class ActivityRepository extends BaseRepository<Activity, ActivityId> {
-  constructor(firebaseClient) {
+  constructor(firebaseClient?) {
     super("ActivityRepository", firebaseClient, "activities", "activityId")
   }
 

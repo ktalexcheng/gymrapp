@@ -204,7 +204,7 @@ const WorkoutStoreModel = types
       try {
         if (self.inProgress) {
           console.warn("WorkoutStore.saveWorkout: Unable to save, workout still in progress")
-          return
+          return undefined
         }
 
         self.cleanUpWorkout()
@@ -221,6 +221,8 @@ const WorkoutStoreModel = types
           exercises: self.exerciseSummary,
           workoutTitle: self.workoutTitle,
           activityId: self.activityId,
+          performedAtGymId: self.performedAtGymId ?? null,
+          performedAtGymName: self.performedAtGymName ?? null,
         } as NewWorkout
         // console.debug("WorkoutStore.saveWorkout newWorkout:", newWorkout)
         const workoutId = yield getEnv<RootStoreDependencies>(self).workoutRepository.create(
@@ -258,6 +260,7 @@ const WorkoutStoreModel = types
         return workoutId
       } catch (error) {
         console.error("WorkoutStore.saveWorkout error:", error)
+        return undefined
       }
     }),
     addExercise(newExerciseId: string) {

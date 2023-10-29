@@ -2,7 +2,7 @@ import { GymDetails, GymId } from "../model"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class GymRepository extends BaseRepository<GymDetails, GymId> {
-  constructor(firestoreClient) {
+  constructor(firestoreClient?) {
     super("GymRepository", firestoreClient, "gyms", "gymId")
   }
 

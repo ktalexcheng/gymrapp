@@ -22,6 +22,9 @@ const en = {
     activities: "Activities",
     followers: "Followers",
     following: "Following",
+    comments: "Comments",
+    copiedToClipboard: "Copied to clipboard!",
+    selected: "Selected",
   },
   welcomeScreen: {
     postscript:
@@ -76,8 +79,9 @@ const en = {
     passwordMismatchLabel: "Passwords do not match",
   },
   feedScreen: {
-    emptyFeed: "Start following people to see their workouts here",
-    noMoreFeedItems: "Oops, no more workouts to show",
+    notFollowingAnyone: "Start following people to see their workouts here",
+    noFeedItems: "Once your friends start working out, you'll see their workouts here",
+    noMoreFeedItems: "That's all we have for now!",
   },
   profileScreen: {
     userSettings: "Settings",
@@ -149,6 +153,10 @@ const en = {
     timeSinceLastSetLabel: "Resting (set):",
     rpeNullLabel: "None",
   },
+  workoutSummaryScreen: {
+    commentInputPlaceholder: "Leave a comment...",
+    noCommentsMessage: "Start the conversation!",
+  },
   restTimerScreen: {
     startTimer: "Start",
     pauseTimer: "Pause",
@@ -168,9 +176,12 @@ const en = {
   addExerciseScreen: {
     disclaimer:
       "Exercises you create will not be shared with other users and will not participate in the leaderboard.",
-    activityName: "Activity Type",
-    exerciseCategory: "Category",
-    exerciseSubCategory: "Sub-Category",
+    activityType: "Activity Type",
+    exerciseCat1: "Category",
+    exerciseCat2: "Sub-Category (optional)",
+    volumeType: "Volume Type",
+    setAsBlankLabel: "Set as blank",
+    requiredFieldsMissingMessage: "Please fill out all required fields",
     exerciseName: "Name",
     addExerciseButton: "Add exercise",
   },
@@ -232,6 +243,7 @@ const en = {
   profileVisitorViewScreen: {
     dateJoinedLabel: "Date joined",
     followButtonLabel: "Follow",
+    followBackButtonLabeL: "Follow back",
     unfollowButtonLabel: "Unfollow",
     followRequestSentMessage: "Follow request sent",
     followRequestAcceptedMessage: "You have rejected this user's follow request",

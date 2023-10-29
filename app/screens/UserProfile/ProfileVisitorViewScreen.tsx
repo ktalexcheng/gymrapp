@@ -1,7 +1,6 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Avatar, Button, RowView, Screen, Spacer, Text } from "app/components"
 import { User } from "app/data/model"
-import { TxKeyPath } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
@@ -9,16 +8,7 @@ import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
 import { RefreshControl, View, ViewStyle } from "react-native"
 import { LoadingScreen } from "../LoadingScreen"
-
-const UserStatTile: FC<{ labelTx: TxKeyPath; value: string }> = ({ labelTx, value }) => {
-  return (
-    <View style={$userStatTile}>
-      <Text preset="subheading">{value}</Text>
-      <Spacer type="horizontal" size="small" />
-      <Text preset="formLabel" tx={labelTx} />
-    </View>
-  )
-}
+import { UserProfileStatsBar } from "./UserProfileStatsBar"
 
 interface ProfileVisitorViewScreenProps
   extends NativeStackScreenProps<MainStackParamList, "ProfileVisitorView"> {}
@@ -64,24 +54,7 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
               </RowView>
             </View>
           </RowView>
-          <RowView style={$userStatsRow}>
-            <UserStatTile
-              labelTx="common.activities"
-              value={
-                (foreignUser?.workoutMetas &&
-                  Object.keys(foreignUser.workoutMetas).length.toString()) ??
-                "0"
-              }
-            />
-            <UserStatTile
-              labelTx="common.followers"
-              value={foreignUser?.followersCount?.toString() ?? "0"}
-            />
-            <UserStatTile
-              labelTx="common.following"
-              value={foreignUser?.followingCount?.toString() ?? "0"}
-            />
-          </RowView>
+          <UserProfileStatsBar user={foreignUser} containerStyle={$userProfileStatsBar} />
           {isFollowing ? (
             <Button
               tx="profileVisitorViewScreen.unfollowButtonLabel"
@@ -100,7 +73,7 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
     return (
       <Screen
         safeAreaEdges={["top", "bottom"]}
-        style={styles.screenContainer}
+        contentContainerStyle={styles.screenContainer}
         preset="scroll"
         ScrollViewProps={{
           refreshControl: (
@@ -117,11 +90,6 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
   },
 )
 
-const $userStatsRow: ViewStyle = {
-  justifyContent: "space-between",
-}
-
-const $userStatTile: ViewStyle = {
-  alignItems: "center",
+const $userProfileStatsBar: ViewStyle = {
   marginVertical: spacing.medium,
 }

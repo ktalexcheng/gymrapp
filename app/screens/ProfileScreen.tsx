@@ -20,17 +20,19 @@ import {
 } from "victory-native"
 import { colors, spacing } from "../theme"
 import { WorkoutSummaryCard } from "./FinishedWorkout"
+import { UserProfileStatsBar } from "./UserProfile/UserProfileStatsBar"
 
 const UserActivitiesTabScene: FC = observer(() => {
-  const { userStore } = useStores()
+  const { userStore, feedStore } = useStores()
 
   function getWorkoutData() {
-    const workouts = Array.from(userStore.workouts.values())
+    const workouts = Array.from(feedStore.userWorkouts.values())
     workouts.sort((a, b) => (a.workout.startTime > b.workout.startTime ? -1 : 1))
 
     return workouts.map((workout) => {
       return {
         ...workout,
+        byUser: userStore.user,
         workoutSource: WorkoutSource.User,
       }
     })
@@ -40,8 +42,8 @@ const UserActivitiesTabScene: FC = observer(() => {
     return <WorkoutSummaryCard {...item} />
   }
 
-  if (userStore.isLoadingWorkouts) return <Text tx="common.loading" />
-  if (userStore.workouts.size === 0) return <Text tx="profileScreen.noActivityhistory" />
+  if (feedStore.isLoadingUserWorkouts) return <Text tx="common.loading" />
+  if (feedStore.userWorkouts.size === 0) return <Text tx="profileScreen.noActivityhistory" />
 
   return (
     <FlatList
@@ -161,15 +163,15 @@ const WeeklyWorkoutChart: FC<WeeklyWorkoutChartProps> = ({ data }) => {
 }
 
 const DashboardTabScene: FC = observer(() => {
-  const { userStore } = useStores()
+  const { feedStore } = useStores()
 
-  if (userStore.isLoadingWorkouts) return <Text tx="common.loading" />
-  if (userStore.workouts.size === 0) return <Text tx="profileScreen.noActivityhistory" />
+  if (feedStore.isLoadingUserWorkouts) return <Text tx="common.loading" />
+  if (feedStore.userWorkouts.size === 0) return <Text tx="profileScreen.noActivityhistory" />
 
   return (
     <>
       <Text preset="subheading" tx="profileScreen.dashboardWeeklyWorkoutsTitle" />
-      <WeeklyWorkoutChart data={userStore.weeklyWorkoutsCount} />
+      <WeeklyWorkoutChart data={feedStore.weeklyWorkoutsCount} />
     </>
   )
 })
@@ -236,6 +238,7 @@ export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileSc
               size={32}
             />
           </RowView>
+          <UserProfileStatsBar user={userStore.user} containerStyle={$userProfileStatsBar} />
           <RowView style={$coachsCenterRow}>
             <TouchableOpacity style={[$coachsCenterButton, $coachsCenterButtonStatus]}>
               <Text tx="profileScreen.coachsCenterButtonLabel"></Text>
@@ -263,7 +266,10 @@ const $screenContentContainer: ViewStyle = {
 
 const $userAvatarRow: ViewStyle = {
   justifyContent: "space-between",
-  marginBottom: spacing.large,
+}
+
+const $userProfileStatsBar: ViewStyle = {
+  marginVertical: spacing.medium,
 }
 
 const $userDisplayName: ViewStyle = {

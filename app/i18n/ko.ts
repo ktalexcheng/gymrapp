@@ -19,6 +19,9 @@ const ko: Translations = {
     activities: "",
     followers: "",
     following: "",
+    comments: "",
+    copiedToClipboard: "",
+    selected: "",
   },
   welcomeScreen: {
     postscript:
@@ -58,6 +61,7 @@ const ko: Translations = {
   gymPickerScreen: undefined,
   discoverScreen: undefined,
   profileVisitorViewScreen: undefined,
+  workoutSummaryScreen: undefined,
 }
 
 export default ko

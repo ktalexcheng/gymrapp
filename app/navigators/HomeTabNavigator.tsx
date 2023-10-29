@@ -88,17 +88,7 @@ const NewActivityButton = () => {
 
 export const HomeTabNavigator = observer(() => {
   const { bottom } = useSafeAreaInsets()
-  const { userStore, workoutStore } = useStores()
-  const mainNavigation = useMainNavigation()
-
-  // This redirect makes more sense in the MainNavigator
-  // useEffect(() => {
-  //   console.debug("HomeTabNavigator.useEffect [userStore.profileIncomplete] called")
-  //   if (userStore.profileIncomplete) {
-  //     console.debug("Profile is incomplete, navigating to OnboardingNavigator")
-  //     mainNavigation.navigate("OnboardingNavigator")
-  //   }
-  // }, [userStore.profileIncomplete])
+  const { workoutStore } = useStores()
 
   return (
     <>

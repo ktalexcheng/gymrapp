@@ -33,6 +33,12 @@ export const Search: FC<SearchProps> = ({
   const [searchResult, setSearchResult] = useState<any[]>([])
 
   useEffect(() => {
+    setSearchText("")
+    setIsSearching(false)
+    setSearchResult([])
+  }, [searchCallback, renderSearchResultItem, searchResultItemKeyField])
+
+  useEffect(() => {
     if (!searchText) return undefined
 
     setIsSearching(true)

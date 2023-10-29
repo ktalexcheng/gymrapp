@@ -83,7 +83,9 @@
     "reactotron-mst": "3.1.4",
     "reactotron-react-js": "^3.3.7",
     "reactotron-react-native": "5.0.3",
-    "victory-native": "^36.6.11"
+    "victory-native": "^36.6.11",
+    "expo-blur": "~12.2.2",
+    "expo-clipboard": "~4.1.2"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

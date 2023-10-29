@@ -1,11 +1,13 @@
 import React from "react"
-import { Text, View, ViewStyle } from "react-native"
+import { ActivityIndicator, Text, ViewStyle } from "react-native"
+import { Screen } from "../components"
 
 export const LoadingScreen = () => {
   return (
-    <View style={$loadingScreen}>
+    <Screen style={$loadingScreen}>
+      <ActivityIndicator size="large" />
       <Text>LoadingScreen</Text>
-    </View>
+    </Screen>
   )
 }
 

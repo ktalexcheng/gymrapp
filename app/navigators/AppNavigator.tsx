@@ -52,7 +52,7 @@ export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStack
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = observer(function AppStack() {
-  const { authenticationStore: authStore, userStore } = useStores()
+  const { authenticationStore: authStore, userStore, feedStore } = useStores()
 
   // Set an initializing state whilst Firebase connects
   const [initializing, setInitializing] = useState(true)
@@ -64,10 +64,12 @@ const AppStack = observer(function AppStack() {
       console.debug("onAuthStateChanged received valid user")
       authStore.setFirebaseUser(user)
       userStore.loadUserWithId(authStore.userId)
+      feedStore.setUserId(authStore.userId)
     } else {
       console.debug("onAuthStateChanged received invalid user, invalidating session")
       authStore.invalidateSession()
       userStore.invalidateSession()
+      feedStore.resetFeed()
     }
 
     if (initializing) setInitializing(false)
