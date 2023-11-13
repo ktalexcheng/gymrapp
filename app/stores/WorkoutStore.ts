@@ -2,14 +2,18 @@ import firestore from "@react-native-firebase/firestore"
 import { ActivityId } from "app/data/model/activityModel"
 import { differenceInSeconds } from "date-fns"
 import { SnapshotIn, destroy, flow, getEnv, types } from "mobx-state-tree"
-import { ExerciseSetType, WorkoutVisibility } from "../../app/data/constants"
+import { ExerciseSetType, ExerciseVolumeType, WorkoutVisibility } from "../../app/data/constants"
 import {
+  ExerciseHistory,
   ExercisePerformed,
   ExerciseSet,
   Gym,
   NewExerciseRecord,
   NewWorkout,
-  PersonalRecord,
+  RepsExerciseSet,
+  RepsPersonalRecord,
+  TimeExerciseSet,
+  TimePersonalRecord,
   User,
 } from "../../app/data/model"
 import { translate } from "../../app/i18n"
@@ -21,8 +25,10 @@ const SingleExerciseSet = types
   .model({
     setOrder: types.number,
     setType: types.enumeration<ExerciseSetType>(Object.values(ExerciseSetType)),
-    weight: types.maybe(types.number),
-    reps: types.maybe(types.number),
+    volumeType: types.enumeration<ExerciseVolumeType>(Object.values(ExerciseVolumeType)),
+    weight: types.maybeNull(types.number),
+    reps: types.maybeNull(types.number),
+    time: types.maybeNull(types.number),
     rpe: types.maybeNull(types.number),
     isCompleted: false,
   })
@@ -36,7 +42,7 @@ const SingleExerciseSet = types
   }))
   .actions(withSetPropAction)
   .actions((self) => ({
-    updateSetValues(prop: "weight" | "reps" | "rpe", value: number) {
+    updateSetValues(prop: "weight" | "reps" | "rpe" | "time", value: number) {
       if (value !== null && value !== undefined && value >= 0) {
         self.setProp(prop, value)
       } else {
@@ -51,6 +57,7 @@ const SingleExercise = types
   .model({
     exerciseOrder: types.number,
     exerciseId: types.string,
+    volumeType: types.enumeration<ExerciseVolumeType>(Object.values(ExerciseVolumeType)),
     setsPerformed: types.optional(ExerciseSets, []),
     exerciseNotes: types.maybeNull(types.string),
   })
@@ -113,50 +120,6 @@ const WorkoutStoreModel = types
 
       return "00:00"
     },
-    get exerciseSummary() {
-      const exercisesSummary: ExercisePerformed[] = []
-      const exerciseHistory =
-        getEnv<RootStoreDependencies>(self).userRepository.getUserProp("exerciseHistory")
-
-      self.exercises.forEach((e) => {
-        const exerciseRecord = exerciseHistory && exerciseHistory?.[e.exerciseId]?.personalRecords
-        let maxWeightSet = {} as ExerciseSet
-        let totalReps = 0
-        let totalVolume = 0
-        const newRecords = {} as NewExerciseRecord
-
-        e.setsPerformed.forEach((s) => {
-          if (!s.reps || s.reps === 0) return
-
-          totalReps += s.reps
-          totalVolume += s.weight * s.reps
-
-          if (s.weight > (maxWeightSet?.weight || 0)) maxWeightSet = s
-
-          const exerciseRepRecord = exerciseRecord && exerciseRecord?.[s.reps]
-          const recordsCount = exerciseRepRecord && Object.keys(exerciseRepRecord).length
-          if (s.weight > ((recordsCount && exerciseRepRecord[recordsCount - 1].weight) || 0)) {
-            newRecords[s.reps] = {
-              // exerciseId: e.exerciseId,
-              datePerformed: self.startTime,
-              weight: s.weight,
-              reps: s.reps,
-            } as PersonalRecord
-          }
-        })
-
-        exercisesSummary.push({
-          ...e,
-          maxWeightSet,
-          datePerformed: self.startTime,
-          totalReps,
-          totalVolume,
-          newRecords,
-        })
-      })
-
-      return exercisesSummary
-    },
   }))
   .actions(withSetPropAction)
   .actions((self) => ({
@@ -182,6 +145,95 @@ const WorkoutStoreModel = types
       self.performedAtGymId = gym.gymId
       self.performedAtGymName = gym.gymName
     },
+    allExerciseSummary: flow(function* () {
+      const exercisesSummary: ExercisePerformed[] = []
+
+      // self.exercises.forEach(async (e) => {
+      for (const e of self.exercises.values()) {
+        const exerciseHistory: ExerciseHistory = yield getEnv<RootStoreDependencies>(
+          self,
+        ).userRepository.getUserProp("exerciseHistory")
+        const exerciseRecord = exerciseHistory && exerciseHistory?.[e.exerciseId]?.personalRecords
+        let bestSet = {} as ExerciseSet
+        const newRecords = {} as NewExerciseRecord
+
+        if (e.volumeType === ExerciseVolumeType.Reps) {
+          let totalReps = 0
+          let totalVolume = 0
+
+          e.setsPerformed.forEach((s) => {
+            if (!s.reps || s.reps === 0) return
+
+            totalReps += s.reps
+            totalVolume += s.weight * s.reps
+
+            if (s.weight > ((bestSet as RepsExerciseSet)?.weight || 0))
+              bestSet = s as RepsExerciseSet
+
+            const exerciseRepRecord = exerciseRecord && exerciseRecord?.[s.reps]
+            const recordsCount = exerciseRepRecord && Object.keys(exerciseRepRecord).length
+            if (s.weight > ((recordsCount && exerciseRepRecord[recordsCount - 1].weight) || 0)) {
+              if (
+                newRecords[s.reps] &&
+                s.weight < (newRecords[s.reps] as RepsPersonalRecord)?.weight
+              )
+                return
+
+              newRecords[s.reps] = {
+                // exerciseId: e.exerciseId,
+                datePerformed: self.startTime,
+                weight: s.weight,
+                reps: s.reps,
+              } as RepsPersonalRecord
+            }
+          })
+
+          exercisesSummary.push({
+            ...e,
+            volumeType: ExerciseVolumeType.Reps,
+            bestSet,
+            datePerformed: self.startTime,
+            totalReps,
+            totalVolume,
+            newRecords,
+          })
+        } else if (e.volumeType === ExerciseVolumeType.Time) {
+          let totalTime = 0
+
+          e.setsPerformed.forEach((s) => {
+            if (!s.time || s.time === 0) return
+
+            totalTime += s.time
+
+            if (s.time > ((bestSet as TimeExerciseSet)?.time || 0)) bestSet = s as TimeExerciseSet
+
+            // For time based exercises, records are only stored at the index 0
+            const exerciseTimeRecord = exerciseRecord && exerciseRecord?.[0]
+            const recordsCount = exerciseTimeRecord && Object.keys(exerciseTimeRecord).length
+            if (s.time > ((recordsCount && exerciseTimeRecord[recordsCount - 1].time) || 0)) {
+              if (newRecords[0] && s.time < (newRecords[0] as TimePersonalRecord)?.time) return
+
+              newRecords[0] = {
+                // exerciseId: e.exerciseId,
+                datePerformed: self.startTime,
+                time: s.time,
+              } as TimePersonalRecord
+            }
+          })
+
+          exercisesSummary.push({
+            ...e,
+            volumeType: ExerciseVolumeType.Time,
+            bestSet,
+            datePerformed: self.startTime,
+            totalTime,
+            newRecords,
+          })
+        }
+      }
+
+      return exercisesSummary
+    }),
   }))
   .actions((self) => ({
     startNewWorkout(activityId: ActivityId) {
@@ -213,18 +265,19 @@ const WorkoutStoreModel = types
         const { userRepository } = getEnv<RootStoreDependencies>(self)
         const userId = yield userRepository.getUserProp("userId")
         const privateAccount = yield userRepository.getUserProp("privateAccount")
+        const allExerciseSummary = yield self.allExerciseSummary()
         const newWorkout = {
           byUserId: userId,
           visibility: privateAccount ? WorkoutVisibility.Private : WorkoutVisibility.Public,
           startTime: self.startTime,
           endTime: self.endTime,
-          exercises: self.exerciseSummary,
+          exercises: allExerciseSummary,
           workoutTitle: self.workoutTitle,
           activityId: self.activityId,
           performedAtGymId: self.performedAtGymId ?? null,
           performedAtGymName: self.performedAtGymName ?? null,
         } as NewWorkout
-        // console.debug("WorkoutStore.saveWorkout newWorkout:", newWorkout)
+        console.debug("WorkoutStore.saveWorkout newWorkout:", newWorkout)
         const workoutId = yield getEnv<RootStoreDependencies>(self).workoutRepository.create(
           newWorkout,
         )
@@ -244,7 +297,7 @@ const WorkoutStoreModel = types
 
         // Update user exercise history
         const userUpdate = {} as Partial<User>
-        self.exerciseSummary.forEach((e) => {
+        allExerciseSummary.forEach((e) => {
           userUpdate[`exerciseHistory.${e.exerciseId}.performedWorkoutIds`] =
             firestore.FieldValue.arrayUnion(workoutId)
           if (Object.keys(e.newRecords).length > 0) {
@@ -263,11 +316,12 @@ const WorkoutStoreModel = types
         return undefined
       }
     }),
-    addExercise(newExerciseId: string) {
+    addExercise(newExerciseId: string, volumeType: ExerciseVolumeType) {
       const newExerciseOrder = self.exercises.length
       const newExercise = SingleExercise.create({
         exerciseOrder: newExerciseOrder,
         exerciseId: newExerciseId,
+        volumeType,
         setsPerformed: [],
       })
       self.exercises.push(newExercise)
@@ -283,6 +337,7 @@ const WorkoutStoreModel = types
       const newSetOrder = exercise.setsPerformed.length
       const newSet = SingleExerciseSet.create({
         setOrder: newSetOrder,
+        volumeType: exercise.volumeType,
         ...newSetObject,
       })
       exercise.setsPerformed.push(newSet)

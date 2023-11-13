@@ -1,3 +1,4 @@
+import { Exercise } from "app/data/model"
 import { colors } from "app/theme"
 import { observer } from "mobx-react-lite"
 import { Fab } from "native-base"
@@ -13,8 +14,8 @@ interface ExerciseManagerScreenProps extends MainStackScreenProps<"ExerciseManag
 export const ExerciseManagerScreen: FC<ExerciseManagerScreenProps> = observer(({ navigation }) => {
   const $containerInsets = useSafeAreaInsetsStyle(["bottom", "left", "right"])
 
-  function handleSelectExercise(exerciseId: string) {
-    navigation.navigate("ExerciseDetails", { exerciseId })
+  function handleSelectExercise(exercise: Exercise) {
+    navigation.navigate("ExerciseDetails", { exerciseId: exercise.exerciseId })
   }
 
   return (

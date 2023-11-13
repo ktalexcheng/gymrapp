@@ -66,7 +66,7 @@ export const colors = {
   /**
    * The default color of the background for content on a screen.
    */
-  contentBackground: palette.accent200,
+  contentBackground: palette.neutral100,
   /**
    * The default border color.
    */
@@ -78,7 +78,7 @@ export const colors = {
   /**
    * A subtle color used for lines.
    */
-  separator: palette.neutral300,
+  separator: palette.neutral400,
   /**
    * Error messages.
    */

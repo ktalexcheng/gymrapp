@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 3.12.0"
+    "version": ">= 3.12.0",
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -18,9 +19,12 @@
       "distribution": "internal",
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "autoIncrement": true
     },
-    "production": {}
+    "production": {
+      "autoIncrement": true
+    }
   },
   "submit": {
     "internalTesting": {

@@ -55,22 +55,9 @@ jest.mock("expo-constants", () => {
   }
 })
 
-// @react-native-firebase relies on native modules that will not work in the jest environment
-jest.mock("@react-native-firebase/firestore", () => {
-  return {
-    // ...jest.requireActual("@react-native-firebase/firestore"),
-    FieldValue: admin.firestore.FieldValue,
-    FieldPath: admin.firestore.FieldPath,
-    FirebaseFirestoreTypes: {
-      // ...jest.requireActual("@react-native-firebase/firestore").FirebaseFirestoreTypes,
-      Timestamp: admin.firestore.Timestamp,
-    },
-  }
-})
-
 // Do this in setup so it is done only once for all tests
 admin.initializeApp()
-export const firebaseApp = initializeApp(require("./service-account-key.json"))
+export const firebaseApp = initializeApp(require("./firebase-sa-key.json"))
 export const firebaseFunctionsClient = getFunctions(firebaseApp)
 
 jest.mock("@react-native-firebase/functions", () => {
@@ -84,6 +71,26 @@ jest.mock("@react-native-firebase/functions", () => {
         }),
       }
     }),
+  }
+})
+
+// @react-native-firebase relies on native modules that will not work in the jest environment
+jest.mock("@react-native-firebase/firestore", () => {
+  // Depending on the import strategy, we might need to mock the default export or the named exports
+  const firestore = admin.firestore
+  firestore.FieldValue = admin.firestore.FieldValue
+  firestore.FieldPath = admin.firestore.FieldPath
+
+  return {
+    // ...jest.requireActual("@react-native-firebase/firestore"),
+    __esModule: true,
+    default: firestore,
+    FieldValue: admin.firestore.FieldValue,
+    FieldPath: admin.firestore.FieldPath,
+    FirebaseFirestoreTypes: {
+      // ...jest.requireActual("@react-native-firebase/firestore").FirebaseFirestoreTypes,
+      Timestamp: admin.firestore.Timestamp,
+    },
   }
 })
 

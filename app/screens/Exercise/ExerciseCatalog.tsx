@@ -20,7 +20,7 @@ const ExerciseListScreen: FC<ExerciseListScreenProps> = (props: ExerciseListScre
       <SectionList
         sections={props.sectionsData}
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => props.onItemPress(item.exerciseId)}>
+          <TouchableOpacity onPress={() => props.onItemPress(item)}>
             <Text style={[$listItem, $listItemText]}>{item.exerciseName}</Text>
           </TouchableOpacity>
         )}
@@ -34,7 +34,7 @@ const ExerciseListScreen: FC<ExerciseListScreenProps> = (props: ExerciseListScre
 }
 
 interface ExerciseCatalogProps {
-  onItemPress: (exerciseId: string) => void
+  onItemPress: (exercise: Exercise) => void
 }
 
 export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: ExerciseCatalogProps) => {

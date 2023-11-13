@@ -49,7 +49,7 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
 
   constructor(
     repositoryId: string,
-    firestoreClient: FirebaseFirestoreTypes.Module = firestore(),
+    firestoreClient: FirebaseFirestoreTypes.Module,
     collectionPath: string,
     documentIdField: string,
     fieldNameMap?: { [key: string]: string },
@@ -126,6 +126,19 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
     const processedDataWithId = { ...processedData, [this.#documentIdField]: snapshot.id }
 
     return processedDataWithId
+  }
+
+  // If the data is an object, recursively convert all undefined values to null
+  _convertUndefinedToNull(data: any): any {
+    if (data === undefined) return null
+
+    if (data instanceof Object) {
+      for (const key in data) {
+        data[key] = this._convertUndefinedToNull(data[key])
+      }
+    }
+
+    return data
   }
 
   _setCacheData(cacheKey: string, cacheData: CacheData<T>) {
@@ -310,7 +323,8 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
       docId = data[this.#documentIdField]
     }
 
-    const renamedData = this.#fieldNameMap ? this._repToSourceRename(data) : data
+    const convertedData = this._convertUndefinedToNull(data)
+    const renamedData = this.#fieldNameMap ? this._repToSourceRename(convertedData) : convertedData
     // Attach _createdAt timestamp to all data created
     renamedData._createdAt = firestore.FieldValue.serverTimestamp()
     try {
@@ -345,7 +359,8 @@ export class BaseRepository<T, D> implements IBaseRepository<T, D> {
       throw new RepositoryError(this.#repositoryId, "No document ID provided for update() method")
     }
 
-    const renamedData = this.#fieldNameMap ? this._repToSourceRename(data) : data
+    const convertedData = this._convertUndefinedToNull(data)
+    const renamedData = this.#fieldNameMap ? this._repToSourceRename(convertedData) : convertedData
     // Attach _modifiedAt timestamp to all data created
     renamedData._modifiedAt = firestore.FieldValue.serverTimestamp()
     try {

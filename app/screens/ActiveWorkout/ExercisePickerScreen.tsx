@@ -1,3 +1,4 @@
+import { Exercise } from "app/data/model"
 import { colors } from "app/theme"
 import { observer } from "mobx-react-lite"
 import { Fab } from "native-base"
@@ -13,8 +14,8 @@ interface ExercisePickerScreenProps extends MainStackScreenProps<"ExercisePicker
 export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ navigation }) => {
   const { workoutStore } = useStores()
 
-  function handleSelectExercise(exerciseId: string) {
-    workoutStore.addExercise(exerciseId)
+  function handleSelectExercise(exercise: Exercise) {
+    workoutStore.addExercise(exercise.exerciseId, exercise.volumeType)
     navigation.goBack()
   }
 

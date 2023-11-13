@@ -228,7 +228,7 @@ export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileSc
         <>
           <RowView alignItems="center" style={$userAvatarRow}>
             <RowView alignItems="center">
-              <Avatar user={userStore.user} size="md" />
+              <Avatar user={userStore.user} size="sm" />
               <Text style={$userDisplayName}>{userStore?.displayName}</Text>
             </RowView>
             <Icon

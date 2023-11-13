@@ -1,5 +1,7 @@
-import { ExerciseSetType, WeightUnit } from "app/data/constants"
+import { ExerciseSetType, ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import { ExerciseSet, User } from "app/data/model"
+import { repositorySingletons } from "app/data/repository/repositoryFactory"
+import { RootStore, RootStoreModel } from "app/stores/RootStore"
 import * as admin from "firebase-admin"
 import { firestore } from "firebase-admin"
 import {
@@ -10,7 +12,6 @@ import {
   UserRepository,
   WorkoutRepository,
 } from "../app/data/repository"
-import { RootStore, RootStoreModel } from "../app/stores/RootStore"
 import { createNewUser } from "./utils/createNewUser"
 import { deleteCollection } from "./utils/deleteCollection"
 import { retryExpectAsync } from "./utils/retryExpectAsync"
@@ -129,7 +130,7 @@ describe("Main test suite", () => {
       // Let main test user create a workout
       const { workoutStore } = rootStoreTestUserMain
       workoutStore.startNewWorkout("test")
-      workoutStore.addExercise("test-exercise-id")
+      workoutStore.addExercise("test-exercise-id", ExerciseVolumeType.Reps)
       workoutStore.addSet(0, {
         setType: ExerciseSetType.Normal,
         weight: 100,
@@ -162,7 +163,7 @@ describe("Main test suite", () => {
     test("WorkoutStore should manage exercises and sets order correctly", () => {
       const { workoutStore } = rootStoreTestUserMain
       workoutStore.startNewWorkout("test")
-      workoutStore.addExercise("test-exercise-id-1")
+      workoutStore.addExercise("test-exercise-id-1", ExerciseVolumeType.Reps)
       workoutStore.addSet(0, {
         setType: ExerciseSetType.Normal,
         weight: 100,
@@ -182,7 +183,7 @@ describe("Main test suite", () => {
       expect(workoutStore.exercises.at(0).setsPerformed.length).toEqual(1)
       expect(workoutStore.exercises.at(0).setsPerformed.at(0).setOrder).toEqual(0)
 
-      workoutStore.addExercise("test-exercise-id-2")
+      workoutStore.addExercise("test-exercise-id-2", ExerciseVolumeType.Reps)
       expect(workoutStore.exercises.length).toEqual(2)
 
       workoutStore.removeExercise(0)
@@ -193,7 +194,7 @@ describe("Main test suite", () => {
     test("WorkoutStore.saveWorkout() should create new workout document and update user workoutMetas and exerciseHistory", async () => {
       const { workoutStore } = rootStoreTestUserMain
       workoutStore.startNewWorkout("test")
-      workoutStore.addExercise("test-exercise-id")
+      workoutStore.addExercise("test-exercise-id", ExerciseVolumeType.Reps)
       workoutStore.addSet(0, {
         setType: ExerciseSetType.Normal,
         weight: 100,
@@ -235,7 +236,7 @@ describe("Main test suite", () => {
   })
 
   describe("ExerciseStore", () => {
-    test.only("ExerciseStore.updateExerciseSetting() should update exercise settings", async () => {
+    test("ExerciseStore.updateExerciseSetting() should update exercise settings", async () => {
       const { exerciseStore } = rootStoreTestUserMain
       await exerciseStore.getAllExercises()
 
@@ -245,6 +246,28 @@ describe("Main test suite", () => {
 
       exerciseStore.updateExerciseSetting(exerciseId, "weightUnit", WeightUnit.kg)
       expect(exercise.exerciseSettings.weightUnit).toEqual(WeightUnit.kg)
+    })
+  })
+
+  describe("Firebase repositories", () => {
+    it.only("should convert undefined to null before saving to Firestore", async () => {
+      const { userStore } = rootStoreTestUserMain
+      const userId = userStore.userId
+      const { workoutRepository } = repositorySingletons
+      const testWorkoutId = "test-workout-id"
+
+      expect(() =>
+        workoutRepository.create({
+          workoutId: testWorkoutId,
+          byUserId: userId,
+          activityId: undefined,
+        }),
+      ).not.toThrow()
+      expect(() =>
+        workoutRepository.update(testWorkoutId, {
+          activityId: undefined,
+        }),
+      ).not.toThrow()
     })
   })
 })

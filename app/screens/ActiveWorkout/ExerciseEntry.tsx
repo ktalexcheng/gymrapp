@@ -1,4 +1,4 @@
-import { ExerciseSetType } from "app/data/constants"
+import { ExerciseSetType, ExerciseVolumeType } from "app/data/constants"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { observer } from "mobx-react-lite"
@@ -21,12 +21,54 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
   const thisExercise = workoutStore.exercises.at(props.exerciseOrder)
   const setsPerformed = thisExercise.setsPerformed
   const exerciseName = exerciseStore.getExerciseName(props.exerciseId)
+  const volumeType = exerciseStore.getExerciseVolumeType(props.exerciseId)
   const weightUnitTx = useWeightUnitTx(props.exerciseId)
 
   function addSet() {
     workoutStore.addSet(props.exerciseOrder, {
       setType: ExerciseSetType.Normal,
     })
+  }
+
+  function renderSets() {
+    return setsPerformed.map((set, i) => (
+      <SetEntry
+        key={i}
+        setOrder={i}
+        exerciseOrder={props.exerciseOrder}
+        exerciseId={props.exerciseId}
+        volumeType={volumeType}
+        {...set}
+      />
+    ))
+  }
+
+  function renderVolumeTypeSpecificHeaders() {
+    switch (thisExercise.volumeType) {
+      case ExerciseVolumeType.Reps:
+        return (
+          <>
+            <Text style={[$weightColumn, $textAlignCenter]}>
+              {translate("activeWorkoutScreen.weightColumnHeader") +
+                ` (${translate(weightUnitTx)})`}
+            </Text>
+            <Text
+              tx="activeWorkoutScreen.repsColumnHeader"
+              style={[$repsColumn, $textAlignCenter]}
+            />
+            <Text tx="activeWorkoutScreen.rpeColumnHeader" style={[$rpeColumn, $textAlignCenter]} />
+          </>
+        )
+      case ExerciseVolumeType.Time:
+        return (
+          <>
+            <Text
+              tx="activeWorkoutScreen.timeColumnHeader"
+              style={[$timeColumn, $textAlignCenter]}
+            />
+          </>
+        )
+    }
   }
 
   return (
@@ -56,11 +98,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
             tx="activeWorkoutScreen.previousColumnHeader"
             style={[$previousColumn, $textAlignCenter]}
           />
-          <Text style={[$weightColumn, $textAlignCenter]}>
-            {translate("activeWorkoutScreen.weightColumnHeader") + ` (${translate(weightUnitTx)})`}
-          </Text>
-          <Text tx="activeWorkoutScreen.repsColumnHeader" style={[$repsColumn, $textAlignCenter]} />
-          <Text tx="activeWorkoutScreen.rpeColumnHeader" style={[$rpeColumn, $textAlignCenter]} />
+          {renderVolumeTypeSpecificHeaders()}
           <Icon
             name="checkmark"
             style={[$isCompletedColumn, $textAlignCenter]}
@@ -69,15 +107,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
           />
         </RowView>
 
-        {setsPerformed.map((set, i) => (
-          <SetEntry
-            key={i}
-            setOrder={i}
-            exerciseOrder={props.exerciseOrder}
-            exerciseId={props.exerciseId}
-            {...set}
-          />
-        ))}
+        {renderSets()}
 
         <TouchableOpacity onPress={addSet}>
           <RowView style={$exerciseActions}>
@@ -123,6 +153,11 @@ const $repsColumn: ViewStyle = {
 
 const $rpeColumn: ViewStyle = {
   flex: 2,
+  alignItems: "center",
+}
+
+const $timeColumn: ViewStyle = {
+  flex: 3,
   alignItems: "center",
 }
 

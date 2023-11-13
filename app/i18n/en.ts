@@ -18,6 +18,7 @@ const en = {
       moreCharactersRequiredMessage: "Enter at least 3 characters",
       isSearchingMessage: "Searching...",
       noResultsFoundMessage: "No results found",
+      notWhatYouAreLookingForMessage: "Not what you are looking for?",
     },
     activities: "Activities",
     followers: "Followers",
@@ -56,6 +57,7 @@ const en = {
   },
   signInScreen: {
     signIn: "Sign In",
+    orSignInWith: "Or sign in with",
     enterDetails:
       "Enter your details below to unlock top secret info. You'll never guess what we've got waiting. Or maybe you will; it's not rocket science here.",
     emailFieldLabel: "Email",
@@ -138,6 +140,8 @@ const en = {
     weightColumnHeader: "Weight",
     repsColumnHeader: "Reps",
     rpeColumnHeader: "RPE",
+    timeColumnHeader: "Time",
+    enterTimeLabel: "Enter time",
     addNotesPlaceholder: "Add notes...",
     addSetAction: "Add set",
     addExerciseAction: "Add exercise",
@@ -171,6 +175,7 @@ const en = {
     recordsHeaderDateLabel: "Date Performed",
     recordsHeaderWeightLabel: "Weight",
     recordsHeaderRepsLabel: "Reps",
+    recordsHeaderTimeLabel: "Time",
     noExerciseHistoryFound: "No exercise history found.",
   },
   addExerciseScreen: {
@@ -216,13 +221,8 @@ const en = {
     locationTooFarMessage:
       "Your location seems too far from this gym, is this the right gym? You must be within 500 meters of the gym to check in.",
   },
-  gymSearchScreen: {
-    gymSearchTitle: "Search for gyms",
+  gymSearch: {
     searchBarPlaceholder: "Gym name",
-    moreCharactersRequiredLabel: "Enter at least 3 characters",
-    searchingGymsLabel: "Searching for gyms...",
-    noGymsFoundLabel: "No gyms found",
-    notWhatYouAreLookingForLabel: "Not what you are looking for?",
     createNewGymButtonLabel: "Create a new gym",
   },
   gymDetailsScreen: {
@@ -231,14 +231,15 @@ const en = {
     alreadyAddedToMyGymsLabel: "Already added to my gyms",
     alreadyRemovedFromMyGymsLabel: "Already removed from my gyms",
   },
+  userSearch: {
+    searchBarPlaceholder: "User name",
+    inviteFriendsButtonLabel: "Invite your friends to join!",
+  },
   discoverScreen: {
     discoverTitle: "Discover",
     allCategoriesLabel: "All",
     usersCategoryLabel: "Users",
     gymsCategoryLabel: "Gyms",
-    searchPlaceholder: "Search for something",
-    isSearchingMessage: "Searching...",
-    noResultsFoundMessage: "No results found",
   },
   profileVisitorViewScreen: {
     dateJoinedLabel: "Date joined",

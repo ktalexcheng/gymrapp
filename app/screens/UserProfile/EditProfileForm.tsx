@@ -266,7 +266,7 @@ export const EditProfileForm = observer(() => {
   if (isProcessing) {
     return <LoadingScreen />
   }
-
+  console.debug("imagePath", imagePath)
   return (
     <View style={$contentContainer}>
       <View style={styles.formFieldTopMargin}>
@@ -281,9 +281,9 @@ export const EditProfileForm = observer(() => {
           />
           <TouchableOpacity onPress={pickImage}>
             {imagePath ? (
-              <Avatar source={{ uri: imagePath }} size="2xl" />
+              <Avatar source={imagePath} size="xxl" />
             ) : (
-              <Avatar user={userStore.user} size="2xl" />
+              <Avatar user={userStore.user} size="xxl" />
             )}
           </TouchableOpacity>
         </View>
@@ -422,7 +422,7 @@ const $restTimePickerContainer: ViewStyle = {
 }
 
 const $restTimePicker: ViewStyle = {
-  backgroundColor: "white",
+  backgroundColor: colors.contentBackground,
   borderRadius: 20,
   padding: 35,
   width: "100%",

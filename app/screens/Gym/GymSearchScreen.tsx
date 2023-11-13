@@ -1,19 +1,18 @@
-import { Screen, Text } from "app/components"
-import { useMainNavigation } from "app/navigators/navigationUtilities"
+import { Screen, Search } from "app/components"
 import { spacing } from "app/theme"
 import React from "react"
 import { ViewStyle } from "react-native"
-import { GymSearchBar } from "./GymSearchBar"
+import { SearchCategory, SearchComponents } from "../Discover"
 
 export const GymSearchScreen = () => {
-  const mainNavigator = useMainNavigation()
-
   return (
     <Screen safeAreaEdges={["bottom"]} style={$container}>
-      <Text preset="subheading" tx="gymSearchScreen.gymSearchTitle" />
-      <GymSearchBar
-        onPressResultItemCallback={(gym) => () =>
-          mainNavigator.navigate("GymDetails", { gymId: gym.gymId })}
+      <Search
+        searchBarPlaceholderTx={SearchComponents[SearchCategory.Gyms].searchBarPlaceholderTx}
+        searchCallback={SearchComponents[SearchCategory.Gyms].searchCallback}
+        renderSearchResultItem={SearchComponents[SearchCategory.Gyms].renderSearchResultItem}
+        searchResultItemKeyField={SearchComponents[SearchCategory.Gyms].searchResultItemKeyField}
+        footerComponent={SearchComponents[SearchCategory.Gyms].footerComponent}
       />
     </Screen>
   )

@@ -1,4 +1,5 @@
 import { TxKeyPath } from "app/i18n"
+import { styles } from "app/theme"
 import React, { FC, useEffect, useState } from "react"
 import { FlatList, ListRenderItem, View, ViewProps } from "react-native"
 import { Spacer } from "./Spacer"
@@ -15,6 +16,7 @@ export interface SearchProps extends ViewProps {
   renderSearchResultItem: ListRenderItem<any>
   searchResultItemKeyField: string
   emptyResultsComponent?: React.ReactNode
+  footerComponent?: React.ReactNode
 }
 
 export const Search: FC<SearchProps> = ({
@@ -27,6 +29,7 @@ export const Search: FC<SearchProps> = ({
   renderSearchResultItem,
   searchResultItemKeyField,
   emptyResultsComponent,
+  footerComponent,
 }: SearchProps) => {
   const [searchText, setSearchText] = useState("")
   const [isSearching, setIsSearching] = useState(false)
@@ -59,28 +62,44 @@ export const Search: FC<SearchProps> = ({
   const renderSearchResults = () => {
     if (!searchText) return undefined
     if (searchText.length < minimumSearchTextLength) {
-      return <Text tx={searchTextTooShortMessageTx} />
+      return <Text tx={searchTextTooShortMessageTx} style={styles.textAlignCenter} />
     }
     if (isSearching) {
-      return <Text tx={isSearchingMessageTx} />
+      return <Text tx={isSearchingMessageTx} style={styles.textAlignCenter} />
     }
     if (!searchResult.length) {
       return (
         <>
-          <Text tx={emptyResultsMessageTx} />
+          <Text tx={emptyResultsMessageTx} style={styles.textAlignCenter} />
           {emptyResultsComponent}
         </>
       )
     }
 
     return (
-      <FlatList
-        data={searchResult}
-        renderItem={renderSearchResultItem}
-        keyExtractor={(item) => item[searchResultItemKeyField]}
-        ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
-      />
+      <>
+        <FlatList
+          data={searchResult}
+          renderItem={renderSearchResultItem}
+          keyExtractor={(item) => item[searchResultItemKeyField]}
+          ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
+          ListFooterComponent={
+            <Text
+              tx="common.search.notWhatYouAreLookingForMessage"
+              style={styles.textAlignCenter}
+            />
+          }
+        />
+      </>
     )
+  }
+
+  const renderFooter = () => {
+    if (searchText.length >= minimumSearchTextLength && !isSearching && footerComponent) {
+      return footerComponent
+    } else {
+      return undefined
+    }
   }
 
   return (
@@ -91,6 +110,7 @@ export const Search: FC<SearchProps> = ({
         onChangeText={setSearchText}
       />
       {renderSearchResults()}
+      {renderFooter()}
     </View>
   )
 }

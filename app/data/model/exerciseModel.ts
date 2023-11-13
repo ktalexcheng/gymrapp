@@ -1,45 +1,70 @@
 import { ExerciseSetType, ExerciseSource, ExerciseVolumeType, WeightUnit } from "../constants"
 import { WorkoutId } from "./workoutModel"
 
-export interface ExerciseSet {
+// ExerciseSet type specific to each ExerciseVolumeType
+interface BaseExerciseSet {
   setType: ExerciseSetType
+  isCompleted: boolean
+}
+export interface RepsExerciseSet extends BaseExerciseSet {
+  volumeType: ExerciseVolumeType.Reps
   weight: number
   reps: number
   rpe: number
-  isCompleted: boolean
 }
+export interface TimeExerciseSet extends BaseExerciseSet {
+  volumeType: ExerciseVolumeType.Time
+  time: number
+}
+export type ExerciseSet = RepsExerciseSet | TimeExerciseSet
 
+// PersonalRecord type specifici to each ExerciseVolumeType
 // Using Weight and Reps type alias for clarity
-export type WeightType = number
-export type RepsType = number
-export interface PersonalRecord {
+export type Weight = number
+export type Reps = number
+interface BasePersonalRecord {
   workoutId: WorkoutId
-  // exerciseId: string
   datePerformed: Date
-  reps: RepsType
-  weight: WeightType
 }
-export type ExerciseRecord = Record<RepsType, PersonalRecord[]>
-export type NewExerciseRecord = Record<RepsType, PersonalRecord>
+export interface RepsPersonalRecord extends BasePersonalRecord {
+  volumeType: ExerciseVolumeType.Reps
+  reps: Reps
+  weight: Weight
+}
+export interface TimePersonalRecord extends BasePersonalRecord {
+  volumeType: ExerciseVolumeType.Time
+  time: number
+}
+export type PersonalRecord = RepsPersonalRecord | TimePersonalRecord
 
+// ExerciseRecord stores user's personal records for each rep range
+export type ExerciseRecord = Record<Reps, PersonalRecord[]>
+// NewExerciseRecord stores a new record achieved in a workout
+export type NewExerciseRecord = Record<Reps, PersonalRecord>
+
+// Exercise types specific to each ExerciseVolumeType
 export type ExerciseId = string
-
-export interface ExercisePerformed {
+interface BaseExercisePerformed {
   exerciseId: ExerciseId
   exerciseOrder: number
   setsPerformed: ExerciseSet[]
   datePerformed: Date
-  totalVolume: number // Store as kg, convert to user preferred unit as necessary
-  totalReps: number
-  maxWeightSet: ExerciseSet
+  bestSet: ExerciseSet
   newRecords: NewExerciseRecord
   exerciseNotes: string
-  // weightPr?: ExerciseSet
-  // volumePr?: ExerciseSet
-  // timeSpent: Duration
-  // averageRestTime: Duration
 }
+export interface RepsExercisePerformed extends BaseExercisePerformed {
+  volumeType: ExerciseVolumeType.Reps
+  totalVolume: number
+  totalReps: number
+}
+export interface TimeExercisePerformed extends BaseExercisePerformed {
+  volumeType: ExerciseVolumeType.Time
+  totalTime: number
+}
+export type ExercisePerformed = RepsExercisePerformed | TimeExercisePerformed
 
+// Other exercise related types
 export interface ExerciseSettings {
   autoRestTimerEnabled: boolean
   restTime: number // In seconds

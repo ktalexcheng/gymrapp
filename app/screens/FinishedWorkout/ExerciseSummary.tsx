@@ -1,10 +1,11 @@
 import { RowView, Spacer, Text } from "app/components"
-import { ExerciseSetType, WeightUnit } from "app/data/constants"
+import { ExerciseSetType, ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import { ExercisePerformed, ExerciseSet } from "app/data/model"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
+import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
 import { Weight } from "app/utils/weight"
 import React from "react"
 import { View, ViewStyle } from "react-native"
@@ -25,9 +26,21 @@ export const ExerciseSummary = (props: ExerciseSummaryProps) => {
   }
 
   function renderSetSummary(set: ExerciseSet, index: number) {
-    const weight = new Weight(set.weight, WeightUnit.kg, userWeightUnit)
-    let summaryText = `${weight.formattedDisplayWeight(1)} ${translate(weightUnitTx)} x ${set.reps}`
-    if (set.rpe) summaryText += ` @ ${set.rpe}`
+    let summaryText = ""
+    switch (set.volumeType) {
+      case ExerciseVolumeType.Reps:
+        summaryText += `${new Weight(
+          set.weight,
+          WeightUnit.kg,
+          userWeightUnit,
+        ).formattedDisplayWeight(1)} ${translate(weightUnitTx)} x ${set.reps}`
+        if (set.rpe) summaryText += ` @ ${set.rpe}`
+        break
+
+      case ExerciseVolumeType.Time:
+        summaryText += formatSecondsAsTime(set.time)
+        break
+    }
 
     return (
       <RowView key={index}>

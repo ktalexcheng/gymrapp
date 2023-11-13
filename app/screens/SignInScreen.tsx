@@ -2,7 +2,15 @@ import { useAuthNavigation } from "app/navigators/navigationUtilities"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useMemo, useRef, useState } from "react"
 import { TextInput, TextStyle, ViewStyle } from "react-native"
-import { Button, CustomIcon, Screen, Text, TextField, TextFieldAccessoryProps } from "../components"
+import {
+  Button,
+  CustomIcon,
+  Divider,
+  Screen,
+  Text,
+  TextField,
+  TextFieldAccessoryProps,
+} from "../components"
 import { AuthStackScreenProps } from "../navigators"
 import { useStores } from "../stores"
 import { colors, spacing } from "../theme"
@@ -122,6 +130,8 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
         preset="reversed"
         onPress={signIn}
       />
+
+      <Divider orientation="horizontal" tx="signInScreen.orSignInWith" />
 
       <Button
         testID="signup-button"

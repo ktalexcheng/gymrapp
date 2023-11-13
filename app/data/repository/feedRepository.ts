@@ -6,7 +6,7 @@ import { BaseRepository, RepositoryError } from "./baseRepository"
 export class FeedRepository extends BaseRepository<UserFeedItem, FeedItemId> {
   #userId: string
 
-  constructor(firestoreClient?) {
+  constructor(firestoreClient) {
     super("FeedRepository", firestoreClient, undefined, "feedItemId")
   }
 

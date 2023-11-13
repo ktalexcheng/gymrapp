@@ -31,10 +31,7 @@ const ExerciseModel = types
     exerciseCat1: types.string,
     exerciseCat2: types.string,
     exerciseName: types.string,
-    volumeType: types.enumeration("exerciseVolumeType", [
-      ExerciseVolumeType.Reps,
-      ExerciseVolumeType.Time,
-    ]),
+    volumeType: types.enumeration("exerciseVolumeType", Object.values(ExerciseVolumeType)),
     hasLeaderboard: types.boolean,
     exerciseSettings: types.maybe(ExerciseSettingsModel),
   })
@@ -89,6 +86,9 @@ export const ExerciseStoreModel = types
     },
     getExerciseName(exerciseId: string) {
       return self.allExercises.get(exerciseId)?.exerciseName
+    },
+    getExerciseVolumeType(exerciseId: string) {
+      return self.allExercises.get(exerciseId).volumeType
     },
     setAllExercises(exercises: Exercise[]) {
       self.isLoading = true

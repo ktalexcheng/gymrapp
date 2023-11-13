@@ -27,24 +27,36 @@ export async function createWorkoutsFromStrongExport(
   byUserEmail: string,
 ) {
   // Get user ID
-  const userSnapshot = await firestoreClient
+  await firestoreClient
     .collection("users")
     .where("email", "==", byUserEmail)
     .limit(1)
     .get()
-  const userId = userSnapshot.docs[0].id
-  rootStore.userStore.loadUserWithId(userId)
+    .then((snapshot) => {
+      const userId = snapshot.docs[0].id
+      rootStore.userStore.loadUserWithId(userId)
+    })
+    .catch((e) => console.error(e))
 
   // Get activity ID
-  const activitySnapshot = await firestoreClient
+  let gymActivityId
+  await firestoreClient
     .collection("activities")
     .where("activityName", "==", "Gym")
     .limit(1)
     .get()
-  const gymActivityId = activitySnapshot.docs[0].id
+    .then((snapshot) => {
+      gymActivityId = snapshot.docs[0].id
+    })
+    .catch((e) => console.error(e))
 
   // Read exported data from Strong
-  const csvData = await readCSV<StrongExportDatum>(csvPath, ";")
+  let csvData
+  try {
+    csvData = await readCSV<StrongExportDatum>(csvPath, ";")
+  } catch (e) {
+    console.error(e)
+  }
 
   // Keep track of exercises seen what is missing in our collection
   const missingExercises = new Set()

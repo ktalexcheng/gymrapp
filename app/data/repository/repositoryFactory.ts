@@ -1,3 +1,4 @@
+import firestore from "@react-native-firebase/firestore"
 import { ActivityRepository } from "./activityRepository"
 import { ExerciseRepository } from "./exerciseRepository"
 import { FeedRepository } from "./feedRepository"
@@ -7,7 +8,7 @@ import { UserRepository } from "./userRepository"
 import { WorkoutInteractionRepository } from "./workoutInteractionRepository"
 import { WorkoutRepository } from "./workoutRepository"
 
-export const repositoryFactory = (firebaseClient?) => {
+export const repositoryFactory = (firebaseClient) => {
   return {
     activityRepository: new ActivityRepository(firebaseClient),
     workoutRepository: new WorkoutRepository(firebaseClient),
@@ -20,4 +21,4 @@ export const repositoryFactory = (firebaseClient?) => {
   }
 }
 
-export const repositorySingletons = repositoryFactory()
+export const repositorySingletons = repositoryFactory(firestore())
