@@ -11,7 +11,7 @@ Adding custom native code to development builds
 1. Run `npx expo run:android` to build and run locally
    1. If unsuccessful, run `npx expo prebuild --clean` to delete and regenerate native project files
    2. If still unsuccessful, try deleting directory `node_modules`, run `npm install`
-2.
+2. The `postinstall` npm script created issues with `npx expo prebuild --clean` where some packages relied on plugins in `app.json` to correctly apply native installation steps
 
 # Welcome to your new ignited app!
 

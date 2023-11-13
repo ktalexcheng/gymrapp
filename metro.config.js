@@ -20,6 +20,8 @@ if (isExpo) {
    * https://github.com/infinitered/ignite/issues/1904#issuecomment-1054535068
    */
   metroConfig = getDefaultExpoConfig(__dirname)
+  // metroConfig.watcher.additionalExts.push("mjs", "cjs")
+  metroConfig.resolver.sourceExts.push("mjs", "cjs")
 } else {
   /**
    * Vanilla metro config - we're using a custom metro config because we want to support symlinks
@@ -46,6 +48,7 @@ if (isExpo) {
          */
         resolveRequest: MetroSymlinksResolver(),
         assetExts: [...defaultConfig.resolver.assetExts, "bin"],
+        sourceExts: [...defaultConfig.resolver.sourceExts, "mjs", "cjs"],
       },
     })
   })()

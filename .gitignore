@@ -86,10 +86,12 @@ web-build/
 !env.js
 
 google-services.json
+GoogleService-Info.plist
 .env
 
 # Build native source code with Expo 
 android/
 ios/
 
-**/service-account-key.json
+firebase-sa-key.json
+eas-submit-sa-key.json

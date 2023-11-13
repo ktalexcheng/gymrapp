@@ -10,18 +10,29 @@
         "gradleCommand": ":app:assembleDebug"
       },
       "ios": {
-        "buildConfiguration": "Debug"
+        "buildConfiguration": "Debug",
+        "simulator": true
       }
     },
-    "preview": {
+    "internalTesting": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "app-bundle"
       }
     },
     "production": {}
   },
   "submit": {
-    "production": {}
+    "internalTesting": {
+      "android": {
+        "track": "internal",
+        "serviceAccountKeyPath": "./eas-submit-sa-key.json"
+      }
+    },
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./eas-submit-sa-key.json"
+      }
+    }
   }
 }
