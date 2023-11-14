@@ -22,7 +22,8 @@ export default ({ config }) => ({
     jsEngine: "hermes",
     assetBundlePatterns: ["**/*"],
     android: {
-      versionCode: 1,
+      // Only using app.json for versionCode and buildNumber since we are using "appVersionSource" = "local" in EAS
+      ...config.android,
       googleServicesFile: process.env.GOOGLE_SERVICES_JSON,
       icon: "./assets/images/app-icon-android-legacy.png",
       package: "com.gymrapp",
@@ -37,7 +38,8 @@ export default ({ config }) => ({
       },
     },
     ios: {
-      buildNumber: "1",
+      // Only using app.json for versionCode and buildNumber since we are using "appVersionSource" = "local" in EAS
+      ...config.ios,
       googleServicesFile: process.env.GOOGLE_SERVICES_PLIST,
       icon: "./assets/images/app-icon-ios.png",
       supportsTablet: true,

@@ -1,5 +1,5 @@
 const { getDefaultConfig } = require("metro-config")
-const { getDefaultConfig: getDefaultExpoConfig } = require("@expo/metro-config")
+const { getDefaultConfig: getDefaultExpoConfig } = require("expo/metro-config")
 
 let metroConfig
 let isExpo = false
