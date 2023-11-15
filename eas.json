@@ -30,6 +30,7 @@
     "internalTesting": {
       "android": {
         "track": "internal",
+        "releaseStatus": "draft",
         "serviceAccountKeyPath": "./eas-submit-sa-key.json"
       }
     },
