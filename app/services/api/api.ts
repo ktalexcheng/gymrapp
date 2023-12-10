@@ -8,7 +8,16 @@
 import functions, { FirebaseFunctionsTypes } from "@react-native-firebase/functions"
 import { ApisauceInstance, create } from "apisauce"
 import { AppLocale } from "app/data/constants"
-import { GymSearchResult, LatLongCoords, UserSearchResult } from "app/data/model"
+import {
+  FeedItemId,
+  GymSearchResult,
+  LatLongCoords,
+  UserId,
+  UserSearchResult,
+  Workout,
+  WorkoutId,
+} from "app/data/model"
+import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { getDistance } from "geolib"
 import Config from "../../config"
 import type {
@@ -91,6 +100,7 @@ export class Api {
         searchString: query,
       })
       const searchResult = gyms.data as GymSearchResult[]
+
       return searchResult
     } catch (e) {
       console.error("searchGyms error:", e)
@@ -104,6 +114,7 @@ export class Api {
         searchString: query,
       })
       const searchResult = users.data as UserSearchResult[]
+
       return searchResult
     } catch (e) {
       console.error("searchUsers error:", e)
@@ -113,6 +124,100 @@ export class Api {
 
   getDistanceBetweenLocations(gpsLatLng1, gpsLatLng2) {
     return getDistance(gpsLatLng1, gpsLatLng2)
+  }
+
+  // async getOtherUser(userId: UserId): Promise<User> {
+  //   try {
+  //     const reponse = await this.firebaseFunctionsClient.httpsCallable("userGetOtherUser")({
+  //       userId,
+  //     })
+  //     return reponse.data.user
+  //   } catch (e) {
+  //     console.error("getOtherUser error:", e)
+  //     throw new Error("Error getting other user profile.")
+  //   }
+  // }
+
+  async getOtherUserWorkouts(
+    userId: UserId,
+    lastWorkoutId?: WorkoutId,
+  ): Promise<{ lastWorkoutId: WorkoutId; noMoreItems: boolean; workouts: Workout[] }> {
+    try {
+      const response = await this.firebaseFunctionsClient.httpsCallable(
+        "workoutGetOtherUserWorkouts",
+      )({
+        userId,
+        lastWorkoutId,
+      })
+
+      return {
+        lastWorkoutId: response.data.lastWorkoutId,
+        noMoreItems: response.data.noMoreItems,
+        workouts: convertFirestoreTimestampToDate(response.data.workouts),
+      }
+    } catch (e) {
+      console.error("getOtherUserWorkouts error:", e)
+      throw new Error("Error getting other user workouts.")
+    }
+  }
+
+  async getFeedWorkouts(
+    lastFeedItemId?: FeedItemId,
+  ): Promise<{ lastFeedItemId: FeedItemId; noMoreItems: boolean; workouts: Workout[] }> {
+    try {
+      const reponse = await this.firebaseFunctionsClient.httpsCallable("workoutGetFeedWorkouts")({
+        lastFeedItemId,
+      })
+
+      return {
+        lastFeedItemId: reponse.data.lastFeedItemId,
+        noMoreItems: reponse.data.noMoreItems,
+        workouts: convertFirestoreTimestampToDate(reponse.data.workouts),
+      }
+    } catch (e) {
+      console.error("getFeedWorkouts error:", e)
+      throw new Error("Error getting user feed workouts.")
+    }
+  }
+
+  async requestFollowOtherUser(userId: UserId): Promise<void> {
+    try {
+      const response = await this.firebaseFunctionsClient.httpsCallable(
+        "feedRequestFollowOtherUser",
+      )({
+        userId,
+      })
+
+      // response data could be:
+      // { status: "pending", requestId: "123" }
+      // { status: "success", requestId: null }
+      return convertFirestoreTimestampToDate(response.data)
+    } catch (e) {
+      console.error("requestFollowOtherUser error:", e)
+      throw new Error("Error requesting to follow other user.")
+    }
+  }
+
+  async acceptFollowRequest(userId: UserId): Promise<void> {
+    try {
+      await this.firebaseFunctionsClient.httpsCallable("feedAcceptFollowRequest")({
+        userId,
+      })
+    } catch (e) {
+      console.error("acceptFollowRequest error:", e)
+      throw new Error("Error accepting follow request.")
+    }
+  }
+
+  async unfollowOtherUser(userId: UserId): Promise<void> {
+    try {
+      await this.firebaseFunctionsClient.httpsCallable("feedUnfollowOtherUser")({
+        userId,
+      })
+    } catch (e) {
+      console.error("unfollowOtherUser error:", e)
+      throw new Error("Error unfollowing other user.")
+    }
   }
 }
 

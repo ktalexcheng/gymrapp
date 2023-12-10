@@ -1,4 +1,3 @@
-import { WorkoutSource } from "app/data/constants"
 import { Gym } from "app/data/model"
 import { useUserLocation } from "app/hooks"
 import { translate } from "app/i18n"
@@ -204,26 +203,30 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
     }
 
     async function saveWorkout() {
-      workoutStore.endWorkout()
-      const workoutId = await workoutStore.saveWorkout()
-      feedStore.loadUserWorkouts() // Do this asynchronously
-      exerciseStore.uploadExerciseSettings()
-      setShowSaveDialog(false)
+      // workoutStore.endWorkout()
+      // const workoutId = await workoutStore.saveWorkout()
+      // await exerciseStore.uploadExerciseSettings()
+      // feedStore.loadUserWorkouts() // Do this asynchronously
+      // setShowSaveDialog(false)
 
-      mainNavigation.reset({
-        index: 1,
-        routes: [
-          { name: "HomeTabNavigator" },
-          {
-            name: "WorkoutSummary",
-            params: {
-              workoutId,
-              workoutSource: WorkoutSource.User,
-              jumpToComments: false,
-            },
-          },
-        ],
-      })
+      // mainNavigation.reset({
+      //   index: 1,
+      //   routes: [
+      //     { name: "HomeTabNavigator" },
+      //     {
+      //       name: "WorkoutSummary",
+      //       params: {
+      //         workoutId,
+      //         workoutSource: WorkoutSource.User,
+      //         jumpToComments: false,
+      //       },
+      //     },
+      //   ],
+      // })
+
+      setShowSaveDialog(false)
+      workoutStore.endWorkout()
+      mainNavigation.navigate("SaveWorkout")
     }
 
     function discardWorkout() {

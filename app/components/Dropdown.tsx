@@ -1,11 +1,11 @@
+import { Picker } from "@react-native-picker/picker"
 import { TxKeyPath, translate } from "app/i18n"
-import { ISelectProps, Select } from "native-base"
 import React, { FC } from "react"
 import { StyleProp, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
 import { spacing } from "../theme"
 import { Text, TextProps } from "./Text"
 
-export interface DropdownProps extends ISelectProps {
+export interface DropdownProps {
   /**
    * A style modifier for different input states.
    */
@@ -42,7 +42,15 @@ export interface DropdownProps extends ISelectProps {
   /**
    * List of items to display in dropdown
    */
-  itemsList?: { label: string; value: string }[]
+  itemsList?: { label: string; value: any }[]
+  /**
+   * The currently selected value
+   */
+  selectedValue?: any
+  /**
+   * Callback when the selected value changes
+   */
+  onValueChange?: (value: any) => void
   /**
    * The placeholder text to display for first item in the dropdown that deselects the current value
    */
@@ -63,25 +71,22 @@ export const Dropdown: FC<DropdownProps> = function Dropdown(props: DropdownProp
     labelTxOptions,
     status,
     itemsList,
+    selectedValue,
+    onValueChange,
     LabelTextProps,
     clearSelectionPlaceholderTx,
     clearSelectionCallback,
     containerStyle: $containerStyleOverride,
     dropdownStyle: $dropdownStyleOverride,
     itemStyle: $itemStyleOverride,
-    ...ISelectProps
   } = props
   const disabled = status === "disabled"
+  const allowClearSelection = !!clearSelectionPlaceholderTx && !!clearSelectionCallback
 
   const $containerStyles = [$containerStyleOverride]
-
   const $labelStyles = [$labelStyle, LabelTextProps?.style]
-
   const $dropdownStyles = [$dropdownStyle, $dropdownStyleOverride]
-
   const $itemStyles = [$itemStyle, $itemStyleOverride]
-
-  const allowClearSelection = !!clearSelectionPlaceholderTx && !!clearSelectionCallback
 
   return (
     <TouchableOpacity activeOpacity={1} style={$containerStyles} accessibilityState={{ disabled }}>
@@ -96,7 +101,7 @@ export const Dropdown: FC<DropdownProps> = function Dropdown(props: DropdownProp
         />
       )}
 
-      <Select style={$dropdownStyles} {...ISelectProps}>
+      {/* <Select style={$dropdownStyles} {...ISelectProps}>
         {allowClearSelection && (
           <Select.Item
             key="clearSelection"
@@ -108,7 +113,28 @@ export const Dropdown: FC<DropdownProps> = function Dropdown(props: DropdownProp
         {itemsList.map((e) => (
           <Select.Item key={e.value} style={$itemStyles} label={e.label} value={e.value} />
         ))}
-      </Select>
+      </Select> */}
+
+      <Picker selectedValue={selectedValue} onValueChange={onValueChange} style={$dropdownStyles}>
+        {allowClearSelection && (
+          <Picker.Item
+            key="clearSelection"
+            style={[$itemStyles, $clearSelectionItemStyle]}
+            label={translate(clearSelectionPlaceholderTx)}
+            value={undefined}
+          />
+        )}
+        {itemsList.map((item) => {
+          return (
+            <Picker.Item
+              key={item.value}
+              style={$itemStyles}
+              label={item.label}
+              value={item.value}
+            />
+          )
+        })}
+      </Picker>
     </TouchableOpacity>
   )
 }

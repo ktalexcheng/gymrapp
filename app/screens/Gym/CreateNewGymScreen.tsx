@@ -27,7 +27,7 @@ export const CreateNewGymScreen: FC = ({ route }: CreateNewGymScreenProps) => {
 
   useEffect(() => {
     refreshUserLocation()
-    if (route.params.searchString) {
+    if (route?.params?.searchString) {
       setGymName(route.params.searchString)
     }
   }, [])

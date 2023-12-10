@@ -35,7 +35,7 @@ export const Avatar = (props: AvatarProps) => {
   const {
     source,
     user,
-    size = avatarSize.md,
+    size = "md",
     backgroundColor = colors.palette.neutral300,
     containerStyle: $containerStyleOverride,
     imageStyle: $imageStyleOverride,

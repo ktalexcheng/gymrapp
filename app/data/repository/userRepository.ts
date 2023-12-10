@@ -1,8 +1,9 @@
 import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import storage, { FirebaseStorageTypes } from "@react-native-firebase/storage"
+import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { getNestedField } from "app/utils/getNestedField"
 import * as Location from "expo-location"
-import { Gym, GymDetails, User, UserFollowing, UserId } from "../model"
+import { FollowRequest, Gym, GymDetails, User, UserId } from "../model"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class UserRepository extends BaseRepository<User, UserId> {
@@ -10,6 +11,7 @@ export class UserRepository extends BaseRepository<User, UserId> {
   #userFollowsCollectionName = "userFollows"
   #userFollowingCollectionName = "following"
   #userFollowersCollectionName = "followers"
+  #followRequestsCollectionName = "requests"
   #userFollowsCollection: FirebaseFirestoreTypes.CollectionReference
 
   constructor(firebaseClient) {
@@ -91,47 +93,47 @@ export class UserRepository extends BaseRepository<User, UserId> {
     return imageUrl
   }
 
-  async followUser(followeeUserId: UserId): Promise<void> {
-    console.debug("UserRepository.followUser called")
-    this.checkRepositoryInitialized()
+  // async followUser(followeeUserId: UserId): Promise<void> {
+  //   console.debug("UserRepository.followUser called")
+  //   this.checkRepositoryInitialized()
 
-    const userFollowingDocRef = this.#userFollowsCollection
-      .doc(this.#userId)
-      .collection(this.#userFollowingCollectionName)
-      .doc(followeeUserId)
-    const followeeFollowersDocRef = this.#userFollowsCollection
-      .doc(followeeUserId)
-      .collection(this.#userFollowersCollectionName)
-      .doc(this.#userId)
+  //   const userFollowingDocRef = this.#userFollowsCollection
+  //     .doc(this.#userId)
+  //     .collection(this.#userFollowingCollectionName)
+  //     .doc(followeeUserId)
+  //   const followeeFollowersDocRef = this.#userFollowsCollection
+  //     .doc(followeeUserId)
+  //     .collection(this.#userFollowersCollectionName)
+  //     .doc(this.#userId)
 
-    try {
-      await userFollowingDocRef.set({ followDate: new Date() } as UserFollowing)
-      await followeeFollowersDocRef.set({ followDate: new Date() } as UserFollowing)
-    } catch (e) {
-      throw new RepositoryError(this.repositoryId, `followUser error: ${e}`)
-    }
-  }
+  //   try {
+  //     await userFollowingDocRef.set({ followDate: new Date() } as UserFollowing)
+  //     await followeeFollowersDocRef.set({ followDate: new Date() } as UserFollowing)
+  //   } catch (e) {
+  //     throw new RepositoryError(this.repositoryId, `followUser error: ${e}`)
+  //   }
+  // }
 
-  async unfollowUser(followeeUserId: UserId): Promise<void> {
-    console.debug("UserRepository.unfollowUser called")
-    this.checkRepositoryInitialized()
+  // async unfollowUser(followeeUserId: UserId): Promise<void> {
+  //   console.debug("UserRepository.unfollowUser called")
+  //   this.checkRepositoryInitialized()
 
-    const userFollowingDocRef = this.#userFollowsCollection
-      .doc(this.#userId)
-      .collection(this.#userFollowingCollectionName)
-      .doc(followeeUserId)
-    const followeeFollowersDocRef = this.#userFollowsCollection
-      .doc(followeeUserId)
-      .collection(this.#userFollowersCollectionName)
-      .doc(this.#userId)
+  //   const userFollowingDocRef = this.#userFollowsCollection
+  //     .doc(this.#userId)
+  //     .collection(this.#userFollowingCollectionName)
+  //     .doc(followeeUserId)
+  //   const followeeFollowersDocRef = this.#userFollowsCollection
+  //     .doc(followeeUserId)
+  //     .collection(this.#userFollowersCollectionName)
+  //     .doc(this.#userId)
 
-    try {
-      await userFollowingDocRef.delete()
-      await followeeFollowersDocRef.delete()
-    } catch (e) {
-      throw new RepositoryError(this.repositoryId, `unfollowUser error: ${e}`)
-    }
-  }
+  //   try {
+  //     await userFollowingDocRef.delete()
+  //     await followeeFollowersDocRef.delete()
+  //   } catch (e) {
+  //     throw new RepositoryError(this.repositoryId, `unfollowUser error: ${e}`)
+  //   }
+  // }
 
   async isFollowingUser(followeeUserId: UserId): Promise<boolean> {
     console.debug("UserRepository.isFollowingUser called")
@@ -142,9 +144,108 @@ export class UserRepository extends BaseRepository<User, UserId> {
       .collection(this.#userFollowingCollectionName)
       .doc(followeeUserId)
 
-    const userFollowingDoc = await userFollowingDocRef.get()
-    console.debug("UserRepository.isFollowingUser.exists", userFollowingDoc.exists)
-    return userFollowingDoc.exists
+    try {
+      const userFollowingDoc = await userFollowingDocRef.get()
+      console.debug(
+        "UserRepository.isFollowingUser userFollowingDoc.exists",
+        userFollowingDoc.exists,
+      )
+      return userFollowingDoc.exists
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `isFollowingUser error: ${e}`)
+    }
+  }
+
+  async isFollowRequested(followeeUserId: UserId): Promise<boolean> {
+    console.debug("UserRepository.isFollowRequested called")
+    this.checkRepositoryInitialized()
+
+    const followRequestDocRef = this.#userFollowsCollection
+      .doc(followeeUserId)
+      .collection(this.#followRequestsCollectionName)
+      .where("requestedByUserId", "==", this.#userId)
+      .limit(1)
+
+    try {
+      const followRequestDoc = await followRequestDocRef.get()
+      console.debug(
+        "UserRepository.isFollowRequested followRequestDoc.empty",
+        followRequestDoc.empty,
+      )
+      return !followRequestDoc.empty
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `isFollowRequested error: ${e}`)
+    }
+  }
+
+  async cancelFollowRequest(followeeUserId: UserId): Promise<void> {
+    console.debug("UserRepository.cancelFollowRequest called")
+    this.checkRepositoryInitialized()
+
+    const followRequestDocQuery = this.#userFollowsCollection
+      .doc(followeeUserId)
+      .collection(this.#followRequestsCollectionName)
+      .where("requestedByUserId", "==", this.#userId)
+
+    try {
+      const followRequestDoc = await followRequestDocQuery.get()
+      for (const doc of followRequestDoc.docs) {
+        console.debug("UserRepository.cancelFollowRequest deleting doc:", doc.id)
+        await doc.ref.delete()
+      }
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `cancelFollowRequest error: ${e}`)
+    }
+  }
+
+  async getFollowRequests(): Promise<FollowRequest[]> {
+    console.debug("UserRepository.getFollowRequests called")
+    this.checkRepositoryInitialized()
+
+    const followRequestsCollection = this.#userFollowsCollection
+      .doc(this.#userId)
+      .collection(this.#followRequestsCollectionName)
+
+    try {
+      const followRequestsDoc = await followRequestsCollection.get()
+      const followRequests: FollowRequest[] = []
+      for (const doc of followRequestsDoc.docs) {
+        followRequests.push(convertFirestoreTimestampToDate(doc.data()) as FollowRequest)
+      }
+      return followRequests
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `getFollowRequests error: ${e}`)
+    }
+  }
+
+  async declineFollowRequest(requestId: string): Promise<void> {
+    console.debug("UserRepository.declineFollowRequest called")
+    this.checkRepositoryInitialized()
+
+    const followRequestsCollection = this.#userFollowsCollection
+      .doc(this.#userId)
+      .collection(this.#followRequestsCollectionName)
+
+    try {
+      await followRequestsCollection.doc(requestId).update({ isAccepted: false, isDeclined: true })
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `declineFollowRequest error: ${e}`)
+    }
+  }
+
+  async acceptFollowRequest(requestId: string): Promise<void> {
+    console.debug("UserRepository.acceptFollowRequest called")
+    this.checkRepositoryInitialized()
+
+    const followRequestsCollection = this.#userFollowsCollection
+      .doc(this.#userId)
+      .collection(this.#followRequestsCollectionName)
+
+    try {
+      await followRequestsCollection.doc(requestId).update({ isAccepted: true, isDeclined: false })
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `acceptFollowRequest error: ${e}`)
+    }
   }
 
   async getUserLocation() {

@@ -116,7 +116,7 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
   ]
 
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} style={$container}>
+    <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$container}>
       <ResetWorkoutDialog
         visible={showResetWorkoutDialog}
         onResume={resumeWorkout}

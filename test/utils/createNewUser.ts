@@ -12,7 +12,7 @@ export const createNewUser = async (
     password: "password",
   })
 
-  const { userStore } = rootStore
+  const { userStore, feedStore } = rootStore
   await userStore.createNewProfile({
     userId: userRecord.uid,
     firstName,
@@ -30,4 +30,5 @@ export const createNewUser = async (
     myGyms: [],
   })
   await userStore.loadUserWithId(userRecord.uid)
+  await feedStore.setUserId(userRecord.uid)
 }

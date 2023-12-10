@@ -13,7 +13,7 @@ import React, { FC } from "react"
 import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { WorkoutSocialButtonGroup } from "./WorkoutSocialButtonGroup"
 
-type WorkoutSummaryCardProps = {
+export interface WorkoutSummaryCardProps {
   workoutSource: WorkoutSource
   workoutId: string
   workout: Workout
@@ -27,6 +27,8 @@ export const WorkoutSummaryCard: FC = observer((props: WorkoutSummaryCardProps) 
   const mainNavigation = useMainNavigation()
   const weightUnitTx = useWeightUnitTx()
   const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
+
+  console.debug("WorkoutSummaryCard workout:", workout)
 
   const renderBestSet = (e: ExercisePerformed, i: number) => {
     const $highlightExercise: TextStyle =

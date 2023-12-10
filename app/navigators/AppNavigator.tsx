@@ -77,17 +77,16 @@ const AppStack = observer(function AppStack() {
 
   useEffect(() => {
     // Force token refresh
-    ;(async function tokenRefresh() {
-      if (!auth().currentUser) return
-
-      await auth()
+    if (auth().currentUser) {
+      auth()
         .currentUser.getIdToken(true)
         .catch((e: FirebaseAuthTypes.NativeFirebaseAuthError) => {
           console.debug("Unable to refresh token:", e.code)
         })
-    })()
+    }
 
     // Event is fired upon app initialization as well
+    console.debug("AppNavigator useEffect [] called")
     const unsubscribe = auth().onAuthStateChanged(onAuthStateChanged)
     return unsubscribe // unsubscribe on unmount
   }, [])

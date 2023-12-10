@@ -49,23 +49,23 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
   }
 
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} style={$container}>
+    <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$container} preset="auto">
       <Text tx="addExerciseScreen.disclaimer" preset="formHelper" />
       <Spacer type="vertical" size="massive" />
       <Dropdown
-        size="md"
+        selectedValue={activityName}
         onValueChange={setActivityName}
         labelTx="addExerciseScreen.activityType"
         itemsList={getDropdownValues("activityName")}
       />
       <Dropdown
-        size="md"
+        selectedValue={exerciseCat1}
         onValueChange={setExerciseCat1}
         labelTx="addExerciseScreen.exerciseCat1"
         itemsList={getDropdownValues("exerciseCat1")}
       />
       <Dropdown
-        size="md"
+        selectedValue={exerciseCat2}
         onValueChange={setExerciseCat2}
         labelTx="addExerciseScreen.exerciseCat2"
         itemsList={getDropdownValues("exerciseCat2")}
@@ -73,14 +73,14 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
         clearSelectionCallback={() => setExerciseCat2("")}
       />
       <Dropdown
-        size="md"
+        selectedValue={volumeType}
         onValueChange={setVolumeType}
         labelTx="addExerciseScreen.volumeType"
         itemsList={getDropdownValues("volumeType")}
       />
       <TextField
-        onChangeText={setExerciseName}
         value={exerciseName}
+        onChangeText={setExerciseName}
         labelTx="addExerciseScreen.exerciseName"
       />
       <Button tx="addExerciseScreen.addExerciseButton" style={$button} onPress={addExercise} />

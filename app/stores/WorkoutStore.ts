@@ -2,7 +2,7 @@ import firestore from "@react-native-firebase/firestore"
 import { ActivityId } from "app/data/model/activityModel"
 import { differenceInSeconds } from "date-fns"
 import { SnapshotIn, destroy, flow, getEnv, types } from "mobx-state-tree"
-import { ExerciseSetType, ExerciseVolumeType, WorkoutVisibility } from "../../app/data/constants"
+import { ExerciseSetType, ExerciseVolumeType } from "../../app/data/constants"
 import {
   ExerciseHistory,
   ExercisePerformed,
@@ -24,8 +24,8 @@ import { withSetPropAction } from "./helpers/withSetPropAction"
 const SingleExerciseSet = types
   .model({
     setOrder: types.number,
-    setType: types.enumeration<ExerciseSetType>(Object.values(ExerciseSetType)),
-    volumeType: types.enumeration<ExerciseVolumeType>(Object.values(ExerciseVolumeType)),
+    setType: types.enumeration(Object.values(ExerciseSetType)),
+    volumeType: types.enumeration(Object.values(ExerciseVolumeType)),
     weight: types.maybeNull(types.number),
     reps: types.maybeNull(types.number),
     time: types.maybeNull(types.number),
@@ -57,7 +57,7 @@ const SingleExercise = types
   .model({
     exerciseOrder: types.number,
     exerciseId: types.string,
-    volumeType: types.enumeration<ExerciseVolumeType>(Object.values(ExerciseVolumeType)),
+    volumeType: types.enumeration(Object.values(ExerciseVolumeType)),
     setsPerformed: types.optional(ExerciseSets, []),
     exerciseNotes: types.maybeNull(types.string),
   })
@@ -122,8 +122,8 @@ const WorkoutStoreModel = types
     },
   }))
   .actions(withSetPropAction)
-  .actions((self) => ({
-    resetWorkout() {
+  .actions((self) => {
+    function resetWorkout() {
       self.startTime = new Date()
       self.lastSetCompletedTime = undefined
       self.restTime = 0
@@ -132,20 +132,23 @@ const WorkoutStoreModel = types
       self.workoutTitle = translate("activeWorkoutScreen.newActiveWorkoutTitle")
       self.performedAtGymId = undefined
       self.performedAtGymName = undefined
-    },
-    cleanUpWorkout() {
+    }
+
+    function cleanUpWorkout() {
       // Remove incompleted sets
       self.exercises.forEach((e) => {
         e.setsPerformed.forEach((s) => {
           !s.isCompleted && destroy(s)
         })
       })
-    },
-    setGym(gym: Gym) {
+    }
+
+    function setGym(gym: Gym) {
       self.performedAtGymId = gym.gymId
       self.performedAtGymName = gym.gymName
-    },
-    allExerciseSummary: flow(function* () {
+    }
+
+    const getAllExerciseSummary = flow(function* () {
       const exercisesSummary: ExercisePerformed[] = []
 
       // self.exercises.forEach(async (e) => {
@@ -233,42 +236,46 @@ const WorkoutStoreModel = types
       }
 
       return exercisesSummary
-    }),
-  }))
-  .actions((self) => ({
-    startNewWorkout(activityId: ActivityId) {
-      self.resetWorkout()
+    })
+
+    function startNewWorkout(activityId: ActivityId) {
+      resetWorkout()
       self.activityId = activityId
       self.inProgress = true
-    },
-    pauseWorkout() {
+    }
+
+    function pauseWorkout() {
       self.endTime = new Date()
-    },
-    resumeWorkout() {
+    }
+
+    function resumeWorkout() {
       self.endTime = undefined
-    },
-    endWorkout() {
+    }
+
+    function endWorkout() {
       // self.resetWorkout()
       self.endTime = new Date()
       self.inProgress = false
-    },
-    saveWorkout: flow(function* () {
+    }
+
+    const saveWorkout = flow(function* (isHidden: boolean) {
       try {
         if (self.inProgress) {
           console.warn("WorkoutStore.saveWorkout: Unable to save, workout still in progress")
           return undefined
         }
 
-        self.cleanUpWorkout()
+        cleanUpWorkout()
 
         // console.debug("WorkoutStore.exerciseSummary:", self.exerciseSummary)
         const { userRepository } = getEnv<RootStoreDependencies>(self)
         const userId = yield userRepository.getUserProp("userId")
         const privateAccount = yield userRepository.getUserProp("privateAccount")
-        const allExerciseSummary = yield self.allExerciseSummary()
+        const allExerciseSummary = yield getAllExerciseSummary()
         const newWorkout = {
           byUserId: userId,
-          visibility: privateAccount ? WorkoutVisibility.Private : WorkoutVisibility.Public,
+          userIsPrivate: privateAccount,
+          isHidden,
           startTime: self.startTime,
           endTime: self.endTime,
           exercises: allExerciseSummary,
@@ -278,9 +285,10 @@ const WorkoutStoreModel = types
           performedAtGymName: self.performedAtGymName ?? null,
         } as NewWorkout
         console.debug("WorkoutStore.saveWorkout newWorkout:", newWorkout)
-        const workoutId = yield getEnv<RootStoreDependencies>(self).workoutRepository.create(
+        const workout = yield getEnv<RootStoreDependencies>(self).workoutRepository.create(
           newWorkout,
         )
+        const workoutId = workout.workoutId
 
         // Update user workout metadata (keep track of workouts performed by user)
         yield getEnv<RootStoreDependencies>(self).userRepository.update(
@@ -309,14 +317,15 @@ const WorkoutStoreModel = types
         })
         yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, false)
 
-        self.resetWorkout()
+        resetWorkout()
         return workoutId
       } catch (error) {
         console.error("WorkoutStore.saveWorkout error:", error)
         return undefined
       }
-    }),
-    addExercise(newExerciseId: string, volumeType: ExerciseVolumeType) {
+    })
+
+    function addExercise(newExerciseId: string, volumeType: ExerciseVolumeType) {
       const newExerciseOrder = self.exercises.length
       const newExercise = SingleExercise.create({
         exerciseOrder: newExerciseOrder,
@@ -325,14 +334,19 @@ const WorkoutStoreModel = types
         setsPerformed: [],
       })
       self.exercises.push(newExercise)
-    },
-    removeExercise(exerciseOrder: number) {
+    }
+
+    function removeExercise(exerciseOrder: number) {
       self.exercises.splice(exerciseOrder, 1)
       self.exercises.forEach((e, i) => {
         e.exerciseOrder = i
       })
-    },
-    addSet(targetExerciseOrder: number, newSetObject: SnapshotIn<typeof SingleExerciseSet>) {
+    }
+
+    function addSet(
+      targetExerciseOrder: number,
+      newSetObject: SnapshotIn<typeof SingleExerciseSet>,
+    ) {
       const exercise = self.exercises.at(targetExerciseOrder)
       const newSetOrder = exercise.setsPerformed.length
       const newSet = SingleExerciseSet.create({
@@ -341,16 +355,32 @@ const WorkoutStoreModel = types
         ...newSetObject,
       })
       exercise.setsPerformed.push(newSet)
-    },
-    removeSet(targetExerciseOrder: number, targetExerciseSetOrder: number) {
+    }
+
+    function removeSet(targetExerciseOrder: number, targetExerciseSetOrder: number) {
       const targetExercise = self.exercises.at(targetExerciseOrder)
       const sets = targetExercise.setsPerformed
       sets.splice(targetExerciseSetOrder, 1)
       sets.forEach((s, i) => {
         s.setOrder = i
       })
-    },
-  }))
+    }
+
+    return {
+      resetWorkout,
+      cleanUpWorkout,
+      setGym,
+      startNewWorkout,
+      pauseWorkout,
+      resumeWorkout,
+      endWorkout,
+      saveWorkout,
+      addExercise,
+      removeExercise,
+      addSet,
+      removeSet,
+    }
+  })
   .actions((self) => {
     let intervalId
 
@@ -402,7 +432,7 @@ const WorkoutStoreModel = types
       setRestTime,
       adjustRestTime,
       startRestTimer,
-      pauseRestTimer: stopRestTimer,
+      stopRestTimer,
       resetRestTimer,
       restartRestTimer,
     }

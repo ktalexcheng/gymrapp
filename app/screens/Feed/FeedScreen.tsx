@@ -1,54 +1,47 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Screen, Spacer, Text } from "app/components"
 import { WorkoutSource } from "app/data/constants"
-import { FeedItemId, User, UserFeedItem, Workout, WorkoutId } from "app/data/model"
+import { Workout } from "app/data/model"
 import { TabScreenProps } from "app/navigators"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
 import { ActivityIndicator, FlatList, RefreshControl, View, ViewStyle } from "react-native"
-import { WorkoutSummaryCard } from "../FinishedWorkout"
+import { WorkoutSummaryCard, WorkoutSummaryCardProps } from "../FinishedWorkout"
 import { LoadingScreen } from "../LoadingScreen"
-
-interface IFeedItemData {
-  feedItemId: FeedItemId
-  workoutId: WorkoutId
-  workout: Workout
-  byUser: User
-}
 
 interface FeedScreenProps extends NativeStackScreenProps<TabScreenProps<"Profile">> {}
 
 export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
   const { feedStore, userStore } = useStores()
-  const [feedData, setFeedData] = useState<IFeedItemData[]>([])
+  const [feedData, setFeedData] = useState<WorkoutSummaryCardProps[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    setIsLoading(true)
-
-    if (userStore.isLoadingProfile || feedStore.isLoadingFeed) return
+    if (userStore.isLoadingProfile || feedStore.isLoadingFeed) {
+      setIsLoading(true)
+      return
+    }
 
     // This is only used to display the initial list of feed items,
     // for subsequent feed items loaded on request, we will append to the feedData array
     if (feedData.length === 0) {
-      setFeedData(makeFeedData(feedStore.feedItems))
+      const feedWorkouts = []
+      feedStore.feedWorkouts.forEach((workout) => feedWorkouts.push(workout.workout))
+      setFeedData(makeFeedData(feedWorkouts))
     }
 
     setIsLoading(false)
   }, [userStore.isLoadingProfile, feedStore.isLoadingFeed])
 
-  const makeFeedData = (feedItems: UserFeedItem[]) => {
-    return feedItems.map((feedItem) => {
-      const feedWorkout = feedStore.getWorkout(WorkoutSource.Feed, feedItem.workoutId)
-      return {
-        feedItemId: feedItem.feedItemId,
-        workoutId: feedItem.workoutId,
-        workout: feedWorkout,
-        byUser: feedStore.feedUsers.get(feedItem.byUserId).user,
-      }
-    })
+  const makeFeedData = (feedWorkouts: Workout[]) => {
+    return feedWorkouts.map((workout) => ({
+      workoutSource: WorkoutSource.Feed,
+      workoutId: workout.workoutId,
+      workout,
+      byUser: feedStore.feedUsers.get(workout.byUserId).user,
+    }))
   }
 
   const getMoreFeedItems = async () => {
@@ -103,7 +96,7 @@ export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
       )
     }
 
-    if (feedStore.feedItems.length === 0) {
+    if (feedStore.feedWorkouts.size === 0) {
       return (
         <View style={[styles.flex1, styles.centeredContainer]}>
           <Text tx="feedScreen.noFeedItems" />
@@ -130,7 +123,7 @@ export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
     return (
       userStore.isLoadingProfile ||
       userStore.user.followingCount === 0 ||
-      feedStore.feedItems.length === 0
+      feedStore.feedWorkouts.size === 0
     )
   }
 

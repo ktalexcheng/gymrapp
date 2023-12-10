@@ -1,15 +1,15 @@
 import { GYM_PROXIMITY_THRESHOLD_METERS } from "app/data/constants"
-import { Gym } from "app/data/model"
+import { Gym, GymSearchResult } from "app/data/model"
 import { useUserLocation } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import React, { FC, useEffect, useState } from "react"
-import { RefreshControl, View, ViewStyle } from "react-native"
+import { RefreshControl, TouchableOpacity, View, ViewStyle } from "react-native"
 import Toast from "react-native-root-toast"
-import { Button, Screen, Text } from "../../components"
-import { GymSearchBar } from "../Gym/GymSearchBar"
+import { Avatar, Button, RowView, Screen, Search, Spacer, Text } from "../../components"
+import { SearchCategory, SearchComponents } from "../Discover"
 
 export const GymPickerScreen: FC = () => {
   const { userStore, workoutStore, gymStore } = useStores()
@@ -78,6 +78,18 @@ export const GymPickerScreen: FC = () => {
     )
   }
 
+  const GymPickerResultItem = ({ gym }: { gym: GymSearchResult }) => {
+    return (
+      <TouchableOpacity onPress={() => setWorkoutGym(gym)}>
+        <RowView style={$gymPickerItemContainer}>
+          <Avatar source={{ uri: gym.gymIconUrl }} size="md" />
+          <Spacer type="horizontal" size="small" />
+          <Text text={gym.gymName} />
+        </RowView>
+      </TouchableOpacity>
+    )
+  }
+
   return (
     <Screen
       safeAreaEdges={["top", "bottom"]}
@@ -90,14 +102,22 @@ export const GymPickerScreen: FC = () => {
           />
         ),
       }}
-      style={$container}
+      contentContainerStyle={$container}
     >
       <Text tx="gymPickerScreen.gymPickerTitle" preset="heading" />
       <Text tx="gymPickerScreen.selectFromMyGymsLabel" preset="subheading" />
       <View style={$myGymsContainer}>{renderMyGymsItem()}</View>
       <Text tx="gymPickerScreen.searchForGymLabel" preset="subheading" />
       <View style={styles.flex1}>
-        <GymSearchBar onPressResultItemCallback={(gym) => () => setWorkoutGym(gym)} />
+        <Search
+          searchBarPlaceholderTx={SearchComponents[SearchCategory.Gyms].searchBarPlaceholderTx}
+          searchCallback={SearchComponents[SearchCategory.Gyms].searchCallback}
+          renderSearchResultItem={({ item }: { item: GymSearchResult }) => (
+            <GymPickerResultItem gym={item} />
+          )}
+          searchResultItemKeyField={SearchComponents[SearchCategory.Gyms].searchResultItemKeyField}
+          footerComponent={SearchComponents[SearchCategory.Gyms].footerComponent}
+        />
       </View>
     </Screen>
   )
@@ -109,4 +129,9 @@ const $container: ViewStyle = {
 
 const $myGymsContainer: ViewStyle = {
   maxHeight: 200,
+}
+
+const $gymPickerItemContainer: ViewStyle = {
+  paddingVertical: spacing.small,
+  alignItems: "center",
 }

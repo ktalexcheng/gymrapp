@@ -6,7 +6,7 @@ import { SearchCategory, SearchComponents } from "../Discover"
 
 export const GymSearchScreen = () => {
   return (
-    <Screen safeAreaEdges={["bottom"]} style={$container}>
+    <Screen safeAreaEdges={["bottom"]} contentContainerStyle={$container}>
       <Search
         searchBarPlaceholderTx={SearchComponents[SearchCategory.Gyms].searchBarPlaceholderTx}
         searchCallback={SearchComponents[SearchCategory.Gyms].searchCallback}

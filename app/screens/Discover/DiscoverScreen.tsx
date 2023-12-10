@@ -73,6 +73,19 @@ const GymSearchResultItem = ({ gym }: { gym: GymSearchResult }) => {
   )
 }
 
+const GymSearchFooterComponent = () => {
+  const mainNavigator = useMainNavigation()
+
+  return (
+    <Button
+      tx="gymSearch.createNewGymButtonLabel"
+      preset="text"
+      style={styles.alignCenter}
+      onPress={() => mainNavigator.navigate("CreateNewGym")}
+    />
+  )
+}
+
 export const SearchComponents: ISearchComponents = {
   [SearchCategory.Users]: {
     searchBarPlaceholderTx: "userSearch.searchBarPlaceholder",
@@ -97,14 +110,7 @@ export const SearchComponents: ISearchComponents = {
       <GymSearchResultItem gym={item} />
     ),
     searchResultItemKeyField: "gymId",
-    footerComponent: (
-      <Button
-        tx="gymSearch.createNewGymButtonLabel"
-        preset="text"
-        style={styles.alignCenter}
-        onPress={() => console.debug("TODO: create a new gym")}
-      />
-    ),
+    footerComponent: <GymSearchFooterComponent />,
   },
 }
 

@@ -1,5 +1,7 @@
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import { GoogleSignin } from "@react-native-google-signin/google-signin"
+import * as AppleAuthentication from "expo-apple-authentication"
+import * as Crypto from "expo-crypto"
 import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
 import { AppLocale, AuthStoreError, WeightUnit } from "../data/constants"
 import { User } from "../data/model"
@@ -40,7 +42,7 @@ function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.User
 export const AuthenticationStoreModel = types
   .model("AuthenticationStore")
   .props({
-    firebaseUserCredential: FirebaseUserCredentialType,
+    firebaseUserCredential: types.maybe(FirebaseUserCredentialType),
     isAuthenticating: true,
   })
   .volatile((_) => ({
@@ -113,8 +115,8 @@ export const AuthenticationStoreModel = types
     },
   }))
   .actions(withSetPropAction)
-  .actions((self) => ({
-    catchAuthError(caller, error) {
+  .actions((self) => {
+    function catchAuthError(caller, error) {
       console.error("AuthenticationStore.catchAuthError called from", caller, ":", error)
       // Just in case an unexpected error is encountered
       if (!("code" in error)) {
@@ -142,12 +144,11 @@ export const AuthenticationStoreModel = types
         default:
           self.authError = error.toString()
       }
-    },
-  }))
-  .actions((self) => ({
+    }
+
     // This is specifically to only overwrite the user property of firebaseUserCredential
     // because for some reason that is what onAuthStateChanged() returns
-    setFirebaseUser(firebaseUser: FirebaseAuthTypes.User) {
+    function setFirebaseUser(firebaseUser: FirebaseAuthTypes.User) {
       self.isAuthenticating = true
       if (!firebaseUser) throw new Error("AuthenticationStore.setFirebaseUser failed")
       self.firebaseUserCredential = {
@@ -155,55 +156,66 @@ export const AuthenticationStoreModel = types
         user: firebaseUser,
       }
       self.isAuthenticating = false
-    },
-    setFirebaseUserCredential(firebaseUserCredential: FirebaseAuthTypes.UserCredential) {
+    }
+
+    function setFirebaseUserCredential(firebaseUserCredential: FirebaseAuthTypes.UserCredential) {
       self.isAuthenticating = true
       if (!firebaseUserCredential)
         throw new Error("AuthenticationStore.setFirebaseUserCredential failed")
       self.firebaseUserCredential = firebaseUserCredential
       self.isAuthenticating = false
-    },
-    setLoginEmail(email: string) {
+    }
+
+    function setLoginEmail(email: string) {
       self.loginEmail = email
-    },
-    setLoginPassword(password: string) {
+    }
+
+    function setLoginPassword(password: string) {
       self.loginPassword = password
-    },
-    setNewFirstName(firstName: string) {
+    }
+
+    function setNewFirstName(firstName: string) {
       self.newFirstName = firstName
-    },
-    setNewLastName(lastName: string) {
+    }
+
+    function setNewLastName(lastName: string) {
       self.newLastName = lastName
-    },
-    invalidateSession: flow(function* () {
-      if (self.firebaseUserCredential) {
+    }
+
+    const invalidateSession = flow(function* () {
+      if (auth().currentUser) {
         try {
           yield auth().signOut()
         } catch (e) {
-          self.catchAuthError("invalidateSession", e)
+          catchAuthError("invalidateSession error:", e)
         }
-        self.firebaseUserCredential = undefined
       }
-    }),
-    resetAuthError() {
+      self.firebaseUserCredential = undefined
+    })
+
+    function resetAuthError() {
       self.authError = undefined
-    },
-  }))
-  // Utility actions are defined first to be used in actions below
-  .actions((self) => ({
-    logout() {
-      self.invalidateSession()
-    },
-    deleteAccount: flow(function* () {
+    }
+
+    const logout = flow(function* () {
+      self.isAuthenticating = true
+      yield invalidateSession()
+      self.isAuthenticating = false
+    })
+
+    const deleteAccount = flow(function* () {
+      self.isAuthenticating = true
       try {
         yield getEnv<RootStoreDependencies>(self).userRepository.delete(self.userId)
         yield auth().currentUser.delete() // Also signs user out
-        yield self.invalidateSession()
+        self.firebaseUserCredential = undefined
       } catch (error) {
-        self.catchAuthError("deleteAccount", error)
+        catchAuthError("deleteAccount", error)
       }
-    }),
-    signInWithEmail: flow(function* () {
+      self.isAuthenticating = false
+    })
+
+    const signInWithEmail = flow(function* () {
       if (self.signInCredentialsError) return
 
       self.isAuthenticating = true
@@ -211,18 +223,19 @@ export const AuthenticationStoreModel = types
       try {
         const userCred = yield auth()
           .signInWithEmailAndPassword(self.loginEmail, self.loginPassword)
-          .catch((e) => self.catchAuthError("signInWithEmail", e))
+          .catch((e) => catchAuthError("signInWithEmail", e))
 
         if (userCred) {
-          self.setFirebaseUserCredential(userCred)
+          setFirebaseUserCredential(userCred)
         }
 
         self.isAuthenticating = false
       } catch (e) {
         console.error("AuthenticationStore.signInWithEmail error:", e)
       }
-    }),
-    signUpWithEmail: flow(function* () {
+    })
+
+    const signUpWithEmail = flow(function* () {
       if (self.signInCredentialsError) return
 
       self.isAuthenticating = true
@@ -230,10 +243,10 @@ export const AuthenticationStoreModel = types
       try {
         const userCred = yield auth()
           .createUserWithEmailAndPassword(self.loginEmail, self.loginPassword)
-          .catch((e) => self.catchAuthError("signUpWithEmail", e))
+          .catch((e) => catchAuthError("signUpWithEmail", e))
 
         if (userCred) {
-          self.setFirebaseUserCredential(userCred)
+          setFirebaseUserCredential(userCred)
           const { userRepository } = getEnv<RootStoreDependencies>(self)
           userRepository.setUserId(userCred.user.uid)
           yield userRepository.create({
@@ -255,13 +268,22 @@ export const AuthenticationStoreModel = types
       } catch (e) {
         console.error("AuthenticationStore.signUpWithEmail error:", e)
       }
-    }),
-    signInWithGoogle: flow(function* () {
+    })
+
+    const signInWithGoogle = flow(function* () {
       self.isAuthenticating = true
 
+      // Check if your device supports Google Play
+      const hasPlayServices = yield GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      })
+      if (!hasPlayServices) {
+        console.error(
+          "AuthenticationStore.signInWithGoogle error: Google Play Services are not available",
+        )
+      }
+
       try {
-        // Check if your device supports Google Play
-        yield GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true })
         // Get the users ID token
         const { idToken } = yield GoogleSignin.signIn()
         // Create a Google credential with the token
@@ -269,20 +291,85 @@ export const AuthenticationStoreModel = types
         // Sign-in the user with the credential
         const userCred = yield auth().signInWithCredential(googleCredential)
 
-        self.setFirebaseUserCredential(userCred)
+        setFirebaseUserCredential(userCred)
 
         if (userCred.additionalUserInfo.isNewUser) {
           const user = createUserFromFirebaseUserCred(userCred)
           getEnv<RootStoreDependencies>(self).userRepository.create(user)
         }
-
-        self.isAuthenticating = false
       } catch (error) {
-        self.catchAuthError("signInWithGoogle", error)
+        catchAuthError("signInWithGoogle", error)
+      } finally {
+        self.isAuthenticating = false
       }
+
       return null
-    }),
-  }))
+    })
+
+    const signInWithApple = flow(function* () {
+      self.isAuthenticating = true
+
+      const appleAuthAvailable = yield AppleAuthentication.isAvailableAsync()
+      if (!appleAuthAvailable) {
+        console.error("AuthenticationStore.signInWithApple error: Apple login is not available")
+      }
+
+      try {
+        const state = Math.random().toString(36).substring(2, 15)
+        const nonce = Math.random().toString(36).substring(2, 10)
+        const hashedNonce = yield Crypto.digestStringAsync(
+          Crypto.CryptoDigestAlgorithm.SHA256,
+          nonce,
+        )
+        const appleCredential = (yield AppleAuthentication.signInAsync({
+          requestedScopes: [
+            AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+            AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          ],
+          state,
+          nonce: hashedNonce,
+        })) as AppleAuthentication.AppleAuthenticationCredential
+
+        const { identityToken } = appleCredential
+        if (!identityToken) {
+          console.error("AuthenticationStore.signInWithApple error: identityToken is null")
+        }
+
+        const firebaseCredential = auth.AppleAuthProvider.credential(identityToken, nonce)
+        const userCred = yield auth().signInWithCredential(firebaseCredential)
+
+        setFirebaseUserCredential(userCred)
+
+        if (userCred.additionalUserInfo.isNewUser) {
+          const user = createUserFromFirebaseUserCred(userCred)
+          getEnv<RootStoreDependencies>(self).userRepository.create(user)
+        }
+      } catch (error) {
+        console.error("AuthenticationStore.signInWithApple error:", error)
+      } finally {
+        self.isAuthenticating = false
+      }
+
+      return null
+    })
+
+    return {
+      setFirebaseUser,
+      setFirebaseUserCredential,
+      setLoginEmail,
+      setLoginPassword,
+      setNewFirstName,
+      setNewLastName,
+      invalidateSession,
+      resetAuthError,
+      logout,
+      deleteAccount,
+      signInWithEmail,
+      signUpWithEmail,
+      signInWithGoogle,
+      signInWithApple,
+    }
+  })
 
 export interface AuthenticationStore extends Instance<typeof AuthenticationStoreModel> {}
 export interface AuthenticationStoreSnapshot extends SnapshotOut<typeof AuthenticationStoreModel> {}

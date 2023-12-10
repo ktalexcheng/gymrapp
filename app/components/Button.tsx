@@ -104,6 +104,7 @@ export function Button(props: ButtonProps) {
   function $textStyle({ pressed }) {
     return [
       $textPresets[preset],
+      props.disabled && { color: colors.disabled },
       $textStyleOverride,
       !!pressed && [$pressedTextPresets[preset], $pressedTextStyleOverride],
     ]

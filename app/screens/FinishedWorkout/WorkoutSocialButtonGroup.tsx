@@ -23,8 +23,9 @@ export const WorkoutSocialButtonGroup = observer((props: WorkoutSocialButtonGrou
   const [likesCount, setLikesCount] = useState(undefined)
 
   useEffect(() => {
+    console.debug("WorkoutSocialButtonGroup useEffect [getInteractionsForWorkout] called")
     setInteractions(feedStore.getInteractionsForWorkout(workoutSource, workoutId))
-  }, [feedStore.workoutInteractions])
+  }, [feedStore.getInteractionsForWorkout(workoutSource, workoutId)])
 
   useEffect(() => {
     setIsLikedByUser(workoutInteractions?.likedByUserIds?.includes(userStore.userId) ?? false)

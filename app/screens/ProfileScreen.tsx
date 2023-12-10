@@ -8,7 +8,7 @@ import { useStores } from "app/stores"
 import { format, milliseconds } from "date-fns"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
-import { FlatList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import { FlatList, TouchableOpacity, View, ViewStyle } from "react-native"
 import { SceneMap, TabView } from "react-native-tab-view"
 import { DomainPropType, DomainTuple } from "victory-core"
 import {
@@ -182,13 +182,12 @@ export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileSc
   const mainNavigation = useMainNavigation()
   const { userStore } = useStores()
   const [tabIndex, setTabIndex] = useState(0)
-  // TODO: Update coach identity from user collection
-  const isTrainer = false
+  // const isTrainer = false
 
-  const $coachsCenterButtonStatus: ViewStyle | TextStyle = {
-    backgroundColor: isTrainer ? colors.actionable : colors.disabled,
-    color: isTrainer ? colors.text : colors.textDim,
-  }
+  // const $coachsCenterButtonStatus: ViewStyle | TextStyle = {
+  //   backgroundColor: isTrainer ? colors.actionable : colors.disabled,
+  //   color: isTrainer ? colors.text : colors.textDim,
+  // }
 
   const routes = [
     {
@@ -227,23 +226,30 @@ export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileSc
       ) : (
         <>
           <RowView alignItems="center" style={$userAvatarRow}>
-            <RowView alignItems="center">
-              <Avatar user={userStore.user} size="sm" />
-              <Text style={$userDisplayName}>{userStore?.displayName}</Text>
-            </RowView>
-            <Icon
-              name="settings-outline"
-              onPress={() => mainNavigation.navigate("UserSettings")}
-              color={colors.actionable}
-              size={32}
-            />
+            <TouchableOpacity onPress={() => mainNavigation.navigate("UserSettings")}>
+              <RowView alignItems="center">
+                <Avatar user={userStore.user} size="sm" />
+                <Text style={$userDisplayName}>{userStore?.displayName}</Text>
+              </RowView>
+            </TouchableOpacity>
+            <View>
+              <Icon
+                name="notifications-outline"
+                onPress={() => mainNavigation.navigate("Notifications")}
+                color={colors.actionable}
+                size={32}
+              />
+              {userStore.newNotificationsCount > 0 && (
+                <Text style={$notificationsBadge} text={`${userStore.newNotificationsCount}`} />
+              )}
+            </View>
           </RowView>
           <UserProfileStatsBar user={userStore.user} containerStyle={$userProfileStatsBar} />
-          <RowView style={$coachsCenterRow}>
+          {/* <RowView style={$coachsCenterRow}>
             <TouchableOpacity style={[$coachsCenterButton, $coachsCenterButtonStatus]}>
               <Text tx="profileScreen.coachsCenterButtonLabel"></Text>
             </TouchableOpacity>
-          </RowView>
+          </RowView> */}
           <View style={$tabViewContainer}>
             <TabView
               navigationState={{ index: tabIndex, routes }}
@@ -291,4 +297,10 @@ const $tabViewContainer: ViewStyle = {
   flex: 1,
   // justifyContent: "center",
   // alignItems: "center",
+}
+
+const $notificationsBadge: ViewStyle = {
+  position: "absolute",
+  top: -5,
+  right: -5,
 }

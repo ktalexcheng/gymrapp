@@ -17,6 +17,16 @@ export const useExerciseSetting = <T>(
   useEffect(() => {
     const setting = exerciseSpecificSetting ?? userPreference
     setExerciseSetting(setting)
+    console.debug(
+      "useExerciseSetting exerciseId:",
+      exerciseId,
+      "; settingName:",
+      settingName,
+      "; exerciseSpecificSetting:",
+      exerciseSpecificSetting,
+      "; userPreference:",
+      userPreference,
+    )
   }, [exerciseSpecificSetting, userPreference])
 
   return [exerciseSetting]

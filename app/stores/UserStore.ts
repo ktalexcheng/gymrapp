@@ -1,6 +1,14 @@
 import { DefaultUserPreferences } from "app/data/constants"
-import { Gym, GymDetails, GymId } from "app/data/model"
+import {
+  FollowRequest,
+  Gym,
+  GymDetails,
+  GymId,
+  Notification,
+  NotificationType,
+} from "app/data/model"
 import { translate } from "app/i18n"
+import { api } from "app/services/api"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { getNestedField } from "app/utils/getNestedField"
 import { LocationObject } from "expo-location"
@@ -12,6 +20,21 @@ import { RootStoreDependencies } from "./helpers/useStores"
 
 const UserType = createCustomType<User>("User", isUser)
 // const WorkoutType = createCustomType<Workout>("Workout", isWorkout)
+const NotificationModel = types.model({
+  notificationId: types.identifier,
+  notificationDate: types.Date,
+  isRead: types.boolean,
+  senderUserId: types.string,
+  notificationType: types.enumeration(Object.values(NotificationType)),
+  workoutId: types.maybe(types.string),
+})
+const FollowRequestsModel = types.model({
+  requestId: types.identifier,
+  requestedByUserId: types.string,
+  requestDate: types.Date,
+  isAccepted: types.boolean,
+  isDeclined: types.boolean,
+})
 
 function isEmptyField(value: any) {
   if (value === undefined || value === null || value === "") {
@@ -26,45 +49,29 @@ export const UserStoreModel = types
   .props({
     userId: types.maybeNull(types.string),
     user: UserType,
-    // workouts: types.map(
-    //   types.model({
-    //     workoutId: types.identifier,
-    //     workout: WorkoutType,
-    //   }),
-    // ),
-    // workoutInteractions: types.map(
-    //   types.model({
-    //     workoutId: types.identifier,
-    //     likedByUserIds: types.array(types.string),
-    //     comments: types.array(
-    //       types.model({
-    //         byUserId: types.string,
-    //         comment: types.string,
-    //         _createdAt: types.Date,
-    //       }),
-    //     ),
-    //   }),
-    // ),
     isLoadingProfile: true,
-    // isLoadingWorkouts: true,
-    isNewUser: true,
+    isNewUser: true, // A new user will yet to have a user document in the database
+    notifications: types.maybe(types.array(NotificationModel)),
+    followRequests: types.maybe(types.array(FollowRequestsModel)),
   })
   .views((self) => ({
     get profileIncomplete() {
       console.debug("UserStore.profileIncomplete called")
-      // If store has not been initialized, we cannot reliably determine status
-      // Return false to prevent flashing of the onboarding stack before store can be
-      // initialized with user data
-      if (self.isLoadingProfile) return false
-
-      if (self.isNewUser) return true
-      if (self.user === null || self.user === undefined) return true
+      // While loading we cannot determine if the profile is incomplete
+      if (self.isLoadingProfile) {
+        console.debug("UserStore.profileIncomplete still loading profile, returned false")
+        return false
+      }
 
       if (
-        isEmptyField(self.user.firstName) ||
-        isEmptyField(self.user.lastName) ||
-        isEmptyField(self.user.privateAccount)
+        self.isNewUser ||
+        self.user === null ||
+        self.user === undefined ||
+        isEmptyField(self.user?.firstName) ||
+        isEmptyField(self.user?.lastName) ||
+        isEmptyField(self.user?.privateAccount)
       ) {
+        console.debug("UserStore.profileIncomplete returned true")
         return true
       }
 
@@ -91,146 +98,6 @@ export const UserStoreModel = types
       )
       return self.user.email
     },
-    // get weeklyWorkoutsCount() {
-    //   const workouts = Array.from(self.workouts.values())
-    //   const weeklyWorkoutsCount = new Map<number, number>()
-    //   workouts.forEach((w) => {
-    //     // Find start of week (Monday)
-    //     const weekStart = startOfWeek(w.workout.startTime, {
-    //       weekStartsOn: 1,
-    //     })
-    //     const weekStartTime = getTime(weekStart)
-
-    //     if (!weeklyWorkoutsCount.has(weekStartTime)) {
-    //       weeklyWorkoutsCount.set(weekStartTime, 0)
-    //     }
-
-    //     weeklyWorkoutsCount.set(weekStartTime, weeklyWorkoutsCount.get(weekStartTime) + 1)
-    //   })
-
-    //   // console.debug(
-    //   //   "UserStore.weeklyWorkoutsCount weekStartTime.keys():",
-    //   //   ...weeklyWorkoutsCount.keys(),
-    //   // )
-    //   return weeklyWorkoutsCount
-    // },
-  }))
-  .actions((self) => ({
-    invalidateSession: () => {
-      self.userId = undefined
-      self.user = undefined
-      // self.workouts.clear()
-      self.isLoadingProfile = true
-      // self.isLoadingWorkouts = true
-      self.isNewUser = true
-    },
-    uploadUserAvatar: flow<string, [imagePath: string]>(function* (imagePath: string) {
-      try {
-        const avatarUrl = yield getEnv<RootStoreDependencies>(self).userRepository.uploadAvatar(
-          imagePath,
-        )
-
-        return avatarUrl
-      } catch (e) {
-        console.error("UserStore.uploadUserAvatar error:", e)
-      }
-    }),
-    /**
-     * Creating a profile should usually be done right after signing up
-     * this is for the rare case when a user's profile needs to be recreated
-     * e.g. when a user deletes their account and signs up again
-     * e.g. for testing purposes
-     */
-    createNewProfile: flow(function* (newUser: User) {
-      self.isLoadingProfile = true
-
-      try {
-        const { userRepository } = getEnv<RootStoreDependencies>(self)
-        userRepository.setUserId(newUser.userId)
-        yield userRepository.create(newUser)
-
-        self.isLoadingProfile = false
-        self.isNewUser = false
-      } catch (e) {
-        console.error("UserStore.createNewProfile error:", e)
-      }
-    }),
-    // getWorkouts: flow(function* () {
-    //   console.debug("UserStore.getWorkouts called")
-    //   try {
-    //     self.isLoadingWorkouts = true
-
-    //     if (!self.user?.workoutMetas) {
-    //       self.isLoadingWorkouts = false
-    //       return
-    //     }
-
-    //     const { workoutRepository, workoutInteractionRepository } =
-    //       getEnv<RootStoreDependencies>(self)
-    //     const workoutIds = Object.keys(self.user.workoutMetas)
-    //     const workouts: Workout[] = yield workoutRepository.getMany(workoutIds)
-
-    //     if (!workouts) {
-    //       console.debug("UserStore.getWorkouts no workouts found")
-    //       self.isLoadingWorkouts = false
-    //       return
-    //     }
-
-    //     workouts.forEach((w) => {
-    //       self.workouts.put({
-    //         workoutId: w.workoutId,
-    //         workout: w,
-    //       })
-    //     })
-
-    //     const workoutInteractions = yield workoutInteractionRepository.getMany(workoutIds)
-    //     workoutInteractions.forEach((interaction) => {
-    //       self.workoutInteractions.put({
-    //         workoutId: interaction.workoutId,
-    //         likedByUserIds: interaction.likedByUserIds,
-    //         comments: interaction.comments,
-    //       })
-    //     })
-
-    //     self.isLoadingWorkouts = false
-    //   } catch (e) {
-    //     console.error("UserStore.getWorkouts error:", e)
-    //   }
-    //   console.debug("UserStore.getWorkouts done")
-    // }),
-    getForeignUser: flow(function* (userId: string) {
-      const { userRepository } = getEnv<RootStoreDependencies>(self)
-      const user = yield userRepository.get(userId, false)
-      return user
-    }),
-    followUser: flow(function* (followeeUserId: string) {
-      const { userRepository } = getEnv<RootStoreDependencies>(self)
-      try {
-        yield userRepository.followUser(followeeUserId)
-      } catch (e) {
-        console.error("UserStore.followUser error:", e)
-      }
-    }),
-    unfollowUser: flow(function* (followeeUserId: string) {
-      const { userRepository } = getEnv<RootStoreDependencies>(self)
-      try {
-        yield userRepository.unfollowUser(followeeUserId)
-      } catch (e) {
-        console.error("UserStore.unfollowUser error:", e)
-      }
-    }),
-    isFollowingUser: flow(function* (followeeUserId: string) {
-      const { userRepository } = getEnv<RootStoreDependencies>(self)
-      const isFollowing = yield userRepository.isFollowingUser(followeeUserId)
-      return isFollowing
-    }),
-    getUserLocation: flow(function* () {
-      const { userRepository } = getEnv<RootStoreDependencies>(self)
-      return yield userRepository.getUserLocation()
-    }) as () => Promise<LocationObject>,
-    // updateWorkout(workoutId: WorkoutId, workout: Workout) {
-    //   self.workouts.put({ workoutId, workout: { workoutId, ...workout } })
-    // },
     getExerciseLastWorkoutId(exerciseId: ExerciseId) {
       const exerciseHistory = getNestedField(
         self.user,
@@ -246,69 +113,6 @@ export const UserStoreModel = types
 
       return lastWorkoutId
     },
-  }))
-  .actions((self) => ({
-    loadUserWithId: flow(function* (userId: string) {
-      console.debug("UserStore.loadUserWIthId called:", userId)
-      self.isLoadingProfile = true
-
-      try {
-        const { userRepository, privateExerciseRepository, feedRepository } =
-          getEnv<RootStoreDependencies>(self)
-        feedRepository.setCollectionPath(`feeds/${userId}/feedItems`)
-        userRepository.setUserId(userId)
-        privateExerciseRepository.setUserId(userId)
-
-        const user = yield userRepository.get(userId, true)
-
-        if (user) {
-          // console.debug("UserStore.loadUserWIthId user:", user)
-          self.user = user
-          self.isNewUser = false
-          // yield self.getWorkouts()
-        } else {
-          self.isNewUser = true
-        }
-
-        self.isLoadingProfile = false
-      } catch (e) {
-        console.error("UserStore.loadUserWIthId error:", e)
-      }
-
-      self.userId = userId
-      console.debug("UserStore.loadUserWIthId done")
-    }),
-    setUser(user: User) {
-      self.isLoadingProfile = true
-      console.debug("UserStore.setUser user:", user)
-      self.user = convertFirestoreTimestampToDate(user)
-      // self.getWorkouts()
-      self.isLoadingProfile = false
-    },
-    updateProfile: flow(function* (userUpdate: Partial<User>) {
-      console.debug("UserStore.updateProfile called")
-      self.isLoadingProfile = true
-
-      try {
-        yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, true)
-        self.user = { ...self.user, ...userUpdate }
-        // yield self.getWorkouts()
-
-        self.isLoadingProfile = false
-      } catch (e) {
-        console.error("UserStore.updateProfile error:", e)
-      }
-      console.debug("UserStore.updateProfile done")
-    }),
-    deleteProfile: flow(function* () {
-      const { userRepository } = getEnv<RootStoreDependencies>(self)
-      try {
-        yield userRepository.delete(self.userId)
-      } catch (e) {
-        console.error("UserStore.deleteProfile error:", e)
-      }
-      self.invalidateSession()
-    }),
     getProp<T>(propPath: string): T {
       const value = getNestedField(self, propPath) as T
 
@@ -332,34 +136,231 @@ export const UserStoreModel = types
       }
       return prefValue as T
     },
-    // getSetFromLastWorkout(exerciseId: ExerciseId, setOrder: number) {
-    //   const exerciseHistory = getNestedField(
-    //     self.user,
-    //     "exerciseHistory",
-    //   ) as User["exerciseHistory"]
-    //   if (!exerciseHistory) return null
-
-    //   const exerciseHistoryItem = exerciseHistory?.[exerciseId]
-    //   if (!exerciseHistoryItem) return null
-
-    //   const workoutsCount = exerciseHistoryItem.performedWorkoutIds.length
-    //   const latestWorkoutId = exerciseHistoryItem.performedWorkoutIds[workoutsCount - 1]
-    //   const latestWorkout = self.workouts.get(latestWorkoutId)
-    //   const lastPerformedSet = latestWorkout.workout.exercises.filter(
-    //     (e) => e.exerciseId === exerciseId,
-    //   )[0].setsPerformed?.[setOrder]
-    //   if (!lastPerformedSet) return null
-
-    //   return lastPerformedSet
-    // },
-    isInMyGyms(gymId: GymId) {
-      return !!self.user?.myGyms?.find((myGym) => myGym.gymId === gymId)
+    get newNotifications() {
+      console.debug(
+        "UserStore.newNotifications:",
+        self.notifications?.filter((notification) => !notification.isRead),
+      )
+      return self.notifications?.filter((notification) => !notification.isRead)
+    },
+    get oldNotifications() {
+      console.debug(
+        "UserStore.oldNotifications:",
+        self.notifications?.filter((notification) => notification.isRead),
+      )
+      return self.notifications?.filter((notification) => notification.isRead)
+    },
+    get pendingFollowRequests() {
+      return self.followRequests?.filter(
+        (followRequest) => !followRequest.isAccepted && !followRequest.isDeclined,
+      )
+    },
+    get newNotificationsCount() {
+      const newNotifications = self.notifications?.filter((notification) => !notification.isRead)
+      const pendingFollowRequests = self.followRequests?.filter((followRequest) => {
+        return !followRequest.isAccepted && !followRequest.isDeclined
+      })
+      const newNotificationsCount =
+        (newNotifications?.length ?? 0) + (pendingFollowRequests?.length ?? 0)
+      console.debug("UserStore.newNotificationsCount:", newNotificationsCount)
+      return newNotificationsCount
     },
   }))
-  .actions((self) => ({
-    addToMyGyms: flow(function* (gym: GymDetails) {
+  .actions((self) => {
+    function invalidateSession() {
+      self.userId = undefined
+      self.user = undefined
+      // self.workouts.clear()
+      self.isLoadingProfile = true
+      // self.isLoadingWorkouts = true
+      self.isNewUser = true
+    }
+
+    const uploadUserAvatar = flow<string, [imagePath: string]>(function* (imagePath: string) {
+      try {
+        const avatarUrl = yield getEnv<RootStoreDependencies>(self).userRepository.uploadAvatar(
+          imagePath,
+        )
+
+        return avatarUrl
+      } catch (e) {
+        console.error("UserStore.uploadUserAvatar error:", e)
+      }
+    })
+
+    /**
+     * Creating a profile should usually be done right after signing up
+     * this is for the rare case when a user's profile needs to be recreated
+     * e.g. when a user deletes their account and signs up again
+     * e.g. for testing purposes
+     */
+    const createNewProfile = flow(function* (newUser: User) {
+      self.isLoadingProfile = true
+
+      try {
+        const { userRepository } = getEnv<RootStoreDependencies>(self)
+        userRepository.setUserId(newUser.userId)
+        yield userRepository.create(newUser)
+
+        self.isLoadingProfile = false
+        self.isNewUser = false
+      } catch (e) {
+        console.error("UserStore.createNewProfile error:", e)
+      }
+    })
+
+    const getOtherUser = flow(function* (userId: string) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      const user = yield userRepository.get(userId, false)
+      return user
+    })
+
+    const followUser = flow(function* (followeeUserId: string) {
+      // const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield api.requestFollowOtherUser(followeeUserId)
+      } catch (e) {
+        console.error("UserStore.followUser error:", e)
+      }
+    })
+
+    const unfollowUser = flow(function* (followeeUserId: string) {
+      // const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield api.unfollowOtherUser(followeeUserId)
+      } catch (e) {
+        console.error("UserStore.unfollowUser error:", e)
+      }
+    })
+
+    const isFollowingUser = flow(function* (followeeUserId: string) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      const isFollowing = yield userRepository.isFollowingUser(followeeUserId)
+      return isFollowing
+    })
+
+    const isFollowRequested = flow(function* (followeeUserId: string) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      const isFollowRequested = yield userRepository.isFollowRequested(followeeUserId)
+      return isFollowRequested
+    })
+
+    const cancelFollowRequest = flow(function* (followeeUserId: string) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield userRepository.cancelFollowRequest(followeeUserId)
+      } catch (e) {
+        console.error("UserStore.cancelFollowRequest error:", e)
+      }
+    })
+
+    const declineFollowRequest = flow(function* (followRequestId: string) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield userRepository.declineFollowRequest(followRequestId)
+      } catch (e) {
+        console.error("UserStore.declineFollowRequest error:", e)
+      }
+    })
+
+    const acceptFollowRequest = flow(function* (followRequestId: string) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield userRepository.acceptFollowRequest(followRequestId)
+        yield api.acceptFollowRequest(followRequestId)
+      } catch (e) {
+        console.error("UserStore.acceptFollowRequest error:", e)
+      }
+    })
+
+    const getUserLocation = flow(function* () {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      return yield userRepository.getUserLocation()
+    }) as () => Promise<LocationObject>
+
+    const loadUserWithId = flow(function* (userId: string) {
+      console.debug("UserStore.loadUserWIthId called:", userId)
+      self.isLoadingProfile = true
+
+      try {
+        const {
+          userRepository,
+          privateExerciseRepository,
+          feedRepository,
+          notificationRepository,
+        } = getEnv<RootStoreDependencies>(self)
+        feedRepository.setUserId(userId)
+        userRepository.setUserId(userId)
+        privateExerciseRepository.setUserId(userId)
+        notificationRepository.setUserId(userId)
+
+        const user = yield userRepository.get(userId, true)
+
+        if (user) {
+          // console.debug("UserStore.loadUserWIthId user:", user)
+          self.user = user
+          self.isNewUser = false
+          // yield self.getWorkouts()
+        } else {
+          self.isNewUser = true
+        }
+
+        self.isLoadingProfile = false
+      } catch (e) {
+        console.error("UserStore.loadUserWIthId error:", e)
+      }
+
+      self.userId = userId
+      console.debug("UserStore.loadUserWIthId done")
+    })
+
+    function setUser(user: User) {
+      self.isLoadingProfile = true
+      console.debug("UserStore.setUser user:", user)
+      self.user = convertFirestoreTimestampToDate(user)
+      // self.getWorkouts()
+      self.isNewUser = false
+      self.isLoadingProfile = false
+    }
+
+    const updateProfile = flow(function* (userUpdate: Partial<User>) {
+      console.debug("UserStore.updateProfile called")
+      self.isLoadingProfile = true
+
+      try {
+        const updatedUser = yield getEnv<RootStoreDependencies>(self).userRepository.update(
+          null,
+          userUpdate,
+          true,
+        )
+        console.debug("UserStore.updateProfile new user:", updatedUser)
+        self.user = updatedUser
+        // yield self.getWorkouts()
+
+        self.isLoadingProfile = false
+      } catch (e) {
+        console.error("UserStore.updateProfile error:", e)
+      }
+      console.debug("UserStore.updateProfile done")
+    })
+
+    const deleteProfile = flow(function* () {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield userRepository.delete(self.userId)
+      } catch (e) {
+        console.error("UserStore.deleteProfile error:", e)
+      }
+      invalidateSession()
+    })
+
+    function isInMyGyms(gymId: GymId) {
+      return !!self.user?.myGyms?.find((myGym) => myGym.gymId === gymId)
+    }
+
+    const addToMyGyms = flow(function* (gym: GymDetails) {
       console.debug("UserStore.addToMyGyms called user:", self.user)
-      if (self.isInMyGyms(gym.gymId)) {
+      if (isInMyGyms(gym.gymId)) {
         Toast.show(translate("gymDetailsScreen.alreadyAddedToMyGymsLabel"), {
           duration: Toast.durations.SHORT,
         })
@@ -369,10 +370,11 @@ export const UserStoreModel = types
       const { userRepository } = getEnv<RootStoreDependencies>(self)
       const updatedUser = yield userRepository.addToMyGyms(gym)
       self.user = updatedUser
-    }),
-    removeFromMyGyms: flow(function* (gym: Gym | GymDetails) {
+    })
+
+    const removeFromMyGyms = flow(function* (gym: Gym | GymDetails) {
       console.debug("UserStore.removeFromMyGyms called user:", self.user)
-      if (!self.isInMyGyms(gym.gymId)) {
+      if (!isInMyGyms(gym.gymId)) {
         Toast.show(translate("gymDetailsScreen.alreadyRemovedFromMyGymsLabel"), {
           duration: Toast.durations.SHORT,
         })
@@ -382,5 +384,57 @@ export const UserStoreModel = types
       const { userRepository } = getEnv<RootStoreDependencies>(self)
       const updatedUser = yield userRepository.removeFromMyGyms(gym)
       self.user = updatedUser
-    }),
-  }))
+    })
+
+    const setNotifications = (notifications: Notification[]) => {
+      self.notifications = convertFirestoreTimestampToDate(notifications)
+    }
+
+    const setFollowRequests = (followRequests: FollowRequest[]) => {
+      self.followRequests = convertFirestoreTimestampToDate(followRequests)
+    }
+
+    const loadNotifications = flow(function* () {
+      const { notificationRepository, userRepository } = getEnv<RootStoreDependencies>(self)
+      const notifications = yield notificationRepository.getMany(undefined, true)
+      self.notifications = notifications
+
+      const followRequests = yield userRepository.getFollowRequests()
+      self.followRequests = followRequests
+    })
+
+    const markNotificationAsRead = flow(function* (notificationId: string) {
+      const { notificationRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield notificationRepository.update(notificationId, { isRead: true })
+      } catch (e) {
+        console.error("UserStore.readNotification error:", e)
+      }
+    })
+
+    return {
+      invalidateSession,
+      loadUserWithId,
+      setUser,
+      updateProfile,
+      deleteProfile,
+      createNewProfile,
+      uploadUserAvatar,
+      getUserLocation,
+      getOtherUser,
+      followUser,
+      unfollowUser,
+      isFollowingUser,
+      isFollowRequested,
+      cancelFollowRequest,
+      declineFollowRequest,
+      acceptFollowRequest,
+      setNotifications,
+      setFollowRequests,
+      loadNotifications,
+      markNotificationAsRead,
+      isInMyGyms,
+      addToMyGyms,
+      removeFromMyGyms,
+    }
+  })

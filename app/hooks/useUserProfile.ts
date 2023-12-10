@@ -17,7 +17,7 @@ export const useUserProfile = (
   useEffect(() => {
     const getUserProfile = async () => {
       setIsRefreshing(true)
-      await userStore.getForeignUser(userId).then((user) => setUserProfile(user))
+      await userStore.getOtherUser(userId).then((user) => setUserProfile(user))
       setIsRefreshing(false)
     }
 

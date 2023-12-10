@@ -10,6 +10,7 @@ import React, { useEffect, useRef, useState } from "react"
 import { ActivityIndicator, TouchableOpacity, View, ViewStyle } from "react-native"
 import { FlatList, Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
+  AnimatedStyleProp,
   Easing,
   runOnJS,
   useAnimatedStyle,
@@ -49,8 +50,9 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
   }, [])
 
   useEffect(() => {
+    console.debug("WorkoutCommentsPanel useEffect [getInteractionsForWorkout] called")
     setInteractions(feedStore.getInteractionsForWorkout(workoutSource, workoutId))
-  }, [feedStore.workoutInteractions])
+  }, [feedStore.getInteractionsForWorkout(workoutSource, workoutId)])
 
   const panGestureHandler = Gesture.Pan()
     .onStart(() => {
@@ -93,7 +95,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
           translateY: panelTranslateY.value,
         },
       ],
-    }
+    } as AnimatedStyleProp<ViewStyle>
   })
 
   const commentInputHeightStyle = () => {
@@ -238,7 +240,7 @@ const WorkoutCommentTile = (props: {
   const [user, setUser] = useState<User>(undefined)
 
   useEffect(() => {
-    userStore.getForeignUser(byUserId).then((user) => setUser(user))
+    userStore.getOtherUser(byUserId).then((user) => setUser(user))
   }, [])
 
   const $commentContainer: ViewStyle[] = [
@@ -282,7 +284,7 @@ const $blurView: ViewStyle = {
   width: "100%",
 }
 
-const $panelContainer: ViewStyle = {
+const $panelContainer: AnimatedStyleProp<ViewStyle> = {
   position: "absolute",
   width: "100%",
   height: "100%",

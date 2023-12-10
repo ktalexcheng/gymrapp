@@ -40,6 +40,7 @@ export default ({ config }) => ({
     ios: {
       // Only using app.json for versionCode and buildNumber since we are using "appVersionSource" = "local" in EAS
       ...config.ios,
+      usesAppleSignIn: true,
       googleServicesFile: process.env.GOOGLE_SERVICES_PLIST,
       icon: "./assets/images/app-icon-ios.png",
       supportsTablet: true,
@@ -76,6 +77,7 @@ export default ({ config }) => ({
           locationWhenInUsePermission: "Allow $(PRODUCT_NAME) to use your location.",
         },
       ],
+      "expo-apple-authentication",
     ],
     extra: {
       eas: {

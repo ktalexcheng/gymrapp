@@ -4,7 +4,7 @@ import { Screen } from "../components"
 
 export const LoadingScreen = () => {
   return (
-    <Screen style={$loadingScreen}>
+    <Screen contentContainerStyle={$loadingScreen}>
       <ActivityIndicator size="large" />
       <Text>LoadingScreen</Text>
     </Screen>
@@ -12,6 +12,7 @@ export const LoadingScreen = () => {
 }
 
 const $loadingScreen: ViewStyle = {
+  flex: 1,
   alignItems: "center",
   justifyContent: "center",
 }

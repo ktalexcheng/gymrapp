@@ -22,7 +22,7 @@ export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ n
   return (
     // Note that tab press does not work properly when a debugger is attached
     // See: https://github.com/satya164/react-native-tab-view/issues/703
-    <Screen safeAreaEdges={["bottom", "left", "right"]} contentContainerStyle={[$screenContainer]}>
+    <Screen safeAreaEdges={["bottom"]} contentContainerStyle={[$screenContainer]}>
       <Fab
         renderInPortal={false}
         shadow={2}

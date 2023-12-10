@@ -7,6 +7,7 @@ export const retryExpectAsync = async (expectFn: () => Promise<void>, retryDelay
       console.debug(Date.now(), "retryExpectAsync() success")
       return
     } catch (e) {
+      console.debug(Date.now(), "retryExpectAsync() caught error:", e)
       retries++
       await new Promise((resolve) => setTimeout(resolve, retryDelay))
     }

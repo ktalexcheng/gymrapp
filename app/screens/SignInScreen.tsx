@@ -6,7 +6,10 @@ import {
   Button,
   CustomIcon,
   Divider,
+  Icon,
+  RowView,
   Screen,
+  Spacer,
   Text,
   TextField,
   TextFieldAccessoryProps,
@@ -123,28 +126,29 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
         RightAccessory={PasswordRightAccessory}
       />
 
+      <Spacer type="vertical" size="small" />
+
       <Button
         testID="signIn-button"
         tx="signInScreen.tapToSignIn"
-        style={$tapButton}
         preset="reversed"
         onPress={signIn}
       />
 
       <Divider orientation="horizontal" tx="signInScreen.orSignInWith" />
 
-      <Button
-        testID="signup-button"
-        tx="signInScreen.tapToSignUp"
-        style={$tapButton}
-        onPress={() => navigation.navigate("SignUp")}
-      />
+      <RowView style={$identityProviders}>
+        <Icon size={28} name={"logo-google"} onPress={authStore.signInWithGoogle} />
+        <Icon size={28} name={"logo-apple"} onPress={authStore.signInWithApple} />
+      </RowView>
+
+      <Spacer type="vertical" size="small" />
 
       <Button
-        testID="createAccount-google"
-        tx="signInScreen.signInWithGoogle"
-        style={$tapButton}
-        onPress={authStore.signInWithGoogle}
+        testID="signup-button"
+        tx="signInScreen.signUpWithEmail"
+        preset="text"
+        onPress={() => navigation.navigate("SignUp")}
       />
     </Screen>
   )
@@ -172,6 +176,8 @@ const $textField: ViewStyle = {
   marginBottom: spacing.large,
 }
 
-const $tapButton: ViewStyle = {
-  marginTop: spacing.extraSmall,
+const $identityProviders: ViewStyle = {
+  justifyContent: "space-around",
+  alignItems: "center",
+  paddingHorizontal: spacing.massive,
 }

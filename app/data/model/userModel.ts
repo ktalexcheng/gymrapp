@@ -9,7 +9,7 @@ export interface UserPreferences {
   weightUnit: WeightUnit
   autoRestTimerEnabled: boolean
   restTime: number
-  exerciseSpecificSettings?: Map<ExerciseId, ExerciseSettings>
+  exerciseSpecificSettings?: { [exerciseId: ExerciseId]: ExerciseSettings }
 }
 
 export interface WorkoutMeta {

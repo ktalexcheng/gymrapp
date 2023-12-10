@@ -2,6 +2,7 @@ import { ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import { ExerciseSet, RepsExerciseSet, TimeExerciseSet } from "app/data/model"
 import { useWeight } from "app/hooks"
 import { useExerciseSetting } from "app/hooks/useExerciseSetting"
+import { useSetFromLastWorkout } from "app/hooks/useSetFromLastWorkout"
 import { translate } from "app/i18n"
 import { roundToString } from "app/utils/formatNumber"
 import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
@@ -149,12 +150,14 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const exerciseSetStore = workoutStore.exercises.at(exerciseOrder).setsPerformed[setOrder]
 
   // Set from previous workout
-  const lastWorkoutId = userStore.getExerciseLastWorkoutId(exerciseId)
-  const setFromLastWorkout =
-    lastWorkoutId &&
-    (feedStore.getSetFromWorkout(lastWorkoutId, exerciseId, setOrder) as TimeExerciseSet)
+  // const lastWorkoutId = userStore.getExerciseLastWorkoutId(exerciseId)
+  // const setFromLastWorkout =
+  //   lastWorkoutId &&
+  //   (feedStore.getSetFromWorkout(lastWorkoutId, exerciseId, setOrder) as TimeExerciseSet)
+  const [setFromLastWorkout] = useSetFromLastWorkout<TimeExerciseSet>(exerciseId, setOrder)
 
   // Exercise properties and settings
+  const [autoRestTimerEnabled] = useExerciseSetting<number>(exerciseId, "autoRestTimerEnabled")
   const [restTimeSetting] = useExerciseSetting<number>(exerciseId, "restTime")
 
   // States
@@ -230,7 +233,10 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       return
     }
 
-    workoutStore.restartRestTimer(restTimeSetting)
+    if (autoRestTimerEnabled) {
+      workoutStore.restartRestTimer(restTimeSetting)
+    }
+
     exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
     setIsNullTime(false)
   }
@@ -313,6 +319,7 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
         exerciseOrder={exerciseOrder}
         setOrder={setOrder}
         isCompleted={exerciseSetStore.isCompleted}
+        setFromLastWorkout={setFromLastWorkout}
         renderPreviousSetText={renderPreviousSetText}
         onPressPreviousSet={copyPreviousSet}
         onPressCompleteSet={toggleSetStatus}
@@ -333,12 +340,14 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const exerciseSetStore = workoutStore.exercises.at(exerciseOrder).setsPerformed[setOrder]
 
   // Set from previous workout
-  const lastWorkoutId = userStore.getExerciseLastWorkoutId(exerciseId)
-  const setFromLastWorkout =
-    lastWorkoutId &&
-    (feedStore.getSetFromWorkout(lastWorkoutId, exerciseId, setOrder) as RepsExerciseSet)
+  // const lastWorkoutId = userStore.getExerciseLastWorkoutId(exerciseId)
+  // const setFromLastWorkout =
+  //   lastWorkoutId &&
+  //   (feedStore.getSetFromWorkout(lastWorkoutId, exerciseId, setOrder) as RepsExerciseSet)
+  const [setFromLastWorkout] = useSetFromLastWorkout<RepsExerciseSet>(exerciseId, setOrder)
 
   // Exercise properties and settings
+  const [autoRestTimerEnabled] = useExerciseSetting<number>(exerciseId, "autoRestTimerEnabled")
   const [restTimeSetting] = useExerciseSetting<number>(exerciseId, "restTime")
   const [weightUnitSetting] = useExerciseSetting<WeightUnit>(exerciseId, "weightUnit")
 
@@ -385,7 +394,11 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       setIsNullWeight(false)
       setIsNullReps(false)
       updateSetStore()
-      workoutStore.restartRestTimer(restTimeSetting)
+
+      if (autoRestTimerEnabled) {
+        workoutStore.restartRestTimer(restTimeSetting)
+      }
+
       exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
     } else {
       setIsNullWeight(!displayWeight)
@@ -452,7 +465,9 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     if (!setFromLastWorkout) return
 
     // RPE will not be copied as it should be set by the user
-    handleWeightChangeText(roundToString(setFromLastWorkout.weight, 2, false))
+    const prevWeight = new Weight(setFromLastWorkout.weight, WeightUnit.kg, weightUnitSetting)
+
+    handleWeightChangeText(prevWeight.formattedDisplayWeight(1))
     handleRepsChangeText(roundToString(setFromLastWorkout.reps, 0, false))
   }
 
@@ -461,6 +476,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       exerciseOrder={exerciseOrder}
       setOrder={setOrder}
       isCompleted={exerciseSetStore.isCompleted}
+      setFromLastWorkout={setFromLastWorkout}
       renderPreviousSetText={renderPreviousSetText}
       onPressPreviousSet={copyPreviousSet}
       onPressCompleteSet={toggleSetStatus}
@@ -498,8 +514,6 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
           selectedValue={rpeInput}
           onValueChange={handleRpeChangeText}
           itemsList={rpeList}
-          textAlign="center"
-          size="md"
         />
       </View>
     </SetSwipeableContainer>

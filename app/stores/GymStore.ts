@@ -8,28 +8,33 @@ import { RootStoreDependencies } from "./helpers/useStores"
 export const GymStoreModel = types
   .model("GymStoreModel")
   .props({})
-  .actions((self) => ({
-    getGymById: flow(function* (gymId: GymId) {
+  .actions((self) => {
+    const getGymById = flow(function* (gymId: GymId) {
       const { gymRepository } = getEnv<RootStoreDependencies>(self)
       const gym = yield gymRepository.get(gymId, true)
       return gym as GymDetails
-    }),
-    getGymByIds: flow(function* (gymIds: GymId[]) {
+    })
+
+    const getGymByIds = flow(function* (gymIds: GymId[]) {
       const { gymRepository } = getEnv<RootStoreDependencies>(self)
       const gyms = yield gymRepository.getMany(gymIds, true)
       return gyms as GymDetails[]
-    }),
-    searchGyms: flow(function* (query: string) {
+    })
+
+    const searchGyms = flow(function* (query: string) {
       return api.searchGyms(query)
-    }),
-  }))
-  .actions((self) => ({
-    checkGymExists: flow(function* (placeId: PlaceId) {
-      const gym = yield self.getGymById(placeId)
+    })
+
+    const checkGymExists = flow(function* (placeId: PlaceId) {
+      const gym = yield getGymById(placeId)
       return !!gym
-    }),
-    getClosestGym: flow(function* (userLocation: LatLongCoords, userFavoriteGymIds: GymId[]) {
-      const gyms = yield self.getGymByIds(userFavoriteGymIds)
+    })
+
+    const getClosestGym = flow(function* (
+      userLocation: LatLongCoords,
+      userFavoriteGymIds: GymId[],
+    ) {
+      const gyms = yield getGymByIds(userFavoriteGymIds)
 
       let closestGym = {
         gym: undefined as GymDetails,
@@ -47,11 +52,10 @@ export const GymStoreModel = types
       }
 
       return closestGym
-    }),
-  }))
-  .actions((self) => ({
-    createNewGym: flow(function* (placeId: PlaceId) {
-      const gymExists = yield self.checkGymExists(placeId)
+    })
+
+    const createNewGym = flow(function* (placeId: PlaceId) {
+      const gymExists = yield checkGymExists(placeId)
       if (gymExists) {
         console.debug("GymStore.createNewGym aborting: Gym already exists")
         return
@@ -76,12 +80,23 @@ export const GymStoreModel = types
       } catch (e) {
         console.error("GymStore.createNewGym error:", e)
       }
-    }),
-    getDistanceToGym: flow(function* (gymId: GymId, userLocation: LatLongCoords) {
-      const gym = yield self.getGymById(gymId)
+    })
+
+    const getDistanceToGym = flow(function* (gymId: GymId, userLocation: LatLongCoords) {
+      const gym = yield getGymById(gymId)
       return api.getDistanceBetweenLocations(
         userLocation,
         gym.googleMapsPlaceDetails.geometry.location,
       )
-    }),
-  }))
+    })
+
+    return {
+      getGymById,
+      getGymByIds,
+      searchGyms,
+      checkGymExists,
+      getClosestGym,
+      createNewGym,
+      getDistanceToGym,
+    }
+  })

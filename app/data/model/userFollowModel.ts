@@ -1,3 +1,5 @@
+import { UserId } from "./userModel"
+
 interface UserFollow {
   followDate: Date
 }
@@ -5,3 +7,11 @@ interface UserFollow {
 export interface UserFollowing extends UserFollow {}
 
 export interface UserFollowers extends UserFollow {}
+
+export interface FollowRequest {
+  requestId: string
+  requestedByUserId: UserId
+  requestDate: Date
+  isAccepted: boolean
+  isDeclined: boolean
+}

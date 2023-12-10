@@ -3,6 +3,7 @@ import { ActivityRepository } from "./activityRepository"
 import { ExerciseRepository } from "./exerciseRepository"
 import { FeedRepository } from "./feedRepository"
 import { GymRepository } from "./gymRepository"
+import { NotificationRepository } from "./notificationRepository"
 import { PrivateExerciseRepository } from "./privateExerciseRepository"
 import { UserRepository } from "./userRepository"
 import { WorkoutInteractionRepository } from "./workoutInteractionRepository"
@@ -18,6 +19,7 @@ export const repositoryFactory = (firebaseClient) => {
     privateExerciseRepository: new PrivateExerciseRepository(firebaseClient),
     workoutInteractionRepository: new WorkoutInteractionRepository(firebaseClient),
     gymRepository: new GymRepository(firebaseClient),
+    notificationRepository: new NotificationRepository(firebaseClient),
   }
 }
 

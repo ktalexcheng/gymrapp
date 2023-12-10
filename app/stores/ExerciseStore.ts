@@ -1,14 +1,7 @@
 import { ExerciseSource, ExerciseVolumeType, WeightUnit } from "app/data/constants"
-import {
-  Exercise,
-  ExerciseId,
-  ExerciseSettings,
-  NewExercise,
-  User,
-  UserPreferences,
-} from "app/data/model"
+import { Exercise, ExerciseSettings, NewExercise, User, UserPreferences } from "app/data/model"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
-import { flow, getEnv, types } from "mobx-state-tree"
+import { flow, getEnv, getSnapshot, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
@@ -44,37 +37,7 @@ export const ExerciseStoreModel = types
     lastUpdated: types.maybe(types.Date),
     isLoading: true,
   })
-  // .views((self) => ({
-  //   get allActivityTypes() {
-  //     const arr = Array.from(self.allExercises.values())
-  //     const types = new Set(arr.map((item) => item.activityName))
-
-  //     return Array.from(types)
-  //   },
-  //   get allExerciseCat1() {
-  //     const arr = Array.from(self.allExercises.values())
-  //     const subtypes = new Set(arr.map((item) => item.exerciseCat1))
-
-  //     return Array.from(subtypes)
-  //   },
-  //   get allExerciseCat2() {
-  //     const arr = Array.from(self.allExercises.values())
-  //     const categories = new Set(arr.map((item) => item.exerciseCat2))
-
-  //     return Array.from(categories)
-  //   },
-  //   get volumeType() {
-  //     const arr = Array.from(self.allExercises.values())
-  //     const volumeTypes = new Set(arr.map((item) => item.volumeType))
-
-  //     return Array.from(volumeTypes)
-  //   },
-  //   get isAllExercisesEmpty() {
-  //     return self.allExercises.size === 0
-  //   },
-  // }))
-  .actions(withSetPropAction)
-  .actions((self) => ({
+  .views((self) => ({
     getPropEnumValues(propName: keyof Exercise) {
       const arr = Array.from(self.allExercises.values())
       const propValues = new Set(arr.map((item) => item[propName]))
@@ -90,7 +53,10 @@ export const ExerciseStoreModel = types
     getExerciseVolumeType(exerciseId: string) {
       return self.allExercises.get(exerciseId).volumeType
     },
-    setAllExercises(exercises: Exercise[]) {
+  }))
+  .actions(withSetPropAction)
+  .actions((self) => {
+    function setAllExercises(exercises: Exercise[]) {
       self.isLoading = true
 
       if (!exercises || exercises.length === 0) {
@@ -108,8 +74,9 @@ export const ExerciseStoreModel = types
 
       self.lastUpdated = new Date()
       self.isLoading = false
-    },
-    applyUserSettings: flow(function* () {
+    }
+
+    const applyUserSettings = flow(function* () {
       self.isLoading = true
 
       const { userRepository } = getEnv<RootStoreDependencies>(self)
@@ -125,10 +92,9 @@ export const ExerciseStoreModel = types
       }
 
       self.isLoading = false
-    }),
-  }))
-  .actions((self) => ({
-    getAllExercises: flow(function* () {
+    })
+
+    const getAllExercises = flow(function* () {
       self.isLoading = true
 
       try {
@@ -142,14 +108,15 @@ export const ExerciseStoreModel = types
           "ExerciseStore.getAllExercises privateExercises.length:",
           privateExercises.length,
         )
-        self.setAllExercises([...exercises, ...privateExercises])
+        setAllExercises([...exercises, ...privateExercises])
 
         self.isLoading = false
       } catch (e) {
         console.error("ExerciseStore.getAllExercises error:", e)
       }
-    }),
-    updateExerciseSetting(
+    })
+
+    function updateExerciseSetting(
       exerciseId,
       exerciseSettingsId: keyof ExerciseSettings,
       exerciseSettingsValue,
@@ -170,23 +137,25 @@ export const ExerciseStoreModel = types
       }
       exercise.exerciseSettings.setProp(exerciseSettingsId, exerciseSettingsValue)
       // self.allExercises.put(exercise)
-    },
-    uploadExerciseSettings: flow(function* () {
+    }
+
+    const uploadExerciseSettings = flow(function* () {
       self.isLoading = true
 
       try {
         const exerciseSpecificSettings: UserPreferences["exerciseSpecificSettings"] = Array.from(
           self.allExercises.values(),
         ).reduce((acc, e) => {
-          if (!e.exerciseSettings) acc.set(e.exerciseId, e.exerciseSettings)
+          if (e.exerciseSettings !== undefined)
+            acc[e.exerciseId] = { ...getSnapshot(e.exerciseSettings) } // getSnapshot returns immutable object, we want vanilla object
           return acc
-        }, new Map<ExerciseId, ExerciseSettings>())
+        }, {} as { [key: string]: ExerciseSettings })
 
-        if (exerciseSpecificSettings.size > 0) {
-          getEnv<RootStoreDependencies>(self).userRepository.update(
+        if (Object.keys(exerciseSpecificSettings).length > 0) {
+          yield getEnv<RootStoreDependencies>(self).userRepository.update(
             null,
             {
-              preferences: exerciseSpecificSettings as Partial<UserPreferences>,
+              preferences: { exerciseSpecificSettings },
             } as Partial<User>,
             true,
           )
@@ -196,8 +165,9 @@ export const ExerciseStoreModel = types
       } catch (error) {
         console.error("ExerciseStore.uploadExerciseSettings error:", error)
       }
-    }),
-    createPrivateExercise: flow(function* (newExercise: NewExercise) {
+    })
+
+    const createPrivateExercise = flow(function* (newExercise: NewExercise) {
       self.isLoading = true
 
       try {
@@ -207,10 +177,10 @@ export const ExerciseStoreModel = types
           hasLeaderboard: false,
           exerciseSource: ExerciseSource.Private,
         }
-        const newExerciseId = yield privateExerciseRepository.create(_newExercise)
+        const createdExercise = yield privateExerciseRepository.create(_newExercise)
         self.allExercises.put({
           ..._newExercise,
-          exerciseId: newExerciseId,
+          exerciseId: createdExercise.exerciseId,
         })
 
         self.lastUpdated = new Date()
@@ -218,5 +188,14 @@ export const ExerciseStoreModel = types
       } catch (e) {
         console.error("ExerciseStore.createNewExercise error:", e)
       }
-    }),
-  }))
+    })
+
+    return {
+      setAllExercises,
+      applyUserSettings,
+      getAllExercises,
+      updateExerciseSetting,
+      uploadExerciseSettings,
+      createPrivateExercise,
+    }
+  })

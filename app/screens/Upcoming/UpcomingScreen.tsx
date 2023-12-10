@@ -4,7 +4,7 @@ import { Text, ViewStyle } from "react-native"
 
 export const UpcomingScreen = () => {
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} style={$container}>
+    <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$container}>
       <Text>UpcomingScreen</Text>
     </Screen>
   )

@@ -15,7 +15,8 @@ export type WorkoutId = string
 
 export interface NewWorkout extends baseMetadata {
   byUserId: UserId
-  visibility: string
+  userIsPrivate: boolean
+  isHidden: boolean
   startTime: Date
   endTime: Date
   exercises: ExercisePerformed[]
@@ -31,8 +32,9 @@ export interface Workout extends NewWorkout {
   // likedByUserIds?: UserId[]
 }
 
-export interface WorkoutInteraction {
+export interface WorkoutInteraction extends baseMetadata {
   workoutId: WorkoutId
+  workoutByUserId: UserId
   comments?: WorkoutComment[]
   likedByUserIds?: UserId[]
 }

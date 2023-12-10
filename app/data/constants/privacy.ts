@@ -1,4 +1,4 @@
-export enum WorkoutVisibility {
+export enum UserVisibility {
   Private = "private",
   Public = "public",
 }

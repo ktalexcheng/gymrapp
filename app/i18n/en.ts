@@ -26,6 +26,8 @@ const en = {
     comments: "Comments",
     copiedToClipboard: "Copied to clipboard!",
     selected: "Selected",
+    discard: "Discard",
+    save: "Save",
   },
   welcomeScreen: {
     postscript:
@@ -66,7 +68,7 @@ const en = {
     passwordFieldPlaceholder: "Super secret password here",
     tapToSignIn: "Tap to sign in!",
     hint: "Hint: you can use any email address and your favorite password :)",
-    tapToSignUp: "Create a new account",
+    signUpWithEmail: "Create account with email",
     signInWithGoogle: "Sign in with Google",
   },
   signUpScreen: {
@@ -94,7 +96,7 @@ const en = {
     coachsCenterButtonLabel: "Coach's Center",
   },
   editProfileForm: {
-    editProfileTitle: "Create your profile",
+    editProfileTitle: "Your profile",
     personaTypeLabel: "Are you a coach?",
     uploadAvatarLabel: "Set your avatar",
     uploadAvatarPlaceholder: "Choose a picture",
@@ -116,7 +118,6 @@ const en = {
     alertDialogDiscardChangesMessage:
       "There are unsaved changes. Are you sure you want to discard them?",
     alertDialogResume: "Keep editing",
-    alertDialogDiscard: "Discard",
   },
   userSettingsScreen: {
     logout: "Logout",
@@ -156,6 +157,12 @@ const en = {
     totalVolumeLabel: "Total volume:",
     timeSinceLastSetLabel: "Resting (set):",
     rpeNullLabel: "None",
+  },
+  workoutSettings: {
+    setWorkoutVisibilityLabel: "Set workout visibility",
+    workoutHiddenLabel: "Only for you",
+    workoutVisibleToFeedLabel: "Visible to feed",
+    workoutSummaryLabel: "Workout summary",
   },
   workoutSummaryScreen: {
     commentInputPlaceholder: "Leave a comment...",
@@ -249,6 +256,19 @@ const en = {
     followRequestSentMessage: "Follow request sent",
     followRequestAcceptedMessage: "You have rejected this user's follow request",
     followRequestRejectedMessage: "You have rejected this user's follow request",
+    noActivityHistoryMessage: "No activity history",
+    userIsPrivateMessage: "This user is private",
+  },
+  notificationsScreen: {
+    notificationsTitle: "Notifications",
+    noNotificationsMessage: "No notifications",
+    newNotificationsTitle: "New",
+    olderNotificationsTitle: "Older",
+    followRequestsTitle: "Follow requests",
+    commentNotificationMessage: "commented on your workout",
+    likeNotificationMessage: "liked your workout",
+    followRequestNotificationMessage: "requested to follow you",
+    followAcceptedNotificationMessage: "accepted your follow request",
   },
 }
 

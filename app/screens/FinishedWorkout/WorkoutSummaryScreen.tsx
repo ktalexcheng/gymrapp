@@ -46,6 +46,7 @@ export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenPro
 
   useEffect(() => {
     const workout = feedStore.getWorkout(workoutSource, workoutId)
+    console.debug("WorkoutSummaryScreen workout:", workout)
     if (workout) {
       setWorkout(workout)
       setIsLoading(false)
@@ -56,7 +57,7 @@ export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenPro
 
   return (
     <>
-      <Screen safeAreaEdges={["bottom"]} style={$screenContentContainer}>
+      <Screen safeAreaEdges={["bottom"]} contentContainerStyle={$screenContentContainer}>
         <Text preset="heading">{workout.workoutTitle}</Text>
         <Text preset="subheading">{workout.startTime.toLocaleString()}</Text>
         <WorkoutSocialButtonGroup
