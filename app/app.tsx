@@ -16,7 +16,6 @@ import fbStorage from "@react-native-firebase/storage"
 import * as Device from "expo-device"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
-import { NativeBaseProvider } from "native-base"
 import React from "react"
 import { ViewStyle } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
@@ -29,7 +28,7 @@ import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { ErrorBoundary } from "./screens/ErrorScreen/ErrorBoundary"
 import { setupReactotron } from "./services/reactotron"
 import { useInitialRootStore } from "./stores"
-import { customFontsToLoad, nativeBaseTheme } from "./theme"
+import { customFontsToLoad } from "./theme"
 import "./utils/ignoreWarnings"
 import * as storage from "./utils/storage"
 
@@ -142,19 +141,17 @@ function App(props: AppProps) {
   // otherwise, we're ready to render the app
   return (
     <GestureHandlerRootView style={$gestureHandlerRootView}>
-      <NativeBaseProvider theme={nativeBaseTheme}>
-        <RootSiblingParent>
-          <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-            <ErrorBoundary catchErrors={Config.catchErrors}>
-              <AppNavigator
-                linking={linking}
-                initialState={initialNavigationState}
-                onStateChange={onNavigationStateChange}
-              />
-            </ErrorBoundary>
-          </SafeAreaProvider>
-        </RootSiblingParent>
-      </NativeBaseProvider>
+      <RootSiblingParent>
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+          <ErrorBoundary catchErrors={Config.catchErrors}>
+            <AppNavigator
+              linking={linking}
+              initialState={initialNavigationState}
+              onStateChange={onNavigationStateChange}
+            />
+          </ErrorBoundary>
+        </SafeAreaProvider>
+      </RootSiblingParent>
     </GestureHandlerRootView>
   )
 }

@@ -170,8 +170,12 @@ const WorkoutStoreModel = types
             totalReps += s.reps
             totalVolume += s.weight * s.reps
 
-            if (s.weight > ((bestSet as RepsExerciseSet)?.weight || 0))
+            if (
+              (bestSet as RepsExerciseSet)?.weight === undefined ||
+              s.weight > (bestSet as RepsExerciseSet).weight
+            ) {
               bestSet = s as RepsExerciseSet
+            }
 
             const exerciseRepRecord = exerciseRecord && exerciseRecord?.[s.reps]
             const recordsCount = exerciseRepRecord && Object.keys(exerciseRepRecord).length

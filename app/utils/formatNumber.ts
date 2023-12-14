@@ -1,5 +1,5 @@
 export function roundToString(input: number, decimals: number, showTrailingZero = true): string {
-  if (!input) return null
+  if (!Number.isFinite(input)) return null
 
   const roundingBase = 10 ** decimals
   const roundedWeight = Math.round(input * roundingBase) / roundingBase

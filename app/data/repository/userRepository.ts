@@ -139,6 +139,7 @@ export class UserRepository extends BaseRepository<User, UserId> {
     console.debug("UserRepository.isFollowingUser called")
     this.checkRepositoryInitialized()
 
+    console.debug("UserRepository.isFollowingUse:", { userId: this.#userId, followeeUserId })
     const userFollowingDocRef = this.#userFollowsCollection
       .doc(this.#userId)
       .collection(this.#userFollowingCollectionName)
@@ -164,6 +165,8 @@ export class UserRepository extends BaseRepository<User, UserId> {
       .doc(followeeUserId)
       .collection(this.#followRequestsCollectionName)
       .where("requestedByUserId", "==", this.#userId)
+      .where("isAccepted", "==", false)
+      .where("isDeclined", "==", false)
       .limit(1)
 
     try {
@@ -274,6 +277,7 @@ export class UserRepository extends BaseRepository<User, UserId> {
           .doc(gym.gymId)
           .collection("gymMembers")
         tx.set(gymMembersCollection.doc(this.#userId), {
+          userId: this.#userId,
           dateAdded: firestore.FieldValue.serverTimestamp(),
         })
       })

@@ -58,14 +58,6 @@ export const FeedStoreModel = types
     noMoreFeedItems: false,
     workoutInteractions: WorkoutInteractionsModel,
     userWorkouts: WorkoutModel,
-    // feedItems: types.array(
-    //   types.model({
-    //     feedItemId: types.identifier,
-    //     byUserId: types.string,
-    //     startTime: types.Date,
-    //     workoutId: types.string,
-    //   }),
-    // ),
     feedWorkouts: WorkoutModel,
     feedUsers: types.map(
       types.model({
@@ -92,10 +84,6 @@ export const FeedStoreModel = types
         weeklyWorkoutsCount.set(weekStartTime, weeklyWorkoutsCount.get(weekStartTime) + 1)
       })
 
-      // console.debug(
-      //   "FeedStore.weeklyWorkoutsCount weekStartTime.keys():",
-      //   ...weeklyWorkoutsCount.keys(),
-      // )
       return weeklyWorkoutsCount
     },
     getWorkout(workoutSource: WorkoutSource, workoutId: string) {
@@ -172,7 +160,6 @@ export const FeedStoreModel = types
       self.lastFeedRefresh = undefined
       self.oldestFeedItemId = undefined
       self.noMoreFeedItems = false
-      // self.feedItems.clear()
       self.feedWorkouts.clear()
       self.workoutInteractions.clear()
       self.feedUsers.clear()
@@ -234,57 +221,27 @@ export const FeedStoreModel = types
       self.workoutInteractions.put(workoutInteractions)
     }
 
+    function fetchUserProfileToStore(userId: UserId) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      if (!self.feedUsers.has(userId)) {
+        userRepository
+          .get(userId)
+          .then((user) => {
+            self.feedUsers.put({ userId, user })
+          })
+          .catch((e) => {
+            console.error("FeedStore.fetchUserProfileToStore error:", e)
+          })
+      }
+    }
+
     const loadMoreFeedItems = flow(function* () {
       console.debug("FeedStore.loadMoreFeedItems called")
       if (!checkInitialized()) return undefined
       if (self.noMoreFeedItems) return undefined
 
       self.isLoadingFeed = true
-      const { feedRepository, workoutRepository, workoutInteractionRepository, userRepository } =
-        getEnv<RootStoreDependencies>(self)
-
-      // const batchSize = 20
-      // const newFeedItems: UserFeedItem[] = yield feedRepository
-      //   .getByFilter({
-      //     orderByField: "feedItemId",
-      //     orderDirection: "desc",
-      //     limit: batchSize,
-      //     afterFieldValue: self.oldestFeedItemId,
-      //   })
-      //   .catch((e) => {
-      //     console.error("FeedStore.loadMoreFeedItems error", e)
-      //   })
-      // newFeedItems.sort((a, b) => (a.feedItemId > b.feedItemId ? -1 : 1))
-      // self.feedItems.push(...newFeedItems)
-
-      // if (newFeedItems.length < batchSize) {
-      //   self.noMoreFeedItems = true
-      // }
-
-      // if (newFeedItems.length > 0) {
-      //   // Get workouts for feed items
-      //   const feedWorkoutIds = newFeedItems.map((feedItem) => feedItem.workoutId)
-      //   const feedWorkouts = yield workoutRepository.getMany(feedWorkoutIds)
-      //   const feedWorkoutInteractions = yield workoutInteractionRepository.getMany(feedWorkoutIds)
-      //   for (const workout of feedWorkouts) {
-      //     self.feedWorkouts.put({ workoutId: workout.workoutId, workout })
-      //   }
-      //   for (const interaction of feedWorkoutInteractions) {
-      //     self.workoutInteractions.put({
-      //       workoutId: interaction.workoutId,
-      //       likedByUserIds: interaction.likedByUserIds,
-      //       comments: interaction.comments,
-      //     })
-      //   }
-      //   self.oldestFeedItemId = newFeedItems[newFeedItems.length - 1].feedItemId
-
-      //   // Get users for feed items
-      //   const feedUserIds = newFeedItems.map((feedItem) => feedItem.byUserId)
-      //   const feedUsers = yield userRepository.getMany(feedUserIds)
-      //   for (const user of feedUsers) {
-      //     self.feedUsers.put({ userId: user.userId, user })
-      //   }
-      // }
+      const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
 
       const { lastFeedItemId, noMoreItems, workouts } = yield api.getFeedWorkouts(
         self.oldestFeedItemId,
@@ -303,10 +260,7 @@ export const FeedStoreModel = types
 
       const feedUserIds = workouts.map((w) => w.byUserId)
       for (const feedUserId of feedUserIds) {
-        if (!self.feedUsers.has(feedUserId)) {
-          const user = yield userRepository.get(feedUserId)
-          self.feedUsers.put({ userId: feedUserId, user })
-        }
+        fetchUserProfileToStore(feedUserId)
       }
 
       self.isLoadingFeed = false
@@ -415,7 +369,6 @@ export const FeedStoreModel = types
       self.lastFeedRefresh = undefined
       self.oldestFeedItemId = undefined
       self.noMoreFeedItems = false
-      // self.feedItems.clear()
       yield loadMoreFeedItems()
       self.lastFeedRefresh = new Date()
     })

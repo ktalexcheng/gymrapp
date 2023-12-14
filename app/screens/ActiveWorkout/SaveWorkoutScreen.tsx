@@ -1,4 +1,4 @@
-import { Button, Dropdown, RowView, Screen, Text } from "app/components"
+import { Button, Picker, RowView, Screen, Text } from "app/components"
 import { WorkoutSource } from "app/data/constants"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
@@ -50,7 +50,7 @@ export const SaveWorkoutScreen: FC = () => {
         <Button preset="text" onPress={saveWorkout} tx="common.save" />
       </RowView>
       <Text preset="heading">{workoutStore.workoutTitle}</Text>
-      <Dropdown
+      <Picker
         labelTx="workoutSettings.setWorkoutVisibilityLabel"
         itemsList={workoutIsHiddenOptions}
         selectedValue={isHidden}

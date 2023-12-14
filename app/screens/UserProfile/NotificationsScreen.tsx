@@ -6,9 +6,8 @@ import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
-import { FlatList } from "native-base"
 import React, { useEffect, useState } from "react"
-import { SectionList, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
+import { FlatList, SectionList, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
 
 const FollowRequestTile = ({ followRequest }: { followRequest: FollowRequest }) => {
   const mainNavigation = useMainNavigation()
@@ -190,18 +189,20 @@ export const NotificationsScreen = observer(() => {
         ]}
         ListHeaderComponent={() => (
           <>
-            <TouchableOpacity onPress={toggleShowFollowRequests}>
-              <RowView style={$followRequestsRow}>
-                <Text tx="notificationsScreen.followRequestsTitle" />
-                <RowView style={styles.alignCenter}>
-                  <Text text={pendingFollowRequests.length.toString()} />
-                  <Icon
-                    name={showFollowRequests ? "chevron-up-outline" : "chevron-down-outline"}
-                    size={32}
-                  />
+            {pendingFollowRequests?.length > 0 && (
+              <TouchableOpacity onPress={toggleShowFollowRequests}>
+                <RowView style={$followRequestsRow}>
+                  <Text tx="notificationsScreen.followRequestsTitle" />
+                  <RowView style={styles.alignCenter}>
+                    <Text text={pendingFollowRequests.length.toString()} />
+                    <Icon
+                      name={showFollowRequests ? "chevron-up-outline" : "chevron-down-outline"}
+                      size={32}
+                    />
+                  </RowView>
                 </RowView>
-              </RowView>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            )}
             {showFollowRequests && (
               <FlatList
                 data={pendingFollowRequests}
@@ -210,12 +211,15 @@ export const NotificationsScreen = observer(() => {
                 ItemSeparatorComponent={() => <Divider orientation="horizontal" />}
               />
             )}
+            {[...newNotifications, ...oldNotifications, ...pendingFollowRequests].length === 0 && (
+              <Text tx="notificationsScreen.noNotificationsMessage" />
+            )}
           </>
         )}
         renderItem={({ item }) => <NotificationTile notification={item} />}
-        renderSectionHeader={({ section: { title } }) => (
-          <Text style={$sectionHeader} preset="subheading" text={title} />
-        )}
+        renderSectionHeader={({ section: { title, data } }) =>
+          data.length > 0 ? <Text style={$sectionHeader} preset="subheading" text={title} /> : null
+        }
         keyExtractor={(item) => item.notificationId}
         ItemSeparatorComponent={() => <Divider orientation="horizontal" />}
         stickySectionHeadersEnabled={false}

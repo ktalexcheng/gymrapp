@@ -12,7 +12,9 @@ import {
 import { GymSearchResult, User, UserSearchResult } from "app/data/model"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { api } from "app/services/api"
+import { useStores } from "app/stores"
 import { colors, spacing, styles } from "app/theme"
+import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
 import React, { FC, useState } from "react"
 import { ViewStyle } from "react-native"
 import { TouchableOpacity } from "react-native-gesture-handler"
@@ -62,10 +64,11 @@ const UserSearchResultItem = ({ user }: { user: UserSearchResult }) => {
 const GymSearchResultItem = ({ gym }: { gym: GymSearchResult }) => {
   const mainNavigator = useMainNavigation()
 
+  console.debug("GymSearchResultItem gym:", gym)
   return (
     <TouchableOpacity onPress={() => mainNavigator.navigate("GymDetails", { gymId: gym.gymId })}>
       <RowView style={$gymResultItemContainer}>
-        <Avatar source={{ uri: gym.gymIconUrl }} size="md" />
+        <Avatar imageUrl={gym.gymIconUrl} size="md" />
         <Spacer type="horizontal" size="small" />
         <Text text={gym.gymName} />
       </RowView>
@@ -115,10 +118,12 @@ export const SearchComponents: ISearchComponents = {
 }
 
 export const DiscoverScreen = () => {
+  const { workoutStore } = useStores()
   const [searchCategory, setSearchCategory] = useState<SearchCategory>(SearchCategory.Users)
+  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? ["bottom"] : ["top", "bottom"]
 
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={styles.screenContainer}>
+    <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={styles.screenContainer}>
       <Text tx="discoverScreen.discoverTitle" preset="heading" />
       <Spacer type="vertical" size="small" />
       <RowView style={$buttonGroup} scrollable={true}>

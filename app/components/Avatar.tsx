@@ -6,11 +6,11 @@ import { Text } from "./Text"
 
 export interface AvatarProps extends ViewProps {
   /**
-   * Source of the avatar. This takes precedence over user.
+   * URL to the image. This takes precedence over user.
    */
-  source?: any
+  imageUrl?: string
   /**
-   * User for this avatar. If source is provided, this will be ignored.
+   * User for this avatar, from which the property avatarUrl will be as source of image. If source is provided, this will be ignored.
    */
   user?: User
   /**
@@ -33,7 +33,7 @@ export interface AvatarProps extends ViewProps {
 
 export const Avatar = (props: AvatarProps) => {
   const {
-    source,
+    imageUrl: source,
     user,
     size = "md",
     backgroundColor = colors.palette.neutral300,

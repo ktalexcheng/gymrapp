@@ -82,7 +82,7 @@ export const GymPickerScreen: FC = () => {
     return (
       <TouchableOpacity onPress={() => setWorkoutGym(gym)}>
         <RowView style={$gymPickerItemContainer}>
-          <Avatar source={{ uri: gym.gymIconUrl }} size="md" />
+          <Avatar imageUrl={gym.gymIconUrl} size="md" />
           <Spacer type="horizontal" size="small" />
           <Text text={gym.gymName} />
         </RowView>

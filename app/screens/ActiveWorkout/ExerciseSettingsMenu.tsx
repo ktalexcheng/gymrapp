@@ -87,10 +87,10 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
                     </HStack>
                     <View>
                       <WheelPickerFlat
-                        enabled={restTimerEnabledSetting}
+                        disabled={restTimerEnabledSetting}
                         items={restTimeList}
                         onIndexChange={updateRestTime}
-                        itemHeight={30}
+                        itemHeight={40}
                         initialScrollIndex={restTimeSetting / 5 - 1}
                       />
                     </View>

@@ -5,6 +5,7 @@ import { Workout } from "app/data/model"
 import { TabScreenProps } from "app/navigators"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
+import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
 import { ActivityIndicator, FlatList, RefreshControl, View, ViewStyle } from "react-native"
@@ -14,7 +15,8 @@ import { LoadingScreen } from "../LoadingScreen"
 interface FeedScreenProps extends NativeStackScreenProps<TabScreenProps<"Profile">> {}
 
 export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
-  const { feedStore, userStore } = useStores()
+  const { feedStore, userStore, workoutStore } = useStores()
+  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? ["bottom"] : ["top", "bottom"]
   const [feedData, setFeedData] = useState<WorkoutSummaryCardProps[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -129,7 +131,7 @@ export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
 
   return (
     <Screen
-      safeAreaEdges={["top", "bottom"]}
+      safeAreaEdges={safeAreaEdges}
       contentContainerStyle={styles.screenContainer}
       preset={isEmptyFeed() ? "scroll" : "fixed"}
       ScrollViewProps={{ refreshControl: isEmptyFeed() ? FeedRefreshControl : undefined }}

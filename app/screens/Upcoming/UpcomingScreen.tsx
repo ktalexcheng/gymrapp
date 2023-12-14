@@ -1,10 +1,15 @@
 import { Screen } from "app/components"
+import { useStores } from "app/stores"
+import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
 import React from "react"
 import { Text, ViewStyle } from "react-native"
 
 export const UpcomingScreen = () => {
+  const { workoutStore } = useStores()
+  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? ["bottom"] : ["top", "bottom"]
+
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$container}>
+    <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={$container}>
       <Text>UpcomingScreen</Text>
     </Screen>
   )

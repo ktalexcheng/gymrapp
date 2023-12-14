@@ -1,11 +1,11 @@
-import { Picker } from "@react-native-picker/picker"
+import { Picker as RNPicker } from "@react-native-picker/picker"
 import { TxKeyPath, translate } from "app/i18n"
 import React, { FC } from "react"
 import { StyleProp, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
 import { spacing } from "../theme"
 import { Text, TextProps } from "./Text"
 
-export interface DropdownProps {
+export interface PickerProps {
   /**
    * A style modifier for different input states.
    */
@@ -62,9 +62,9 @@ export interface DropdownProps {
 }
 
 /**
- * A component that allows selecting value from a dropdown using native-base
+ * A component that allows selecting value from the platform native picker.
  */
-export const Dropdown: FC<DropdownProps> = function Dropdown(props: DropdownProps) {
+export const Picker: FC<PickerProps> = function Picker(props: PickerProps) {
   const {
     labelTx,
     label,
@@ -115,9 +115,9 @@ export const Dropdown: FC<DropdownProps> = function Dropdown(props: DropdownProp
         ))}
       </Select> */}
 
-      <Picker selectedValue={selectedValue} onValueChange={onValueChange} style={$dropdownStyles}>
+      <RNPicker selectedValue={selectedValue} onValueChange={onValueChange} style={$dropdownStyles}>
         {allowClearSelection && (
-          <Picker.Item
+          <RNPicker.Item
             key="clearSelection"
             style={[$itemStyles, $clearSelectionItemStyle]}
             label={translate(clearSelectionPlaceholderTx)}
@@ -126,7 +126,7 @@ export const Dropdown: FC<DropdownProps> = function Dropdown(props: DropdownProp
         )}
         {itemsList.map((item) => {
           return (
-            <Picker.Item
+            <RNPicker.Item
               key={item.value}
               style={$itemStyles}
               label={item.label}
@@ -134,7 +134,7 @@ export const Dropdown: FC<DropdownProps> = function Dropdown(props: DropdownProp
             />
           )
         })}
-      </Picker>
+      </RNPicker>
     </TouchableOpacity>
   )
 }

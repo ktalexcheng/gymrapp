@@ -48,3 +48,9 @@ export interface GymSearchResult {
   gymIconUrl: string
   gymIconBackgroundColor: string
 }
+
+export interface GymMember {
+  userId: UserId
+  dateAdded: Date
+  workoutCount: number
+}

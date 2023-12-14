@@ -243,7 +243,7 @@ export class BaseRepository<T, D extends string> {
     const {
       orderByField,
       orderDirection,
-      limit,
+      limit = 20,
       afterFieldValue,
       beforeFieldValue,
       whereConditions,
@@ -258,7 +258,7 @@ export class BaseRepository<T, D extends string> {
     // }
 
     // Always default to a limit of 10 to prevent accidental large queries
-    let query: FirebaseFirestoreTypes.Query<T> = this.#firestoreCollection.limit(limit ?? 10)
+    let query: FirebaseFirestoreTypes.Query<T> = this.#firestoreCollection.limit(limit)
     if (orderByField) {
       query = query.orderBy(orderByField, orderDirection ?? "asc")
     }
@@ -377,8 +377,9 @@ export class BaseRepository<T, D extends string> {
         newDocRef = this.#firestoreCollection.doc(docId)
         await newDocRef.set(renamedData)
       } else {
-        newDocRef = await this.#firestoreCollection.add(renamedData)
+        newDocRef = this.#firestoreCollection.doc()
         docId = newDocRef.id
+        await newDocRef.set({ [this.#documentIdField]: docId, ...renamedData })
       }
 
       const cacheData = {

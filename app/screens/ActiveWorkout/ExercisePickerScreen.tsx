@@ -1,10 +1,9 @@
 import { Exercise } from "app/data/model"
 import { colors } from "app/theme"
 import { observer } from "mobx-react-lite"
-import { Fab } from "native-base"
 import React, { FC } from "react"
 import { ViewStyle } from "react-native"
-import { Icon, Screen } from "../../components"
+import { Fab, Icon, Screen } from "../../components"
 import { MainStackScreenProps } from "../../navigators"
 import { useStores } from "../../stores"
 import { ExerciseCatalog } from "../Exercise"
@@ -24,10 +23,9 @@ export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ n
     // See: https://github.com/satya164/react-native-tab-view/issues/703
     <Screen safeAreaEdges={["bottom"]} contentContainerStyle={[$screenContainer]}>
       <Fab
-        renderInPortal={false}
-        shadow={2}
         size="lg"
         icon={<Icon color="white" name="add-outline" size={30} />}
+        position="bottomRight"
         backgroundColor={colors.actionable}
         onPress={() => navigation.navigate("CreateExercise")}
       />

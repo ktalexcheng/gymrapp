@@ -1,6 +1,6 @@
 import firestore from "@react-native-firebase/firestore"
 import { GYM_PROXIMITY_THRESHOLD_METERS } from "app/data/constants"
-import { GymDetails, GymId, GymLeaderboard, LatLongCoords } from "app/data/model"
+import { GymDetails, GymId, GymLeaderboard, GymMember, LatLongCoords, User } from "app/data/model"
 import { PlaceId, api } from "app/services/api"
 import { flow, getEnv, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
@@ -90,6 +90,43 @@ export const GymStoreModel = types
       )
     })
 
+    const getGymMemberProfiles = flow<
+      {
+        lastMemberId: string
+        noMoreItems: boolean
+        gymMemberProfiles: Array<GymMember & User>
+      },
+      [gymId: GymId, lastMemberId?: string, limit?: number]
+    >(function* (gymId: GymId, lastMemberId?: string, limit?: number) {
+      const { gymRepository } = getEnv<RootStoreDependencies>(self)
+      const {
+        lastMemberId: newLastMemberId,
+        noMoreItems,
+        gymMembers,
+      } = yield gymRepository.getGymMembers(gymId, lastMemberId, limit)
+      if (gymMembers.length === 0) {
+        return {
+          lastMemberId: null,
+          noMoreItems: true,
+          gymMemberProfiles: [],
+        }
+      }
+
+      const users = yield getEnv<RootStoreDependencies>(self).userRepository.getMany(
+        gymMembers.map((member) => member.userId),
+      )
+      const gymMemberProfiles = gymMembers.map((gymMember) => ({
+        ...gymMember,
+        ...users.find((user) => user.userId === gymMember.userId),
+      }))
+
+      return {
+        lastMemberId: newLastMemberId,
+        noMoreItems,
+        gymMemberProfiles,
+      }
+    })
+
     return {
       getGymById,
       getGymByIds,
@@ -98,5 +135,6 @@ export const GymStoreModel = types
       getClosestGym,
       createNewGym,
       getDistanceToGym,
+      getGymMemberProfiles,
     }
   })

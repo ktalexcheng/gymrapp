@@ -39,7 +39,7 @@ export class Weight {
   }
 
   static convertWeight(weight: number, sourceUnit: WeightUnit, targetUnit: WeightUnit) {
-    if (!weight) return null
+    if (!Number.isFinite(weight)) return null
     if (sourceUnit === targetUnit) return weight
 
     switch (targetUnit) {

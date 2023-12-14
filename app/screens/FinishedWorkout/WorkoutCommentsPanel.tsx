@@ -20,6 +20,56 @@ import Animated, {
 import Toast from "react-native-root-toast"
 import { Avatar, Icon, RowView, Spacer, Text, TextField } from "../../components"
 
+const WorkoutCommentTile = (props: {
+  byUserId: UserId
+  comment: string
+  commentDate: Date
+  onLongPress: () => void
+  selectedState?: boolean
+}) => {
+  const { byUserId, comment, commentDate, onLongPress, selectedState } = props
+  const { userStore } = useStores()
+  const [user, setUser] = useState<User>(undefined)
+
+  useEffect(() => {
+    userStore.getOtherUser(byUserId).then((user) => setUser(user))
+  }, [])
+
+  const $commentContainer: ViewStyle[] = [
+    {
+      padding: spacing.small,
+      alignItems: "center",
+    },
+    selectedState && {
+      backgroundColor: colors.contentBackground,
+    },
+  ]
+
+  const $commentHeader: ViewStyle = {
+    flex: 1,
+    justifyContent: "space-between",
+    alignItems: "center",
+  }
+
+  return (
+    <TouchableOpacity onLongPress={onLongPress}>
+      <RowView style={$commentContainer}>
+        <Avatar user={user} size="sm" />
+        <Spacer type="horizontal" size="small" />
+        <View style={styles.flex1}>
+          <RowView style={$commentHeader}>
+            <Text weight="bold" size="xs">
+              {user ? `${user.firstName} ${user.lastName}` : "..."}
+            </Text>
+            <Text size="xs">{commentDate.toLocaleString()}</Text>
+          </RowView>
+          <Text style={styles.flex1}>{comment}</Text>
+        </View>
+      </RowView>
+    </TouchableOpacity>
+  )
+}
+
 const PANEL_INITIAL_Y_POSITION = 250
 const PANEL_MAXIMIZE_Y_THRESHOLD = PANEL_INITIAL_Y_POSITION - 100
 const PANEL_MINIMIZE_Y_THRESHOLD = PANEL_INITIAL_Y_POSITION + 200
@@ -170,7 +220,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
   }
 
   return (
-    <>
+    <View style={$container}>
       <BlurView
         style={$blurView}
         tint="dark"
@@ -224,62 +274,19 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
         LeftAccessory={() => <Avatar user={userStore.user} size="sm" />}
         RightAccessory={commentSubmitButton}
       />
-    </>
+    </View>
   )
 })
 
-const WorkoutCommentTile = (props: {
-  byUserId: UserId
-  comment: string
-  commentDate: Date
-  onLongPress: () => void
-  selectedState?: boolean
-}) => {
-  const { byUserId, comment, commentDate, onLongPress, selectedState } = props
-  const { userStore } = useStores()
-  const [user, setUser] = useState<User>(undefined)
-
-  useEffect(() => {
-    userStore.getOtherUser(byUserId).then((user) => setUser(user))
-  }, [])
-
-  const $commentContainer: ViewStyle[] = [
-    {
-      padding: spacing.small,
-      alignItems: "center",
-    },
-    selectedState && {
-      backgroundColor: colors.contentBackground,
-    },
-  ]
-
-  const $commentHeader: ViewStyle = {
-    flex: 1,
-    justifyContent: "space-between",
-    alignItems: "center",
-  }
-
-  return (
-    <TouchableOpacity onLongPress={onLongPress}>
-      <RowView style={$commentContainer}>
-        <Avatar user={user} size="sm" />
-        <Spacer type="horizontal" size="small" />
-        <View style={styles.flex1}>
-          <RowView style={$commentHeader}>
-            <Text weight="bold" size="xs">
-              {user ? `${user.firstName} ${user.lastName}` : "..."}
-            </Text>
-            <Text size="xs">{commentDate.toLocaleString()}</Text>
-          </RowView>
-          <Text style={styles.flex1}>{comment}</Text>
-        </View>
-      </RowView>
-    </TouchableOpacity>
-  )
+const $container: ViewStyle = {
+  position: "absolute",
+  top: 0,
+  bottom: 0,
+  left: 0,
+  right: 0,
 }
 
 const $blurView: ViewStyle = {
-  position: "absolute",
   height: "100%",
   width: "100%",
 }

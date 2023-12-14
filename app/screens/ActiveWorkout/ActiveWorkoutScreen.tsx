@@ -139,7 +139,7 @@ interface ActiveWorkoutScreenProps extends MainStackScreenProps<"ActiveWorkout">
 
 export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
   function ActiveWorkoutScreen({ navigation }) {
-    const { userStore, feedStore, workoutStore, exerciseStore, gymStore } = useStores()
+    const { userStore, workoutStore, gymStore } = useStores()
     const [showSaveDialog, setShowSaveDialog] = useState(false)
     const [workoutTitle, setWorkoutTitle] = useState(workoutStore.workoutTitle)
     const [timeElapsed, setTimeElapsed] = useState("00:00:00")
@@ -203,27 +203,6 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
     }
 
     async function saveWorkout() {
-      // workoutStore.endWorkout()
-      // const workoutId = await workoutStore.saveWorkout()
-      // await exerciseStore.uploadExerciseSettings()
-      // feedStore.loadUserWorkouts() // Do this asynchronously
-      // setShowSaveDialog(false)
-
-      // mainNavigation.reset({
-      //   index: 1,
-      //   routes: [
-      //     { name: "HomeTabNavigator" },
-      //     {
-      //       name: "WorkoutSummary",
-      //       params: {
-      //         workoutId,
-      //         workoutSource: WorkoutSource.User,
-      //         jumpToComments: false,
-      //       },
-      //     },
-      //   ],
-      // })
-
       setShowSaveDialog(false)
       workoutStore.endWorkout()
       mainNavigation.navigate("SaveWorkout")

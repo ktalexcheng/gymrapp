@@ -5,6 +5,7 @@ import { translate } from "app/i18n"
 import { TabScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
+import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
 import { format, milliseconds } from "date-fns"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
@@ -180,7 +181,9 @@ interface ProfileScreenProps extends NativeStackScreenProps<TabScreenProps<"Prof
 
 export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileScreen() {
   const mainNavigation = useMainNavigation()
-  const { userStore } = useStores()
+  const { userStore, workoutStore } = useStores()
+  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? ["bottom"] : ["top", "bottom"]
+
   const [tabIndex, setTabIndex] = useState(0)
   // const isTrainer = false
 
@@ -220,7 +223,7 @@ export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileSc
   if (!userStore.userProfileExists) return null
 
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$screenContentContainer}>
+    <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={$screenContentContainer}>
       {userStore.isLoadingProfile ? (
         <Text tx="common.loading" />
       ) : (
@@ -280,17 +283,6 @@ const $userProfileStatsBar: ViewStyle = {
 
 const $userDisplayName: ViewStyle = {
   marginLeft: spacing.small,
-}
-
-const $coachsCenterRow: ViewStyle = {
-  justifyContent: "flex-end",
-}
-
-const $coachsCenterButton: ViewStyle = {
-  height: 30,
-  borderRadius: 15,
-  paddingHorizontal: spacing.medium,
-  justifyContent: "center",
 }
 
 const $tabViewContainer: ViewStyle = {

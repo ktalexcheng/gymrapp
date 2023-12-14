@@ -6,7 +6,7 @@ import { spacing } from "app/theme"
 import React, { FC, useState } from "react"
 import { ViewStyle } from "react-native"
 import Toast from "react-native-root-toast"
-import { Button, Dropdown, Screen, Spacer, Text, TextField } from "../../components"
+import { Button, Picker, Screen, Spacer, Text, TextField } from "../../components"
 import { MainStackScreenProps } from "../../navigators"
 
 interface AddExerciseScreenProps extends MainStackScreenProps<"CreateExercise"> {}
@@ -52,19 +52,19 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
     <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$container} preset="auto">
       <Text tx="addExerciseScreen.disclaimer" preset="formHelper" />
       <Spacer type="vertical" size="massive" />
-      <Dropdown
+      <Picker
         selectedValue={activityName}
         onValueChange={setActivityName}
         labelTx="addExerciseScreen.activityType"
         itemsList={getDropdownValues("activityName")}
       />
-      <Dropdown
+      <Picker
         selectedValue={exerciseCat1}
         onValueChange={setExerciseCat1}
         labelTx="addExerciseScreen.exerciseCat1"
         itemsList={getDropdownValues("exerciseCat1")}
       />
-      <Dropdown
+      <Picker
         selectedValue={exerciseCat2}
         onValueChange={setExerciseCat2}
         labelTx="addExerciseScreen.exerciseCat2"
@@ -72,7 +72,7 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
         clearSelectionPlaceholderTx="addExerciseScreen.setAsBlankLabel"
         clearSelectionCallback={() => setExerciseCat2("")}
       />
-      <Dropdown
+      <Picker
         selectedValue={volumeType}
         onValueChange={setVolumeType}
         labelTx="addExerciseScreen.volumeType"

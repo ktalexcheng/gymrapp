@@ -1,8 +1,8 @@
 import {
   Avatar,
   Button,
-  Dropdown,
   Icon,
+  Picker,
   RowView,
   Spacer,
   Text,
@@ -57,10 +57,9 @@ const RestTimePicker = (props: RestTimePickerProps) => {
   return (
     <View>
       <WheelPickerFlat
-        enabled={true}
         items={restTimeList}
         onIndexChange={updateRestTime}
-        itemHeight={30}
+        itemHeight={40}
         initialScrollIndex={restTime / 5 - 1}
       />
     </View>
@@ -352,7 +351,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
             />
             <TouchableOpacity onPress={pickImage}>
               {imagePath ? (
-                <Avatar source={imagePath} size="xxl" />
+                <Avatar imageUrl={imagePath} size="xxl" />
               ) : (
                 <Avatar user={userStore.user} size="xxl" />
               )}
@@ -405,7 +404,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
           onToggle={() => setPrivateAccount(!privateAccount)}
         />
 
-        <Dropdown
+        <Picker
           containerStyle={styles.formFieldTopMargin}
           onValueChange={(value: WeightUnit) => setWeightUnit(value)}
           labelTx="editProfileForm.weightUnitLabel"
@@ -438,7 +437,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
           </TouchableOpacity>
         </View>
 
-        <Dropdown
+        <Picker
           containerStyle={styles.formFieldTopMargin}
           onValueChange={(value: AppLocale) => setAppLocale(value)}
           labelTx="editProfileForm.appLocaleLabel"

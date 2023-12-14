@@ -8,8 +8,8 @@ import {
   ListRenderItemInfo,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  StyleSheet,
   Text,
+  TextStyle,
   View,
   ViewStyle,
 } from "react-native"
@@ -21,24 +21,26 @@ type WheelPickerProps = {
   onIndexChange: (index: number) => void
   itemHeight: number
   initialScrollIndex: number
-  enabled: boolean
+  disabled?: boolean
 }
 
 export const WheelPickerFlat: FC<WheelPickerProps> = (props) => {
-  const { items, onIndexChange, itemHeight, initialScrollIndex, enabled } = props
+  const { items, onIndexChange, itemHeight, initialScrollIndex, disabled } = props
   const modifiedItems = ["", ...items, ""]
+
+  const $itemContainer: ViewStyle = {
+    height: itemHeight,
+    alignItems: "center",
+    justifyContent: "center",
+  }
 
   const renderItem = ({ item }: ListRenderItemInfo<ListItem>) => {
     return (
-      <Text
-        key={item.value}
-        style={[
-          styles.pickerItem,
-          { height: itemHeight, color: enabled ? colors.text : colors.disabled },
-        ]}
-      >
-        {item.label}
-      </Text>
+      <View style={$itemContainer}>
+        <Text key={item.value} style={$pickerItemText}>
+          {item.label}
+        </Text>
+      </View>
     )
   }
 
@@ -48,14 +50,11 @@ export const WheelPickerFlat: FC<WheelPickerProps> = (props) => {
     onIndexChange(index)
   }
 
-  const $container: ViewStyle = {}
+  const $container: ViewStyle = { height: itemHeight * 3, opacity: disabled ? 0.5 : 1 }
 
   console.debug("WheelPickerFlat initialScrollIndex", initialScrollIndex)
   return (
-    <View
-      style={[$container, { height: itemHeight * 3 }]}
-      pointerEvents={enabled ? "auto" : "none"}
-    >
+    <View style={$container} pointerEvents={disabled ? "none" : "auto"}>
       <FlatList
         data={modifiedItems}
         renderItem={renderItem}
@@ -70,8 +69,8 @@ export const WheelPickerFlat: FC<WheelPickerProps> = (props) => {
           index,
         })}
       />
-      <View style={[styles.indicator, { top: itemHeight }]} />
-      <View style={[styles.indicator, { top: itemHeight * 2 }]} />
+      <View style={[$indicator, { top: itemHeight }]} />
+      <View style={[$indicator, { top: itemHeight * 2 }]} />
     </View>
   )
 }
@@ -89,10 +88,8 @@ export const WheelPickerAnimated: React.FC<WheelPickerProps> = (props) => {
     })
 
     return (
-      <Animated.View
-        style={[{ height: itemHeight, transform: [{ scale }] }, styles.animatedContainer]}
-      >
-        <Text style={styles.pickerItem}>{item.label}</Text>
+      <Animated.View style={[{ height: itemHeight, transform: [{ scale }] }, $animatedContainer]}>
+        <Text style={$pickerItemText}>{item.label}</Text>
       </Animated.View>
     )
   }
@@ -123,27 +120,27 @@ export const WheelPickerAnimated: React.FC<WheelPickerProps> = (props) => {
           index,
         })}
       />
-      <View style={[styles.indicator, { top: itemHeight }]} />
-      <View style={[styles.indicator, { top: itemHeight * 2 }]} />
+      <View style={[$indicator, { top: itemHeight }]} />
+      <View style={[$indicator, { top: itemHeight * 2 }]} />
     </View>
   )
 }
 
-const styles = StyleSheet.create({
-  animatedContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  indicator: {
-    backgroundColor: colors.separator,
-    height: 1,
-    position: "absolute",
-    width: "100%",
-  },
-  pickerItem: {
-    fontSize: 18,
-    fontWeight: "600",
-    textAlign: "center",
-    textAlignVertical: "center",
-  },
-})
+const $animatedContainer: ViewStyle = {
+  alignItems: "center",
+  justifyContent: "center",
+}
+
+const $indicator: ViewStyle = {
+  backgroundColor: colors.separator,
+  height: 1,
+  position: "absolute",
+  width: "100%",
+}
+
+const $pickerItemText: TextStyle = {
+  fontSize: 18,
+  fontWeight: "600",
+  textAlign: "center",
+  textAlignVertical: "center",
+}

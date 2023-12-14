@@ -1,8 +1,6 @@
 import { ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import { ExerciseSet, RepsExerciseSet, TimeExerciseSet } from "app/data/model"
-import { useWeight } from "app/hooks"
-import { useExerciseSetting } from "app/hooks/useExerciseSetting"
-import { useSetFromLastWorkout } from "app/hooks/useSetFromLastWorkout"
+import { useExerciseSetting, useSetFromLastWorkout, useWeight } from "app/hooks"
 import { translate } from "app/i18n"
 import { roundToString } from "app/utils/formatNumber"
 import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
@@ -19,7 +17,7 @@ import {
   useWindowDimensions,
 } from "react-native"
 import { Swipeable } from "react-native-gesture-handler"
-import { Button, Dropdown, Icon, RowView, Spacer, Text, TextField } from "../../components"
+import { Button, Icon, PickerModal, RowView, Spacer, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
 import { colors, spacing, styles, thresholds } from "../../theme"
 
@@ -143,17 +141,12 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
 
 const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const { exerciseId, exerciseOrder, setOrder } = props
-  const { workoutStore, userStore, feedStore } = useStores()
+  const { workoutStore } = useStores()
 
-  // TODO: Create custom hook for getting previous set
   // Current exercise set
   const exerciseSetStore = workoutStore.exercises.at(exerciseOrder).setsPerformed[setOrder]
 
   // Set from previous workout
-  // const lastWorkoutId = userStore.getExerciseLastWorkoutId(exerciseId)
-  // const setFromLastWorkout =
-  //   lastWorkoutId &&
-  //   (feedStore.getSetFromWorkout(lastWorkoutId, exerciseId, setOrder) as TimeExerciseSet)
   const [setFromLastWorkout] = useSetFromLastWorkout<TimeExerciseSet>(exerciseId, setOrder)
 
   // Exercise properties and settings
@@ -333,17 +326,13 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 })
 
 const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
-  const { workoutStore, userStore, feedStore } = useStores()
+  const { workoutStore } = useStores()
   const { exerciseId, exerciseOrder, setOrder } = props
 
   // Current exercise set
   const exerciseSetStore = workoutStore.exercises.at(exerciseOrder).setsPerformed[setOrder]
 
   // Set from previous workout
-  // const lastWorkoutId = userStore.getExerciseLastWorkoutId(exerciseId)
-  // const setFromLastWorkout =
-  //   lastWorkoutId &&
-  //   (feedStore.getSetFromWorkout(lastWorkoutId, exerciseId, setOrder) as RepsExerciseSet)
   const [setFromLastWorkout] = useSetFromLastWorkout<RepsExerciseSet>(exerciseId, setOrder)
 
   // Exercise properties and settings
@@ -352,7 +341,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const [weightUnitSetting] = useExerciseSetting<WeightUnit>(exerciseId, "weightUnit")
 
   // States
-  const [isNullWeight, setIsNullWeight] = useState(false)
+  // const [isNullWeight, setIsNullWeight] = useState(false)
   const [isNullReps, setIsNullReps] = useState(false)
   // Weight is always converted and stored in kg,
   // but depending on user preference will display as kg or lbs (using displayWeight).
@@ -379,7 +368,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   }, [displayWeight, reps, rpe])
 
   function updateSetStore() {
-    exerciseSetStore.updateSetValues("weight", weightKg)
+    exerciseSetStore.updateSetValues("weight", weightKg ?? 0)
     exerciseSetStore.updateSetValues("reps", reps)
     exerciseSetStore.updateSetValues("rpe", rpe ?? null)
   }
@@ -390,8 +379,8 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       return
     }
 
-    if (weightKg && reps) {
-      setIsNullWeight(false)
+    if (reps) {
+      // setIsNullWeight(false)
       setIsNullReps(false)
       updateSetStore()
 
@@ -401,7 +390,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 
       exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
     } else {
-      setIsNullWeight(!displayWeight)
+      // setIsNullWeight(!displayWeight)
       setIsNullReps(!reps)
     }
   }
@@ -483,7 +472,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     >
       <View style={$weightColumn}>
         <TextField
-          status={isNullWeight ? "error" : null}
+          // status={isNullWeight ? "error" : null}
           value={weightInput ?? ""}
           onChangeText={handleWeightChangeText}
           inputWrapperStyle={styles.transparentBackground}
@@ -509,11 +498,11 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
         />
       </View>
       <View style={$rpeColumn}>
-        <Dropdown
-          containerStyle={$textFieldContainer}
-          selectedValue={rpeInput}
-          onValueChange={handleRpeChangeText}
+        <PickerModal
+          value={rpeInput}
+          onChange={handleRpeChangeText}
           itemsList={rpeList}
+          modalTitleTx="activeWorkoutScreen.rpeColumnHeader"
         />
       </View>
     </SetSwipeableContainer>
@@ -546,21 +535,25 @@ const $setOrderColumn: ViewStyle = {
 
 const $previousColumn: ViewStyle = {
   flex: 2,
+  paddingHorizontal: spacing.tiny,
 }
 
 const $weightColumn: ViewStyle = {
   flex: 2,
   alignItems: "center",
+  paddingHorizontal: spacing.tiny,
 }
 
 const $repsColumn: ViewStyle = {
   flex: 2,
   alignItems: "center",
+  paddingHorizontal: spacing.tiny,
 }
 
 const $rpeColumn: ViewStyle = {
   flex: 2,
   alignItems: "center",
+  paddingHorizontal: spacing.tiny,
 }
 
 const $isCompletedColumn: ViewStyle = {

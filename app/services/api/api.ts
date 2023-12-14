@@ -10,6 +10,7 @@ import { ApisauceInstance, create } from "apisauce"
 import { AppLocale } from "app/data/constants"
 import {
   FeedItemId,
+  GymId,
   GymSearchResult,
   LatLongCoords,
   UserId,
@@ -177,6 +178,27 @@ export class Api {
     } catch (e) {
       console.error("getFeedWorkouts error:", e)
       throw new Error("Error getting user feed workouts.")
+    }
+  }
+
+  async getGymWorkouts(
+    gymId: GymId,
+    lastWorkoutId?: WorkoutId,
+  ): Promise<{ lastWorkoutId: WorkoutId; noMoreItems: boolean; workouts: Workout[] }> {
+    try {
+      const response = await this.firebaseFunctionsClient.httpsCallable("workoutGetGymWorkouts")({
+        gymId,
+        lastWorkoutId,
+      })
+
+      return {
+        lastWorkoutId: response.data.lastWorkoutId,
+        noMoreItems: response.data.noMoreItems,
+        workouts: convertFirestoreTimestampToDate(response.data.workouts),
+      }
+    } catch (e) {
+      console.error("getGymWorkouts error:", e)
+      throw new Error("Error getting gym workouts.")
     }
   }
 

@@ -1,38 +1,6 @@
-import { extendTheme } from "native-base"
 import { StyleSheet } from "react-native"
 import { colors } from "./colors"
 import { spacing } from "./spacing"
-import { fontSize, typography } from "./typography"
-
-export const nativeBaseTheme = extendTheme({
-  fonts: {
-    heading: typography.primary.bold,
-    body: typography.primary.normal,
-  },
-  fontSizes: {
-    xs: fontSize.tiny,
-    sm: fontSize.small,
-    md: fontSize.body,
-    lg: fontSize.sectionHeading,
-    xl: fontSize.screenHeading,
-  },
-  components: {
-    Select: {
-      baseStyle: {
-        _text: {
-          fontSize: 40,
-        },
-      },
-    },
-    SelectItem: {
-      baseStyle: {
-        _text: {
-          fontSize: 40,
-        },
-      },
-    },
-  },
-})
 
 export const styles = StyleSheet.create({
   fullHeight: {

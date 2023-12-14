@@ -137,23 +137,19 @@ export const UserStoreModel = types
       return prefValue as T
     },
     get newNotifications() {
-      console.debug(
-        "UserStore.newNotifications:",
-        self.notifications?.filter((notification) => !notification.isRead),
-      )
-      return self.notifications?.filter((notification) => !notification.isRead)
+      return self.notifications
+        ?.filter((notification) => !notification.isRead)
+        ?.sort((a, b) => b.notificationDate.getTime() - a.notificationDate.getTime())
     },
     get oldNotifications() {
-      console.debug(
-        "UserStore.oldNotifications:",
-        self.notifications?.filter((notification) => notification.isRead),
-      )
-      return self.notifications?.filter((notification) => notification.isRead)
+      return self.notifications
+        ?.filter((notification) => notification.isRead)
+        ?.sort((a, b) => b.notificationDate.getTime() - a.notificationDate.getTime())
     },
     get pendingFollowRequests() {
-      return self.followRequests?.filter(
-        (followRequest) => !followRequest.isAccepted && !followRequest.isDeclined,
-      )
+      return self.followRequests
+        ?.filter((followRequest) => !followRequest.isAccepted && !followRequest.isDeclined)
+        ?.sort((a, b) => b.requestDate.getTime() - a.requestDate.getTime())
     },
     get newNotificationsCount() {
       const newNotifications = self.notifications?.filter((notification) => !notification.isRead)
@@ -388,10 +384,16 @@ export const UserStoreModel = types
 
     const setNotifications = (notifications: Notification[]) => {
       self.notifications = convertFirestoreTimestampToDate(notifications)
+      // const sorted = convertFirestoreTimestampToDate(notifications)
+      // sorted.sort((a, b) => b.notificationDate.getTime() - a.notificationDate.getTime())
+      // self.notifications = sorted
     }
 
     const setFollowRequests = (followRequests: FollowRequest[]) => {
       self.followRequests = convertFirestoreTimestampToDate(followRequests)
+      // const sorted = convertFirestoreTimestampToDate(followRequests)
+      // sorted.sort((a, b) => b.requestDate.getTime() - a.requestDate.getTime())
+      // self.followRequests = sorted
     }
 
     const loadNotifications = flow(function* () {

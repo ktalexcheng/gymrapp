@@ -1,3 +1,5 @@
+export * from "./useExerciseSetting"
+export * from "./useSetFromLastWorkout"
 export * from "./useUserLocation"
 export * from "./useUserProfile"
 export * from "./useWeight"

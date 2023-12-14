@@ -1,14 +1,16 @@
 import { firebase } from "@react-native-firebase/firestore"
+import { useHeaderHeight } from "@react-navigation/elements"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { Screen, Text } from "app/components"
+import { Screen, Spacer, Text } from "app/components"
 import { Workout, WorkoutInteraction } from "app/data/model"
 import { MainStackParamList } from "app/navigators"
+import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
-import { ViewStyle } from "react-native"
+import { TouchableOpacity, View, ViewStyle } from "react-native"
 import { LoadingScreen } from "../LoadingScreen"
 import { ExerciseSummary } from "./ExerciseSummary"
 import { WorkoutCommentsPanel } from "./WorkoutCommentsPanel"
@@ -19,6 +21,9 @@ interface WorkoutSummaryScreenProps
 
 export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenProps) => {
   const { workoutSource, workoutId, jumpToComments } = route.params
+  const mainNavigation = useMainNavigation()
+  // See why useHeaderHeight() is needed: https://stackoverflow.com/questions/48420468/keyboardavoidingview-not-working-properly
+  const navigationHeaderHeight = useHeaderHeight()
   const { feedStore } = useStores()
   const [workout, setWorkout] = useState<Workout>(undefined)
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -56,19 +61,37 @@ export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenPro
   if (isLoading || !workout) return <LoadingScreen />
 
   return (
-    <>
-      <Screen safeAreaEdges={["bottom"]} contentContainerStyle={$screenContentContainer}>
-        <Text preset="heading">{workout.workoutTitle}</Text>
-        <Text preset="subheading">{workout.startTime.toLocaleString()}</Text>
-        <WorkoutSocialButtonGroup
-          workoutSource={workoutSource}
-          workoutId={workoutId}
-          onPressComments={toggleShowCommentsPanel}
-        />
-        {workout.exercises.map((e, _) => {
-          return <ExerciseSummary key={e.exerciseId} exercise={e} />
-        })}
-      </Screen>
+    <Screen
+      safeAreaEdges={["bottom"]}
+      contentContainerStyle={$screenContentContainer}
+      keyboardOffset={navigationHeaderHeight}
+    >
+      <View style={$menuButton}>
+        <PopupMenu />
+      </View>
+      <Text preset="heading">{workout.workoutTitle}</Text>
+      <Text preset="subheading">{workout.startTime.toLocaleString()}</Text>
+
+      {workout.performedAtGymName && (
+        <>
+          <Spacer type="vertical" size="medium" />
+          <TouchableOpacity
+            onPress={() =>
+              mainNavigation.navigate("GymDetails", { gymId: workout.performedAtGymId })
+            }
+          >
+            <Text weight="bold">{workout.performedAtGymName}</Text>
+          </TouchableOpacity>
+        </>
+      )}
+      <WorkoutSocialButtonGroup
+        workoutSource={workoutSource}
+        workoutId={workoutId}
+        onPressComments={toggleShowCommentsPanel}
+      />
+      {workout.exercises.map((e, _) => {
+        return <ExerciseSummary key={e.exerciseId} exercise={e} />
+      })}
       {showCommentsPanel && (
         <WorkoutCommentsPanel
           workoutSource={workoutSource}
@@ -76,11 +99,44 @@ export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenPro
           toggleShowCommentsPanel={toggleShowCommentsPanel}
         />
       )}
-    </>
+    </Screen>
   )
 })
 
 const $screenContentContainer: ViewStyle = {
-  paddingVertical: spacing.small,
-  paddingHorizontal: spacing.small,
+  flex: 1,
+  padding: spacing.screenPadding,
+}
+
+// PopupMenu is a temporary component to show the menu button
+
+interface PopupMenuProps {
+  onPress?: () => void
+  showMenu?: boolean
+}
+
+const PopupMenu = (props: PopupMenuProps) => {
+  // const {
+  //   onPress,
+  //   showMenu,
+  // } = props
+  // const [showMenu, setShowMenu] = useState<boolean>(false)
+
+  return (
+    <>
+      {/* <Icon name="ellipsis-vertical" size={24} onPress={() => setShowMenu(true)} />
+      {showMenu && (
+        <View>
+          <RowView></RowView>
+        </View>
+      )} */}
+    </>
+  )
+}
+
+const $menuButton: ViewStyle = {
+  position: "absolute",
+  zIndex: 1,
+  top: spacing.screenPadding + spacing.tiny,
+  right: spacing.screenPadding + spacing.tiny,
 }

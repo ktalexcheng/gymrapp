@@ -237,6 +237,11 @@ const en = {
     removeFromMyGymsLabel: "Remove from my gyms",
     alreadyAddedToMyGymsLabel: "Already added to my gyms",
     alreadyRemovedFromMyGymsLabel: "Already removed from my gyms",
+    latestWorkoutsLabel: "Latest workouts",
+    gymMembersLabel: "Members",
+    noMoreWorkoutsMessage: "That's all we have for now!",
+    noMoreMembersMessage: "That's all the members at this gym!",
+    noActivityMessage: "Be the first to workout here!",
   },
   userSearch: {
     searchBarPlaceholder: "User name",

@@ -10,7 +10,7 @@ export const ActiveWorkoutOverlay = () => {
   const { workoutStore } = useStores()
   const [timeElapsed, setTimeElapsed] = useState("00:00:00")
   const navigation = useMainNavigation()
-  const $containerInsets = useSafeAreaInsetsStyle(["top"], "margin")
+  const $containerTopInset = useSafeAreaInsetsStyle(["top"], "margin")
 
   // Using MobX observer and useEffect will not work for some reason
   // @ts-ignore
@@ -34,7 +34,7 @@ export const ActiveWorkoutOverlay = () => {
 
   return (
     <TouchableOpacity onPress={goToActiveWorkout}>
-      <View style={[$containerInsets, $activeActivityOverlay]}>
+      <View style={[$containerTopInset, $activeActivityOverlay]}>
         <Text preset="subheading">{workoutStore.workoutTitle}</Text>
         <Text text={timeElapsed} />
       </View>
