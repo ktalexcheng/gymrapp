@@ -107,7 +107,7 @@ const RestTimerProgressBar: FC = observer(() => {
 
   const $timeProgressRemainingContainer: ViewStyle = {
     height: "100%",
-    width: Math.floor((workoutStore.restTimeRemaining / workoutStore.restTime) * 100) + "%",
+    width: `${Math.floor((workoutStore.restTimeRemaining / workoutStore.restTime) * 100)}%`,
     backgroundColor: colors.actionable,
   }
 
@@ -245,11 +245,6 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
       margin: spacing.extraSmall,
     }
 
-    const $addExercise: ViewStyle = {
-      justifyContent: "space-around",
-      marginTop: spacing.medium,
-    }
-
     const $workoutHeaderRow: ViewStyle = {
       justifyContent: "space-between",
       alignItems: "center",
@@ -281,7 +276,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
     }
 
     return (
-      <Screen safeAreaEdges={["top", "bottom"]} preset="scroll">
+      <Screen safeAreaEdges={["top", "bottom"]} preset="scroll" contentContainerStyle={$container}>
         {/* Save workout confirmation dialog */}
         <SaveWorkoutDialog
           visible={showSaveDialog}
@@ -291,74 +286,68 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
           onCancel={cancelEndWorkout}
         />
 
-        <View style={$container}>
-          <RowView style={$workoutHeaderRow}>
-            <RowView style={$minimizeAndTimer}>
-              <Icon
-                name="chevron-down-outline"
-                color="black"
-                size={30}
-                onPress={() => mainNavigation.navigate("HomeTabNavigator")}
-              />
-              <RestTimerProgressBar />
-            </RowView>
-
-            <TextField
-              selectTextOnFocus
-              containerStyle={$workoutTitleContainer}
-              inputWrapperStyle={$workoutTitleWrapper}
-              style={$workoutTitle}
-              value={workoutTitle}
-              placeholderTx="activeWorkoutScreen.newActiveWorkoutTitle"
-              onChangeText={updateWorkoutTitle}
-              autoCapitalize="sentences"
+        <RowView style={$workoutHeaderRow}>
+          <RowView style={$minimizeAndTimer}>
+            <Icon
+              name="chevron-down-outline"
+              color="black"
+              size={30}
+              onPress={() => mainNavigation.navigate("HomeTabNavigator")}
             />
-
-            {/* TODO: Active workout title should be dependent on the template used */}
-            <Text
-              tx="activeWorkoutScreen.finishWorkoutButton"
-              style={$finishWorkoutButton}
-              onPress={finishWorkout}
-            />
+            <RestTimerProgressBar />
           </RowView>
 
-          <RowView style={styles.alignCenter}>
-            <Icon name="location-sharp" color="black" size={30} />
-            <Button
-              preset="text"
-              numberOfLines={1}
-              textStyle={{}}
-              onPress={() => mainNavigation.navigate("GymPicker")}
-            >
-              {gym ? gym.gymName : translate("activeWorkoutScreen.setCurrentGymLabel")}
-            </Button>
-          </RowView>
+          <TextField
+            selectTextOnFocus
+            containerStyle={$workoutTitleContainer}
+            inputWrapperStyle={$workoutTitleWrapper}
+            style={$workoutTitle}
+            value={workoutTitle}
+            placeholderTx="activeWorkoutScreen.newActiveWorkoutTitle"
+            onChangeText={updateWorkoutTitle}
+            autoCapitalize="sentences"
+          />
 
-          <RowView style={$metricsRow}>
-            <View style={$metric}>
-              <Text tx="activeWorkoutScreen.timeElapsedLabel" style={$metricLabel} />
-              <Text text={timeElapsed} />
-            </View>
-            <View style={$metric}>
-              <Text tx="activeWorkoutScreen.timeSinceLastSetLabel" style={$metricLabel} />
-              <Text text={timeSinceLastSet} />
-            </View>
-            <View style={$metric}>
-              <Text tx="activeWorkoutScreen.totalVolumeLabel" style={$metricLabel} />
-              <Text text={workoutStore.totalVolume.toFixed(0)} />
-            </View>
-          </RowView>
+          {/* TODO: Active workout title should be dependent on the template used */}
+          <Text
+            tx="activeWorkoutScreen.finishWorkoutButton"
+            style={$finishWorkoutButton}
+            onPress={finishWorkout}
+          />
+        </RowView>
 
-          {Array.from(workoutStore.exercises.values()).map((exercise, _) => (
-            <ExerciseEntry key={`${exercise.exerciseId}_${exercise.exerciseOrder}`} {...exercise} />
-          ))}
+        <RowView style={styles.alignCenter}>
+          <Icon name="location-sharp" color="black" size={30} />
+          <Button
+            preset="text"
+            numberOfLines={1}
+            textStyle={{}}
+            onPress={() => mainNavigation.navigate("GymPicker")}
+          >
+            {gym ? gym.gymName : translate("activeWorkoutScreen.setCurrentGymLabel")}
+          </Button>
+        </RowView>
 
-          <TouchableOpacity onPress={addExercise}>
-            <RowView style={$addExercise}>
-              <Text tx="activeWorkoutScreen.addExerciseAction" />
-            </RowView>
-          </TouchableOpacity>
-        </View>
+        <RowView style={$metricsRow}>
+          <View style={$metric}>
+            <Text tx="activeWorkoutScreen.timeElapsedLabel" style={$metricLabel} />
+            <Text text={timeElapsed} />
+          </View>
+          <View style={$metric}>
+            <Text tx="activeWorkoutScreen.timeSinceLastSetLabel" style={$metricLabel} />
+            <Text text={timeSinceLastSet} />
+          </View>
+          <View style={$metric}>
+            <Text tx="activeWorkoutScreen.totalVolumeLabel" style={$metricLabel} />
+            <Text text={workoutStore.totalVolume.toFixed(0)} />
+          </View>
+        </RowView>
+
+        {workoutStore.exercises.map((exercise) => (
+          <ExerciseEntry key={`${exercise.exerciseId}_${exercise.exerciseOrder}`} {...exercise} />
+        ))}
+
+        <Button preset="text" tx="activeWorkoutScreen.addExerciseAction" onPress={addExercise} />
       </Screen>
     )
   },

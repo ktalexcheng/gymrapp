@@ -21,6 +21,7 @@ import { ViewStyle } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { RootSiblingParent } from "react-native-root-siblings"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
+import { TamaguiProvider } from "tamagui"
 import Config from "./config"
 import "./i18n"
 import { AppNavigator } from "./navigators"
@@ -28,6 +29,7 @@ import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { ErrorBoundary } from "./screens/ErrorScreen/ErrorBoundary"
 import { setupReactotron } from "./services/reactotron"
 import { useInitialRootStore } from "./stores"
+import tamaguiConfig from "./tamagui.config"
 import { customFontsToLoad } from "./theme"
 import "./utils/ignoreWarnings"
 import * as storage from "./utils/storage"
@@ -141,17 +143,19 @@ function App(props: AppProps) {
   // otherwise, we're ready to render the app
   return (
     <GestureHandlerRootView style={$gestureHandlerRootView}>
-      <RootSiblingParent>
-        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-          <ErrorBoundary catchErrors={Config.catchErrors}>
-            <AppNavigator
-              linking={linking}
-              initialState={initialNavigationState}
-              onStateChange={onNavigationStateChange}
-            />
-          </ErrorBoundary>
-        </SafeAreaProvider>
-      </RootSiblingParent>
+      <TamaguiProvider config={tamaguiConfig}>
+        <RootSiblingParent>
+          <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+            <ErrorBoundary catchErrors={Config.catchErrors}>
+              <AppNavigator
+                linking={linking}
+                initialState={initialNavigationState}
+                onStateChange={onNavigationStateChange}
+              />
+            </ErrorBoundary>
+          </SafeAreaProvider>
+        </RootSiblingParent>
+      </TamaguiProvider>
     </GestureHandlerRootView>
   )
 }

@@ -49,13 +49,17 @@ export const useUserLocation = (): [
     const getUserLocation = async () => {
       setUserLocation(null)
       setIsGettingUserLocation(true)
-      const location = await userStore.getUserLocation()
-      console.debug("useUserLocation [getUserLocationRefreshKey] location:", location)
-      if (!location) {
-        showPermissionAlert()
-        return
+      try {
+        const location = await userStore.getUserLocation()
+        console.debug("useUserLocation [getUserLocationRefreshKey] location:", location)
+        if (!location) {
+          showPermissionAlert()
+          return
+        }
+        setUserLocation({ lat: location.coords.latitude, lng: location.coords.longitude })
+      } catch (e) {
+        console.error("useUserLocation [getUserLocationRefreshKey] error:", e)
       }
-      setUserLocation({ lat: location.coords.latitude, lng: location.coords.longitude })
       setIsGettingUserLocation(false)
     }
 

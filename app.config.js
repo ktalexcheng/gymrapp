@@ -10,6 +10,7 @@ export default ({ config }) => ({
     scheme: "gymrapp",
     version: "1.0.0",
     orientation: "portrait",
+    userInterfaceStyle: "automatic",
     icon: "./assets/images/app-icon-all.png",
     splash: {
       image: "./assets/images/splash-logo-all.png",

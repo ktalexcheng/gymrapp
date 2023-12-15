@@ -3,10 +3,10 @@ import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
-import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
-import { Icon, RowView, Text, TextField } from "../../components"
+import { TextStyle, View, ViewStyle } from "react-native"
+import { Button, Icon, RowView, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
-import { spacing } from "../../theme"
+import { spacing, styles } from "../../theme"
 import { ExerciseSettingsMenu } from "./ExerciseSettingsMenu"
 import { SetEntry } from "./SetEntry"
 
@@ -73,12 +73,11 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
 
   return (
     <View>
-      <View style={$exerciseSettingsButton}>
-        <ExerciseSettingsMenu exerciseOrder={props.exerciseOrder} exerciseId={props.exerciseId} />
-      </View>
-
       <View style={$exercise}>
-        <Text preset="bold">{"#" + props.exerciseOrder + " " + exerciseName}</Text>
+        <RowView style={styles.justifyBetween}>
+          <Text preset="bold">{"#" + props.exerciseOrder + " " + exerciseName}</Text>
+          <ExerciseSettingsMenu exerciseOrder={props.exerciseOrder} exerciseId={props.exerciseId} />
+        </RowView>
         <TextField
           containerStyle={$exerciseNotesContainer}
           inputWrapperStyle={$exerciseNotesInputWrapper}
@@ -109,18 +108,13 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
 
         {renderSets()}
 
-        <TouchableOpacity onPress={addSet}>
-          <RowView style={$exerciseActions}>
-            <Text tx="activeWorkoutScreen.addSetAction" />
-          </RowView>
-        </TouchableOpacity>
+        <Button preset="text" tx="activeWorkoutScreen.addSetAction" onPress={addSet} />
       </View>
     </View>
   )
 })
 
 const $exerciseNotesContainer: ViewStyle = {
-  marginTop: spacing.medium,
   width: "90%",
 }
 
@@ -183,11 +177,4 @@ const $exerciseSetsHeader: ViewStyle = {
 const $exerciseActions: ViewStyle = {
   justifyContent: "space-around",
   marginTop: spacing.medium,
-}
-
-const $exerciseSettingsButton: ViewStyle = {
-  position: "absolute",
-  top: spacing.large,
-  right: spacing.small,
-  zIndex: 1, // Note: Critical to surface overlaying touchable components
 }

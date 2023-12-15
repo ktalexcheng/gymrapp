@@ -43,6 +43,9 @@ export const styles = StyleSheet.create({
   justifyCenter: {
     justifyContent: "center",
   },
+  justifyBetween: {
+    justifyContent: "space-between",
+  },
   listItemContainer: {
     borderColor: colors.separator,
     borderRadius: 10,

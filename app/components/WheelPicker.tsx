@@ -4,10 +4,10 @@ import { colors } from "app/theme"
 import React, { FC, useRef } from "react"
 import {
   Animated,
-  FlatList,
   ListRenderItemInfo,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  ScrollView,
   Text,
   TextStyle,
   View,
@@ -26,7 +26,12 @@ type WheelPickerProps = {
 
 export const WheelPickerFlat: FC<WheelPickerProps> = (props) => {
   const { items, onIndexChange, itemHeight, initialScrollIndex, disabled } = props
-  const modifiedItems = ["", ...items, ""]
+  const modifiedItems = [{ label: "", value: null }, ...items, { label: "", value: null }]
+  const scrollViewRef = useRef<ScrollView>(null)
+
+  const scrollToInitialIndex = () => {
+    scrollViewRef.current.scrollTo({ y: initialScrollIndex * itemHeight, animated: false })
+  }
 
   const $itemContainer: ViewStyle = {
     height: itemHeight,
@@ -34,12 +39,10 @@ export const WheelPickerFlat: FC<WheelPickerProps> = (props) => {
     justifyContent: "center",
   }
 
-  const renderItem = ({ item }: ListRenderItemInfo<ListItem>) => {
+  const renderItem = (item: ListItem, index: number) => {
     return (
-      <View style={$itemContainer}>
-        <Text key={item.value} style={$pickerItemText}>
-          {item.label}
-        </Text>
+      <View key={index} style={$itemContainer}>
+        <Text style={$pickerItemText}>{item.label}</Text>
       </View>
     )
   }
@@ -55,20 +58,16 @@ export const WheelPickerFlat: FC<WheelPickerProps> = (props) => {
   console.debug("WheelPickerFlat initialScrollIndex", initialScrollIndex)
   return (
     <View style={$container} pointerEvents={disabled ? "none" : "auto"}>
-      <FlatList
-        data={modifiedItems}
-        renderItem={renderItem}
-        snapToOffsets={modifiedItems.map((_, i) => itemHeight * i)}
+      <ScrollView
+        ref={scrollViewRef}
         decelerationRate="fast"
         showsVerticalScrollIndicator={false}
+        snapToInterval={itemHeight}
         onMomentumScrollEnd={momentumScrollEnd}
-        initialScrollIndex={initialScrollIndex ?? 0}
-        getItemLayout={(_, index) => ({
-          length: itemHeight,
-          offset: itemHeight * index,
-          index,
-        })}
-      />
+        onLayout={scrollToInitialIndex}
+      >
+        {modifiedItems.map((item, index) => renderItem(item, index))}
+      </ScrollView>
       <View style={[$indicator, { top: itemHeight }]} />
       <View style={[$indicator, { top: itemHeight * 2 }]} />
     </View>

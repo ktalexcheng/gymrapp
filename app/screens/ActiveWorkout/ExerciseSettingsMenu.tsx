@@ -1,13 +1,23 @@
 import { WeightUnit } from "app/data/constants"
 import { useExerciseSetting } from "app/hooks/useExerciseSetting"
-import { translate } from "app/i18n"
+import { spacing, styles } from "app/theme"
 import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
 import { observer } from "mobx-react-lite"
-import { HStack, Menu, Popover, Pressable, Switch } from "native-base"
 import React, { FC, useState } from "react"
-import { FlatList, TouchableOpacity, View } from "react-native"
-import { Icon, RowView, Text, WheelPickerFlat } from "../../components"
+import { TouchableOpacity, TouchableOpacityProps, View, ViewStyle } from "react-native"
+import { Popover, Switch } from "tamagui"
+import { Icon, RowView, Spacer, Text, WheelPickerFlat } from "../../components"
 import { useStores } from "../../stores"
+
+const MenuItem = (props: TouchableOpacityProps) => {
+  const { onPress, children } = props
+
+  return (
+    <TouchableOpacity style={$menuItemContainer} onPress={onPress}>
+      {children}
+    </TouchableOpacity>
+  )
+}
 
 export type ExerciseSettingsProps = {
   exerciseOrder: number
@@ -52,107 +62,116 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
       workoutStore.removeExercise(props.exerciseOrder)
     }
 
-    return (
-      <Popover
-        placement="bottom right"
-        trigger={(triggerProps) => {
+    const renderPopoverContent = () => {
+      switch (page) {
+        case "timer":
           return (
-            <Pressable accessibilityLabel="Exercise settings" {...triggerProps}>
-              <Icon name="ellipsis-vertical" size={24} />
-            </Pressable>
+            <>
+              <Icon
+                name="arrow-back"
+                size={24}
+                onPress={() => {
+                  setPage("")
+                }}
+              />
+              <RowView style={[styles.justifyBetween, styles.alignCenter]}>
+                <Text tx="exerciseEntrySettings.restTimerEnabledLabel" />
+                <Switch
+                  size="$3"
+                  checked={restTimerEnabledSetting}
+                  onCheckedChange={() => updateRestTimerEnabled(!restTimerEnabledSetting)}
+                >
+                  <Switch.Thumb animation="quick" />
+                </Switch>
+              </RowView>
+              <View>
+                <WheelPickerFlat
+                  disabled={!restTimerEnabledSetting}
+                  items={restTimeList}
+                  onIndexChange={updateRestTime}
+                  itemHeight={40}
+                  initialScrollIndex={restTimeSetting / 5 - 1}
+                />
+              </View>
+            </>
           )
-        }}
-      >
-        <Popover.Content width="170">
-          {(() => {
-            switch (page) {
-              case "timer":
-                return (
-                  <Popover.Body>
-                    <Icon
-                      name="arrow-back"
-                      size={24}
-                      onPress={() => {
-                        setPage("")
-                      }}
-                    />
-                    <HStack justifyContent="space-between">
-                      <Text tx="exerciseEntrySettings.restTimerEnabledLabel" />
-                      <Switch
-                        isChecked={restTimerEnabledSetting}
-                        onToggle={() => {
-                          updateRestTimerEnabled(!restTimerEnabledSetting)
-                        }}
-                      />
-                    </HStack>
-                    <View>
-                      <WheelPickerFlat
-                        disabled={restTimerEnabledSetting}
-                        items={restTimeList}
-                        onIndexChange={updateRestTime}
-                        itemHeight={40}
-                        initialScrollIndex={restTimeSetting / 5 - 1}
-                      />
-                    </View>
-                  </Popover.Body>
-                )
+        case "weightUnit":
+          return (
+            <>
+              <Icon
+                name="arrow-back"
+                size={24}
+                onPress={() => {
+                  setPage("")
+                }}
+              />
+              <View style={styles.fullWidth}>
+                {Object.values(WeightUnit).map((item, index) => (
+                  <MenuItem key={index} onPress={() => updateWeightUnit(item)}>
+                    <RowView style={styles.alignCenter}>
+                      <View style={$checkmarkContainer}>
+                        {weightUnitSetting === item ? (
+                          <Icon name="checkmark-sharp" size={16} />
+                        ) : null}
+                      </View>
+                      <Text>{WeightUnit[item]}</Text>
+                    </RowView>
+                  </MenuItem>
+                ))}
+              </View>
+            </>
+          )
+        default:
+          return (
+            <>
+              <MenuItem
+                onPress={() => {
+                  setPage("timer")
+                }}
+              >
+                <Text tx="exerciseEntrySettings.restTimeLabel" />
+              </MenuItem>
+              <MenuItem
+                onPress={() => {
+                  setPage("weightUnit")
+                }}
+              >
+                <Text tx="exerciseEntrySettings.weightUnitLabel" />
+              </MenuItem>
+              <Spacer type="vertical" size="small" />
+              <MenuItem onPress={removeExercise}>
+                <Text preset="danger" tx="exerciseEntrySettings.removeExerciseLabel" />
+              </MenuItem>
+            </>
+          )
+      }
+    }
 
-              case "weightUnit":
-                return (
-                  <Popover.Body>
-                    <Icon
-                      name="arrow-back"
-                      size={24}
-                      onPress={() => {
-                        setPage("")
-                      }}
-                    />
-                    <FlatList
-                      data={[WeightUnit.kg, WeightUnit.lbs]}
-                      renderItem={({ item }) => {
-                        return (
-                          <TouchableOpacity onPress={() => updateWeightUnit(item)}>
-                            <RowView>
-                              {weightUnitSetting === item ? (
-                                <Icon name="checkmark" size={16} />
-                              ) : null}
-                              <Text>{WeightUnit[item]}</Text>
-                            </RowView>
-                          </TouchableOpacity>
-                        )
-                      }}
-                      keyExtractor={(item) => item}
-                    />
-                  </Popover.Body>
-                )
+    return (
+      <Popover placement="bottom-end">
+        <Popover.Trigger>
+          <Icon name="ellipsis-vertical" size={24} />
+        </Popover.Trigger>
 
-              default:
-                return (
-                  <Popover.Body>
-                    <Menu.Item
-                      onPress={() => {
-                        setPage("timer")
-                      }}
-                    >
-                      {translate("exerciseEntrySettings.restTimeLabel")}
-                    </Menu.Item>
-                    <Menu.Item
-                      onPress={() => {
-                        setPage("weightUnit")
-                      }}
-                    >
-                      {translate("exerciseEntrySettings.weightUnitLabel")}
-                    </Menu.Item>
-                    {/* <Menu.Item>{translate("exerciseEntrySettings.createSupersetLabel")}</Menu.Item> */}
-                    <Menu.Item onPress={removeExercise}>
-                      {translate("exerciseEntrySettings.removeExerciseLabel")}
-                    </Menu.Item>
-                  </Popover.Body>
-                )
-            }
-          })()}
+        <Popover.Content
+          alignItems="flex-start"
+          width={200}
+          borderWidth={1}
+          borderColor="$borderColor"
+        >
+          <View style={styles.fullWidth}>{renderPopoverContent()}</View>
         </Popover.Content>
       </Popover>
     )
   },
 )
+
+const $menuItemContainer: ViewStyle = {
+  width: "100%",
+  alignItems: "flex-start",
+  paddingVertical: spacing.small,
+}
+
+const $checkmarkContainer = {
+  width: 30,
+}
