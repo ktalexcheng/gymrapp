@@ -2,6 +2,13 @@
 // markdown file and add links from here
 
 import {
+  LexendExa_700Bold as lexendExaBold,
+  LexendExa_300Light as lexendExaLight,
+  LexendExa_500Medium as lexendExaMedium,
+  LexendExa_400Regular as lexendExaRegular,
+  LexendExa_600SemiBold as lexendExaSemiBold,
+} from "@expo-google-fonts/lexend-exa"
+import {
   SpaceGrotesk_700Bold as spaceGroteskBold,
   SpaceGrotesk_300Light as spaceGroteskLight,
   SpaceGrotesk_500Medium as spaceGroteskMedium,
@@ -16,6 +23,11 @@ export const customFontsToLoad = {
   spaceGroteskMedium,
   spaceGroteskSemiBold,
   spaceGroteskBold,
+  lexendExaLight,
+  lexendExaRegular,
+  lexendExaMedium,
+  lexendExaSemiBold,
+  lexendExaBold,
 }
 
 const fonts = {
@@ -49,6 +61,13 @@ const fonts = {
     // Android only font.
     normal: "monospace",
   },
+  lexandExa: {
+    light: "lexendExaLight",
+    normal: "lexendExaRegular",
+    medium: "lexendExaMedium",
+    semiBold: "lexendExaSemiBold",
+    bold: "lexendExaBold",
+  },
 }
 
 export const typography = {
@@ -63,7 +82,7 @@ export const typography = {
   /**
    * An alternate font used for perhaps titles and stuff.
    */
-  secondary: Platform.select({ ios: fonts.helveticaNeue, android: fonts.sansSerif }),
+  secondary: fonts.lexandExa,
   /**
    * Lets get fancy with a monospace font!
    */

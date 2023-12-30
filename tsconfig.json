@@ -17,6 +17,12 @@
     "resolveJsonModule": true,
     "baseUrl": "./"
   },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "CommonJS",
+      "esModuleInterop": true
+    }
+  },
   "exclude": ["node_modules"],
   "include": ["index.js", "App.js", "app", "test", "app.config.js", "babel.config.js"],
   "extends": "expo/tsconfig.base"

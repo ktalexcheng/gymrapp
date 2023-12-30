@@ -1,3 +1,5 @@
+import { useStores } from "app/stores"
+import { observer } from "mobx-react-lite"
 import React, { ReactElement } from "react"
 import {
   StyleProp,
@@ -8,7 +10,7 @@ import {
   ViewStyle,
 } from "react-native"
 import { isRTL, translate } from "../i18n"
-import { colors, spacing } from "../theme"
+import { spacing } from "../theme"
 import { ExtendedEdge, useSafeAreaInsetsStyle } from "../utils/useSafeAreaInsetsStyle"
 import { CustomIcon, CustomIconTypes } from "./CustomIcon"
 import { Text, TextProps } from "./Text"
@@ -142,9 +144,10 @@ interface HeaderActionProps {
  *
  * - [Documentation and Examples](https://github.com/infinitered/ignite/blob/master/docs/Components-Header.md)
  */
-export function Header(props: HeaderProps) {
+export const Header = observer((props: HeaderProps) => {
+  const { themeStore } = useStores()
   const {
-    backgroundColor = colors.background,
+    backgroundColor = themeStore.colors("background"),
     LeftActionComponent,
     leftIcon,
     leftIconColor,
@@ -219,10 +222,16 @@ export function Header(props: HeaderProps) {
       </View>
     </View>
   )
-}
+})
 
 function HeaderAction(props: HeaderActionProps) {
   const { backgroundColor, icon, text, tx, txOptions, onPress, ActionComponent, iconColor } = props
+
+  const { themeStore } = useStores()
+
+  const $actionText: TextStyle = {
+    color: themeStore.colors("tint"),
+  }
 
   const content = tx ? translate(tx, txOptions) : text
 
@@ -279,10 +288,6 @@ const $actionTextContainer: ViewStyle = {
   height: "100%",
   paddingHorizontal: spacing.medium,
   zIndex: 2,
-}
-
-const $actionText: TextStyle = {
-  color: colors.tint,
 }
 
 const $actionIconContainer: ViewStyle = {

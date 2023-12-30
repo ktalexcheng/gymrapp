@@ -171,6 +171,7 @@ export const FeedStoreModel = types
 
       try {
         self.isLoadingUserWorkouts = true
+        self.userWorkouts.clear()
 
         const { userRepository } = getEnv<RootStoreDependencies>(self)
         const user = yield userRepository.get(self.userId, true)
@@ -217,23 +218,46 @@ export const FeedStoreModel = types
       }
     })
 
+    const updateWorkout = flow(function* (workoutId: WorkoutId, data: Partial<Workout>) {
+      const { workoutRepository } = getEnv<RootStoreDependencies>(self)
+
+      const workout = self.getWorkout(WorkoutSource.User, workoutId)
+      const updatedWorkout = { ...workout, ...data }
+
+      try {
+        yield workoutRepository.update(workoutId, updatedWorkout)
+        self.userWorkouts.put({ workoutId, workout: updatedWorkout })
+      } catch (e) {
+        console.error("FeedStore.updateWorkout error:", e)
+      }
+    })
+
+    const deleteWorkout = flow(function* (workoutId: WorkoutId) {
+      const { workoutRepository } = getEnv<RootStoreDependencies>(self)
+
+      try {
+        yield workoutRepository.delete(workoutId)
+        self.userWorkouts.delete(workoutId)
+      } catch (e) {
+        console.error("FeedStore.deleteWorkout error:", e)
+      }
+    })
+
     function updateWorkoutInteractions(workoutInteractions: WorkoutInteraction) {
       self.workoutInteractions.put(workoutInteractions)
     }
 
-    function fetchUserProfileToStore(userId: UserId) {
+    const fetchUserProfileToStore = flow(function* (userId: UserId) {
       const { userRepository } = getEnv<RootStoreDependencies>(self)
       if (!self.feedUsers.has(userId)) {
-        userRepository
-          .get(userId)
-          .then((user) => {
-            self.feedUsers.put({ userId, user })
-          })
-          .catch((e) => {
-            console.error("FeedStore.fetchUserProfileToStore error:", e)
-          })
+        try {
+          const user = yield userRepository.get(userId)
+          self.feedUsers.put({ userId, user })
+        } catch (e) {
+          console.error("FeedStore.fetchUserProfileToStore error:", e)
+        }
       }
-    }
+    })
 
     const loadMoreFeedItems = flow(function* () {
       console.debug("FeedStore.loadMoreFeedItems called")
@@ -269,7 +293,8 @@ export const FeedStoreModel = types
 
     const addCommentToWorkout = flow(function* (
       workoutId: WorkoutId,
-      byUserId: UserId,
+      workoutByUserId: UserId,
+      commentByUserId: UserId,
       comment: string,
     ) {
       const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
@@ -277,7 +302,7 @@ export const FeedStoreModel = types
       // so we use the client timestamp instead, should be good enough for this case
       const newComment = {
         commentId: randomUUID(),
-        byUserId,
+        byUserId: commentByUserId,
         comment,
         _createdAt: new Date(),
       } as WorkoutComment
@@ -293,7 +318,6 @@ export const FeedStoreModel = types
           false,
         )
       } else {
-        const workoutByUserId = self.feedWorkouts.get(workoutId)?.workout.byUserId
         updatedInteractions = yield workoutInteractionRepository.create({
           workoutId,
           workoutByUserId,
@@ -323,7 +347,11 @@ export const FeedStoreModel = types
       self.workoutInteractions.put(updatedInteractions)
     })
 
-    const likeWorkout = flow(function* (workoutId: WorkoutId, byUserId: UserId) {
+    const likeWorkout = flow(function* (
+      workoutId: WorkoutId,
+      workoutByUserId: UserId,
+      likedByUserId: UserId,
+    ) {
       const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
 
       const docExists = yield workoutInteractionRepository.checkDocumentExists(workoutId)
@@ -332,16 +360,15 @@ export const FeedStoreModel = types
           yield workoutInteractionRepository.update(
             workoutId,
             {
-              likedByUserIds: firestore.FieldValue.arrayUnion(byUserId),
+              likedByUserIds: firestore.FieldValue.arrayUnion(likedByUserId),
             } as unknown,
             false,
           )
         } else {
-          const workoutByUserId = self.feedWorkouts.get(workoutId)?.workout.byUserId
           yield workoutInteractionRepository.create({
             workoutId,
             workoutByUserId,
-            likedByUserIds: [byUserId],
+            likedByUserIds: [likedByUserId],
           })
         }
       } catch (e) {
@@ -377,6 +404,8 @@ export const FeedStoreModel = types
       setUserId,
       resetFeed,
       loadUserWorkouts,
+      updateWorkout,
+      deleteWorkout,
       updateWorkoutInteractions,
       loadMoreFeedItems,
       addCommentToWorkout,

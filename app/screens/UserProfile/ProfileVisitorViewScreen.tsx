@@ -8,11 +8,12 @@ import { api } from "app/services/api"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
+import { formatDate } from "app/utils/formatDate"
+import { formatName } from "app/utils/formatName"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
 import { FlatList, RefreshControl, View, ViewStyle } from "react-native"
 import { WorkoutSummaryCard, WorkoutSummaryCardProps } from "../FinishedWorkout"
-import { LoadingScreen } from "../LoadingScreen"
 import { UserProfileStatsBar } from "./UserProfileStatsBar"
 
 interface ProfileVisitorViewScreenProps
@@ -134,11 +135,11 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
             <Avatar user={otherUser} size="lg" />
             <Spacer type="horizontal" size="medium" />
             <View>
-              <Text preset="heading">{`${otherUser.firstName} ${otherUser.lastName}`}</Text>
+              <Text preset="subheading">{formatName(otherUser.firstName, otherUser.lastName)}</Text>
               <RowView>
                 <Text preset="formLabel" tx="profileVisitorViewScreen.dateJoinedLabel" />
                 <Spacer type="horizontal" size="small" />
-                <Text preset="formLabel">{otherUser._createdAt.toLocaleString()}</Text>
+                <Text preset="formLabel">{formatDate(otherUser._createdAt, "MMM dd, yyyy")}</Text>
               </RowView>
             </View>
           </RowView>
@@ -156,6 +157,8 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
     const FeedRefreshControl = <RefreshControl refreshing={isLoading} onRefresh={refreshFeed} />
 
     const renderFeed = () => {
+      if (isLoading) return undefined
+
       if (!isFollowing && otherUser.privateAccount) {
         return (
           <>
@@ -191,15 +194,12 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
       )
     }
 
-    if (isLoading) {
-      return <LoadingScreen />
-    }
-
     return (
       <Screen
         safeAreaEdges={["top", "bottom"]}
         contentContainerStyle={styles.screenContainer}
         preset="fixed"
+        isBusy={isLoading}
       >
         {renderFeed()}
       </Screen>

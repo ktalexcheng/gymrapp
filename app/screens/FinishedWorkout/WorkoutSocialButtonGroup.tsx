@@ -1,6 +1,6 @@
 import { Icon, RowView, Spacer, Text } from "app/components"
 import { WorkoutSource } from "app/data/constants"
-import { WorkoutId, WorkoutInteraction } from "app/data/model"
+import { UserId, WorkoutId, WorkoutInteraction } from "app/data/model"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
@@ -10,20 +10,21 @@ import { TouchableOpacity, ViewStyle } from "react-native"
 type WorkoutSocialButtonGroupProps = {
   workoutSource: WorkoutSource
   workoutId: WorkoutId
+  workoutByUserId: UserId
   onPressComments: () => void
 }
 
 const buttonGroupIconSize = 24
 
 export const WorkoutSocialButtonGroup = observer((props: WorkoutSocialButtonGroupProps) => {
-  const { workoutSource, workoutId, onPressComments } = props
-  const { userStore, feedStore } = useStores()
+  const { workoutSource, workoutId, workoutByUserId, onPressComments } = props
+  const { userStore, feedStore, themeStore } = useStores()
   const [workoutInteractions, setInteractions] = useState<WorkoutInteraction>(undefined)
   const [isLikedByUser, setIsLikedByUser] = useState(false)
   const [likesCount, setLikesCount] = useState(undefined)
 
   useEffect(() => {
-    console.debug("WorkoutSocialButtonGroup useEffect [getInteractionsForWorkout] called")
+    // console.debug("WorkoutSocialButtonGroup.useEffect [getInteractionsForWorkout] called")
     setInteractions(feedStore.getInteractionsForWorkout(workoutSource, workoutId))
   }, [feedStore.getInteractionsForWorkout(workoutSource, workoutId)])
 
@@ -38,7 +39,7 @@ export const WorkoutSocialButtonGroup = observer((props: WorkoutSocialButtonGrou
       setLikesCount((prev) => Math.max(0, prev - 1))
       setIsLikedByUser(false)
     } else {
-      feedStore.likeWorkout(workoutId, userStore.userId)
+      feedStore.likeWorkout(workoutId, workoutByUserId, userStore.userId)
       setLikesCount((prev) => prev + 1)
       setIsLikedByUser(true)
     }
@@ -50,6 +51,7 @@ export const WorkoutSocialButtonGroup = observer((props: WorkoutSocialButtonGrou
         <RowView style={styles.alignCenter}>
           <Icon
             name={isLikedByUser ? "thumbs-up" : "thumbs-up-outline"}
+            color={isLikedByUser ? themeStore.colors("tint") : null}
             size={buttonGroupIconSize}
           />
           <Spacer type="horizontal" size="micro" />

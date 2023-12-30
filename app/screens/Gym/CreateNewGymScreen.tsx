@@ -1,5 +1,5 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { Button, Screen, Spacer, Text, TextField } from "app/components"
+import { Button, Icon, Screen, Spacer, Text, TextField } from "app/components"
 import { AppLocale } from "app/data/constants"
 import { useUserLocation } from "app/hooks"
 import { MainStackParamList } from "app/navigators"
@@ -15,7 +15,7 @@ type CreateNewGymScreenProps = NativeStackScreenProps<MainStackParamList, "Creat
 export const CreateNewGymScreen: FC = ({ route }: CreateNewGymScreenProps) => {
   const { gymStore, userStore } = useStores()
   const mainNavigator = useMainNavigation()
-  const [userLocation, isGettingUserLocation, refreshUserLocation] = useUserLocation()
+  const { userLocation, isGettingUserLocation, refreshUserLocation } = useUserLocation()
   const [gymName, setGymName] = useState("")
   const [gymAddress, setGymAddress] = useState("")
   const [gymPlaceId, setGymPlaceId] = useState(null)
@@ -71,7 +71,7 @@ export const CreateNewGymScreen: FC = ({ route }: CreateNewGymScreenProps) => {
 
   const renderPredictedPlaces = () => {
     if (isGettingUserLocation) {
-      return <Text tx="createNewGymScreen.gettingUserLocationLabel" preset="formHelper" />
+      return <Text tx="userLocation.gettingUserLocationLabel" preset="formHelper" />
     }
 
     if (isPredicting) {
@@ -93,7 +93,6 @@ export const CreateNewGymScreen: FC = ({ route }: CreateNewGymScreenProps) => {
               text={place.structured_formatting.main_text}
               onPress={() => selectGymFromPrediction(place)}
             />
-            // <Text key={place.place_id} text={place.structured_formatting.main_text} />
           ))}
         </>
       )
@@ -133,7 +132,11 @@ export const CreateNewGymScreen: FC = ({ route }: CreateNewGymScreenProps) => {
   }
 
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={styles.screenContainer}>
+    <Screen
+      preset="auto"
+      safeAreaEdges={["top", "bottom"]}
+      contentContainerStyle={styles.screenContainer}
+    >
       <Text tx="createNewGymScreen.createNewGymTitle" preset="heading" />
       <TextField
         labelTx="createNewGymScreen.gymNameLabel"
@@ -141,10 +144,15 @@ export const CreateNewGymScreen: FC = ({ route }: CreateNewGymScreenProps) => {
         containerStyle={styles.formFieldTopMargin}
         value={gymName}
         onChangeText={handleManualGymNameChange}
+        RightAccessory={(props) => (
+          <Icon name="close-circle-outline" size={24} onPress={() => setGymName("")} {...props} />
+        )}
       />
       <TextField
+        status="disabled"
         labelTx="createNewGymScreen.gymLocationLabel"
         placeholderTx="createNewGymScreen.gymLocationPlaceholder"
+        multiline={true}
         containerStyle={styles.formFieldTopMargin}
         value={gymAddress}
         onChangeText={handleManualGymAddressChange}
@@ -153,6 +161,7 @@ export const CreateNewGymScreen: FC = ({ route }: CreateNewGymScreenProps) => {
       {renderPredictedPlaces()}
       <Spacer type="vertical" size="large" />
       <Button tx="createNewGymScreen.createNewGymButtonLabel" onPress={handleCreateNewGym} />
+      <Button preset="text" tx="common.cancel" onPress={() => mainNavigator.goBack()} />
     </Screen>
   )
 }

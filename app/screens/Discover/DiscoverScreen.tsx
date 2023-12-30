@@ -1,38 +1,35 @@
-import {
-  Avatar,
-  Button,
-  ButtonProps,
-  RowView,
-  Screen,
-  Search,
-  SearchProps,
-  Spacer,
-  Text,
-} from "app/components"
-import { GymSearchResult, User, UserSearchResult } from "app/data/model"
-import { useMainNavigation } from "app/navigators/navigationUtilities"
-import { api } from "app/services/api"
+import { Button, ButtonProps, RowView, Screen, Spacer, Text } from "app/components"
 import { useStores } from "app/stores"
-import { colors, spacing, styles } from "app/theme"
+import { spacing, styles } from "app/theme"
 import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
+import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
-import { ViewStyle } from "react-native"
-import { TouchableOpacity } from "react-native-gesture-handler"
+import { TextStyle, View, ViewStyle } from "react-native"
+import { GymSearch } from "./GymSearch"
+import { UserSearch } from "./UserSearch"
 
 interface CategoryButtonProps extends ButtonProps {
   selected?: boolean
 }
 
 const CategoryButton: FC<CategoryButtonProps> = (props: CategoryButtonProps) => {
+  const { themeStore } = useStores()
+
   const $buttonView: ViewStyle = {
     minHeight: 0,
     borderRadius: 40,
     paddingHorizontal: spacing.small,
     paddingVertical: spacing.tiny,
-    backgroundColor: props.selected ? colors.actionable : colors.disabled,
+    backgroundColor: props.selected
+      ? themeStore.colors("actionable")
+      : themeStore.colors("disabledBackground"),
   }
 
-  return <Button {...props} style={$buttonView} preset="filled" />
+  const $text: TextStyle = {
+    color: props.selected ? themeStore.colors("actionableForeground") : themeStore.colors("text"),
+  }
+
+  return <Button {...props} style={$buttonView} textStyle={$text} preset="filled" />
 }
 
 export enum SearchCategory {
@@ -41,90 +38,14 @@ export enum SearchCategory {
   Gyms = "gyms",
 }
 
-interface ISearchComponents {
-  [key: string]: SearchProps
-}
-
-const UserSearchResultItem = ({ user }: { user: UserSearchResult }) => {
-  const mainNavigator = useMainNavigation()
-
-  return (
-    <TouchableOpacity
-      onPress={() => mainNavigator.navigate("ProfileVisitorView", { userId: user.userId })}
-    >
-      <RowView style={$userResultItemContainer}>
-        <Avatar user={user as User} size="sm" />
-        <Spacer type="horizontal" size="small" />
-        <Text text={`${user.firstName} ${user.lastName}`} />
-      </RowView>
-    </TouchableOpacity>
-  )
-}
-
-const GymSearchResultItem = ({ gym }: { gym: GymSearchResult }) => {
-  const mainNavigator = useMainNavigation()
-
-  console.debug("GymSearchResultItem gym:", gym)
-  return (
-    <TouchableOpacity onPress={() => mainNavigator.navigate("GymDetails", { gymId: gym.gymId })}>
-      <RowView style={$gymResultItemContainer}>
-        <Avatar imageUrl={gym.gymIconUrl} size="md" />
-        <Spacer type="horizontal" size="small" />
-        <Text text={gym.gymName} />
-      </RowView>
-    </TouchableOpacity>
-  )
-}
-
-const GymSearchFooterComponent = () => {
-  const mainNavigator = useMainNavigation()
-
-  return (
-    <Button
-      tx="gymSearch.createNewGymButtonLabel"
-      preset="text"
-      style={styles.alignCenter}
-      onPress={() => mainNavigator.navigate("CreateNewGym")}
-    />
-  )
-}
-
-export const SearchComponents: ISearchComponents = {
-  [SearchCategory.Users]: {
-    searchBarPlaceholderTx: "userSearch.searchBarPlaceholder",
-    searchCallback: (query) => api.searchUsers(query),
-    renderSearchResultItem: ({ item }: { item: UserSearchResult }) => (
-      <UserSearchResultItem user={item} />
-    ),
-    searchResultItemKeyField: "userId",
-    footerComponent: (
-      <Button
-        tx="userSearch.inviteFriendsButtonLabel"
-        preset="text"
-        style={styles.alignCenter}
-        onPress={() => console.debug("TODO: send invite to emails")}
-      />
-    ),
-  },
-  [SearchCategory.Gyms]: {
-    searchBarPlaceholderTx: "gymSearch.searchBarPlaceholder",
-    searchCallback: (query) => api.searchGyms(query),
-    renderSearchResultItem: ({ item }: { item: GymSearchResult }) => (
-      <GymSearchResultItem gym={item} />
-    ),
-    searchResultItemKeyField: "gymId",
-    footerComponent: <GymSearchFooterComponent />,
-  },
-}
-
-export const DiscoverScreen = () => {
+export const DiscoverScreen = observer(() => {
   const { workoutStore } = useStores()
   const [searchCategory, setSearchCategory] = useState<SearchCategory>(SearchCategory.Users)
-  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? ["bottom"] : ["top", "bottom"]
+  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? [] : ["top"]
 
   return (
     <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={styles.screenContainer}>
-      <Text tx="discoverScreen.discoverTitle" preset="heading" />
+      <Text tx="discoverScreen.discoverTitle" preset="screenTitle" />
       <Spacer type="vertical" size="small" />
       <RowView style={$buttonGroup} scrollable={true}>
         {/* <CategoryButton
@@ -147,27 +68,17 @@ export const DiscoverScreen = () => {
         />
       </RowView>
       <Spacer type="vertical" size="small" />
-      <Search
-        searchBarPlaceholderTx={SearchComponents[searchCategory].searchBarPlaceholderTx}
-        searchCallback={SearchComponents[searchCategory].searchCallback}
-        renderSearchResultItem={SearchComponents[searchCategory].renderSearchResultItem}
-        searchResultItemKeyField={SearchComponents[searchCategory].searchResultItemKeyField}
-        footerComponent={SearchComponents[searchCategory].footerComponent}
-      />
+      <View style={styles.flex1}>
+        {searchCategory === SearchCategory.Users ? (
+          <UserSearch />
+        ) : searchCategory === SearchCategory.Gyms ? (
+          <GymSearch />
+        ) : null}
+      </View>
     </Screen>
   )
-}
+})
 
 const $buttonGroup: ViewStyle = {
   gap: spacing.small,
-}
-
-const $userResultItemContainer: ViewStyle = {
-  paddingVertical: spacing.small,
-  alignItems: "center",
-}
-
-const $gymResultItemContainer: ViewStyle = {
-  paddingVertical: spacing.small,
-  alignItems: "center",
 }

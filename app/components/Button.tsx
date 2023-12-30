@@ -1,3 +1,5 @@
+import { useStores } from "app/stores"
+import { observer } from "mobx-react-lite"
 import React, { ComponentType } from "react"
 import {
   Pressable,
@@ -5,12 +7,13 @@ import {
   PressableStateCallbackType,
   StyleProp,
   TextStyle,
+  View,
   ViewStyle,
 } from "react-native"
-import { colors, spacing, typography } from "../theme"
+import { spacing, typography } from "../theme"
 import { Text, TextProps } from "./Text"
 
-type Presets = keyof typeof $viewPresets
+type Presets = "default" | "filled" | "reversed" | "text" | "menuItem"
 
 export interface ButtonAccessoryProps {
   style: StyleProp<any>
@@ -77,7 +80,7 @@ export interface ButtonProps extends PressableProps {
  *
  * - [Documentation and Examples](https://github.com/infinitered/ignite/blob/master/docs/Components-Button.md)
  */
-export function Button(props: ButtonProps) {
+export const Button = observer((props: ButtonProps) => {
   const {
     tx,
     text,
@@ -93,6 +96,60 @@ export function Button(props: ButtonProps) {
     ...rest
   } = props
 
+  const { themeStore } = useStores()
+
+  const $viewPresets = {
+    default: [
+      $baseViewStyle,
+      {
+        borderWidth: 1,
+        borderColor: themeStore.palette("neutral400"),
+        backgroundColor: themeStore.palette("neutral100"),
+      },
+    ] as StyleProp<ViewStyle>,
+
+    filled: [
+      $baseViewStyle,
+      { backgroundColor: themeStore.palette("neutral300") },
+    ] as StyleProp<ViewStyle>,
+
+    reversed: [
+      $baseViewStyle,
+      { backgroundColor: themeStore.palette("neutral800") },
+    ] as StyleProp<ViewStyle>,
+
+    text: [$baseViewStyle, { backgroundColor: null }] as StyleProp<ViewStyle>,
+
+    menuItem: [
+      $baseViewStyle,
+      { backgroundColor: null, justifyContent: "flex-start" },
+    ] as StyleProp<ViewStyle>,
+  }
+
+  const $textPresets: Record<Presets, StyleProp<TextStyle>> = {
+    default: $baseTextStyle,
+    filled: $baseTextStyle,
+    reversed: [$baseTextStyle, { color: themeStore.palette("neutral100") }],
+    text: [$baseTextStyle, { color: themeStore.colors("actionable") }],
+    menuItem: [$baseTextStyle, { color: themeStore.colors("text"), textAlign: "left" }],
+  }
+
+  const $pressedViewPresets: Record<Presets, StyleProp<ViewStyle>> = {
+    default: { backgroundColor: themeStore.palette("neutral200") },
+    filled: { backgroundColor: themeStore.palette("neutral400") },
+    reversed: { backgroundColor: themeStore.palette("neutral700") },
+    text: {},
+    menuItem: {},
+  }
+
+  const $pressedTextPresets: Record<Presets, StyleProp<TextStyle>> = {
+    default: { opacity: 0.9 },
+    filled: { opacity: 0.9 },
+    reversed: { opacity: 0.9 },
+    text: { color: themeStore.colors("actionablePressed"), opacity: 0.9 },
+    menuItem: { color: themeStore.colors("textDim"), opacity: 0.9 },
+  }
+
   const preset: Presets = $viewPresets[props.preset] ? props.preset : "default"
   function $viewStyle({ pressed }) {
     return [
@@ -104,45 +161,49 @@ export function Button(props: ButtonProps) {
   function $textStyle({ pressed }) {
     return [
       $textPresets[preset],
-      props.disabled && { color: colors.disabled },
+      props.disabled && { color: themeStore.colors("disabledBackground") },
       $textStyleOverride,
       !!pressed && [$pressedTextPresets[preset], $pressedTextStyleOverride],
     ]
   }
 
   return (
-    <Pressable style={$viewStyle} accessibilityRole="button" {...rest}>
-      {(state) => (
-        <>
-          {!!LeftAccessory && <LeftAccessory style={$leftAccessoryStyle} pressableState={state} />}
+    <View>
+      <Pressable style={$viewStyle} accessibilityRole="button" {...rest}>
+        {(state) => (
+          <>
+            {!!LeftAccessory && (
+              <LeftAccessory style={$leftAccessoryStyle} pressableState={state} />
+            )}
 
-          <Text
-            tx={tx}
-            text={text}
-            numberOfLines={numberOfLines}
-            txOptions={txOptions}
-            style={$textStyle(state)}
-          >
-            {children}
-          </Text>
+            <Text
+              tx={tx}
+              text={text}
+              numberOfLines={numberOfLines}
+              txOptions={txOptions}
+              style={$textStyle(state)}
+            >
+              {children}
+            </Text>
 
-          {!!RightAccessory && (
-            <RightAccessory style={$rightAccessoryStyle} pressableState={state} />
-          )}
-        </>
-      )}
-    </Pressable>
+            {!!RightAccessory && (
+              <RightAccessory style={$rightAccessoryStyle} pressableState={state} />
+            )}
+          </>
+        )}
+      </Pressable>
+    </View>
   )
-}
+})
 
 const $baseViewStyle: ViewStyle = {
-  minHeight: 56,
-  borderRadius: 4,
+  minHeight: 44,
+  borderRadius: 24,
   justifyContent: "center",
   alignItems: "center",
   flexDirection: "row",
-  paddingVertical: spacing.small,
-  paddingHorizontal: spacing.small,
+  padding: spacing.tiny,
+  marginVertical: spacing.tiny,
   overflow: "hidden",
 }
 
@@ -158,44 +219,3 @@ const $baseTextStyle: TextStyle = {
 
 const $rightAccessoryStyle: ViewStyle = { marginStart: spacing.extraSmall, zIndex: 1 }
 const $leftAccessoryStyle: ViewStyle = { marginEnd: spacing.extraSmall, zIndex: 1 }
-
-const $viewPresets = {
-  default: [
-    $baseViewStyle,
-    {
-      borderWidth: 1,
-      borderColor: colors.palette.neutral400,
-      backgroundColor: colors.palette.neutral100,
-    },
-  ] as StyleProp<ViewStyle>,
-
-  filled: [$baseViewStyle, { backgroundColor: colors.palette.neutral300 }] as StyleProp<ViewStyle>,
-
-  reversed: [
-    $baseViewStyle,
-    { backgroundColor: colors.palette.neutral800 },
-  ] as StyleProp<ViewStyle>,
-
-  text: [$baseViewStyle, { backgroundColor: null, minHeight: null }] as StyleProp<ViewStyle>,
-}
-
-const $textPresets: Record<Presets, StyleProp<TextStyle>> = {
-  default: $baseTextStyle,
-  filled: $baseTextStyle,
-  reversed: [$baseTextStyle, { color: colors.palette.neutral100 }],
-  text: [$baseTextStyle, { color: colors.actionable }],
-}
-
-const $pressedViewPresets: Record<Presets, StyleProp<ViewStyle>> = {
-  default: { backgroundColor: colors.palette.neutral200 },
-  filled: { backgroundColor: colors.palette.neutral400 },
-  reversed: { backgroundColor: colors.palette.neutral700 },
-  text: {},
-}
-
-const $pressedTextPresets: Record<Presets, StyleProp<TextStyle>> = {
-  default: { opacity: 0.9 },
-  filled: { opacity: 0.9 },
-  reversed: { opacity: 0.9 },
-  text: { color: colors.palette.primary300, opacity: 0.9 },
-}

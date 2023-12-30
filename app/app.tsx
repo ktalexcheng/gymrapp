@@ -20,12 +20,13 @@ import React from "react"
 import { ViewStyle } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { RootSiblingParent } from "react-native-root-siblings"
-import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
+import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context"
 import { TamaguiProvider } from "tamagui"
 import Config from "./config"
 import "./i18n"
 import { AppNavigator } from "./navigators"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
+import { LoadingScreen } from "./screens"
 import { ErrorBoundary } from "./screens/ErrorScreen/ErrorBoundary"
 import { setupReactotron } from "./services/reactotron"
 import { useInitialRootStore } from "./stores"
@@ -110,9 +111,6 @@ function App(props: AppProps) {
 
   const [areFontsLoaded] = useFonts(customFontsToLoad)
 
-  // TODO: Persisted state may not be desirable during development, disable/enable it here
-  // const rehydrated = true
-  // setTimeout(hideSplashScreen, 500)
   const { rehydrated } = useInitialRootStore(() => {
     // This runs after the root store has been initialized and rehydrated.
 
@@ -129,7 +127,7 @@ function App(props: AppProps) {
   // In iOS: application:didFinishLaunchingWithOptions:
   // In Android: https://stackoverflow.com/a/45838109/204044
   // You can replace with your own loading component if you wish.
-  if (!rehydrated || !isNavigationStateRestored || !areFontsLoaded) return null
+  if (!rehydrated || !isNavigationStateRestored || !areFontsLoaded) return <LoadingScreen />
 
   const linking = {
     prefixes: [prefix],

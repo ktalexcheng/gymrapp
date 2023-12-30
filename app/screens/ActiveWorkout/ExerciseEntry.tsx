@@ -1,9 +1,10 @@
 import { ExerciseSetType, ExerciseVolumeType } from "app/data/constants"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
+import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
-import { TextStyle, View, ViewStyle } from "react-native"
+import { TouchableOpacity, View, ViewStyle } from "react-native"
 import { Button, Icon, RowView, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
 import { spacing, styles } from "../../theme"
@@ -17,7 +18,8 @@ export type ExerciseEntryProps = {
 }
 
 export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEntryProps) => {
-  const { workoutStore, exerciseStore } = useStores()
+  const { workoutStore, exerciseStore, themeStore } = useStores()
+  const mainNavigation = useMainNavigation()
   const thisExercise = workoutStore.exercises.at(props.exerciseOrder)
   const setsPerformed = thisExercise.setsPerformed
   const exerciseName = exerciseStore.getExerciseName(props.exerciseId)
@@ -48,34 +50,42 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
       case ExerciseVolumeType.Reps:
         return (
           <>
-            <Text style={[$weightColumn, $textAlignCenter]}>
-              {translate("activeWorkoutScreen.weightColumnHeader") +
-                ` (${translate(weightUnitTx)})`}
-            </Text>
-            <Text
-              tx="activeWorkoutScreen.repsColumnHeader"
-              style={[$repsColumn, $textAlignCenter]}
-            />
-            <Text tx="activeWorkoutScreen.rpeColumnHeader" style={[$rpeColumn, $textAlignCenter]} />
+            <View style={$weightColumn}>
+              <Text textAlign="center">
+                {translate("activeWorkoutScreen.weightColumnHeader") +
+                  ` (${translate(weightUnitTx)})`}
+              </Text>
+            </View>
+            <View style={$repsColumn}>
+              <Text tx="activeWorkoutScreen.repsColumnHeader" textAlign="center" />
+            </View>
+            <View style={$rpeColumn}>
+              <Text tx="activeWorkoutScreen.rpeColumnHeader" textAlign="center" />
+            </View>
           </>
         )
       case ExerciseVolumeType.Time:
         return (
-          <>
-            <Text
-              tx="activeWorkoutScreen.timeColumnHeader"
-              style={[$timeColumn, $textAlignCenter]}
-            />
-          </>
+          <View style={$timeColumn}>
+            <Text tx="activeWorkoutScreen.timeColumnHeader" textAlign="center" />
+          </View>
         )
     }
+  }
+
+  function navigateToExerciseDetails() {
+    mainNavigation.navigate("ExerciseDetails", {
+      exerciseId: props.exerciseId,
+    })
   }
 
   return (
     <View>
       <View style={$exercise}>
         <RowView style={styles.justifyBetween}>
-          <Text preset="bold">{"#" + props.exerciseOrder + " " + exerciseName}</Text>
+          <TouchableOpacity onPress={navigateToExerciseDetails}>
+            <Text preset="bold">{"#" + (props.exerciseOrder + 1) + " " + exerciseName}</Text>
+          </TouchableOpacity>
           <ExerciseSettingsMenu exerciseOrder={props.exerciseOrder} exerciseId={props.exerciseId} />
         </RowView>
         <TextField
@@ -89,21 +99,16 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
         />
 
         <RowView style={$exerciseSetsHeader}>
-          <Text
-            tx="activeWorkoutScreen.setOrderColumnHeader"
-            style={[$setOrderColumn, $textAlignCenter]}
-          />
-          <Text
-            tx="activeWorkoutScreen.previousColumnHeader"
-            style={[$previousColumn, $textAlignCenter]}
-          />
+          <View style={$setOrderColumn}>
+            <Text tx="activeWorkoutScreen.setOrderColumnHeader" textAlign="center" />
+          </View>
+          <View style={$previousColumn}>
+            <Text tx="activeWorkoutScreen.previousColumnHeader" textAlign="center" />
+          </View>
           {renderVolumeTypeSpecificHeaders()}
-          <Icon
-            name="checkmark"
-            style={[$isCompletedColumn, $textAlignCenter]}
-            color="black"
-            size={30}
-          />
+          <View style={$isCompletedColumn}>
+            <Icon name="checkmark" color={themeStore.colors("foreground")} size={30} />
+          </View>
         </RowView>
 
         {renderSets()}
@@ -129,10 +134,12 @@ const $exerciseNotesInputStyle: ViewStyle = {
 
 const $setOrderColumn: ViewStyle = {
   flex: 1,
+  alignItems: "center",
 }
 
 const $previousColumn: ViewStyle = {
   flex: 2,
+  alignItems: "center",
 }
 
 const $weightColumn: ViewStyle = {
@@ -160,10 +167,6 @@ const $isCompletedColumn: ViewStyle = {
   alignItems: "center",
 }
 
-const $textAlignCenter: TextStyle = {
-  textAlign: "center",
-}
-
 const $exercise: ViewStyle = {
   marginTop: spacing.medium,
 }
@@ -172,9 +175,4 @@ const $exerciseSetsHeader: ViewStyle = {
   justifyContent: "space-around",
   marginVertical: spacing.medium,
   alignItems: "center",
-}
-
-const $exerciseActions: ViewStyle = {
-  justifyContent: "space-around",
-  marginTop: spacing.medium,
 }

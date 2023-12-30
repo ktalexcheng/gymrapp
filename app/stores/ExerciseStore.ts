@@ -1,6 +1,5 @@
 import { ExerciseSource, ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import { Exercise, ExerciseSettings, NewExercise, User, UserPreferences } from "app/data/model"
-import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { flow, getEnv, getSnapshot, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
@@ -56,26 +55,6 @@ export const ExerciseStoreModel = types
   }))
   .actions(withSetPropAction)
   .actions((self) => {
-    function setAllExercises(exercises: Exercise[]) {
-      self.isLoading = true
-
-      if (!exercises || exercises.length === 0) {
-        self.isLoading = false
-        console.warn("ExerciseStore.setAllExercises: received empty exercises list")
-        return
-      }
-
-      exercises = convertFirestoreTimestampToDate(exercises)
-
-      self.allExercises.clear()
-      exercises.forEach((e) => {
-        self.allExercises.put(e)
-      })
-
-      self.lastUpdated = new Date()
-      self.isLoading = false
-    }
-
     const applyUserSettings = flow(function* () {
       self.isLoading = true
 
@@ -108,8 +87,16 @@ export const ExerciseStoreModel = types
           "ExerciseStore.getAllExercises privateExercises.length:",
           privateExercises.length,
         )
-        setAllExercises([...exercises, ...privateExercises])
 
+        self.allExercises.clear()
+        exercises.forEach((e) => {
+          self.allExercises.put(e)
+        })
+        privateExercises.forEach((e) => {
+          self.allExercises.put(e)
+        })
+
+        self.lastUpdated = new Date()
         self.isLoading = false
       } catch (e) {
         console.error("ExerciseStore.getAllExercises error:", e)
@@ -191,7 +178,6 @@ export const ExerciseStoreModel = types
     })
 
     return {
-      setAllExercises,
       applyUserSettings,
       getAllExercises,
       updateExerciseSetting,

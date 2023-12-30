@@ -5,13 +5,13 @@ import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
-import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
+import { formatSecondsAsTime } from "app/utils/formatTime"
 import { Weight } from "app/utils/weight"
 import React from "react"
 import { View, ViewStyle } from "react-native"
 
 export type ExerciseSummaryProps = {
-  exercise: ExercisePerformed
+  exercise: Partial<ExercisePerformed>
 }
 
 export const ExerciseSummary = (props: ExerciseSummaryProps) => {
@@ -25,7 +25,7 @@ export const ExerciseSummary = (props: ExerciseSummaryProps) => {
     marginTop: spacing.small,
   }
 
-  function renderSetSummary(set: ExerciseSet, index: number) {
+  function renderSetSummary(set: ExerciseSet, setOrder: number) {
     let summaryText = ""
     switch (set.volumeType) {
       case ExerciseVolumeType.Reps:
@@ -43,10 +43,10 @@ export const ExerciseSummary = (props: ExerciseSummaryProps) => {
     }
 
     return (
-      <RowView key={index}>
+      <RowView key={setOrder}>
         <RowView>
           <Text style={{ width: spacing.extraLarge }}>
-            {set.setType === ExerciseSetType.Normal ? index : set.setType}
+            {set.setType === ExerciseSetType.Normal ? setOrder + 1 : set.setType}
           </Text>
           <Text>{summaryText}</Text>
         </RowView>

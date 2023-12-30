@@ -3,94 +3,73 @@ import { useUserLocation } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
-import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
+import { formatSecondsAsTime } from "app/utils/formatTime"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
-import { Modal, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
-import { Button, Icon, RowView, Screen, Text, TextField } from "../../components"
+import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import { Button, Icon, Modal, RowView, Screen, Spacer, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
-import { colors, fontSize, spacing, styles } from "../../theme"
+import { fontSize, spacing, styles } from "../../theme"
 import { ExerciseEntry } from "./ExerciseEntry"
 
 type SaveWorkoutDialogProps = {
   visible: boolean
-  isAllSetsCompleted: boolean
   onSave: () => void
   onDiscard: () => void
   onCancel: () => void
 }
 
-const SaveWorkoutDialog: FC<SaveWorkoutDialogProps> = function SaveWorkoutDialog(
+const SaveWorkoutDialog: FC<SaveWorkoutDialogProps> = observer(function SaveWorkoutDialog(
   props: SaveWorkoutDialogProps,
 ) {
-  const [allSetsCompleted, setAllSetsCompleted] = useState(props.isAllSetsCompleted)
+  const { visible, onSave, onDiscard, onCancel } = props
+  const { workoutStore } = useStores()
+  const [allSetsCompleted, setAllSetsCompleted] = useState(workoutStore.isAllSetsCompleted)
 
   useEffect(() => {
-    setAllSetsCompleted(props.isAllSetsCompleted)
-  }, [props.visible, props.isAllSetsCompleted])
+    setAllSetsCompleted(workoutStore.isAllSetsCompleted)
+  }, [workoutStore.isAllSetsCompleted])
 
-  const $saveDialogContainer: ViewStyle = {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  }
-
-  const $saveDialog: ViewStyle = {
-    flexBasis: "auto",
-    margin: 20,
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 35,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+  const renderModalContent = () => {
+    if (allSetsCompleted) {
+      return (
+        <>
+          <Text tx="activeWorkoutScreen.dialogSaveWorkout" />
+          <Spacer type="vertical" size="medium" />
+          <Button preset="text" tx="activeWorkoutScreen.saveWorkout" onPress={onSave} />
+          <Button preset="text" tx="activeWorkoutScreen.discardWorkout" onPress={onDiscard} />
+          <Button preset="text" tx="activeWorkoutScreen.cancelAction" onPress={onCancel} />
+        </>
+      )
+    } else {
+      return (
+        <>
+          <Text tx="activeWorkoutScreen.dialogRemoveIncompletedSets" />
+          <Spacer type="vertical" size="medium" />
+          <Button
+            preset="text"
+            tx="activeWorkoutScreen.confirmRemoveIncompletedSets"
+            onPress={() => setAllSetsCompleted(true)}
+          />
+          <Button
+            preset="text"
+            tx="activeWorkoutScreen.rejectRemoveIncompletedSets"
+            onPress={onCancel}
+          />
+        </>
+      )
+    }
   }
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={props.visible}
-      onRequestClose={props.onCancel}
-    >
-      <View style={$saveDialogContainer}>
-        {allSetsCompleted ? (
-          <View style={$saveDialog}>
-            <Text tx="activeWorkoutScreen.dialogSaveWorkout" />
-            <TouchableOpacity onPress={props.onSave}>
-              <Text tx="activeWorkoutScreen.saveWorkout" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={props.onDiscard}>
-              <Text tx="activeWorkoutScreen.discardWorkout" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={props.onCancel}>
-              <Text tx="activeWorkoutScreen.cancelAction" />
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={$saveDialog}>
-            <Text tx="activeWorkoutScreen.dialogRemoveIncompletedSets" />
-            <TouchableOpacity onPress={() => setAllSetsCompleted(true)}>
-              <Text tx="activeWorkoutScreen.confirmRemoveIncompletedSets" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={props.onCancel}>
-              <Text tx="activeWorkoutScreen.rejectRemoveIncompletedSets" />
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
+    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onCancel}>
+      {renderModalContent()}
     </Modal>
   )
-}
+})
 
 const RestTimerProgressBar: FC = observer(() => {
-  const { workoutStore } = useStores()
+  const { workoutStore, themeStore } = useStores()
   const mainNavigation = useMainNavigation()
 
   const progressBarWidth = 75
@@ -98,25 +77,24 @@ const RestTimerProgressBar: FC = observer(() => {
   const $timeProgressContainer: ViewStyle = {
     width: progressBarWidth,
     height: "80%",
-    borderWidth: 2,
     borderRadius: 10,
-    borderColor: colors.actionable,
+    backgroundColor: themeStore.colors("contentBackground"),
     overflow: "hidden",
     alignItems: "center",
   }
 
   const $timeProgressRemainingContainer: ViewStyle = {
+    position: "absolute",
     height: "100%",
     width: `${Math.floor((workoutStore.restTimeRemaining / workoutStore.restTime) * 100)}%`,
-    backgroundColor: colors.actionable,
+    backgroundColor: themeStore.colors("lightTint"),
   }
 
   const $restTimeDisplayView: ViewStyle | TextStyle = {
-    position: "absolute",
-    height: "100%",
+    flex: 1,
     width: progressBarWidth,
-    textAlign: "center",
-    textAlignVertical: "center",
+    justifyContent: "center",
+    alignItems: "center",
   }
 
   return (
@@ -124,12 +102,12 @@ const RestTimerProgressBar: FC = observer(() => {
       {workoutStore.restTimeRunning ? (
         <RowView style={$timeProgressContainer}>
           <View style={$timeProgressRemainingContainer} />
-          <Text style={$restTimeDisplayView} numberOfLines={1}>
-            {formatSecondsAsTime(workoutStore.restTimeRemaining)}
-          </Text>
+          <View style={$restTimeDisplayView}>
+            <Text numberOfLines={1} text={formatSecondsAsTime(workoutStore.restTimeRemaining)} />
+          </View>
         </RowView>
       ) : (
-        <Icon name="stopwatch-outline" color="black" size={30} />
+        <Icon name="stopwatch-outline" color={themeStore.colors("foreground")} size={30} />
       )}
     </TouchableOpacity>
   )
@@ -139,17 +117,18 @@ interface ActiveWorkoutScreenProps extends MainStackScreenProps<"ActiveWorkout">
 
 export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
   function ActiveWorkoutScreen({ navigation }) {
-    const { userStore, workoutStore, gymStore } = useStores()
+    const { userStore, workoutStore, gymStore, themeStore } = useStores()
     const [showSaveDialog, setShowSaveDialog] = useState(false)
     const [workoutTitle, setWorkoutTitle] = useState(workoutStore.workoutTitle)
     const [timeElapsed, setTimeElapsed] = useState("00:00:00")
     const [timeSinceLastSet, setTimeSinceLastSet] = useState("00:00")
     const mainNavigation = useMainNavigation()
-    const [userLocation, isGettingUserLocation] = useUserLocation()
+    const { userLocation, isLocationPermissionGranted, isGettingUserLocation } = useUserLocation()
     const [gym, setGym] = useState<Gym>()
 
     useEffect(() => {
-      if (!isGettingUserLocation) {
+      console.debug("ActiveWorkoutScreen.useEffect getClosestGym called")
+      if (isLocationPermissionGranted && !isGettingUserLocation) {
         const userMyGyms = userStore.getProp<Gym[]>("user.myGyms")
         if (userMyGyms && userMyGyms.length > 0) {
           gymStore
@@ -168,7 +147,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
             })
         }
       }
-    }, [userLocation, isGettingUserLocation])
+    }, [isLocationPermissionGranted, isGettingUserLocation])
 
     useEffect(() => {
       if (workoutStore.performedAtGymId && workoutStore.performedAtGymName) {
@@ -229,7 +208,6 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
 
     const $metricsRow: ViewStyle = {
       justifyContent: "space-between",
-      marginTop: spacing.medium,
     }
 
     const $metricLabel: TextStyle = {
@@ -239,7 +217,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
     const $metric: ViewStyle = {
       borderWidth: 1,
       borderRadius: 5,
-      borderColor: colors.separator,
+      borderColor: themeStore.colors("separator"),
       flex: 1,
       padding: spacing.small,
       margin: spacing.extraSmall,
@@ -251,15 +229,6 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
       height: 50,
     }
 
-    const $minimizeAndTimer: ViewStyle = {
-      alignItems: "center",
-      flex: 2,
-    }
-
-    const $workoutTitleContainer: ViewStyle = {
-      flex: 3,
-    }
-
     const $workoutTitleWrapper: TextStyle = {
       borderWidth: 0,
     }
@@ -269,28 +238,27 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
       textAlign: "center",
     }
 
-    const $finishWorkoutButton: ViewStyle & TextStyle = {
-      flex: 2,
-      textAlign: "right",
-      color: colors.actionable,
-    }
-
     return (
       <Screen safeAreaEdges={["top", "bottom"]} preset="scroll" contentContainerStyle={$container}>
         {/* Save workout confirmation dialog */}
         <SaveWorkoutDialog
           visible={showSaveDialog}
-          isAllSetsCompleted={workoutStore.isAllSetsCompleted}
           onSave={saveWorkout}
           onDiscard={discardWorkout}
           onCancel={cancelEndWorkout}
         />
 
         <RowView style={$workoutHeaderRow}>
-          <RowView style={$minimizeAndTimer}>
+          <RowView
+            style={[
+              styles.flex1,
+              styles.alignCenter,
+              workoutStore.restTimeRunning ? styles.flex2 : null,
+            ]}
+          >
             <Icon
               name="chevron-down-outline"
-              color="black"
+              color={themeStore.colors("foreground")}
               size={30}
               onPress={() => mainNavigation.navigate("HomeTabNavigator")}
             />
@@ -299,7 +267,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
 
           <TextField
             selectTextOnFocus
-            containerStyle={$workoutTitleContainer}
+            containerStyle={styles.flex4}
             inputWrapperStyle={$workoutTitleWrapper}
             style={$workoutTitle}
             value={workoutTitle}
@@ -308,24 +276,24 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
             autoCapitalize="sentences"
           />
 
-          {/* TODO: Active workout title should be dependent on the template used */}
-          <Text
+          <Button
             tx="activeWorkoutScreen.finishWorkoutButton"
-            style={$finishWorkoutButton}
+            preset="text"
             onPress={finishWorkout}
           />
         </RowView>
 
         <RowView style={styles.alignCenter}>
-          <Icon name="location-sharp" color="black" size={30} />
-          <Button
-            preset="text"
-            numberOfLines={1}
-            textStyle={{}}
-            onPress={() => mainNavigation.navigate("GymPicker")}
-          >
-            {gym ? gym.gymName : translate("activeWorkoutScreen.setCurrentGymLabel")}
-          </Button>
+          <Icon name="location-sharp" color={themeStore.colors("foreground")} size={30} />
+          <View style={styles.flex1}>
+            <Button
+              preset="text"
+              numberOfLines={1}
+              onPress={() => mainNavigation.navigate("WorkoutGymPicker")}
+              text={gym ? gym.gymName : translate("activeWorkoutScreen.setCurrentGymLabel")}
+              style={styles.justifyStart}
+            />
+          </View>
         </RowView>
 
         <RowView style={$metricsRow}>

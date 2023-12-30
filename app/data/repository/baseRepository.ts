@@ -436,14 +436,16 @@ export class BaseRepository<T, D extends string> {
     }
   }
 
-  // TODO: It is known that a FieldValue will not work for create() methods, will need to find a workaround
   async upsert(id: D, data: Partial<T>): Promise<T> {
     const docExists = this.checkDocumentExists(id)
-    if (docExists) {
-      return await this.update(id, data)
-    } else {
-      return await this.create({ [this.#documentIdField]: id, ...data })
+
+    // Using FieldValue will fail for create() methods
+    // for compatibility, always create if doc does not exist then update
+    if (!docExists) {
+      await this.create({ [this.#documentIdField]: id } as Partial<T>)
     }
+
+    return await this.update(id, data)
   }
 
   async delete(id: D): Promise<void> {

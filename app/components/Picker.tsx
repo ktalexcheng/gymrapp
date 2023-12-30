@@ -1,8 +1,10 @@
 import { Picker as RNPicker } from "@react-native-picker/picker"
 import { TxKeyPath, translate } from "app/i18n"
+import { useStores } from "app/stores"
+import { typography } from "app/theme"
+import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { StyleProp, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
-import { spacing } from "../theme"
 import { Text, TextProps } from "./Text"
 
 export interface PickerProps {
@@ -34,7 +36,7 @@ export interface PickerProps {
   /**
    * Style overrides for the dropdown
    */
-  dropdownStyle?: StyleProp<ViewStyle>
+  pickerStyle?: StyleProp<ViewStyle>
   /**
    * Style overrides for the items
    */
@@ -64,7 +66,7 @@ export interface PickerProps {
 /**
  * A component that allows selecting value from the platform native picker.
  */
-export const Picker: FC<PickerProps> = function Picker(props: PickerProps) {
+export const Picker: FC<PickerProps> = observer(function Picker(props: PickerProps) {
   const {
     labelTx,
     label,
@@ -77,16 +79,24 @@ export const Picker: FC<PickerProps> = function Picker(props: PickerProps) {
     clearSelectionPlaceholderTx,
     clearSelectionCallback,
     containerStyle: $containerStyleOverride,
-    dropdownStyle: $dropdownStyleOverride,
+    pickerStyle: $pickerStyleOverride,
     itemStyle: $itemStyleOverride,
   } = props
   const disabled = status === "disabled"
   const allowClearSelection = !!clearSelectionPlaceholderTx && !!clearSelectionCallback
 
+  const { themeStore } = useStores()
+
   const $containerStyles = [$containerStyleOverride]
-  const $labelStyles = [$labelStyle, LabelTextProps?.style]
-  const $dropdownStyles = [$dropdownStyle, $dropdownStyleOverride]
-  const $itemStyles = [$itemStyle, $itemStyleOverride]
+  const $labelStyles = [LabelTextProps?.style]
+  const $pickerStyles = [
+    {
+      color: themeStore.colors("text"),
+      fontFamily: typography.primary.normal,
+    },
+    $pickerStyleOverride,
+  ]
+  const $itemStyles = [$itemStyleOverride]
 
   return (
     <TouchableOpacity activeOpacity={1} style={$containerStyles} accessibilityState={{ disabled }}>
@@ -101,21 +111,13 @@ export const Picker: FC<PickerProps> = function Picker(props: PickerProps) {
         />
       )}
 
-      {/* <Select style={$dropdownStyles} {...ISelectProps}>
-        {allowClearSelection && (
-          <Select.Item
-            key="clearSelection"
-            style={[$itemStyles, $clearSelectionItemStyle]}
-            label={translate(clearSelectionPlaceholderTx)}
-            value={undefined}
-          />
-        )}
-        {itemsList.map((e) => (
-          <Select.Item key={e.value} style={$itemStyles} label={e.label} value={e.value} />
-        ))}
-      </Select> */}
-
-      <RNPicker selectedValue={selectedValue} onValueChange={onValueChange} style={$dropdownStyles}>
+      <RNPicker
+        selectedValue={selectedValue}
+        onValueChange={onValueChange}
+        style={$pickerStyles}
+        dropdownIconColor={themeStore.colors("text")}
+        dropdownIconRippleColor={themeStore.colors("text")}
+      >
         {allowClearSelection && (
           <RNPicker.Item
             key="clearSelection"
@@ -129,6 +131,7 @@ export const Picker: FC<PickerProps> = function Picker(props: PickerProps) {
             <RNPicker.Item
               key={item.value}
               style={$itemStyles}
+              color={themeStore.colors("text")}
               label={item.label}
               value={item.value}
             />
@@ -137,35 +140,7 @@ export const Picker: FC<PickerProps> = function Picker(props: PickerProps) {
       </RNPicker>
     </TouchableOpacity>
   )
-}
-
-const $labelStyle: TextStyle = {
-  marginBottom: spacing.extraSmall,
-}
-
-const $dropdownStyle: ViewStyle = {
-  // flexDirection: "row",
-  // alignItems: "flex-start",
-  // borderWidth: 1,
-  // borderRadius: 4,
-  // backgroundColor: colors.palette.neutral200,
-  // borderColor: colors.palette.neutral400,
-  // overflow: "hidden",
-}
-
-const $itemStyle: TextStyle = {
-  // flex: 1,
-  // alignSelf: "stretch",
-  // fontFamily: typography.primary.normal,
-  // color: colors.text,
-  // fontSize: 16,
-  // height: 24,
-  // // https://github.com/facebook/react-native/issues/21720#issuecomment-532642093
-  // paddingVertical: 0,
-  // paddingHorizontal: 0,
-  // marginVertical: spacing.extraSmall,
-  // marginHorizontal: spacing.small,
-}
+})
 
 const $clearSelectionItemStyle: TextStyle = {
   fontStyle: "italic",

@@ -1,3 +1,5 @@
+import { useStores } from "app/stores"
+import { observer } from "mobx-react-lite"
 import React, { ComponentType, Fragment, ReactElement } from "react"
 import {
   StyleProp,
@@ -7,10 +9,10 @@ import {
   View,
   ViewStyle,
 } from "react-native"
-import { colors, spacing } from "../theme"
+import { spacing } from "../theme"
 import { Text, TextProps } from "./Text"
 
-type Presets = keyof typeof $containerPresets
+type Presets = "default" | "reversed" | "dimmed"
 
 interface CardProps extends TouchableOpacityProps {
   /**
@@ -121,7 +123,7 @@ interface CardProps extends TouchableOpacityProps {
  *
  * - [Documentation and Examples](https://github.com/infinitered/ignite/blob/master/docs/Components-Card.md)
  */
-export function Card(props: CardProps) {
+export const Card = observer((props: CardProps) => {
   const {
     content,
     contentTx,
@@ -147,6 +149,66 @@ export function Card(props: CardProps) {
     FooterTextProps,
     ...WrapperProps
   } = props
+
+  const { themeStore } = useStores()
+
+  const $containerBase: ViewStyle = {
+    borderRadius: spacing.medium,
+    padding: spacing.extraSmall,
+    borderWidth: 1,
+    shadowColor: themeStore.colors("foreground"),
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12.81,
+    elevation: 16,
+    minHeight: 96,
+    flexDirection: "row",
+  }
+
+  const $containerPresets = {
+    default: [
+      $containerBase,
+      {
+        backgroundColor: themeStore.palette("neutral100"),
+        borderColor: themeStore.palette("neutral300"),
+      },
+    ] as StyleProp<ViewStyle>,
+
+    reversed: [
+      $containerBase,
+      {
+        backgroundColor: themeStore.palette("neutral800"),
+        borderColor: themeStore.palette("neutral500"),
+      },
+    ] as StyleProp<ViewStyle>,
+
+    dimmed: [
+      $containerBase,
+      {
+        backgroundColor: themeStore.palette("neutral100"),
+        borderColor: themeStore.palette("neutral300"),
+        opacity: 0.6,
+      },
+    ] as StyleProp<ViewStyle>,
+  }
+
+  const $headingPresets: Record<Presets, TextStyle> = {
+    default: {},
+    reversed: { color: themeStore.palette("neutral100") },
+    dimmed: { color: themeStore.palette("neutral500") },
+  }
+
+  const $contentPresets: Record<Presets, TextStyle> = {
+    default: {},
+    reversed: { color: themeStore.palette("neutral100") },
+    dimmed: { color: themeStore.palette("neutral500") },
+  }
+
+  const $footerPresets: Record<Presets, TextStyle> = {
+    default: {},
+    reversed: { color: themeStore.palette("neutral100") },
+    dimmed: { color: themeStore.palette("neutral500") },
+  }
 
   const preset: Presets = $containerPresets[props.preset] ? props.preset : "default"
   const isPressable = !!WrapperProps.onPress
@@ -237,20 +299,7 @@ export function Card(props: CardProps) {
       {RightComponent}
     </Wrapper>
   )
-}
-
-const $containerBase: ViewStyle = {
-  borderRadius: spacing.medium,
-  padding: spacing.extraSmall,
-  borderWidth: 1,
-  shadowColor: colors.palette.neutral800,
-  shadowOffset: { width: 0, height: 12 },
-  shadowOpacity: 0.08,
-  shadowRadius: 12.81,
-  elevation: 16,
-  minHeight: 96,
-  flexDirection: "row",
-}
+})
 
 const $alignmentWrapper: ViewStyle = {
   flex: 1,
@@ -263,48 +312,3 @@ const $alignmentWrapperFlexOptions = {
   "space-between": "space-between",
   "force-footer-bottom": "space-between",
 } as const
-
-const $containerPresets = {
-  default: [
-    $containerBase,
-    {
-      backgroundColor: colors.palette.neutral100,
-      borderColor: colors.palette.neutral300,
-    },
-  ] as StyleProp<ViewStyle>,
-
-  reversed: [
-    $containerBase,
-    {
-      backgroundColor: colors.palette.neutral800,
-      borderColor: colors.palette.neutral500,
-    },
-  ] as StyleProp<ViewStyle>,
-
-  dimmed: [
-    $containerBase,
-    {
-      backgroundColor: colors.palette.neutral100,
-      borderColor: colors.palette.neutral300,
-      opacity: 0.6,
-    },
-  ] as StyleProp<ViewStyle>,
-}
-
-const $headingPresets: Record<Presets, TextStyle> = {
-  default: {},
-  reversed: { color: colors.palette.neutral100 },
-  dimmed: { color: colors.palette.neutral500 },
-}
-
-const $contentPresets: Record<Presets, TextStyle> = {
-  default: {},
-  reversed: { color: colors.palette.neutral100 },
-  dimmed: { color: colors.palette.neutral500 },
-}
-
-const $footerPresets: Record<Presets, TextStyle> = {
-  default: {},
-  reversed: { color: colors.palette.neutral100 },
-  dimmed: { color: colors.palette.neutral500 },
-}

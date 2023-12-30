@@ -15,7 +15,7 @@ export default ({ config }) => ({
     splash: {
       image: "./assets/images/splash-logo-all.png",
       resizeMode: "contain",
-      backgroundColor: "#191015",
+      backgroundColor: "#212121",
     },
     updates: {
       fallbackToCacheTimeout: 0,
@@ -33,9 +33,9 @@ export default ({ config }) => ({
         backgroundImage: "./assets/images/app-icon-android-adaptive-background.png",
       },
       splash: {
-        image: "./assets/images/splash-logo-android-universal.png",
+        image: "./assets/images/splash-logo-all.png",
         resizeMode: "contain",
-        backgroundColor: "#191015",
+        backgroundColor: "#212121",
       },
     },
     ios: {
@@ -47,20 +47,20 @@ export default ({ config }) => ({
       supportsTablet: true,
       bundleIdentifier: "com.gymrapp",
       splash: {
-        image: "./assets/images/splash-logo-ios-mobile.png",
-        tabletImage: "./assets/images/splash-logo-ios-tablet.png",
+        image: "./assets/images/splash-logo-all.png",
+        // tabletImage: "./assets/images/splash-logo-ios-tablet.png",
         resizeMode: "contain",
-        backgroundColor: "#191015",
+        backgroundColor: "#212121",
       },
     },
-    web: {
-      favicon: "./assets/images/app-icon-web-favicon.png",
-      splash: {
-        image: "./assets/images/splash-logo-web.png",
-        resizeMode: "contain",
-        backgroundColor: "#191015",
-      },
-    },
+    // web: {
+    //   favicon: "./assets/images/app-icon-web-favicon.png",
+    //   splash: {
+    //     image: "./assets/images/splash-logo-web.png",
+    //     resizeMode: "contain",
+    //     backgroundColor: "#212121",
+    //   },
+    // },
     plugins: [
       "@react-native-firebase/app",
       [

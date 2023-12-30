@@ -1,9 +1,10 @@
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import { GoogleSignin } from "@react-native-google-signin/google-signin"
+import { defaultAppLocale } from "app/utils/appLocale"
 import * as AppleAuthentication from "expo-apple-authentication"
 import * as Crypto from "expo-crypto"
 import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
-import { AppLocale, AuthStoreError, WeightUnit } from "../data/constants"
+import { AuthErrorType, WeightUnit } from "../data/constants"
 import { User } from "../data/model"
 import { Env } from "../utils/expo"
 import { createCustomType } from "./helpers/createCustomType"
@@ -34,7 +35,7 @@ function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.User
     providerId: firebaseUserCred.additionalUserInfo?.providerId ?? "",
     avatarUrl: firebaseUserCred.user?.photoURL ?? "",
     preferences: {
-      appLocale: AppLocale.en_US, // TODO: Default to match user system setting
+      appLocale: defaultAppLocale(),
     },
   } as User
 }
@@ -45,7 +46,7 @@ export const AuthenticationStoreModel = types
     firebaseUserCredential: types.maybe(FirebaseUserCredentialType),
     isAuthenticating: true,
   })
-  .volatile((_) => ({
+  .volatile(() => ({
     loginEmail: "",
     loginPassword: "",
     newFirstName: "",
@@ -57,43 +58,6 @@ export const AuthenticationStoreModel = types
     // firebaseUserCredential can only exist if we got the credentials from Firebase
     get isAuthenticated() {
       return !self.isAuthenticating && !!self.firebaseUserCredential
-    },
-    get signInCredentialsError() {
-      switch (true) {
-        case self.loginEmail.length === 0:
-          return AuthStoreError.EmailMissingError
-        case self.loginEmail.length < 6:
-          return AuthStoreError.EmailLengthError
-        case !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(self.loginEmail):
-          return AuthStoreError.EmailInvalidError
-        case self.loginPassword.length === 0:
-          return AuthStoreError.PasswordMissingError
-        default:
-          return null
-      }
-
-      // if (self.loginEmail.length === 0) return AuthStoreError.EmailMissingError
-      // if (self.loginEmail.length < 6) return AuthStoreError.EmailLengthError
-      // if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(self.loginEmail))
-      //   return AuthStoreError.EmailInvalidError
-      // if (self.loginPassword.length === 0) return AuthStoreError.PasswordMissingError
-
-      // return null
-    },
-    get signUpInfoError() {
-      switch (true) {
-        case self.newFirstName.length === 0:
-          return AuthStoreError.FirstNameMissingError
-        case self.newLastName.length === 0:
-          return AuthStoreError.LastNameMissingError
-        default:
-          return null
-      }
-
-      // if (self.newFirstName.length === 0) return AuthStoreError.FirstNameMissingError
-      // if (self.newLastName.length === 0) return AuthStoreError.LastNameMissingError
-
-      // return null
     },
     get userId() {
       return self.firebaseUserCredential?.user.uid ?? null
@@ -117,33 +81,63 @@ export const AuthenticationStoreModel = types
   .actions(withSetPropAction)
   .actions((self) => {
     function catchAuthError(caller, error) {
-      console.error("AuthenticationStore.catchAuthError called from", caller, ":", error)
-      // Just in case an unexpected error is encountered
-      if (!("code" in error)) {
-        self.authError = error.toString()
+      // expo-apple-authentication errors if login is aborted
+      // ERR_REQUEST_UNKNOWN can happen when the user is not signed in to iCloud on iOS
+      // ERR_REQUEST_CANCELED can happen when the user is signed in to iCloud on iOS but cancels the login
+      if (error?.code === "ERR_REQUEST_CANCELED" || error?.code === "ERR_REQUEST_UNKNOWN") {
+        self.authError = AuthErrorType.LoginCancelledError
         return
       }
 
-      // auth() errors should be one of the following
-      switch (error.code) {
+      // react-native-google-signin errors if login is aborted
+      if (error?.domain === "com.google.GIDSignIn" && error?.code === "-5") {
+        self.authError = AuthErrorType.LoginCancelledError
+        return
+      }
+
+      // firebase.auth() errors should be one of the following
+      switch (error?.code) {
         case "auth/email-already-in-use":
-          self.authError = AuthStoreError.EmailDuplicateError
+          self.authError = AuthErrorType.EmailDuplicateError
           break
         case "auth/user-not-found":
-          self.authError = AuthStoreError.UserNotFoundError
+          self.authError = AuthErrorType.UserNotFoundError
           break
         case "auth/invalid-email":
-          self.authError = AuthStoreError.EmailInvalidError
+          self.authError = AuthErrorType.EmailInvalidError
           break
         case "auth/wrong-password":
-          self.authError = AuthStoreError.PasswordWrongError
+          self.authError = AuthErrorType.PasswordWrongError
           break
         case "auth/too-many-requests":
-          self.authError = AuthStoreError.TooManyRequestsError
+          self.authError = AuthErrorType.TooManyRequestsError
+          break
+        case "auth/network-request-failed":
+          self.authError = AuthErrorType.NetworkError
           break
         default:
-          self.authError = error.toString()
+          // Just in case an unexpected error is encountered
+          console.error("AuthenticationStore.catchAuthError called from", caller, ":", {
+            error,
+            ...error,
+          })
+          self.authError = AuthErrorType.UnknownError
       }
+    }
+
+    // Use this in the authentication stack to prevent bad requests
+    function emailIsInvalid(email: string) {
+      return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    }
+
+    // Use this in the authentication stack to prevent bad requests
+    function passwordIsWeak(password: string) {
+      return (
+        password.length < 8 ||
+        !/[a-z]/.test(password) || // checks for lowercase letter
+        !/[A-Z]/.test(password) || // checks for uppercase letter
+        !/[0-9]/.test(password) // checks for number
+      )
     }
 
     // This is specifically to only overwrite the user property of firebaseUserCredential
@@ -182,7 +176,12 @@ export const AuthenticationStoreModel = types
       self.newLastName = lastName
     }
 
+    function resetAuthError() {
+      self.authError = undefined
+    }
+
     const invalidateSession = flow(function* () {
+      resetAuthError()
       if (auth().currentUser) {
         try {
           yield auth().signOut()
@@ -193,17 +192,15 @@ export const AuthenticationStoreModel = types
       self.firebaseUserCredential = undefined
     })
 
-    function resetAuthError() {
-      self.authError = undefined
-    }
-
     const logout = flow(function* () {
+      resetAuthError()
       self.isAuthenticating = true
       yield invalidateSession()
       self.isAuthenticating = false
     })
 
     const deleteAccount = flow(function* () {
+      resetAuthError()
       self.isAuthenticating = true
       try {
         yield getEnv<RootStoreDependencies>(self).userRepository.delete(self.userId)
@@ -211,39 +208,45 @@ export const AuthenticationStoreModel = types
         self.firebaseUserCredential = undefined
       } catch (error) {
         catchAuthError("deleteAccount", error)
+      } finally {
+        self.isAuthenticating = false
       }
-      self.isAuthenticating = false
     })
 
     const signInWithEmail = flow(function* () {
-      if (self.signInCredentialsError) return
+      resetAuthError()
+      if (emailIsInvalid(self.loginEmail) || passwordIsWeak(self.loginPassword)) return
 
       self.isAuthenticating = true
 
       try {
-        const userCred = yield auth()
-          .signInWithEmailAndPassword(self.loginEmail, self.loginPassword)
-          .catch((e) => catchAuthError("signInWithEmail", e))
+        const userCred = yield auth().signInWithEmailAndPassword(
+          self.loginEmail,
+          self.loginPassword,
+        )
 
         if (userCred) {
           setFirebaseUserCredential(userCred)
         }
-
-        self.isAuthenticating = false
       } catch (e) {
-        console.error("AuthenticationStore.signInWithEmail error:", e)
+        // console.error("AuthenticationStore.signInWithEmail error:", e)
+        catchAuthError("signInWithEmail", e)
+      } finally {
+        self.isAuthenticating = false
       }
     })
 
     const signUpWithEmail = flow(function* () {
-      if (self.signInCredentialsError) return
+      resetAuthError()
+      if (emailIsInvalid(self.loginEmail) || passwordIsWeak(self.loginPassword)) return
 
       self.isAuthenticating = true
 
       try {
-        const userCred = yield auth()
-          .createUserWithEmailAndPassword(self.loginEmail, self.loginPassword)
-          .catch((e) => catchAuthError("signUpWithEmail", e))
+        const userCred = yield auth().createUserWithEmailAndPassword(
+          self.loginEmail,
+          self.loginPassword,
+        )
 
         if (userCred) {
           setFirebaseUserCredential(userCred)
@@ -257,20 +260,22 @@ export const AuthenticationStoreModel = types
             lastName: self.newLastName,
             providerId: userCred.additionalUserInfo?.providerId ?? "",
             preferences: {
-              appLocale: AppLocale.en_US, // TODO: Default to match user system setting
+              appLocale: defaultAppLocale(),
               weightUnit: WeightUnit.kg,
             },
             avatarUrl: null,
           } as User)
         }
-
-        self.isAuthenticating = false
       } catch (e) {
-        console.error("AuthenticationStore.signUpWithEmail error:", e)
+        // console.error("AuthenticationStore.signUpWithEmail error:", e)
+        catchAuthError("signUpWithEmail", e)
+      } finally {
+        self.isAuthenticating = false
       }
     })
 
     const signInWithGoogle = flow(function* () {
+      resetAuthError()
       self.isAuthenticating = true
 
       // Check if your device supports Google Play
@@ -278,9 +283,12 @@ export const AuthenticationStoreModel = types
         showPlayServicesUpdateDialog: true,
       })
       if (!hasPlayServices) {
-        console.error(
-          "AuthenticationStore.signInWithGoogle error: Google Play Services are not available",
-        )
+        // console.error(
+        //   "AuthenticationStore.signInWithGoogle error: Google Play Services are not available",
+        // )
+        catchAuthError("signInWithGoogle", "Google Play Services are not available")
+        self.isAuthenticating = false
+        return
       }
 
       try {
@@ -307,11 +315,15 @@ export const AuthenticationStoreModel = types
     })
 
     const signInWithApple = flow(function* () {
+      resetAuthError()
       self.isAuthenticating = true
 
       const appleAuthAvailable = yield AppleAuthentication.isAvailableAsync()
       if (!appleAuthAvailable) {
-        console.error("AuthenticationStore.signInWithApple error: Apple login is not available")
+        // console.error("AuthenticationStore.signInWithApple error: Apple login is not available")
+        catchAuthError("signInWithApple", "Apple login is not available")
+        self.isAuthenticating = false
+        return
       }
 
       try {
@@ -332,7 +344,9 @@ export const AuthenticationStoreModel = types
 
         const { identityToken } = appleCredential
         if (!identityToken) {
-          console.error("AuthenticationStore.signInWithApple error: identityToken is null")
+          // console.error("AuthenticationStore.signInWithApple error: identityToken is null")
+          catchAuthError("signInWithApple", "identityToken is null")
+          return
         }
 
         const firebaseCredential = auth.AppleAuthProvider.credential(identityToken, nonce)
@@ -344,8 +358,9 @@ export const AuthenticationStoreModel = types
           const user = createUserFromFirebaseUserCred(userCred)
           getEnv<RootStoreDependencies>(self).userRepository.create(user)
         }
-      } catch (error) {
-        console.error("AuthenticationStore.signInWithApple error:", error)
+      } catch (e) {
+        // console.error("AuthenticationStore.signInWithApple error:", e)
+        catchAuthError("signInWithApple", e)
       } finally {
         self.isAuthenticating = false
       }
@@ -354,6 +369,8 @@ export const AuthenticationStoreModel = types
     })
 
     return {
+      emailIsInvalid,
+      passwordIsWeak,
       setFirebaseUser,
       setFirebaseUserCredential,
       setLoginEmail,

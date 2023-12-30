@@ -9,9 +9,9 @@ import Toast from "react-native-root-toast"
 import { Button, Picker, Screen, Spacer, Text, TextField } from "../../components"
 import { MainStackScreenProps } from "../../navigators"
 
-interface AddExerciseScreenProps extends MainStackScreenProps<"CreateExercise"> {}
+interface CreateExerciseScreenProps extends MainStackScreenProps<"CreateExercise"> {}
 
-export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
+export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
   const [activityName, setActivityName] = useState("")
   const [exerciseCat1, setExerciseCat1] = useState("")
   const [exerciseCat2, setExerciseCat2] = useState("")
@@ -22,7 +22,7 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
 
   async function addExercise() {
     if (!activityName || !exerciseCat1 || !volumeType || !exerciseName) {
-      Toast.show(translate("addExerciseScreen.requiredFieldsMissingMessage", { duration: 500 }))
+      Toast.show(translate("createExerciseScreen.requiredFieldsMissingMessage", { duration: 500 }))
       return
     }
 
@@ -50,40 +50,41 @@ export const CreateExerciseScreen: FC<AddExerciseScreenProps> = () => {
 
   return (
     <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$container} preset="auto">
-      <Text tx="addExerciseScreen.disclaimer" preset="formHelper" />
+      <Text tx="createExerciseScreen.createExerciseTitle" preset="heading" />
+      <Text tx="createExerciseScreen.disclaimer" preset="formHelper" />
       <Spacer type="vertical" size="massive" />
       <Picker
         selectedValue={activityName}
         onValueChange={setActivityName}
-        labelTx="addExerciseScreen.activityType"
+        labelTx="createExerciseScreen.activityType"
         itemsList={getDropdownValues("activityName")}
       />
       <Picker
         selectedValue={exerciseCat1}
         onValueChange={setExerciseCat1}
-        labelTx="addExerciseScreen.exerciseCat1"
+        labelTx="createExerciseScreen.exerciseCat1"
         itemsList={getDropdownValues("exerciseCat1")}
       />
       <Picker
         selectedValue={exerciseCat2}
         onValueChange={setExerciseCat2}
-        labelTx="addExerciseScreen.exerciseCat2"
+        labelTx="createExerciseScreen.exerciseCat2"
         itemsList={getDropdownValues("exerciseCat2")}
-        clearSelectionPlaceholderTx="addExerciseScreen.setAsBlankLabel"
+        clearSelectionPlaceholderTx="createExerciseScreen.setAsBlankLabel"
         clearSelectionCallback={() => setExerciseCat2("")}
       />
       <Picker
         selectedValue={volumeType}
         onValueChange={setVolumeType}
-        labelTx="addExerciseScreen.volumeType"
+        labelTx="createExerciseScreen.volumeType"
         itemsList={getDropdownValues("volumeType")}
       />
       <TextField
         value={exerciseName}
         onChangeText={setExerciseName}
-        labelTx="addExerciseScreen.exerciseName"
+        labelTx="createExerciseScreen.exerciseName"
       />
-      <Button tx="addExerciseScreen.addExerciseButton" style={$button} onPress={addExercise} />
+      <Button tx="createExerciseScreen.addExerciseButton" style={$button} onPress={addExercise} />
     </Screen>
   )
 }

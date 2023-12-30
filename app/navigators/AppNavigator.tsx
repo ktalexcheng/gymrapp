@@ -4,14 +4,32 @@
  * Generally speaking, it will contain an auth flow (registration, login, forgot password)
  * and a "main" flow which the user will use once logged in.
  */
+import NetInfo from "@react-native-community/netinfo"
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/native"
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
+import { Icon, RowView, Text } from "app/components"
+import { AppColorScheme } from "app/data/constants"
+import { LoadingScreen } from "app/screens"
+import { api } from "app/services/api"
+import { spacing } from "app/theme"
+import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
+import * as NavigationBar from "expo-navigation-bar"
+import { setStatusBarStyle } from "expo-status-bar"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
-import { useColorScheme } from "react-native"
+import {
+  Alert,
+  AppState,
+  Linking,
+  Platform,
+  StyleProp,
+  ViewStyle,
+  useColorScheme,
+} from "react-native"
 import Config from "../config"
 import { useStores } from "../stores"
+import { darkColors, lightColors } from "../theme/colors"
 import { AuthNavigator } from "./AuthNavigator"
 import { MainNavigator } from "./MainNavigator"
 import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
@@ -32,6 +50,7 @@ import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
 export type AppStackParamList = {
   Welcome: undefined
   // 🔥 Your screens go here
+  AppDisabled: undefined
   MainNavigator: undefined
   AuthNavigator: undefined
   // IGNITE_GENERATOR_ANCHOR_APP_STACK_PARAM_LIST
@@ -52,7 +71,8 @@ export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStack
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = observer(function AppStack() {
-  const { authenticationStore: authStore, userStore, feedStore } = useStores()
+  const { authenticationStore: authStore, userStore, feedStore, exerciseStore } = useStores()
+  const [forceUpdate, setForceUpdate] = useState(false)
 
   // Set an initializing state whilst Firebase connects
   const [initializing, setInitializing] = useState(true)
@@ -76,6 +96,42 @@ const AppStack = observer(function AppStack() {
   }
 
   useEffect(() => {
+    // Check for updates
+    const checkForUpdates = async () => {
+      const updates = await api.checkForUpdates(exerciseStore.lastUpdated)
+
+      if (updates.updateAvailable) {
+        if (updates.forceUpdate) {
+          setForceUpdate(true)
+        }
+
+        Alert.alert(
+          "Update available",
+          updates.forceUpdate
+            ? "There is a new version of GymRapp available. Please update now to continue using the app."
+            : "There is a new version of GymRapp available. Would you like to update now?",
+          [
+            {
+              text: "Update",
+              onPress: () => {
+                Linking.openURL(updates.updateLink)
+              },
+            },
+            !updates.forceUpdate && {
+              text: "Cancel",
+              onPress: () => {},
+              style: "cancel",
+            },
+          ],
+        )
+      }
+
+      if (authStore.isAuthenticated && updates.exercisesUpdateAvailable) {
+        await exerciseStore.getAllExercises()
+      }
+    }
+    checkForUpdates()
+
     // Force token refresh
     if (auth().currentUser) {
       auth()
@@ -86,9 +142,17 @@ const AppStack = observer(function AppStack() {
     }
 
     // Event is fired upon app initialization as well
-    console.debug("AppNavigator useEffect [] called")
-    const unsubscribe = auth().onAuthStateChanged(onAuthStateChanged)
-    return unsubscribe // unsubscribe on unmount
+    const unsubscribeAuthChange = auth().onAuthStateChanged(onAuthStateChanged)
+    const subscriptionAppStateChange = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        checkForUpdates()
+      }
+    })
+
+    return () => {
+      unsubscribeAuthChange()
+      subscriptionAppStateChange.remove()
+    }
   }, [])
 
   if (initializing) return null
@@ -96,11 +160,15 @@ const AppStack = observer(function AppStack() {
   return (
     <Stack.Navigator
       screenOptions={{ headerShown: false }}
-      initialRouteName={authStore.isAuthenticated ? "MainNavigator" : "AuthNavigator"}
+      initialRouteName={
+        forceUpdate ? "AppDisabled" : authStore.isAuthenticated ? "MainNavigator" : "AuthNavigator"
+      }
     >
       {/* <Stack.Screen name="Welcome" component={Screens.WelcomeScreen} /> */}
       {/** 🔥 Your screens go here */}
-      {authStore.isAuthenticated ? (
+      {forceUpdate ? (
+        <Stack.Screen name="AppDisabled" component={LoadingScreen} />
+      ) : authStore.isAuthenticated ? (
         <Stack.Screen name="MainNavigator" component={MainNavigator} />
       ) : (
         <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
@@ -114,16 +182,92 @@ export interface NavigationProps
   extends Partial<React.ComponentProps<typeof NavigationContainer>> {}
 
 export const AppNavigator = observer(function AppNavigator(props: NavigationProps) {
-  const colorScheme = useColorScheme()
+  const { userStore, themeStore } = useStores()
+  const systemColorScheme = useColorScheme() // Initial system color scheme
+  const [isInternetConnected, setIsInternetConnected] = useState(true)
+
+  // Set initial theme and react to system and user preference changes
+  useEffect(() => {
+    console.debug("AppNavigator.useEffect colorScheme:", systemColorScheme)
+    // Get user color scheme preference
+    const userColorScheme = userStore.getUserPreference<AppColorScheme>("appColorScheme")
+
+    // Update theme store
+    themeStore.setProp("systemColorScheme", systemColorScheme)
+    themeStore.setProp("appColorScheme", userColorScheme)
+
+    setStatusBarStyle(themeStore.isDark ? "light" : "dark")
+    if (Platform.OS === "android") {
+      NavigationBar.setBackgroundColorAsync(themeStore.colors("background"))
+      NavigationBar.setButtonStyleAsync(themeStore.isDark ? "light" : "dark")
+    }
+  }, [systemColorScheme, userStore.getUserPreference("appColorScheme")])
+
+  useEffect(() => {
+    // Listen to network state change
+    const unsubscribeNetworkChange = NetInfo.addEventListener((state) => {
+      console.debug("AppNavigator.useEffect NetInfo", state)
+      setIsInternetConnected(state.isConnected)
+    })
+
+    return () => {
+      unsubscribeNetworkChange()
+    }
+  }, [])
+
+  const darkTheme = {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      primary: darkColors.tint,
+      background: darkColors.background,
+      card: darkColors.contentBackground,
+      text: darkColors.text,
+      border: darkColors.border,
+      notification: darkColors.contentBackground,
+    },
+  }
+
+  const lightTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: lightColors.tint,
+      background: lightColors.background,
+      card: lightColors.contentBackground,
+      text: lightColors.text,
+      border: lightColors.border,
+      notification: lightColors.contentBackground,
+    },
+  }
+
+  const $topSafeAreaInset = useSafeAreaInsetsStyle(["top"], "margin")
+  const $internetStatusBarInset: StyleProp<ViewStyle> = {
+    position: "absolute",
+    zIndex: 1,
+    top: $topSafeAreaInset.marginTop,
+    left: 0,
+    right: 0,
+    height: spacing.screenPadding,
+    backgroundColor: themeStore.colors("danger"),
+    alignItems: "center",
+    justifyContent: "center",
+  }
 
   useBackButtonHandler((routeName) => exitRoutes.includes(routeName))
 
   return (
     <NavigationContainer
       ref={navigationRef}
-      theme={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+      theme={themeStore.isDark ? darkTheme : lightTheme}
       {...props}
     >
+      {!isInternetConnected && (
+        <RowView style={$internetStatusBarInset}>
+          <Icon name="alert-circle-outline" size={14} />
+          <Text tx="common.networkError" size="xxs" />
+        </RowView>
+      )}
       <AppStack />
     </NavigationContainer>
   )

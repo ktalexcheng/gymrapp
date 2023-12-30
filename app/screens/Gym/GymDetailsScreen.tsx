@@ -9,7 +9,7 @@ import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
-import { ActivityIndicator, FlatList, View, ViewStyle } from "react-native"
+import { ActivityIndicator, FlatList, TouchableOpacity, View, ViewStyle } from "react-native"
 import { SceneMap, TabView } from "react-native-tab-view"
 import { WorkoutSummaryCard } from "../FinishedWorkout"
 
@@ -29,10 +29,10 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
         data={workouts}
         renderItem={({ item }) => (
           <WorkoutSummaryCard
+            workout={item}
             workoutSource={WorkoutSource.Feed}
             workoutId={item.workoutId}
             byUser={byUsers[item.byUserId]}
-            workout={item}
           />
         )}
         keyExtractor={(item) => item.workoutId}
@@ -71,12 +71,23 @@ interface GymMembersTabSceneProps {
 const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
   (props: GymMembersTabSceneProps) => {
     const { gymMembers, onEndReached, noMoreMembers } = props
+    const { themeStore } = useStores()
     const sortedGymMembers = Object.values(gymMembers).sort(
       (a, b) => b.workoutCount ?? 0 - a.workoutCount ?? 0,
     )
 
+    const $tileHeader: ViewStyle = {
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.medium,
+    }
+
     const $tileContainer: ViewStyle = {
-      ...styles.listItemContainer,
+      // ...styles.listItemContainer,
+      marginVertical: spacing.tiny,
+      borderRadius: 10,
+      paddingVertical: spacing.extraSmall,
+      paddingHorizontal: spacing.medium,
+      backgroundColor: themeStore.colors("contentBackground"),
       justifyContent: "space-between",
     }
 
@@ -90,32 +101,38 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
     }
 
     return (
-      <FlatList
-        data={sortedGymMembers}
-        renderItem={({ item }) => <GymMemberTile {...item} />}
-        keyExtractor={(item) => item.userId}
-        onEndReachedThreshold={0.5}
-        onEndReached={!noMoreMembers && onEndReached}
-        ListFooterComponent={() => {
-          if (sortedGymMembers.length === 0) {
-            return (
-              <View style={styles.alignCenter}>
-                <Text tx="gymDetailsScreen.noActivityMessage" />
-              </View>
-            )
-          }
+      <>
+        <RowView style={$tileHeader}>
+          <Text preset="formLabel" tx="common.user" />
+          <Text preset="formLabel" tx="common.workouts" />
+        </RowView>
+        <FlatList
+          data={sortedGymMembers}
+          renderItem={({ item }) => <GymMemberTile {...item} />}
+          keyExtractor={(item) => item.userId}
+          onEndReachedThreshold={0.5}
+          onEndReached={!noMoreMembers && onEndReached}
+          ListFooterComponent={() => {
+            if (sortedGymMembers.length === 0) {
+              return (
+                <View style={styles.alignCenter}>
+                  <Text tx="gymDetailsScreen.noActivityMessage" />
+                </View>
+              )
+            }
 
-          if (noMoreMembers) {
-            return (
-              <View style={styles.alignCenter}>
-                <Text style={styles.alignCenter} tx="gymDetailsScreen.noMoreMembersMessage" />
-              </View>
-            )
-          }
+            if (noMoreMembers) {
+              return (
+                <View style={styles.alignCenter}>
+                  <Text style={styles.alignCenter} tx="gymDetailsScreen.noMoreMembersMessage" />
+                </View>
+              )
+            }
 
-          return <ActivityIndicator />
-        }}
-      />
+            return <ActivityIndicator />
+          }}
+        />
+      </>
     )
   },
 )
@@ -126,6 +143,7 @@ export const GymDetailsScreen: FC = observer(({ route }: GymDetailsScreenProps) 
   const gymId = route.params.gymId
   const { gymStore, userStore } = useStores()
   const [gymDetails, setGymDetails] = useState<GymDetails>(undefined)
+  const [showEntireName, setShowEntireName] = useState(false)
   const [gymWorkouts, setGymWorkouts] = useState<Workout[]>([])
   const [lastWorkoutId, setLastWorkoutId] = useState<WorkoutId>(undefined)
   const [noMoreWorkouts, setNoMoreWorkouts] = useState(true)
@@ -232,42 +250,45 @@ export const GymDetailsScreen: FC = observer(({ route }: GymDetailsScreenProps) 
 
   useEffect(() => {
     const refreshGymDetails = async () => {
+      setIsRefreshing(true)
       await gymStore
         .getGymById(gymId)
         .then((gym) => {
           setGymDetails(gym)
-          setIsRefreshing(false)
         })
         .catch((e) => {
           console.error("GymDetailsScreen.useEffect getGymById error:", e)
-          setIsRefreshing(false)
         })
+        .finally(() => setIsRefreshing(false))
     }
 
     refreshGymDetails()
   }, [refreshGymDetailsKey])
 
   const refreshGymDetails = () => {
-    setIsRefreshing(true)
     setRefreshGymDetailsKey((prev) => prev + 1)
   }
 
   const handleAddToMyGyms = () => {
+    setIsRefreshing(true)
     userStore
       .addToMyGyms(gymDetails)
       .then(() => refreshGymDetails())
       .catch((e) => {
         console.error("GymDetailsScreen.handleAddToMyGyms error:", e)
       })
+      .finally(() => setIsRefreshing(false))
   }
 
   const handleRemoveFromMyGyms = () => {
+    setIsRefreshing(true)
     userStore
       .removeFromMyGyms(gymDetails)
       .then(() => refreshGymDetails())
       .catch((e) => {
         console.error("GymDetailsScreen.handleRemoveFromMyGyms error:", e)
       })
+      .finally(() => setIsRefreshing(false))
   }
 
   const renderAddRemoveButton = () => {
@@ -289,15 +310,14 @@ export const GymDetailsScreen: FC = observer(({ route }: GymDetailsScreenProps) 
   if (!gymDetails) return null
 
   return (
-    <Screen
-      safeAreaEdges={["bottom"]}
-      contentContainerStyle={$container}
-      // preset="scroll"
-      // ScrollViewProps={{
-      //   refreshControl: <RefreshControl refreshing={isRefreshing} onRefresh={refreshGymDetails} />,
-      // }}
-    >
-      <Text text={gymDetails.gymName} preset="heading" />
+    <Screen safeAreaEdges={["bottom"]} contentContainerStyle={$container} isBusy={isRefreshing}>
+      <TouchableOpacity onPress={() => setShowEntireName(!showEntireName)}>
+        <Text
+          text={gymDetails.gymName}
+          preset="heading"
+          numberOfLines={showEntireName ? null : 2}
+        />
+      </TouchableOpacity>
       <Spacer type="vertical" size="tiny" />
       <Text text={gymDetails.googleMapsPlaceDetails?.formatted_address} />
       <Spacer type="vertical" size="tiny" />

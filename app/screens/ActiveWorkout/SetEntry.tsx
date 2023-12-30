@@ -1,25 +1,27 @@
+import { TimePicker } from "app/components/TimePicker"
 import { ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import { ExerciseSet, RepsExerciseSet, TimeExerciseSet } from "app/data/model"
 import { useExerciseSetting, useSetFromLastWorkout, useWeight } from "app/hooks"
 import { translate } from "app/i18n"
 import { roundToString } from "app/utils/formatNumber"
-import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
+import { formatSecondsAsTime } from "app/utils/formatTime"
 import { Weight } from "app/utils/weight"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
-import {
-  Modal,
-  TextStyle,
-  TouchableOpacity,
-  View,
-  ViewProps,
-  ViewStyle,
-  useWindowDimensions,
-} from "react-native"
+import { TextStyle, TouchableOpacity, View, ViewProps, ViewStyle } from "react-native"
 import { Swipeable } from "react-native-gesture-handler"
-import { Button, Icon, PickerModal, RowView, Spacer, Text, TextField } from "../../components"
+import {
+  Button,
+  Icon,
+  Modal,
+  PickerModal,
+  RowView,
+  Spacer,
+  Text,
+  TextField,
+} from "../../components"
 import { useStores } from "../../stores"
-import { colors, spacing, styles, thresholds } from "../../theme"
+import { spacing, styles, thresholds } from "../../theme"
 
 // RPE list 6 - 10
 const rpeList = Array.from({ length: 9 }, (_, i) => {
@@ -83,7 +85,7 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
     onPressPreviousSet,
     onPressCompleteSet,
   } = props
-  const { workoutStore } = useStores()
+  const { workoutStore, themeStore } = useStores()
   const exerciseSetStore = workoutStore.exercises.at(exerciseOrder).setsPerformed[setOrder]
 
   function renderRightDelete() {
@@ -97,7 +99,7 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
     }
 
     const $deleteButton: ViewStyle = {
-      backgroundColor: colors.danger,
+      backgroundColor: themeStore.colors("danger"),
       paddingHorizontal: spacing.small,
       paddingVertical: 0,
       minHeight: 40,
@@ -112,26 +114,36 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
   }
 
   const $exerciseSetCompletion: ViewStyle = {
-    backgroundColor: isCompleted ? colors.success : colors.background,
+    backgroundColor: isCompleted ? themeStore.colors("lightTint") : themeStore.colors("background"),
   }
 
   return (
     <Swipeable renderRightActions={renderRightDelete} rightThreshold={thresholds.swipeableRight}>
       <RowView style={[$exerciseSet, $exerciseSetCompletion]}>
-        <Text text={props.setOrder.toString()} style={[$setOrderColumn, $textAlignCenter]} />
+        <Text text={(props.setOrder + 1).toString()} style={[$setOrderColumn, $textAlignCenter]} />
         <TouchableOpacity
           disabled={!setFromLastWorkout}
           onPress={onPressPreviousSet}
           style={$previousColumn}
         >
-          <Text text={renderPreviousSetText()} style={$textAlignCenter} />
+          <Text text={renderPreviousSetText()} size="xs" style={$previousSetText} />
         </TouchableOpacity>
         {props.children}
         <View style={[$isCompletedColumn, $textAlignCenter]}>
           {exerciseSetStore.isCompleted ? (
-            <Icon name="checkbox" color="black" size={30} onPress={onPressCompleteSet} />
+            <Icon
+              name="checkbox"
+              color={themeStore.colors("foreground")}
+              size={30}
+              onPress={onPressCompleteSet}
+            />
           ) : (
-            <Icon name="checkbox-outline" color="black" size={30} onPress={onPressCompleteSet} />
+            <Icon
+              name="checkbox-outline"
+              color={themeStore.colors("foreground")}
+              size={30}
+              onPress={onPressCompleteSet}
+            />
           )}
         </View>
       </RowView>
@@ -141,7 +153,7 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
 
 const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const { exerciseId, exerciseOrder, setOrder } = props
-  const { workoutStore } = useStores()
+  const { workoutStore, themeStore } = useStores()
 
   // Current exercise set
   const exerciseSetStore = workoutStore.exercises.at(exerciseOrder).setsPerformed[setOrder]
@@ -155,17 +167,17 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 
   // States
   const [time, setTime] = useState<number>(exerciseSetStore.time)
-  const [timeMinutesInput, setTimeMinutesInput] = useState<string>("")
-  const [timeSecondsInput, setTimeSecondsInput] = useState<string>("")
+  // const [timeMinutesInput, setTimeMinutesInput] = useState<string>("")
+  // const [timeSecondsInput, setTimeSecondsInput] = useState<string>("")
+  const [pickerTimeAsSeconds, setPickerTimeAsSeconds] = useState<number>(exerciseSetStore.time)
   const [isNullTime, setIsNullTime] = useState(false)
   const [showTimeInput, setShowTimeInput] = useState(false)
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions()
 
   useEffect(() => {
     if (time) {
       exerciseSetStore.updateSetValues("time", time)
-      setTimeMinutesInput(Math.floor(time / 60).toString())
-      setTimeSecondsInput((time % 60).toString())
+      // setTimeMinutesInput(Math.floor(time / 60).toString())
+      // setTimeSecondsInput((time % 60).toString())
     }
   }, [time])
 
@@ -180,40 +192,45 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     setTime(setFromLastWorkout.time)
   }
 
+  // const updateTime = () => {
+  //   console.debug("updateTime timeMinutesInput", parseInt(timeMinutesInput ?? "0"))
+  //   console.debug("updateTime timeSecondsInput", parseInt(timeSecondsInput) ?? 0)
+  //   let seconds = timeMinutesInput ? parseInt(timeMinutesInput) * 60 : 0
+  //   seconds += timeSecondsInput ? parseInt(timeSecondsInput) : 0
+
+  //   if (!seconds) {
+  //     setTime(undefined)
+  //   } else {
+  //     setTime(seconds)
+  //   }
+  // }
+
   const updateTime = () => {
-    console.debug("updateTime timeMinutesInput", parseInt(timeMinutesInput ?? "0"))
-    console.debug("updateTime timeSecondsInput", parseInt(timeSecondsInput) ?? 0)
-    let seconds = timeMinutesInput ? parseInt(timeMinutesInput) * 60 : 0
-    seconds += timeSecondsInput ? parseInt(timeSecondsInput) : 0
-
-    if (!seconds) {
-      setTime(undefined)
-    } else {
-      setTime(seconds)
-    }
+    if (pickerTimeAsSeconds) setTime(pickerTimeAsSeconds)
+    else setTime(undefined)
   }
 
-  const handleTimeChangeText = (
-    setter: React.Dispatch<React.SetStateAction<string>>,
-    value: string,
-    maxValue: number,
-  ) => {
-    if (!value) {
-      setter(null)
-      return
-    }
+  // const handleTimeChangeText = (
+  //   setter: React.Dispatch<React.SetStateAction<string>>,
+  //   value: string,
+  //   maxValue: number,
+  // ) => {
+  //   if (!value) {
+  //     setter(null)
+  //     return
+  //   }
 
-    if (!isValidPrecision(value, 0)) {
-      return
-    }
+  //   if (!isValidPrecision(value, 0)) {
+  //     return
+  //   }
 
-    if (parseInt(value) > maxValue) {
-      setter(maxValue.toString())
-      return
-    }
+  //   if (parseInt(value) > maxValue) {
+  //     setter(maxValue.toString())
+  //     return
+  //   }
 
-    setter(value)
-  }
+  //   setter(value)
+  // }
 
   function toggleSetStatus() {
     if (exerciseSetStore.isCompleted) {
@@ -234,33 +251,20 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     setIsNullTime(false)
   }
 
-  const $timeInputModalContainer: ViewStyle = {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  }
-
-  const $timeInputModal: ViewStyle = {
-    width: windowWidth * 0.7,
-    height: windowHeight * 0.2,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 10,
-    backgroundColor: colors.contentBackground,
-  }
-
-  const $timeInputTextField: ViewStyle = {
-    minWidth: 60,
-  }
+  // const $timeInputTextField: ViewStyle = {
+  //   minWidth: 60,
+  // }
 
   const $timeColumn: ViewStyle = {
     flex: 3,
+    height: 40,
     alignItems: "center",
-    borderWidth: 1,
+    justifyContent: "center",
+    borderWidth: exerciseSetStore.isCompleted ? null : 1,
     borderRadius: 4,
-    borderColor: isNullTime ? colors.error : colors.border,
+    borderColor: isNullTime ? themeStore.colors("error") : themeStore.colors("border"),
   }
-
+  console.debug("TimeSetEntry time", time)
   return (
     <>
       <Modal
@@ -269,44 +273,44 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
         visible={showTimeInput}
         onRequestClose={() => setShowTimeInput(false)}
       >
-        <View style={$timeInputModalContainer}>
-          <View style={$timeInputModal}>
-            <Text tx="activeWorkoutScreen.enterTimeLabel" preset="formHelper" />
-            <RowView style={styles.alignCenter}>
-              <TextField
-                containerStyle={$timeInputTextField}
-                textAlign="center"
-                value={timeMinutesInput}
-                onChangeText={(value) => handleTimeChangeText(setTimeMinutesInput, value, 99)}
-                onBlur={() => {
-                  if (timeMinutesInput && !timeSecondsInput) setTimeSecondsInput("00")
-                }}
-              />
-              <Text text=":" />
-              <TextField
-                containerStyle={$timeInputTextField}
-                textAlign="center"
-                value={timeSecondsInput}
-                onChangeText={(value) => handleTimeChangeText(setTimeSecondsInput, value, 59)}
-                onBlur={() => {
-                  if (timeSecondsInput === "0") setTimeSecondsInput("00")
-                }}
-              />
-            </RowView>
-            <Spacer type="vertical" size="medium" />
-            <RowView>
-              <Button
-                tx="common.ok"
-                onPress={() => {
-                  updateTime()
-                  setShowTimeInput(false)
-                }}
-              />
-              <Spacer type="horizontal" size="small" />
-              <Button tx="common.cancel" onPress={() => setShowTimeInput(false)} />
-            </RowView>
-          </View>
-        </View>
+        <Text tx="activeWorkoutScreen.enterTimeLabel" preset="formHelper" />
+        {/* <RowView style={[styles.justifyCenter, styles.alignCenter]}>
+          <TextField
+            status={exerciseSetStore.isCompleted ? "disabled" : null}
+            containerStyle={$timeInputTextField}
+            textAlign="center"
+            value={timeMinutesInput}
+            onChangeText={(value) => handleTimeChangeText(setTimeMinutesInput, value, 99)}
+            onBlur={() => {
+              if (timeMinutesInput && !timeSecondsInput) setTimeSecondsInput("00")
+            }}
+          />
+          <Text text=":" />
+          <TextField
+            status={exerciseSetStore.isCompleted ? "disabled" : null}
+            containerStyle={$timeInputTextField}
+            textAlign="center"
+            value={timeSecondsInput}
+            onChangeText={(value) => handleTimeChangeText(setTimeSecondsInput, value, 59)}
+            onBlur={() => {
+              if (timeSecondsInput === "0") setTimeSecondsInput("00")
+            }}
+          />
+        </RowView> */}
+        <TimePicker initialValue={pickerTimeAsSeconds} onValueChange={setPickerTimeAsSeconds} />
+        <Spacer type="vertical" size="medium" />
+        <RowView style={styles.justifyCenter}>
+          <Button
+            preset="text"
+            tx="common.ok"
+            onPress={() => {
+              updateTime()
+              setShowTimeInput(false)
+            }}
+          />
+          <Spacer type="horizontal" size="small" />
+          <Button preset="text" tx="common.cancel" onPress={() => setShowTimeInput(false)} />
+        </RowView>
       </Modal>
       <SetSwipeableContainer
         exerciseOrder={exerciseOrder}
@@ -317,7 +321,11 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
         onPressPreviousSet={copyPreviousSet}
         onPressCompleteSet={toggleSetStatus}
       >
-        <TouchableOpacity style={$timeColumn} onPress={() => setShowTimeInput(true)}>
+        <TouchableOpacity
+          disabled={exerciseSetStore.isCompleted}
+          style={$timeColumn}
+          onPress={() => setShowTimeInput(true)}
+        >
           <Text>{time && formatSecondsAsTime(time)}</Text>
         </TouchableOpacity>
       </SetSwipeableContainer>
@@ -326,7 +334,7 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 })
 
 const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
-  const { workoutStore } = useStores()
+  const { workoutStore, themeStore } = useStores()
   const { exerciseId, exerciseOrder, setOrder } = props
 
   // Current exercise set
@@ -473,10 +481,12 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       <View style={$weightColumn}>
         <TextField
           // status={isNullWeight ? "error" : null}
+          status={exerciseSetStore.isCompleted ? "disabled" : null}
+          style={{ color: themeStore.colors("text") }}
+          textAlignVertical="center"
           value={weightInput ?? ""}
           onChangeText={handleWeightChangeText}
-          inputWrapperStyle={styles.transparentBackground}
-          containerStyle={$textFieldContainer}
+          inputWrapperStyle={$textFieldWrapper}
           textAlign="center"
           autoCorrect={false}
           keyboardType="decimal-pad"
@@ -486,11 +496,12 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       </View>
       <View style={$repsColumn}>
         <TextField
-          status={isNullReps ? "error" : null}
+          status={isNullReps ? "error" : exerciseSetStore.isCompleted ? "disabled" : null}
+          style={{ color: themeStore.colors("text") }}
+          textAlignVertical="center"
           value={repsInput ?? ""}
           onChangeText={handleRepsChangeText}
-          inputWrapperStyle={styles.transparentBackground}
-          containerStyle={$textFieldContainer}
+          inputWrapperStyle={$textFieldWrapper}
           textAlign="center"
           autoCorrect={false}
           keyboardType="decimal-pad"
@@ -499,10 +510,12 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       </View>
       <View style={$rpeColumn}>
         <PickerModal
+          disabled={exerciseSetStore.isCompleted}
           value={rpeInput}
           onChange={handleRpeChangeText}
           itemsList={rpeList}
           modalTitleTx="activeWorkoutScreen.rpeColumnHeader"
+          wrapperStyle={$textFieldWrapper}
         />
       </View>
     </SetSwipeableContainer>
@@ -569,9 +582,16 @@ const $exerciseSet: ViewStyle = {
   justifyContent: "space-around",
   alignItems: "center",
   marginTop: spacing.tiny,
+  height: 42,
 }
 
-const $textFieldContainer: ViewStyle = {
-  padding: 0,
-  width: 70,
+const $textFieldWrapper: ViewStyle = {
+  height: "100%",
+  width: "100%",
+  backgroundColor: null,
+}
+
+const $previousSetText: TextStyle = {
+  textAlign: "center",
+  // fontSize: 14, lineHeight: 21
 }

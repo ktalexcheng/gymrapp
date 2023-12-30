@@ -1,8 +1,9 @@
 import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import storage, { FirebaseStorageTypes } from "@react-native-firebase/storage"
+import { api } from "app/services/api"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { getNestedField } from "app/utils/getNestedField"
-import * as Location from "expo-location"
+import { UserErrorType } from "../constants"
 import { FollowRequest, Gym, GymDetails, User, UserId } from "../model"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
@@ -42,7 +43,28 @@ export class UserRepository extends BaseRepository<User, UserId> {
   }
 
   async update(id: UserId, data: Partial<User>, useSetMerge = false): Promise<User> {
-    return await super.update(id ?? this.#userId, data, useSetMerge)
+    // Create a copy of data for manipulation
+    const _data = { ...data }
+
+    // If data contains userHandle or _userHandleLower, remove it from the update
+    // and update the userHandle separately to ensure no duplicates
+    if (_data.userHandle || _data._userHandleLower) {
+      console.debug("UserRepository.update updating user handle")
+      try {
+        // Only server side code can perform a query in transaction, which we need to check for duplicates
+        // So we rely on cloud functions to update user handle
+        const status = await api.updateUserHandle(_data.userHandle)
+        if (status === UserErrorType.UserHandleAlreadyTakenError) {
+          return Promise.reject(new Error("User handle already exists", { cause: status }))
+        }
+        !!_data.userHandle && delete _data.userHandle
+        !!_data._userHandleLower && delete _data._userHandleLower
+      } catch (e) {
+        throw new RepositoryError(this.repositoryId, `update error updating user handle: ${e}`)
+      }
+    }
+
+    return await super.update(id ?? this.#userId, _data, useSetMerge)
   }
 
   async uploadAvatar(imagePath: string): Promise<string> {
@@ -135,6 +157,25 @@ export class UserRepository extends BaseRepository<User, UserId> {
   //   }
   // }
 
+  // This check is done once when the user enters a new user handle
+  // and it is done again in a transaction when the user submits the new user handle
+  async userHandleIsAvailable(userHandle: string): Promise<boolean> {
+    console.debug("UserRepository.userHandleAvailable called")
+
+    const userHandleDocRef = this.firestoreClient
+      .collection("users")
+      .where("_userHandleLower", "==", userHandle.toLowerCase())
+      .limit(1)
+
+    try {
+      const userHandleDoc = await userHandleDocRef.get()
+      console.debug("UserRepository.userHandleAvailable userHandleDoc.empty", userHandleDoc.empty)
+      return userHandleDoc.empty
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `userHandleAvailable error: ${e}`)
+    }
+  }
+
   async isFollowingUser(followeeUserId: UserId): Promise<boolean> {
     console.debug("UserRepository.isFollowingUser called")
     this.checkRepositoryInitialized()
@@ -215,6 +256,8 @@ export class UserRepository extends BaseRepository<User, UserId> {
       for (const doc of followRequestsDoc.docs) {
         followRequests.push(convertFirestoreTimestampToDate(doc.data()) as FollowRequest)
       }
+      console.debug("UserRepository.getFollowRequests:", followRequestsCollection.path)
+      console.debug("UserRepository.getFollowRequests followRequests:", followRequests)
       return followRequests
     } catch (e) {
       throw new RepositoryError(this.repositoryId, `getFollowRequests error: ${e}`)
@@ -251,17 +294,17 @@ export class UserRepository extends BaseRepository<User, UserId> {
     }
   }
 
-  async getUserLocation() {
-    console.debug("UserRepository.getUserLocation called")
-    const { status } = await Location.requestForegroundPermissionsAsync()
-    if (status !== Location.PermissionStatus.GRANTED) {
-      console.debug("UserRepository.getUserLocation status !== granted")
-      return undefined
-    }
+  // async getUserLocation() {
+  //   console.debug("UserRepository.getUserLocation called")
+  //   const { status } = await Location.requestForegroundPermissionsAsync()
+  //   if (status !== Location.PermissionStatus.GRANTED) {
+  //     console.debug("UserRepository.getUserLocation status !== granted")
+  //     return undefined
+  //   }
 
-    const location = await Location.getCurrentPositionAsync({})
-    return location
-  }
+  //   const location = await Location.getCurrentPositionAsync({})
+  //   return location
+  // }
 
   async addToMyGyms(gym: GymDetails) {
     const userUpdate = {

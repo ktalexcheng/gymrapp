@@ -1,27 +1,29 @@
 import { BottomTabScreenProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs"
+import { ActivityType } from "app/data/constants"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
-import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
 import { observer } from "mobx-react-lite"
-import React, { useState } from "react"
-import { Modal, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
+import React, { FC, useState } from "react"
+import { TextStyle, TouchableOpacity, ViewStyle } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Icon, Text } from "../components"
+import { Button, Icon, Modal, Spacer, Text } from "../components"
 import { translate } from "../i18n"
 import {
   ActiveWorkoutOverlay,
   DiscoverScreen,
+  ExerciseManagerScreen,
   FeedScreen,
   ProfileScreen,
-  UpcomingScreen,
 } from "../screens"
-import { colors, spacing, typography } from "../theme"
+import { spacing, typography } from "../theme"
 
 export type TabParamList = {
   Feed: undefined
   Discover: undefined
   NewActivity: undefined
-  Upcoming: undefined
+  // Upcoming: undefined
+  // We are putting the exercise manager in place of the "Upcoming" tab for now
+  Exercises: undefined
   Profile: undefined
 }
 
@@ -30,7 +32,11 @@ export type TabParamList = {
  *
  * More info: https://reactnavigation.org/docs/typescript/#organizing-types
  */
-export type TabScreenProps<T extends keyof TabParamList> = BottomTabScreenProps<TabParamList, T>
+export type TabScreenProps<T extends keyof TabParamList> = BottomTabScreenProps<
+  TabParamList,
+  T,
+  any
+>
 
 const BottomTab = createBottomTabNavigator<TabParamList>()
 
@@ -38,57 +44,170 @@ const EmptyActivityScreen = () => {
   return null
 }
 
-const NewActivityButton = () => {
-  const navigation = useMainNavigation()
-  const [modalVisible, setModalVisible] = useState(false)
-  const $bottomContainerInsets = useSafeAreaInsetsStyle(["bottom"])
+// IMPORTANT: This is temporarily disabled and we might revisit this later
+// const NewActivityButton = () => {
+//   const navigation = useMainNavigation()
+//   const { themeStore } = useStores()
+//   const [modalVisible, setModalVisible] = useState(false)
+//   const $bottomContainerInsets = useSafeAreaInsetsStyle(["bottom"], "margin")
 
-  function navigateToNewWorkout() {
-    setModalVisible(false)
-    navigation.navigate("NewWorkout")
+//   function navigateToNewWorkout() {
+//     setModalVisible(false)
+//     navigation.navigate("NewWorkout")
+//   }
+
+//   function navigateToExerciseManager() {
+//     setModalVisible(false)
+//     navigation.navigate("ExerciseManager")
+//   }
+
+//   const $centerButton: ViewStyle = {
+//     bottom: 40,
+//     height: 80,
+//     width: 80,
+//     borderRadius: 80,
+//     backgroundColor: themeStore.colors("actionable"),
+//     alignItems: "center",
+//     justifyContent: "center",
+//   }
+
+//   const $centerButtonLabel: TextStyle = {
+//     fontSize: 12,
+//     fontFamily: typography.primary.medium,
+//     color: themeStore.colors("actionableForeground"),
+//     lineHeight: 16,
+//   }
+
+//   const $activityButtonsContainer: ViewStyle = {
+//     flex: 1,
+//     bottom: 110,
+//     justifyContent: "flex-end",
+//     backgroundColor: themeStore.colors("blurBackground"),
+//   }
+
+//   return (
+//     <>
+//       <TouchableOpacity onPress={() => setModalVisible(true)} style={$centerButton}>
+//         <Icon name="add" color={themeStore.colors("actionableForeground")} size={30} />
+//         <Text style={$centerButtonLabel}>{translate("tabNavigator.activityTab")}</Text>
+//       </TouchableOpacity>
+
+//       <Modal
+//         transparent={true}
+//         visible={modalVisible}
+//         animationType="fade"
+//         onRequestClose={() => setModalVisible(false)}
+//       >
+//         <View style={[$activityButtonsContainer, $bottomContainerInsets]}>
+//           <Button
+//             style={$modalButton}
+//             tx="tabNavigator.startWorkout"
+//             onPress={navigateToNewWorkout}
+//           />
+//           <Button
+//             style={$modalButton}
+//             tx="tabNavigator.manageExercises"
+//             onPress={navigateToExerciseManager}
+//           />
+//         </View>
+//       </Modal>
+//     </>
+//   )
+// }
+
+type ResetWorkoutDialogProps = {
+  visible: boolean
+  onResume: () => void
+  onReset: () => void
+  onCancel: () => void
+}
+
+const ResetWorkoutDialog: FC<ResetWorkoutDialogProps> = function ResetWorkoutDialog(
+  props: ResetWorkoutDialogProps,
+) {
+  return (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={props.visible}
+      onRequestClose={props.onCancel}
+    >
+      <Text tx="newActivityScreen.resumeWorkoutPromptMessage" />
+      <Spacer type="vertical" size="medium" />
+      <Button tx="newActivityScreen.resumeWorkout" preset="text" onPress={props.onResume} />
+      <Button tx="newActivityScreen.startNewWorkoutText" preset="text" onPress={props.onReset} />
+      <Button tx="common.cancel" preset="text" onPress={props.onCancel} />
+    </Modal>
+  )
+}
+
+const NewActivityButton = observer(() => {
+  const navigation = useMainNavigation()
+  const { themeStore, workoutStore } = useStores()
+  const [showResetWorkoutDialog, setShowResetWorkoutDialog] = useState(false)
+
+  const startNewWorkout = () => {
+    if (workoutStore.inProgress) {
+      setShowResetWorkoutDialog(true)
+    } else {
+      workoutStore.startNewWorkout(ActivityType.Gym)
+      navigation.navigate("ActiveWorkout")
+    }
   }
 
-  function navigateToExerciseManager() {
-    setModalVisible(false)
-    navigation.navigate("ExerciseManager")
+  function resumeWorkout() {
+    setShowResetWorkoutDialog(false)
+    navigation.navigate("ActiveWorkout")
+  }
+
+  function resetWorkout() {
+    setShowResetWorkoutDialog(false)
+    workoutStore.resetWorkout()
+    navigation.navigate("ActiveWorkout")
+  }
+
+  const $centerButton: ViewStyle = {
+    bottom: 40,
+    height: 80,
+    width: 80,
+    borderRadius: 80,
+    backgroundColor: themeStore.colors("actionable"),
+    alignItems: "center",
+    justifyContent: "center",
+  }
+
+  const $centerButtonLabel: TextStyle = {
+    fontSize: 12,
+    fontFamily: typography.primary.medium,
+    color: themeStore.colors("actionableForeground"),
+    lineHeight: 16,
   }
 
   return (
     <>
-      <TouchableOpacity onPress={() => setModalVisible(true)} style={$centerButton}>
-        <Icon name="add" color="white" size={30} />
+      <TouchableOpacity onPress={startNewWorkout} style={$centerButton}>
+        <Icon name="add" color={themeStore.colors("actionableForeground")} size={30} />
         <Text style={$centerButtonLabel}>{translate("tabNavigator.activityTab")}</Text>
       </TouchableOpacity>
 
-      <Modal
-        transparent={true}
-        visible={modalVisible}
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={[$bottomContainer, $bottomContainerInsets]}
-          onPress={() => setModalVisible(false)}
-        >
-          <TouchableOpacity style={$modalButton} activeOpacity={1} onPress={navigateToNewWorkout}>
-            <Text tx="tabNavigator.startWorkout" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={$modalButton}
-            activeOpacity={1}
-            onPress={navigateToExerciseManager}
-          >
-            <Text tx="tabNavigator.manageExercises" />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+      <ResetWorkoutDialog
+        visible={showResetWorkoutDialog}
+        onResume={resumeWorkout}
+        onReset={resetWorkout}
+        onCancel={() => setShowResetWorkoutDialog(false)}
+      />
     </>
   )
-}
+})
 
 export const HomeTabNavigator = observer(() => {
   const { bottom } = useSafeAreaInsets()
-  const { workoutStore } = useStores()
+  const { workoutStore, themeStore } = useStores()
+
+  const $tabBar: ViewStyle = {
+    backgroundColor: themeStore.colors("background"),
+    borderTopColor: themeStore.colors("transparent"),
+  }
 
   return (
     <>
@@ -98,8 +217,8 @@ export const HomeTabNavigator = observer(() => {
           headerShown: false,
           tabBarHideOnKeyboard: true,
           tabBarStyle: [$tabBar, { height: bottom + 60 }],
-          tabBarActiveTintColor: colors.text,
-          tabBarInactiveTintColor: colors.text,
+          tabBarActiveTintColor: themeStore.colors("text"),
+          tabBarInactiveTintColor: themeStore.colors("text"),
           tabBarLabelStyle: $tabBarLabel,
           tabBarItemStyle: $tabBarItem,
         }}
@@ -110,7 +229,11 @@ export const HomeTabNavigator = observer(() => {
           options={{
             tabBarLabel: translate("tabNavigator.feedTab"),
             tabBarIcon: ({ focused }) => (
-              <Icon name="people" color={focused && colors.tint} size={20} />
+              <Icon
+                name="people"
+                color={focused ? themeStore.colors("tint") : themeStore.colors("foreground")}
+                size={20}
+              />
             ),
           }}
         />
@@ -120,7 +243,11 @@ export const HomeTabNavigator = observer(() => {
           options={{
             tabBarLabel: translate("tabNavigator.discoverTab"),
             tabBarIcon: ({ focused }) => (
-              <Icon name="search-outline" color={focused && colors.tint} size={20} />
+              <Icon
+                name="search-outline"
+                color={focused ? themeStore.colors("tint") : themeStore.colors("foreground")}
+                size={20}
+              />
             ),
           }}
         />
@@ -132,12 +259,16 @@ export const HomeTabNavigator = observer(() => {
           }}
         />
         <BottomTab.Screen
-          name="Upcoming"
-          component={UpcomingScreen}
+          name="Exercises"
+          component={ExerciseManagerScreen}
           options={{
-            tabBarLabel: translate("tabNavigator.upcomingTab"),
+            tabBarLabel: translate("tabNavigator.exercisesTab"),
             tabBarIcon: ({ focused }) => (
-              <Icon name="calendar-outline" color={focused && colors.tint} size={20} />
+              <Icon
+                name="list-outline"
+                color={focused ? themeStore.colors("tint") : themeStore.colors("foreground")}
+                size={20}
+              />
             ),
           }}
         />
@@ -147,7 +278,11 @@ export const HomeTabNavigator = observer(() => {
           options={{
             tabBarLabel: translate("tabNavigator.profileTab"),
             tabBarIcon: ({ focused }) => (
-              <Icon name="person" color={focused && colors.tint} size={20} />
+              <Icon
+                name="person"
+                color={focused ? themeStore.colors("tint") : themeStore.colors("foreground")}
+                size={20}
+              />
             ),
           }}
         />
@@ -155,11 +290,6 @@ export const HomeTabNavigator = observer(() => {
     </>
   )
 })
-
-const $tabBar: ViewStyle = {
-  backgroundColor: colors.background,
-  borderTopColor: colors.transparent,
-}
 
 const $tabBarItem: ViewStyle = {
   paddingTop: spacing.small,
@@ -172,41 +302,9 @@ const $tabBarLabel: TextStyle = {
   flex: 1,
 }
 
-const $centerButton: ViewStyle = {
-  bottom: 40,
-  height: 80,
-  width: 80,
-  borderRadius: 80,
-  backgroundColor: colors.actionable,
-  alignItems: "center",
-  justifyContent: "center",
-}
-
-const $centerButtonLabel: TextStyle = {
-  fontSize: 12,
-  fontFamily: typography.primary.medium,
-  color: "white",
-  lineHeight: 16,
-}
-
 const $modalButton: ViewStyle = {
-  margin: 20,
-  backgroundColor: "white",
+  margin: spacing.extraSmall,
   borderRadius: 20,
-  padding: 35,
+  padding: spacing.extraLarge,
   alignItems: "center",
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 2,
-  },
-  shadowOpacity: 0.25,
-  shadowRadius: 4,
-  elevation: 5,
-}
-
-const $bottomContainer: ViewStyle = {
-  bottom: 100,
-  flex: 1,
-  justifyContent: "flex-end",
 }

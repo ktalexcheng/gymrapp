@@ -5,11 +5,21 @@
   },
   "build": {
     "development": {
+      "env": {
+        "EXPO_NO_KEYCHAIN": "1"
+      },
       "developmentClient": true,
       "distribution": "internal",
       "android": {
         "gradleCommand": ":app:assembleDebug"
       },
+      "ios": {
+        "buildConfiguration": "Debug"
+      }
+    },
+    "development-simulator": {
+      "developmentClient": true,
+      "distribution": "internal",
       "ios": {
         "buildConfiguration": "Debug",
         "simulator": true

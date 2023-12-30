@@ -1,12 +1,11 @@
 import { Avatar, RowView, Spacer, Text } from "app/components"
 import { ExerciseVolumeType, WeightUnit, WorkoutSource } from "app/data/constants"
 import { ExercisePerformed, User, Workout } from "app/data/model"
-import { useWeightUnitTx } from "app/hooks"
-import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
-import { colors, spacing, styles } from "app/theme"
-import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
+import { spacing, styles } from "app/theme"
+import { formatDate } from "app/utils/formatDate"
+import { formatSecondsAsTime } from "app/utils/formatTime"
 import { Weight } from "app/utils/weight"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
@@ -24,16 +23,15 @@ export interface WorkoutSummaryCardProps {
 export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
   (props: WorkoutSummaryCardProps) => {
     const { workoutSource, workoutId, workout, byUser, highlightExerciseId } = props
-    const { exerciseStore, userStore } = useStores()
+    const { exerciseStore, userStore, themeStore } = useStores()
     const mainNavigation = useMainNavigation()
-    const weightUnitTx = useWeightUnitTx()
     const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
 
     const renderBestSet = (e: ExercisePerformed, i: number) => {
       const $highlightExercise: TextStyle =
         highlightExerciseId && highlightExerciseId === e.exerciseId
           ? {
-              color: colors.actionable,
+              color: themeStore.colors("tint"),
             }
           : undefined
       const $highlightExerciseTextPreset =
@@ -76,11 +74,12 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
           mainNavigation.navigate("WorkoutSummary", {
             workoutSource,
             workoutId,
+            workout,
             jumpToComments: false,
           })
         }
       >
-        <View style={styles.listItemContainer}>
+        <View style={themeStore.styles("listItemContainer")}>
           {byUser && (
             <RowView style={$byUserHeader}>
               <RowView style={styles.alignCenter}>
@@ -88,26 +87,26 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
                 <Spacer type="horizontal" size="small" />
                 <Text preset="bold">{`${byUser.firstName} ${byUser.lastName}`}</Text>
               </RowView>
-              <Text>{workout.startTime.toLocaleString()}</Text>
+              <Text>{formatDate(workout.startTime)}</Text>
             </RowView>
           )}
           <Text>{workout.workoutTitle}</Text>
           <WorkoutSocialButtonGroup
             workoutSource={workoutSource}
             workoutId={workoutId}
+            workoutByUserId={workout.byUserId}
             onPressComments={() =>
               mainNavigation.navigate("WorkoutSummary", {
                 workoutSource,
                 workoutId,
+                workout,
                 jumpToComments: true,
               })
             }
           />
           <RowView style={$workoutItemHeader}>
             <Text preset="bold" tx="common.exercise" />
-            <Text preset="bold">
-              {translate("common.bestSet") + ` (${translate(weightUnitTx)})`}
-            </Text>
+            <Text preset="bold" tx="common.bestSet" />
           </RowView>
           {workout.exercises.map((e, i) => renderBestSet(e, i))}
         </View>

@@ -1,6 +1,6 @@
 import { RowView, Spacer, Text, Toggle } from "app/components"
 import { TxKeyPath } from "app/i18n"
-import { styles } from "app/theme"
+import { useStores } from "app/stores"
 import React from "react"
 import { TouchableOpacity, View, ViewStyle } from "react-native"
 
@@ -18,6 +18,8 @@ export const SwitchSettingTile: React.FC<SwitchSettingTileProps> = (
   props: SwitchSettingTileProps,
 ) => {
   const { toggleState, onToggle, containerStyle: $containerStyleOverride } = props
+
+  const { themeStore } = useStores()
 
   const $tileView: ViewStyle = {
     alignItems: "center",
@@ -47,7 +49,7 @@ export const SwitchSettingTile: React.FC<SwitchSettingTileProps> = (
     <View style={$containerStyleOverride}>
       <Text preset="formLabel" tx={props.titleTx} />
       <Spacer type="vertical" size="small" />
-      <RowView style={[styles.listItemContainer, $tileView]}>
+      <RowView style={[themeStore.styles("listItemContainer"), $tileView]}>
         <View style={$description}>
           <Text tx={props.descriptionTx} />
         </View>

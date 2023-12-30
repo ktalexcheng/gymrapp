@@ -1,6 +1,7 @@
 import { RowView, Spacer, Text } from "app/components"
 import { User } from "app/data/model"
 import { TxKeyPath } from "app/i18n"
+import { simplifyNumber } from "app/utils/formatNumber"
 import React, { FC } from "react"
 import { View, ViewStyle } from "react-native"
 
@@ -25,20 +26,15 @@ export const UserProfileStatsBar: FC<UserProfileStatsBarProps> = ({
 }: UserProfileStatsBarProps) => {
   const $containerStyle = [$userStatsRow, $containerStyleOverride]
 
+  const activitiesCount = (user?.workoutMetas && Object.keys(user.workoutMetas).length) ?? 0
+  const followersCount = user?.followersCount ?? 0
+  const followingCount = user?.followingCount ?? 0
+
   return (
     <RowView style={$containerStyle}>
-      <UserProfileStatTile
-        labelTx="common.activities"
-        value={(user?.workoutMetas && Object.keys(user.workoutMetas).length.toString()) ?? "0"}
-      />
-      <UserProfileStatTile
-        labelTx="common.followers"
-        value={user?.followersCount?.toString() ?? "0"}
-      />
-      <UserProfileStatTile
-        labelTx="common.following"
-        value={user?.followingCount?.toString() ?? "0"}
-      />
+      <UserProfileStatTile labelTx="common.activities" value={simplifyNumber(activitiesCount)} />
+      <UserProfileStatTile labelTx="common.followers" value={simplifyNumber(followersCount)} />
+      <UserProfileStatTile labelTx="common.following" value={simplifyNumber(followingCount)} />
     </RowView>
   )
 }

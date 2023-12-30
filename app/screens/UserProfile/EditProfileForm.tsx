@@ -1,7 +1,9 @@
+import { useFocusEffect } from "@react-navigation/native"
 import {
   Avatar,
   Button,
   Icon,
+  Modal,
   Picker,
   RowView,
   Spacer,
@@ -9,28 +11,44 @@ import {
   TextField,
   WheelPickerFlat,
 } from "app/components"
-import { AppLocale, WeightUnit } from "app/data/constants"
+import {
+  AppColorScheme,
+  AppLocale,
+  AppLocaleLabel,
+  UserErrorType,
+  WeightUnit,
+} from "app/data/constants"
 import { Gym, User } from "app/data/model"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
-import { colors, spacing, styles } from "app/theme"
-import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
+import { styles } from "app/theme"
+import { formatSecondsAsTime } from "app/utils/formatTime"
 import * as Device from "expo-device"
 import * as ImagePicker from "expo-image-picker"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useRef, useState } from "react"
 import {
   Alert,
+  BackHandler,
   ImageStyle,
-  Modal,
   TextInput,
   TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native"
-import { LoadingScreen } from "../LoadingScreen"
+import Toast from "react-native-root-toast"
 import { SwitchSettingTile } from "./UserSettingTile"
+
+const restTimeList = Array(60)
+  .fill(null)
+  .map<any>((_, i) => {
+    const seconds = (i + 1) * 5
+    return {
+      label: formatSecondsAsTime(seconds),
+      value: seconds,
+    }
+  })
 
 type RestTimePickerProps = {
   restTime: number
@@ -40,91 +58,84 @@ type RestTimePickerProps = {
 const RestTimePicker = (props: RestTimePickerProps) => {
   const { restTime, setRestTime } = props
 
-  const restTimeList = Array(60)
-    .fill(null)
-    .map<any>((_, i) => {
-      const seconds = (i + 1) * 5
-      return {
-        label: formatSecondsAsTime(seconds),
-        value: seconds,
-      }
-    })
-
   function updateRestTime(index: number) {
     setRestTime(restTimeList[index].value)
   }
 
   return (
-    <View>
-      <WheelPickerFlat
-        items={restTimeList}
-        onIndexChange={updateRestTime}
-        itemHeight={40}
-        initialScrollIndex={restTime / 5 - 1}
-      />
-    </View>
+    <WheelPickerFlat
+      items={restTimeList}
+      onIndexChange={updateRestTime}
+      itemHeight={40}
+      initialScrollIndex={restTime / 5 - 1}
+    />
   )
 }
 
 type EditProfileFormProps = {
   saveProfileCompletedCallback: () => void
+  onBusyChange?: (isBusy: boolean) => void
 }
 
 export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditProfileFormProps) => {
-  const { saveProfileCompletedCallback } = props
+  const { saveProfileCompletedCallback, onBusyChange } = props
   const mainNavigator = useMainNavigation()
-  const { authenticationStore: authStore, userStore } = useStores()
+  const { authenticationStore: authStore, userStore, themeStore } = useStores()
+
+  // Form input values
+  const firstNameInputRef = useRef<TextInput>()
+  const lastNameInputRef = useRef<TextInput>()
+  const [userHandle, setUserHandle] = useState("")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [imagePath, setImagePath] = useState("")
-  const [weightUnit, setWeightUnit] = useState(WeightUnit.kg) // TODO: Default to lbs if system locale is en-US
+  const [weightUnit, setWeightUnit] = useState(WeightUnit.kg)
   const [privateAccount, setPrivateAccount] = useState(false)
-  const [appLocale, setAppLocale] = useState(AppLocale.en_US) // TODO: Default to match system locale
+  const [appColorScheme, setAppColorScheme] = useState(AppColorScheme.Dark)
+  const [appLocale, setAppLocale] = useState(AppLocale.en_US)
   const [autoRestTimerEnabled, setAutoRestTimerEnabled] = useState(false)
   const [restTime, setRestTime] = useState(0)
   const [showRestTimePicker, setShowRestTimePicker] = useState(false)
+  const [myGyms, setMyGyms] = useState<Gym[]>([])
+
+  // Form state
+  const [userHandleHelper, setUserHandleHelper] = useState(null)
+  const [userHandleError, setUserHandleError] = useState(null)
   const [firstNameError, setFirstNameError] = useState(false)
   const [lastNameError, setLastNameError] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const lastNameInputRef = useRef<TextInput>()
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [myGyms, setMyGyms] = useState<Gym[]>([])
   const [isAutofilled, setIsAutofilled] = useState(false)
-  const [isDiscardConfirmed, setIsDiscardConfirmed] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
 
-  // The listener seems to work with Android's native-stack, but not on iOS
-  // So we need to disable gesture (for iOS swipe back) and disable header back button
+  // The listener seems to only work with Android's native-stack, but not on iOS
+  // So we need to disable gesture (for iOS swipe back) and disable header back button in MainNavigator
   // to force the user to use the save or discard buttons
-  useEffect(() => {
-    if (Device.osName !== "Android" || isDiscardConfirmed) return undefined
+  // UPDATE: This is too much hassle, disabling the back button for android too
+  useFocusEffect(() => {
+    // React Navigation will keep the screen mounted when we navigate to the next screen (e.g. when we go to the add to my gyms screen)
+    // so we need to use useFocusEffect to add the listener only when the screen is focused
+    if (Device.osName === "ios") return undefined
 
-    console.debug("EditProfileForm updating beforeRemove listener")
-    const unsubscribeListener = mainNavigator.addListener("beforeRemove", async (e) => {
-      while (userStore.isLoadingProfile) {
-        // Wait until profile is loaded before checking for unsaved changes
-        await new Promise((resolve) => setTimeout(resolve, 500))
-      }
-
-      console.debug("EditProfileForm.beforeRemove listener hasUnsavedChanges:", hasUnsavedChanges)
-      if (!hasUnsavedChanges) return
-
-      // Prevent default behavior of leaving the screen and show alert
-      e.preventDefault()
-      confirmDiscardChanges(() => mainNavigator.dispatch(e.data.action))
+    const backPressListener = BackHandler.addEventListener("hardwareBackPress", () => {
+      Toast.show(translate("editProfileForm.backButtonDisabledMessage"))
+      return true
     })
 
-    return unsubscribeListener
-  }, [mainNavigator, hasUnsavedChanges, isDiscardConfirmed])
+    return () => backPressListener.remove()
+  })
 
   useEffect(() => {
     const checkForUnsavedChanges = () => {
       console.debug("EditProfileForm.checkForUnsavedChanges: checking for changes")
+      if (userHandle?.toLowerCase() !== userStore.getProp("user._userHandleLower")) return true
       if (firstName !== userStore.getProp("user.firstName")) return true
       if (lastName !== userStore.getProp("user.lastName")) return true
       if (imagePath !== userStore.getProp("user.avatarUrl")) return true
       if (weightUnit !== userStore.getUserPreference<WeightUnit>("weightUnit")) return true
       if (privateAccount !== userStore.getProp("user.privateAccount")) return true
       if (appLocale !== userStore.getUserPreference<AppLocale>("appLocale")) return true
+      if (appColorScheme !== userStore.getUserPreference<AppColorScheme>("appColorScheme"))
+        return true
       if (autoRestTimerEnabled !== userStore.getUserPreference<boolean>("autoRestTimerEnabled"))
         return true
       if (restTime !== userStore.getUserPreference<number>("restTime")) return true
@@ -134,18 +145,15 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
     }
 
     setHasUnsavedChanges(checkForUnsavedChanges())
-
-    // if (isAutofilled) {
-    //   console.debug("EditProfileForm changes detected")
-    //   setHasUnsavedChanges(true)
-    // }
   }, [
+    userHandle,
     firstName,
     lastName,
     imagePath,
     weightUnit,
     privateAccount,
     appLocale,
+    appColorScheme,
     autoRestTimerEnabled,
     restTime,
   ])
@@ -154,36 +162,75 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
     // Populate form with user profile data
     if (!userStore.isLoadingProfile && !isAutofilled) {
       console.debug("EditProfileForm autofilling form with current user profile data")
+      setUserHandle(userStore.getProp("user.userHandle"))
       setFirstName(userStore.getProp("user.firstName"))
       setLastName(userStore.getProp("user.lastName"))
       setImagePath(userStore.getProp("user.avatarUrl"))
       setWeightUnit(userStore.getUserPreference<WeightUnit>("weightUnit"))
       setAppLocale(userStore.getUserPreference<AppLocale>("appLocale"))
+      setAppColorScheme(userStore.getUserPreference<AppColorScheme>("appColorScheme"))
       setPrivateAccount(userStore.getProp("user.privateAccount") ?? false)
       setAutoRestTimerEnabled(userStore.getUserPreference<boolean>("autoRestTimerEnabled"))
       setRestTime(userStore.getUserPreference<number>("restTime"))
-      setMyGyms(userStore.getProp("user.myGyms"))
       setIsAutofilled(true)
     }
+
+    // My gyms are managed in a separate flow to the user profile, so always update it
+    setMyGyms(userStore.getProp("user.myGyms"))
   }, [userStore.user])
 
-  const confirmDiscardChanges = (discardCallback: () => void) => {
+  useEffect(() => {
+    setUserHandleError(null)
+    setUserHandleHelper(null)
+    if (!userHandle || userHandle === userStore.getProp("user.userHandle")) return undefined
+
+    // Check if userHandle is valid
+    if (!/^[a-zA-Z0-9_.]{1,30}$/.test(userHandle)) {
+      setUserHandleError(translate("editProfileForm.error.userHandleInvalidMessage"))
+      return undefined
+    }
+
+    // Check if userHandle is already taken
+    const checkUserHandleTimeout = setTimeout(async () => {
+      if (userHandle.length === 0) return
+
+      const isAvailable = await userStore.userHandleIsAvailable(userHandle)
+      if (!isAvailable) {
+        setUserHandleError(translate("editProfileForm.error.userHandleIsTakenMessage"))
+      } else {
+        setUserHandleHelper(translate("editProfileForm.newUserHandleAvailableMessage"))
+      }
+    }, 500)
+
+    return () => clearTimeout(checkUserHandleTimeout)
+  }, [userHandle])
+
+  useEffect(() => {
+    if (isSaved) {
+      saveProfileCompletedCallback()
+    }
+  }, [isSaved])
+
+  // EditProfileForm is the same component for both CreateProfileScreen and UserSettingsScreen
+  // so we need to check if the user is creating a new profile or editing an existing one
+  // user will not be allowed to go back if they are creating a new profile
+  const confirmDiscardChanges = () => {
+    console.debug("EditProfileForm.confirmDiscardChanges:", { hasUnsavedChanges })
     if (!hasUnsavedChanges) {
-      discardCallback()
+      if (mainNavigator.canGoBack()) mainNavigator.goBack()
       return
     }
 
     Alert.alert(
-      translate("editProfileForm.alertDialogTitle"),
-      translate("editProfileForm.alertDialogDiscardChangesMessage"),
+      translate("editProfileForm.discardAlertTitle"),
+      translate("editProfileForm.discardAlertMessage"),
       [
         { text: translate("editProfileForm.alertDialogResume"), style: "cancel" },
         {
           text: translate("common.discard"),
           style: "destructive",
           onPress: () => {
-            discardCallback()
-            setIsDiscardConfirmed(true)
+            if (mainNavigator.canGoBack()) mainNavigator.goBack()
           },
         },
       ],
@@ -193,6 +240,9 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   const isInvalidForm = () => {
     let errorFound = false
 
+    if (userHandleError) {
+      errorFound = true
+    }
     if (firstName.length === 0) {
       setFirstNameError(true)
       errorFound = true
@@ -225,10 +275,12 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   const saveProfile = async () => {
     if (isInvalidForm()) return
 
-    setIsProcessing(true)
+    onBusyChange && onBusyChange(true)
 
     try {
       const user = {
+        _userHandleLower: userHandle.toLowerCase(),
+        userHandle,
         firstName,
         lastName,
         privateAccount,
@@ -237,16 +289,27 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
           weightUnit,
           autoRestTimerEnabled,
           restTime,
+          appColorScheme,
         },
       } as User
 
-      if (imagePath) {
+      if (imagePath !== userStore.getProp("user.avatarUrl")) {
         const avatarUrl = await userStore.uploadUserAvatar(imagePath)
         user.avatarUrl = avatarUrl
       }
 
       if (userStore.userProfileExists) {
-        await userStore.updateProfile(user)
+        await userStore.updateProfile(user).then(
+          () => {
+            setHasUnsavedChanges(false)
+            setIsSaved(true)
+          },
+          (e: Error) => {
+            if (e.cause === UserErrorType.UserHandleAlreadyTakenError) {
+              setUserHandleError(translate("editProfileForm.error.userHandleIsTakenMessage"))
+            }
+          },
+        )
       } else {
         // User profile should already be created upon sign up,
         // this condition should only be possible if connection was lost
@@ -255,19 +318,17 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
         user.email = authStore.email
         user.providerId = authStore.providerId
 
-        await userStore.createNewProfile(user)
+        await userStore.createNewProfile(user).then(() => {
+          setHasUnsavedChanges(false)
+          setIsSaved(true)
+        })
       }
-
       console.debug("editProfileForm.saveProfile: profile saved successfully")
-      setHasUnsavedChanges(false)
-      console.debug("editProfileForm.saveProfile hasUnsavedChanges:", hasUnsavedChanges)
     } catch (e) {
       console.error("editProfileForm.createProfile error:", e)
     } finally {
-      setIsProcessing(false)
+      onBusyChange && onBusyChange(false)
     }
-
-    saveProfileCompletedCallback()
   }
 
   const removeAvatar = () => {
@@ -289,21 +350,25 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
         {myGyms.map((myGym) => {
           return (
             <RowView key={myGym.gymId} style={$itemContainer}>
-              <Text text={myGym.gymName} weight="normal" />
-              <Button
-                tx="common.delete"
-                preset="text"
-                onPress={() => userStore.removeFromMyGyms(myGym)}
-              />
+              <View style={styles.flex3}>
+                <TouchableOpacity
+                  onPress={() => mainNavigator.navigate("GymDetails", { gymId: myGym.gymId })}
+                >
+                  <Text text={myGym.gymName} weight="normal" numberOfLines={1} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.flex1}>
+                <Button
+                  tx="common.delete"
+                  preset="text"
+                  onPress={() => userStore.removeFromMyGyms(myGym)}
+                />
+              </View>
             </RowView>
           )
         })}
       </>
     )
-  }
-
-  if (isProcessing) {
-    return <LoadingScreen />
   }
 
   return (
@@ -314,22 +379,17 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
         visible={showRestTimePicker}
         onRequestClose={() => setShowRestTimePicker(false)}
       >
-        <View style={$restTimePickerContainer}>
-          <View style={$restTimePicker}>
-            <Text tx="editProfileForm.defaultRestTimeSelectorLabel" preset="formLabel" />
-            <RestTimePicker restTime={restTime} setRestTime={setRestTime} />
-            <Button tx="common.ok" preset="text" onPress={() => setShowRestTimePicker(false)} />
-          </View>
-        </View>
+        <Text tx="editProfileForm.defaultRestTimeSelectorLabel" preset="formLabel" />
+        <RestTimePicker restTime={restTime} setRestTime={setRestTime} />
+        <Button tx="common.ok" preset="text" onPress={() => setShowRestTimePicker(false)} />
       </Modal>
       <View style={$contentContainer}>
         <RowView style={$headerContainer}>
           <Button
             preset="text"
+            disabled={!mainNavigator.canGoBack()}
             tx={hasUnsavedChanges ? "common.discard" : "common.back"}
-            onPress={() => {
-              confirmDiscardChanges(() => mainNavigator.goBack())
-            }}
+            onPress={confirmDiscardChanges}
           />
           <Button
             preset="text"
@@ -338,15 +398,32 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
             disabled={!hasUnsavedChanges}
           />
         </RowView>
-        <Text tx="editProfileForm.editProfileTitle" preset="heading" />
+
+        <Text tx="editProfileForm.editProfileTitle" preset="screenTitle" />
+
+        <Spacer type="vertical" size="large" />
+        <Text tx="editProfileForm.aboutYouSectionLabel" preset="subheading" />
+
+        <TextField
+          status={userHandleError ? "error" : null}
+          value={userHandle}
+          onChangeText={setUserHandle}
+          containerStyle={styles.formFieldTopMargin}
+          autoCapitalize="none"
+          autoCorrect={false}
+          labelTx="editProfileForm.userHandleLabel"
+          onSubmitEditing={() => firstNameInputRef.current?.focus()}
+          helper={userHandleError ?? userHandleHelper}
+        />
+
         <View style={styles.formFieldTopMargin}>
           <Text tx="editProfileForm.uploadAvatarLabel" preset="formLabel" />
           <View style={$avatar}>
             <Icon
               name="close-circle"
-              color={colors.actionable}
-              containerStyle={$removeAvatarButton}
+              style={$removeAvatarButton}
               onPress={removeAvatar}
+              color={themeStore.colors("tint")}
               size={30}
             />
             <TouchableOpacity onPress={pickImage}>
@@ -360,6 +437,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
         </View>
 
         <TextField
+          ref={firstNameInputRef}
           status={firstNameError ? "error" : null}
           value={firstName}
           onChangeText={setFirstName}
@@ -387,7 +465,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
           <Button
             preset="text"
             tx="editProfileForm.addGymButtonLabel"
-            onPress={() => mainNavigator.navigate("GymSearch")}
+            onPress={() => mainNavigator.navigate("AddToMyGyms")}
           />
         </View>
 
@@ -429,7 +507,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
           <Text tx="editProfileForm.defaultRestTimeLabel" preset="formLabel" />
           <Spacer type="vertical" size="small" />
           <TouchableOpacity
-            style={styles.listItemContainer}
+            style={themeStore.styles("listItemContainer")}
             onPress={() => setShowRestTimePicker(true)}
             disabled={!autoRestTimerEnabled}
           >
@@ -442,15 +520,36 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
           onValueChange={(value: AppLocale) => setAppLocale(value)}
           labelTx="editProfileForm.appLocaleLabel"
           itemsList={[
-            { label: AppLocale.en_US, value: AppLocale.en_US },
-            { label: AppLocale.zh_TW, value: AppLocale.zh_TW },
+            { label: AppLocaleLabel[AppLocale.en_US], value: AppLocale.en_US },
+            { label: AppLocaleLabel[AppLocale.zh_TW], value: AppLocale.zh_TW },
           ]}
           selectedValue={appLocale}
         />
 
+        <Picker
+          containerStyle={styles.formFieldTopMargin}
+          onValueChange={(value: AppColorScheme) => setAppColorScheme(value)}
+          labelTx="editProfileForm.appAppearanceLabel"
+          itemsList={Object.entries(AppColorScheme).map(([label, value]) => ({
+            label,
+            value,
+          }))}
+          selectedValue={appColorScheme}
+        />
+
         <Spacer type="vertical" size="large" />
-        {/* Important to await saveProfile() so we ensure saveProfileCompletedCallback is called last */}
-        <Button tx="editProfileForm.saveProfileChanges" onPress={saveProfile} />
+
+        <Button
+          tx="editProfileForm.saveProfileChanges"
+          disabled={!hasUnsavedChanges}
+          onPress={saveProfile}
+        />
+        <Button
+          preset="text"
+          disabled={!mainNavigator.canGoBack()}
+          tx={hasUnsavedChanges ? "common.discard" : "common.back"}
+          onPress={confirmDiscardChanges}
+        />
       </View>
     </>
   )
@@ -472,18 +571,4 @@ const $avatar: ImageStyle = {
 const $removeAvatarButton: ImageStyle = {
   position: "absolute",
   zIndex: 1,
-}
-
-const $restTimePickerContainer: ViewStyle = {
-  flex: 1,
-  justifyContent: "center",
-  alignItems: "center",
-  paddingHorizontal: spacing.large,
-}
-
-const $restTimePicker: ViewStyle = {
-  backgroundColor: colors.contentBackground,
-  borderRadius: 20,
-  padding: 35,
-  width: "100%",
 }

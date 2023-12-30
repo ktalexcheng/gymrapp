@@ -1,4 +1,3 @@
-import firestore from "@react-native-firebase/firestore"
 import { ActivityId } from "app/data/model/activityModel"
 import { differenceInSeconds } from "date-fns"
 import { SnapshotIn, destroy, flow, getEnv, types } from "mobx-state-tree"
@@ -14,10 +13,9 @@ import {
   RepsPersonalRecord,
   TimeExerciseSet,
   TimePersonalRecord,
-  User,
 } from "../../app/data/model"
 import { translate } from "../../app/i18n"
-import { formatSecondsAsTime } from "../../app/utils/formatSecondsAsTime"
+import { formatSecondsAsTime } from "../utils/formatTime"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
@@ -97,6 +95,18 @@ const WorkoutStoreModel = types
       }
 
       return allSetsCompleted
+    },
+    get isEmptyWorkout() {
+      // If there is at least one completed set, then the workout is not empty
+      for (const e of self.exercises.values()) {
+        for (const s of e.setsPerformed) {
+          if (s.isCompleted) {
+            return true
+          }
+        }
+      }
+
+      return false
     },
     get timeElapsedFormatted() {
       const duration = differenceInSeconds(new Date(), self.startTime)
@@ -292,37 +302,38 @@ const WorkoutStoreModel = types
         const workout = yield getEnv<RootStoreDependencies>(self).workoutRepository.create(
           newWorkout,
         )
-        const workoutId = workout.workoutId
+
+        // IMPORTANT: Moved these side effects to server side
 
         // Update user workout metadata (keep track of workouts performed by user)
-        yield getEnv<RootStoreDependencies>(self).userRepository.update(
-          null,
-          {
-            workoutMetas: {
-              [workoutId]: {
-                startTime: self.startTime,
-              },
-            },
-          },
-          true,
-        )
+        // yield getEnv<RootStoreDependencies>(self).userRepository.update(
+        //   null,
+        //   {
+        //     workoutMetas: {
+        //       [workoutId]: {
+        //         startTime: self.startTime,
+        //       },
+        //     },
+        //   },
+        //   true,
+        // )
 
         // Update user exercise history
-        const userUpdate = {} as Partial<User>
-        allExerciseSummary.forEach((e) => {
-          userUpdate[`exerciseHistory.${e.exerciseId}.performedWorkoutIds`] =
-            firestore.FieldValue.arrayUnion(workoutId)
-          if (Object.keys(e.newRecords).length > 0) {
-            Object.entries(e.newRecords).forEach(([rep, record]) => {
-              const newRecord = firestore.FieldValue.arrayUnion(record)
-              userUpdate[`exerciseHistory.${e.exerciseId}.personalRecords.${rep}`] = newRecord
-            })
-          }
-        })
-        yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, false)
+        // const userUpdate = {} as Partial<User>
+        // allExerciseSummary.forEach((e) => {
+        //   userUpdate[`exerciseHistory.${e.exerciseId}.performedWorkoutIds`] =
+        //     firestore.FieldValue.arrayUnion(workoutId)
+        //   if (Object.keys(e.newRecords).length > 0) {
+        //     Object.entries(e.newRecords).forEach(([rep, record]) => {
+        //       const newRecord = firestore.FieldValue.arrayUnion(record)
+        //       userUpdate[`exerciseHistory.${e.exerciseId}.personalRecords.${rep}`] = newRecord
+        //     })
+        //   }
+        // })
+        // yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, false)
 
         resetWorkout()
-        return workoutId
+        return workout
       } catch (error) {
         console.error("WorkoutStore.saveWorkout error:", error)
         return undefined
@@ -395,9 +406,8 @@ const WorkoutStoreModel = types
     }
 
     const adjustRestTime = (seconds: number) => {
-      self.restTime = self.restTime + seconds < 0 ? 0 : self.restTime + seconds
-      self.restTimeRemaining =
-        self.restTimeRemaining + seconds < 0 ? 0 : self.restTimeRemaining + seconds
+      self.restTime = Math.max(self.restTime + seconds, 0)
+      self.restTimeRemaining = Math.max(self.restTimeRemaining + seconds, 0)
     }
 
     const startRestTimer = () => {

@@ -1,38 +1,52 @@
 import { Exercise } from "app/data/model"
-import { colors } from "app/theme"
+import { useMainNavigation } from "app/navigators/navigationUtilities"
+import { useStores } from "app/stores"
+import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
-import { View, ViewStyle } from "react-native"
-import { Fab, Icon } from "../../components"
-import { MainStackScreenProps } from "../../navigators"
-import { useSafeAreaInsetsStyle } from "../../utils/useSafeAreaInsetsStyle"
+import { ViewStyle } from "react-native"
+import { Icon, RowView, Screen, Spacer, Text } from "../../components"
+import { TabScreenProps } from "../../navigators"
+import { ExtendedEdge } from "../../utils/useSafeAreaInsetsStyle"
 import { ExerciseCatalog } from "./ExerciseCatalog"
 
-interface ExerciseManagerScreenProps extends MainStackScreenProps<"ExerciseManager"> {}
+interface ExerciseManagerScreenProps extends TabScreenProps<"Exercises"> {}
 
-export const ExerciseManagerScreen: FC<ExerciseManagerScreenProps> = observer(({ navigation }) => {
-  const $containerInsets = useSafeAreaInsetsStyle(["bottom", "left", "right"])
+export const ExerciseManagerScreen: FC<ExerciseManagerScreenProps> = observer(() => {
+  const { workoutStore } = useStores()
+  const mainNavigation = useMainNavigation()
+  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? [] : ["top"]
 
   function handleSelectExercise(exercise: Exercise) {
-    navigation.navigate("ExerciseDetails", { exerciseId: exercise.exerciseId })
+    mainNavigation.navigate("ExerciseDetails", { exerciseId: exercise.exerciseId })
   }
 
   return (
     // Note that tab press does not work properly when a debugger is attached
     // See: https://github.com/satya164/react-native-tab-view/issues/703
-    <View style={[$screenContainer, $containerInsets]}>
-      <Fab
-        size="lg"
-        icon={<Icon color="white" name="add-outline" size={30} />}
-        position="bottomRight"
-        backgroundColor={colors.actionable}
-        onPress={() => navigation.navigate("CreateExercise")}
+    <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={$screenContainer}>
+      <RowView style={[styles.alignCenter, styles.justifyBetween, $screenTitleContainer]}>
+        <Text preset="screenTitle" tx="exerciseManagerScreen.exerciseManagerTitle" />
+        <Icon
+          name="create-outline"
+          size={30}
+          onPress={() => mainNavigation.navigate("CreateExercise")}
+        />
+      </RowView>
+      <ExerciseCatalog
+        onItemPress={handleSelectExercise}
+        listFooterComponent={<Spacer type="vertical" size="extraLarge" />}
       />
-      <ExerciseCatalog onItemPress={handleSelectExercise} />
-    </View>
+    </Screen>
   )
 })
 
 const $screenContainer: ViewStyle = {
   flex: 1,
+}
+
+const $screenTitleContainer: ViewStyle = {
+  paddingTop: spacing.screenPadding,
+  paddingLeft: spacing.screenPadding,
+  paddingRight: spacing.screenPadding,
 }

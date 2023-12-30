@@ -5,9 +5,10 @@ import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
+import { formatName } from "app/utils/formatName"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
-import { FlatList, SectionList, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
+import { FlatList, SectionList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 
 const FollowRequestTile = ({ followRequest }: { followRequest: FollowRequest }) => {
   const mainNavigation = useMainNavigation()
@@ -40,7 +41,13 @@ const FollowRequestTile = ({ followRequest }: { followRequest: FollowRequest }) 
     >
       <RowView style={$notificationTileContainer}>
         <Avatar user={senderUser} />
-        <Text style={$notificationText}>{`${senderUser.firstName} ${senderUser.lastName}`}</Text>
+        <View style={styles.flex1}>
+          <Text style={$notificationText} weight="bold" text={senderUser.userHandle} />
+          <Text
+            style={$notificationText}
+            text={formatName(senderUser.firstName, senderUser.lastName)}
+          />
+        </View>
         <RowView style={styles.alignCenter}>
           <Icon name="checkmark-circle" size={32} onPress={acceptFollowRequest} />
           <Icon name="close-outline" size={32} onPress={declineFollowRequest} />
@@ -79,7 +86,7 @@ const NotificationTile = ({ notification }: { notification: Notification }) => {
           messageTx = "notificationsScreen.followAcceptedNotificationMessage"
           break
       }
-      const senderName = `${senderUser.firstName} ${senderUser.lastName}`
+      const senderName = formatName(senderUser.firstName, senderUser.lastName)
       setMessage(`${senderName} ${translate(messageTx)}`)
     }
   }, [isInitialized])
@@ -131,7 +138,10 @@ const NotificationTile = ({ notification }: { notification: Notification }) => {
     <TouchableOpacity onPress={handleOnPress}>
       <RowView style={$notificationTileContainer}>
         <Avatar user={senderUser} />
-        <Text style={$notificationText}>{message}</Text>
+        <View style={styles.flex1}>
+          <Text style={$notificationText} weight="bold" text={senderUser.userHandle} />
+          <Text style={$notificationText} text={message} />
+        </View>
         {notification.notificationType === NotificationType.FollowRequest && (
           <RowView style={styles.alignCenter}>
             <Icon name="checkmark-circle" size={32} onPress={acceptFollowRequest} />
@@ -175,7 +185,7 @@ export const NotificationsScreen = observer(() => {
 
   return (
     <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$container}>
-      <Text tx="notificationsScreen.notificationsTitle" preset="heading" />
+      <Text tx="notificationsScreen.notificationsTitle" preset="screenTitle" />
       <SectionList
         sections={[
           {
@@ -211,9 +221,8 @@ export const NotificationsScreen = observer(() => {
                 ItemSeparatorComponent={() => <Divider orientation="horizontal" />}
               />
             )}
-            {[...newNotifications, ...oldNotifications, ...pendingFollowRequests].length === 0 && (
-              <Text tx="notificationsScreen.noNotificationsMessage" />
-            )}
+            {newNotifications.length + oldNotifications.length + pendingFollowRequests.length ===
+              0 && <Text tx="notificationsScreen.noNotificationsMessage" />}
           </>
         )}
         renderItem={({ item }) => <NotificationTile notification={item} />}

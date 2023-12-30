@@ -1,4 +1,4 @@
-import { DefaultUserPreferences } from "app/data/constants"
+import { DefaultUserPreferences, UserErrorType } from "app/data/constants"
 import {
   FollowRequest,
   Gym,
@@ -10,8 +10,8 @@ import {
 import { translate } from "app/i18n"
 import { api } from "app/services/api"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
+import { formatName } from "app/utils/formatName"
 import { getNestedField } from "app/utils/getNestedField"
-import { LocationObject } from "expo-location"
 import { flow, getEnv, types } from "mobx-state-tree"
 import Toast from "react-native-root-toast"
 import { ExerciseId, User, UserPreferences, isUser } from "../../app/data/model"
@@ -50,7 +50,6 @@ export const UserStoreModel = types
     userId: types.maybeNull(types.string),
     user: UserType,
     isLoadingProfile: true,
-    isNewUser: true, // A new user will yet to have a user document in the database
     notifications: types.maybe(types.array(NotificationModel)),
     followRequests: types.maybe(types.array(FollowRequestsModel)),
   })
@@ -64,11 +63,11 @@ export const UserStoreModel = types
       }
 
       if (
-        self.isNewUser ||
         self.user === null ||
         self.user === undefined ||
         isEmptyField(self.user?.firstName) ||
         isEmptyField(self.user?.lastName) ||
+        isEmptyField(self.user?.userHandle) ||
         isEmptyField(self.user?.privateAccount)
       ) {
         console.debug("UserStore.profileIncomplete returned true")
@@ -89,14 +88,7 @@ export const UserStoreModel = types
         return undefined
       }
 
-      if (self.user.firstName && self.user.lastName) {
-        return `${self.user.firstName} ${self.user.lastName}`
-      }
-
-      console.warn(
-        "UserStore.displayName: User display name not available. Using email instead. This should not be possible.",
-      )
-      return self.user.email
+      return formatName(self.user.firstName, self.user.lastName)
     },
     getExerciseLastWorkoutId(exerciseId: ExerciseId) {
       const exerciseHistory = getNestedField(
@@ -121,7 +113,6 @@ export const UserStoreModel = types
         console.debug("UserStore.getProp:", propPath, "value is array")
         return [...value] as T
       } else if (value instanceof Object) {
-        // TODO: This seems to cause the app to hang
         console.debug("UserStore.getProp:", propPath, "value is object")
         return { ...value } as T
       }
@@ -169,7 +160,6 @@ export const UserStoreModel = types
       // self.workouts.clear()
       self.isLoadingProfile = true
       // self.isLoadingWorkouts = true
-      self.isNewUser = true
     }
 
     const uploadUserAvatar = flow<string, [imagePath: string]>(function* (imagePath: string) {
@@ -186,7 +176,7 @@ export const UserStoreModel = types
 
     /**
      * Creating a profile should usually be done right after signing up
-     * this is for the rare case when a user's profile needs to be recreated
+     * this is in case when a user's profile needs to be recreated
      * e.g. when a user deletes their account and signs up again
      * e.g. for testing purposes
      */
@@ -199,7 +189,6 @@ export const UserStoreModel = types
         yield userRepository.create(newUser)
 
         self.isLoadingProfile = false
-        self.isNewUser = false
       } catch (e) {
         console.error("UserStore.createNewProfile error:", e)
       }
@@ -207,7 +196,7 @@ export const UserStoreModel = types
 
     const getOtherUser = flow(function* (userId: string) {
       const { userRepository } = getEnv<RootStoreDependencies>(self)
-      const user = yield userRepository.get(userId, false)
+      const user = yield userRepository.get(userId, true)
       return user
     })
 
@@ -269,15 +258,36 @@ export const UserStoreModel = types
       }
     })
 
-    const getUserLocation = flow(function* () {
+    // const getUserLocation = flow(function* () {
+    //   const { userRepository } = getEnv<RootStoreDependencies>(self)
+    //   return yield userRepository.getUserLocation()
+    // }) as () => Promise<LocationObject>
+
+    const fetchUserProfile = flow(function* () {
+      if (!self.userId) {
+        console.error("UserStore.fetchUserProfile: No userId set")
+        return
+      }
+
+      self.isLoadingProfile = true
       const { userRepository } = getEnv<RootStoreDependencies>(self)
-      return yield userRepository.getUserLocation()
-    }) as () => Promise<LocationObject>
+      try {
+        const user = yield userRepository.get(self.userId, true)
+
+        if (user) {
+          // console.debug("UserStore.loadUserWIthId user:", user)
+          self.user = user
+          // yield self.getWorkouts()
+        }
+      } catch (e) {
+        console.error("UserStore.fetchUserProfile error:", e)
+      } finally {
+        self.isLoadingProfile = false
+      }
+    })
 
     const loadUserWithId = flow(function* (userId: string) {
       console.debug("UserStore.loadUserWIthId called:", userId)
-      self.isLoadingProfile = true
-
       try {
         const {
           userRepository,
@@ -289,24 +299,11 @@ export const UserStoreModel = types
         userRepository.setUserId(userId)
         privateExerciseRepository.setUserId(userId)
         notificationRepository.setUserId(userId)
-
-        const user = yield userRepository.get(userId, true)
-
-        if (user) {
-          // console.debug("UserStore.loadUserWIthId user:", user)
-          self.user = user
-          self.isNewUser = false
-          // yield self.getWorkouts()
-        } else {
-          self.isNewUser = true
-        }
-
-        self.isLoadingProfile = false
+        self.userId = userId
+        yield fetchUserProfile()
       } catch (e) {
         console.error("UserStore.loadUserWIthId error:", e)
       }
-
-      self.userId = userId
       console.debug("UserStore.loadUserWIthId done")
     })
 
@@ -315,7 +312,6 @@ export const UserStoreModel = types
       console.debug("UserStore.setUser user:", user)
       self.user = convertFirestoreTimestampToDate(user)
       // self.getWorkouts()
-      self.isNewUser = false
       self.isLoadingProfile = false
     }
 
@@ -324,20 +320,28 @@ export const UserStoreModel = types
       self.isLoadingProfile = true
 
       try {
-        const updatedUser = yield getEnv<RootStoreDependencies>(self).userRepository.update(
-          null,
-          userUpdate,
-          true,
-        )
-        console.debug("UserStore.updateProfile new user:", updatedUser)
-        self.user = updatedUser
-        // yield self.getWorkouts()
+        let userHandleTakenError: Error
+        const updatedUser = yield getEnv<RootStoreDependencies>(self)
+          .userRepository.update(null, userUpdate, true)
+          .then(undefined, (e: Error) => {
+            if (e.cause === UserErrorType.UserHandleAlreadyTakenError) userHandleTakenError = e
+            else throw e
+          })
 
-        self.isLoadingProfile = false
+        if (userHandleTakenError) {
+          return Promise.reject(userHandleTakenError)
+        } else {
+          console.debug("UserStore.updateProfile new user:", updatedUser)
+          self.user = updatedUser
+        }
       } catch (e) {
         console.error("UserStore.updateProfile error:", e)
+      } finally {
+        self.isLoadingProfile = false
       }
+
       console.debug("UserStore.updateProfile done")
+      return Promise.resolve()
     })
 
     const deleteProfile = flow(function* () {
@@ -414,15 +418,26 @@ export const UserStoreModel = types
       }
     })
 
+    const userHandleIsAvailable = flow(function* (userHandle: string) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        const isAvailable = yield userRepository.userHandleIsAvailable(userHandle)
+        return isAvailable
+      } catch (e) {
+        console.error("UserStore.userHandleAvailable error:", e)
+      }
+    })
+
     return {
       invalidateSession,
+      fetchUserProfile,
       loadUserWithId,
       setUser,
       updateProfile,
       deleteProfile,
       createNewProfile,
       uploadUserAvatar,
-      getUserLocation,
+      // getUserLocation,
       getOtherUser,
       followUser,
       unfollowUser,
@@ -438,5 +453,6 @@ export const UserStoreModel = types
       isInMyGyms,
       addToMyGyms,
       removeFromMyGyms,
+      userHandleIsAvailable,
     }
   })

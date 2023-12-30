@@ -1,3 +1,5 @@
+import { useStores } from "app/stores"
+import { observer } from "mobx-react-lite"
 import React, { ComponentType, forwardRef, Ref, useImperativeHandle, useRef } from "react"
 import {
   StyleProp,
@@ -9,7 +11,7 @@ import {
   ViewStyle,
 } from "react-native"
 import { isRTL, translate } from "../i18n"
-import { colors, spacing, typography } from "../theme"
+import { spacing, typography } from "../theme"
 import { Text, TextProps } from "./Text"
 
 export interface TextFieldAccessoryProps {
@@ -102,159 +104,166 @@ export interface TextFieldProps extends Omit<TextInputProps, "ref"> {
  *
  * - [Documentation and Examples](https://github.com/infinitered/ignite/blob/master/docs/Components-TextField.md)
  */
-export const TextField = forwardRef(function TextField(props: TextFieldProps, ref: Ref<TextInput>) {
-  const {
-    labelTx,
-    label,
-    labelTxOptions,
-    placeholderTx,
-    placeholder,
-    placeholderTxOptions,
-    helper,
-    helperTx,
-    helperTxOptions,
-    status,
-    RightAccessory,
-    LeftAccessory,
-    HelperTextProps,
-    LabelTextProps,
-    style: $inputStyleOverride,
-    containerStyle: $containerStyleOverride,
-    inputWrapperStyle: $inputWrapperStyleOverride,
-    ...TextInputProps
-  } = props
-  const input = useRef<TextInput>()
+export const TextField = observer(
+  forwardRef(function TextField(props: TextFieldProps, ref: Ref<TextInput>) {
+    const {
+      labelTx,
+      label,
+      labelTxOptions,
+      placeholderTx,
+      placeholder,
+      placeholderTxOptions,
+      helper,
+      helperTx,
+      helperTxOptions,
+      status,
+      RightAccessory,
+      LeftAccessory,
+      HelperTextProps,
+      LabelTextProps,
+      style: $inputStyleOverride,
+      containerStyle: $containerStyleOverride,
+      inputWrapperStyle: $inputWrapperStyleOverride,
+      ...TextInputProps
+    } = props
+    const input = useRef<TextInput>()
 
-  const disabled = TextInputProps.editable === false || status === "disabled"
+    const { themeStore } = useStores()
 
-  const placeholderContent = placeholderTx
-    ? translate(placeholderTx, placeholderTxOptions)
-    : placeholder
+    const disabled = TextInputProps.editable === false || status === "disabled"
 
-  const $containerStyles = [$containerStyleOverride]
+    const placeholderContent = placeholderTx
+      ? translate(placeholderTx, placeholderTxOptions)
+      : placeholder
 
-  const $labelStyles = [$labelStyle, LabelTextProps?.style]
+    const $containerStyles = [$containerStyleOverride]
 
-  const $inputWrapperStyles = [
-    $inputWrapperStyle,
-    status === "error" && { borderColor: colors.error },
-    TextInputProps.multiline && { minHeight: 112 },
-    LeftAccessory && { paddingStart: 0 },
-    RightAccessory && { paddingEnd: 0 },
-    $inputWrapperStyleOverride,
-  ]
+    const $labelStyles = [$labelStyle, LabelTextProps?.style]
 
-  const $inputStyles = [
-    $inputStyle,
-    disabled && { color: colors.textDim },
-    isRTL && { textAlign: "right" as TextStyle["textAlign"] },
-    TextInputProps.multiline && { height: "auto" },
-    $inputStyleOverride,
-  ]
+    const $inputWrapperStyle: ViewStyle = {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderRadius: 4,
+      borderColor: themeStore.palette("neutral400"),
+      overflow: "hidden",
+    }
 
-  const $helperStyles = [
-    $helperStyle,
-    status === "error" && { color: colors.error },
-    HelperTextProps?.style,
-  ]
+    const $inputWrapperStyles = [
+      $inputWrapperStyle,
+      status === "error"
+        ? { borderColor: themeStore.colors("error") }
+        : status === "disabled"
+        ? { borderColor: null, borderWidth: 0 }
+        : null,
+      // TextInputProps.multiline && { minHeight: "112" },
+      LeftAccessory && { paddingStart: 0 },
+      RightAccessory && { paddingEnd: 0 },
+      $inputWrapperStyleOverride,
+    ]
 
-  function focusInput() {
-    if (disabled) return
+    const $inputStyle: TextStyle = {
+      flex: 1,
+      alignSelf: "stretch",
+      fontFamily: typography.primary.normal,
+      color: themeStore.colors("text"),
+      fontSize: 16,
+      height: 24,
+      // https://github.com/facebook/react-native/issues/21720#issuecomment-532642093
+      paddingVertical: 0,
+      paddingHorizontal: 0,
+      marginVertical: spacing.extraSmall,
+      marginHorizontal: spacing.small,
+    }
 
-    input.current?.focus()
-  }
+    const $inputStyles: StyleProp<TextStyle> = [
+      $inputStyle,
+      disabled && { color: themeStore.colors("textDim") },
+      isRTL && { textAlign: "right" as TextStyle["textAlign"] },
+      TextInputProps.multiline && { height: "auto" },
+      $inputStyleOverride,
+    ]
 
-  useImperativeHandle(ref, () => input.current)
+    const $helperStyles = [
+      $helperStyle,
+      status === "error" && { color: themeStore.colors("error") },
+      HelperTextProps?.style,
+    ]
 
-  return (
-    <TouchableOpacity
-      activeOpacity={1}
-      style={$containerStyles}
-      onPress={focusInput}
-      accessibilityState={{ disabled }}
-    >
-      {!!(label || labelTx) && (
-        <Text
-          preset="formLabel"
-          text={label}
-          tx={labelTx}
-          txOptions={labelTxOptions}
-          {...LabelTextProps}
-          style={$labelStyles}
-        />
-      )}
+    function focusInput() {
+      if (disabled) return
 
-      <View style={$inputWrapperStyles}>
-        {!!LeftAccessory && (
-          <LeftAccessory
-            style={$leftAccessoryStyle}
-            status={status}
-            editable={!disabled}
-            multiline={TextInputProps.multiline}
+      input.current?.focus()
+    }
+
+    useImperativeHandle(ref, () => input.current)
+
+    return (
+      <TouchableOpacity
+        activeOpacity={1}
+        style={$containerStyles}
+        onPress={focusInput}
+        accessibilityState={{ disabled }}
+      >
+        {!!(label || labelTx) && (
+          <Text
+            preset="formLabel"
+            text={label}
+            tx={labelTx}
+            txOptions={labelTxOptions}
+            {...LabelTextProps}
+            style={$labelStyles}
           />
         )}
 
-        <TextInput
-          ref={input}
-          underlineColorAndroid={colors.transparent}
-          textAlignVertical="top"
-          placeholder={placeholderContent}
-          placeholderTextColor={colors.textDim}
-          {...TextInputProps}
-          editable={!disabled}
-          style={$inputStyles}
-        />
+        <View style={$inputWrapperStyles}>
+          {!!LeftAccessory && (
+            <LeftAccessory
+              style={$leftAccessoryStyle}
+              status={status}
+              editable={!disabled}
+              multiline={TextInputProps.multiline}
+            />
+          )}
 
-        {!!RightAccessory && (
-          <RightAccessory
-            style={$rightAccessoryStyle}
-            status={status}
+          <TextInput
+            ref={input}
+            underlineColorAndroid={themeStore.colors("transparent")}
+            textAlignVertical="top"
+            placeholder={placeholderContent}
+            placeholderTextColor={themeStore.colors("textDim")}
+            {...TextInputProps}
             editable={!disabled}
-            multiline={TextInputProps.multiline}
+            style={$inputStyles}
+          />
+
+          {!!RightAccessory && (
+            <RightAccessory
+              style={$rightAccessoryStyle}
+              status={status}
+              editable={!disabled}
+              multiline={TextInputProps.multiline}
+            />
+          )}
+        </View>
+
+        {!!(helper || helperTx) && (
+          <Text
+            preset="formHelper"
+            text={helper}
+            tx={helperTx}
+            txOptions={helperTxOptions}
+            {...HelperTextProps}
+            style={$helperStyles}
           />
         )}
-      </View>
-
-      {!!(helper || helperTx) && (
-        <Text
-          preset="formHelper"
-          text={helper}
-          tx={helperTx}
-          txOptions={helperTxOptions}
-          {...HelperTextProps}
-          style={$helperStyles}
-        />
-      )}
-    </TouchableOpacity>
-  )
-})
+      </TouchableOpacity>
+    )
+  }),
+)
 
 const $labelStyle: TextStyle = {
   marginBottom: spacing.extraSmall,
-}
-
-const $inputWrapperStyle: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "flex-start",
-  borderWidth: 1,
-  borderRadius: 4,
-  backgroundColor: colors.palette.neutral200,
-  borderColor: colors.palette.neutral400,
-  overflow: "hidden",
-}
-
-const $inputStyle: TextStyle = {
-  flex: 1,
-  alignSelf: "stretch",
-  fontFamily: typography.primary.normal,
-  color: colors.text,
-  fontSize: 16,
-  height: 24,
-  // https://github.com/facebook/react-native/issues/21720#issuecomment-532642093
-  paddingVertical: 0,
-  paddingHorizontal: 0,
-  marginVertical: spacing.extraSmall,
-  marginHorizontal: spacing.small,
 }
 
 const $helperStyle: TextStyle = {

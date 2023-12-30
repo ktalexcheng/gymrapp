@@ -1,4 +1,4 @@
-import { AppLocale, WeightUnit } from "../constants"
+import { AppColorScheme, AppLocale, WeightUnit } from "../constants"
 import { baseMetadata } from "./baseModel"
 import { ExerciseId, ExerciseRecord, ExerciseSettings } from "./exerciseModel"
 import { Gym } from "./gymModel"
@@ -10,6 +10,7 @@ export interface UserPreferences {
   autoRestTimerEnabled: boolean
   restTime: number
   exerciseSpecificSettings?: { [exerciseId: ExerciseId]: ExerciseSettings }
+  appColorScheme?: AppColorScheme
 }
 
 export interface WorkoutMeta {
@@ -32,6 +33,8 @@ export type UserId = string
 
 export interface User extends UnregisteredUser {
   userId: UserId
+  userHandle: string
+  _userHandleLower: string // internal use only, for case-insensitive search
   firstName: string
   lastName: string
   myGyms: Gym[]
@@ -47,6 +50,7 @@ export interface User extends UnregisteredUser {
 
 export interface UserSearchResult {
   userId: UserId
+  userHandle: string
   firstName: string
   lastName: string
   avatarUrl?: string

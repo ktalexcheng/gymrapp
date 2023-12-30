@@ -1,20 +1,21 @@
 import { LatLongCoords } from "app/data/model"
 import { translate } from "app/i18n"
-import { useStores } from "app/stores"
+import * as Location from "expo-location"
 import { useEffect, useState } from "react"
-import { Alert } from "react-native"
+import { Alert, Linking } from "react-native"
 
 /**
  * IMPORTANT: If testing on Android emulator, open Google Maps in order to capture GPS location
  * not sure why this is necessary but the location will never update otherwise
  */
-export const useUserLocation = (): [
-  userLocation: LatLongCoords,
-  isGettingUserLocation: boolean,
-  refreshUserLocation: () => void,
-] => {
-  const { userStore } = useStores()
-  const [userLocation, setUserLocation] = useState<LatLongCoords>()
+export const useUserLocation = (): {
+  userLocation: LatLongCoords
+  isLocationPermissionGranted: boolean
+  isGettingUserLocation: boolean
+  refreshUserLocation: () => void
+} => {
+  const [userLocation, setUserLocation] = useState<LatLongCoords>(null)
+  const [isLocationPermissionGranted, setIsLocationPermissionGranted] = useState(false)
   const [isGettingUserLocation, setIsGettingUserLocation] = useState(true)
   const [getUserLocationRefreshKey, setGetUserLocationRefreshKey] = useState(0)
   const [permissionAlertRefreshKey, setPermissionAlertRefreshKey] = useState(0)
@@ -30,16 +31,23 @@ export const useUserLocation = (): [
   useEffect(() => {
     if (permissionAlertRefreshKey === 0) return
     Alert.alert(
-      translate("createNewGymScreen.locationPermissionRequiredLabel"),
-      translate("createNewGymScreen.locationPermissionRequiredMessage"),
+      translate("userLocation.locationPermissionRequiredTitle"),
+      translate("userLocation.locationPermissionRequiredMessage"),
       [
+        {
+          text: translate("userLocation.goToAppSettingsButtonLabel"),
+          style: "default",
+          onPress: () => {
+            Linking.openSettings()
+            // Calling refreshUserLocation() here will basically force the user to
+            // enable location services, we don't want to do that for now
+            // refreshUserLocation()
+          },
+        },
         {
           text: translate("common.ok"),
           style: "cancel",
-          onPress: () => {
-            console.debug("alert cancel pressed")
-            refreshUserLocation()
-          },
+          onPress: () => {},
         },
       ],
     )
@@ -47,24 +55,30 @@ export const useUserLocation = (): [
 
   useEffect(() => {
     const getUserLocation = async () => {
-      setUserLocation(null)
       setIsGettingUserLocation(true)
+
       try {
-        const location = await userStore.getUserLocation()
-        console.debug("useUserLocation [getUserLocationRefreshKey] location:", location)
-        if (!location) {
+        const { status } = await Location.requestForegroundPermissionsAsync()
+        if (status !== Location.PermissionStatus.GRANTED) {
+          console.debug("useUserLocation [getUserLocationRefreshKey] status !== granted")
+          setIsLocationPermissionGranted(false)
+          setUserLocation(null)
           showPermissionAlert()
           return
         }
+
+        const location = await Location.getCurrentPositionAsync({})
+        console.debug("useUserLocation [getUserLocationRefreshKey] location:", location)
         setUserLocation({ lat: location.coords.latitude, lng: location.coords.longitude })
       } catch (e) {
         console.error("useUserLocation [getUserLocationRefreshKey] error:", e)
+      } finally {
+        setIsGettingUserLocation(false)
       }
-      setIsGettingUserLocation(false)
     }
 
     getUserLocation()
   }, [getUserLocationRefreshKey])
 
-  return [userLocation, isGettingUserLocation, refreshUserLocation]
+  return { userLocation, isLocationPermissionGranted, isGettingUserLocation, refreshUserLocation }
 }

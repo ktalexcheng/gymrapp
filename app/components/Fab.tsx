@@ -14,6 +14,7 @@ export const Fab = (props: FabProps) => {
 
   const $fabContainer: ViewStyle = {
     position: "absolute",
+    zIndex: 1,
     width: $fabSize[size],
     height: $fabSize[size],
     borderRadius: $fabSize[size] / 2,

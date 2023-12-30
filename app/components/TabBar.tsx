@@ -1,4 +1,6 @@
-import { colors, spacing } from "app/theme"
+import { useStores } from "app/stores"
+import { spacing } from "app/theme"
+import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { Animated, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { Route, TabBarProps } from "react-native-tab-view"
@@ -9,7 +11,8 @@ export type CustomTabBarProps<T extends Route> = TabBarProps<T> & {
   setTabIndex: (i: number) => void
 }
 
-export const TabBar: FC<CustomTabBarProps<Route>> = (props) => {
+export const TabBar: FC<CustomTabBarProps<Route>> = observer((props) => {
+  const { themeStore } = useStores()
   const inputRange = props.navigationState.routes.map((_, i) => i)
   const tabIndex = props.tabIndex
   const setTabIndex = props.setTabIndex
@@ -21,8 +24,9 @@ export const TabBar: FC<CustomTabBarProps<Route>> = (props) => {
           inputRange,
           outputRange: inputRange.map((inputIndex) => (inputIndex === i ? 1 : 0.5)),
         })
-        const textColor = tabIndex === i ? colors.actionable : colors.textDim
-        const borderColor = tabIndex === i ? colors.actionable : colors.disabled
+        const textColor = tabIndex === i ? themeStore.colors("text") : themeStore.colors("textDim")
+        const borderColor =
+          tabIndex === i ? themeStore.colors("text") : themeStore.colors("disabledBackground")
 
         const $tabBarItemColor: ViewStyle = {
           borderColor,
@@ -47,10 +51,11 @@ export const TabBar: FC<CustomTabBarProps<Route>> = (props) => {
       })}
     </RowView>
   )
-}
+})
 
 const $tabBarContainer: ViewStyle = {
   flex: 1,
+  marginBottom: spacing.tiny,
 }
 
 const $tabBarItem: ViewStyle = {

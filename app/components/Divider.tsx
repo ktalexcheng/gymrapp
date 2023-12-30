@@ -1,4 +1,6 @@
-import { colors, fontSize, spacing } from "app/theme"
+import { useStores } from "app/stores"
+import { fontSize, spacing } from "app/theme"
+import { observer } from "mobx-react-lite"
 import React from "react"
 import { TextStyle, View, ViewStyle } from "react-native"
 import { TxKeyPath, translate } from "../i18n"
@@ -14,15 +16,19 @@ export interface DividerProps {
   color?: string
 }
 
-export const Divider = ({
-  orientation,
-  tx,
-  text,
-  fontSize: fontSizeOverride,
-  lineWidth = 1,
-  spaceSize = spacing.medium,
-  color = colors.separator,
-}: DividerProps) => {
+export const Divider = observer((props: DividerProps) => {
+  const { themeStore } = useStores()
+
+  const {
+    orientation,
+    tx,
+    text,
+    fontSize: fontSizeOverride,
+    lineWidth = 1,
+    spaceSize = spacing.medium,
+    color = themeStore.colors("separator"),
+  } = props
+
   const $containerStyle: ViewStyle = {
     flexDirection: orientation === "horizontal" ? "row" : "column",
     alignItems: "center",
@@ -47,7 +53,7 @@ export const Divider = ({
   const $textStyle: TextStyle = {
     paddingHorizontal: spacing.extraSmall,
     fontSize: fontSizeOverride || fontSize.body,
-    color: colors.separator,
+    color: themeStore.colors("separator"),
   }
 
   const i18nText = tx && translate(tx)
@@ -64,4 +70,4 @@ export const Divider = ({
       <View style={$dividerLineStyle} />
     </View>
   )
-}
+})

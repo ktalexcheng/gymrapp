@@ -1,27 +1,44 @@
-import { Button, Screen } from "app/components"
+import { Button, Divider, Screen } from "app/components"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
-import { spacing } from "app/theme"
+import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
-import React from "react"
+import React, { useState } from "react"
 import { Alert, ViewStyle } from "react-native"
 import { EditProfileForm } from "./UserProfile"
 
 export const UserSettingsScreen = observer(function () {
   const { authenticationStore: authStore } = useStores()
   const mainNavigation = useMainNavigation()
+  const [isBusy, setIsBusy] = useState(false)
 
-  const showDeleteAlert = () => {
+  // TODO: Delete account procedure needs to be thought through more
+  // const showDeleteAlert = () => {
+  //   Alert.alert(
+  //     translate("userSettingsScreen.deleteAccountAlertTitle"),
+  //     translate("userSettingsScreen.deleteAccountAlertMessage"),
+  //     [
+  //       { text: translate("common.cancel"), style: "cancel" },
+  //       {
+  //         text: translate("common.delete"),
+  //         style: "destructive",
+  //         onPress: () => authStore.deleteAccount(),
+  //       },
+  //     ],
+  //   )
+  // }
+
+  const showLogoutAlert = () => {
     Alert.alert(
-      translate("userSettingsScreen.deleteAccount"),
-      translate("userSettingsScreen.deleteAccountConfirmationMessage"),
+      translate("userSettingsScreen.logoutAlertTitle"),
+      translate("userSettingsScreen.logoutAlertMessage"),
       [
         { text: translate("common.cancel"), style: "cancel" },
         {
-          text: translate("common.delete"),
+          text: translate("userSettingsScreen.logoutAlertTitle"),
           style: "destructive",
-          onPress: () => authStore.deleteAccount(),
+          onPress: () => authStore.logout(),
         },
       ],
     )
@@ -32,6 +49,7 @@ export const UserSettingsScreen = observer(function () {
       preset="scroll"
       safeAreaEdges={["top", "bottom"]}
       contentContainerStyle={$screenContentContainer}
+      isBusy={isBusy}
     >
       <EditProfileForm
         saveProfileCompletedCallback={() => {
@@ -39,13 +57,26 @@ export const UserSettingsScreen = observer(function () {
           // it could be called multiple times, so we need to check if we can go back
           if (mainNavigation.canGoBack()) mainNavigation.goBack()
         }}
+        onBusyChange={setIsBusy}
       />
-      <Button preset="text" onPress={authStore.logout} tx="userSettingsScreen.logout" />
-      <Button preset="text" onPress={showDeleteAlert} tx="userSettingsScreen.deleteAccount" />
+      <Divider tx="userSettingsScreen.accountControlsSectionLabel" orientation="horizontal" />
+      <Button preset="text" tx="userSettingsScreen.logoutAlertTitle" onPress={showLogoutAlert} />
+      {/* <Button
+        preset="text"
+        style={$deleteAccountButton}
+        textStyle={{ color: themeStore.colors("danger") }}
+        tx="userSettingsScreen.deleteAccountAlertTitle"
+        onPress={showDeleteAlert}
+      /> */}
     </Screen>
   )
 })
 
 const $screenContentContainer: ViewStyle = {
+  ...styles.screenContainer,
   paddingHorizontal: spacing.large,
 }
+
+// const $deleteAccountButton: ViewStyle = {
+//   marginVertical: spacing.large,
+// }

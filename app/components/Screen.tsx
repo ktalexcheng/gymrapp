@@ -1,7 +1,10 @@
 import { useScrollToTop } from "@react-navigation/native"
+import { useStores } from "app/stores"
 import { StatusBar, StatusBarProps } from "expo-status-bar"
+import { observer } from "mobx-react-lite"
 import React, { useRef, useState } from "react"
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   KeyboardAvoidingViewProps,
   LayoutChangeEvent,
@@ -12,7 +15,6 @@ import {
   View,
   ViewStyle,
 } from "react-native"
-import { colors } from "../theme"
 import { ExtendedEdge, useSafeAreaInsetsStyle } from "../utils/useSafeAreaInsetsStyle"
 
 interface BaseScreenProps {
@@ -26,6 +28,8 @@ interface BaseScreenProps {
   style?: StyleProp<ViewStyle>
   /**
    * Style for the inner content container useful for padding & margin.
+   * Note when content is scrollable, use flexGrow: 1 instead of flex: 1
+   * to allow ScrollView content height to grow.
    */
   contentContainerStyle?: StyleProp<ViewStyle>
   /**
@@ -52,6 +56,10 @@ interface BaseScreenProps {
    * Pass any additional props directly to the KeyboardAvoidingView component.
    */
   KeyboardAvoidingViewProps?: KeyboardAvoidingViewProps
+  /**
+   * Show that the screen is busy with an activity indicator overlay. Defaults to false.
+   */
+  isBusy?: boolean
 }
 
 interface FixedScreenProps extends BaseScreenProps {
@@ -163,6 +171,13 @@ function ScreenWithScrolling(props: ScreenProps) {
   // More info at: https://reactnavigation.org/docs/use-scroll-to-top/
   useScrollToTop(ref)
 
+  // This makes sure we override any flex settings with flexGrow: 1
+  // to allow for ScrollView content size to grow
+  const $flexGrow = {
+    flex: null,
+    flexGrow: 1,
+  }
+
   return (
     <ScrollView
       {...{ keyboardShouldPersistTaps, scrollEnabled, ref }}
@@ -172,6 +187,7 @@ function ScreenWithScrolling(props: ScreenProps) {
         ScrollViewProps?.onLayout?.(e)
       }}
       onContentSizeChange={(w: number, h: number) => {
+        console.debug("ScreenWithScrolling: onContentSizeChange", w, h)
         onContentSizeChange(w, h)
         ScrollViewProps?.onContentSizeChange?.(w, h)
       }}
@@ -180,6 +196,7 @@ function ScreenWithScrolling(props: ScreenProps) {
         $innerStyle,
         ScrollViewProps?.contentContainerStyle,
         contentContainerStyle,
+        $flexGrow,
       ]}
     >
       {children}
@@ -187,21 +204,50 @@ function ScreenWithScrolling(props: ScreenProps) {
   )
 }
 
-export function Screen(props: ScreenProps) {
+export const Screen = observer((props: ScreenProps) => {
+  const { themeStore } = useStores()
+
   const {
-    backgroundColor = colors.background,
+    backgroundColor,
     KeyboardAvoidingViewProps,
     keyboardOffset = 0,
     safeAreaEdges,
     StatusBarProps,
     statusBarStyle = "dark",
+    isBusy = false,
   } = props
 
   const $containerInsets = useSafeAreaInsetsStyle(safeAreaEdges)
 
+  const $containerStyle: ViewStyle = {
+    flex: 1,
+    height: "100%",
+    width: "100%",
+    backgroundColor: backgroundColor ?? themeStore.colors("background"),
+  }
+
+  const $busyIndicator: ViewStyle = {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+    backgroundColor: themeStore.colors("contentBackground"),
+    opacity: 0.5,
+    justifyContent: "center",
+    alignItems: "center",
+  }
+
   return (
-    <View style={[$containerStyle, { backgroundColor }, $containerInsets]}>
+    <View style={[$containerStyle, $containerInsets]}>
       <StatusBar style={statusBarStyle} {...StatusBarProps} />
+
+      {isBusy && (
+        <View style={$busyIndicator}>
+          <ActivityIndicator size="large" color={themeStore.colors("logo")} />
+        </View>
+      )}
 
       <KeyboardAvoidingView
         behavior={isIos ? "padding" : undefined}
@@ -217,13 +263,7 @@ export function Screen(props: ScreenProps) {
       </KeyboardAvoidingView>
     </View>
   )
-}
-
-const $containerStyle: ViewStyle = {
-  flex: 1,
-  height: "100%",
-  width: "100%",
-}
+})
 
 const $keyboardAvoidingViewStyle: ViewStyle = {
   flex: 1,

@@ -7,7 +7,7 @@
  */
 import functions, { FirebaseFunctionsTypes } from "@react-native-firebase/functions"
 import { ApisauceInstance, create } from "apisauce"
-import { AppLocale } from "app/data/constants"
+import { AppLocale, UserErrorType } from "app/data/constants"
 import {
   FeedItemId,
   GymId,
@@ -19,7 +19,9 @@ import {
   WorkoutId,
 } from "app/data/model"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
+import * as Application from "expo-application"
 import { getDistance } from "geolib"
+import { Platform } from "react-native"
 import Config from "../../config"
 import type {
   ApiConfig,
@@ -59,6 +61,26 @@ export class Api {
       },
     })
     this.firebaseFunctionsClient = config.firebaseFunctionsClient
+  }
+
+  async checkForUpdates(exercisesLastUpdate: Date): Promise<{
+    updateAvailable: boolean
+    updateLink: string
+    forceUpdate: boolean
+    exercisesUpdateAvailable: boolean
+  }> {
+    try {
+      const response = await this.firebaseFunctionsClient.httpsCallable("appCheckForUpdates")({
+        appPlatform: Platform.OS,
+        appVersion: Application.nativeApplicationVersion,
+        exercisesLastUpdate,
+      })
+
+      return response.data
+    } catch (e) {
+      console.error("checkForUpdates error:", e)
+      throw new Error("Error checking for updates.")
+    }
   }
 
   async getPlacePredictions(
@@ -239,6 +261,21 @@ export class Api {
     } catch (e) {
       console.error("unfollowOtherUser error:", e)
       throw new Error("Error unfollowing other user.")
+    }
+  }
+
+  async updateUserHandle(
+    userHandle: string,
+  ): Promise<"success" | UserErrorType.UserHandleAlreadyTakenError> {
+    try {
+      const reponse = await this.firebaseFunctionsClient.httpsCallable("userUpdateUserHandle")({
+        userHandle,
+      })
+      console.debug("updateUserHandle response:", reponse)
+      return reponse.data.status
+    } catch (e) {
+      console.error("updateUserHandle error:", e)
+      throw new Error("Error updating user handle.")
     }
   }
 }

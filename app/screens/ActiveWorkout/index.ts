@@ -1,6 +1,6 @@
 export * from "./ActiveWorkoutOverlay"
 export * from "./ActiveWorkoutScreen"
 export * from "./ExercisePickerScreen"
-export * from "./GymPickerScreen"
 export * from "./RestTimerScreen"
 export * from "./SaveWorkoutScreen"
+export * from "./WorkoutGymPickerScreen"

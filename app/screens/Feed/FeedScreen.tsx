@@ -16,7 +16,7 @@ interface FeedScreenProps extends NativeStackScreenProps<TabScreenProps<"Profile
 
 export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
   const { feedStore, userStore, workoutStore } = useStores()
-  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? ["bottom"] : ["top", "bottom"]
+  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? [] : ["top"]
   const [feedData, setFeedData] = useState<WorkoutSummaryCardProps[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -42,7 +42,7 @@ export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
       workoutSource: WorkoutSource.Feed,
       workoutId: workout.workoutId,
       workout,
-      byUser: feedStore.feedUsers.get(workout.byUserId).user,
+      byUser: feedStore.feedUsers.get(workout.byUserId)?.user,
     }))
   }
 
@@ -86,7 +86,7 @@ export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
   )
 
   const renderFeed = () => {
-    if (userStore.isLoadingProfile) {
+    if (userStore.isLoadingProfile || !userStore.user) {
       return <LoadingScreen />
     }
 
@@ -112,8 +112,14 @@ export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
           refreshControl={FeedRefreshControl}
           data={feedData}
           renderItem={renderFeedWorkoutItem}
+          showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
-          ListFooterComponent={renderFeedFooterItem()}
+          ListFooterComponent={() => (
+            <>
+              {renderFeedFooterItem()}
+              <Spacer type="vertical" size="extraLarge" />
+            </>
+          )}
           onEndReachedThreshold={0.5}
           onEndReached={getMoreFeedItems}
         />
@@ -124,6 +130,7 @@ export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
   const isEmptyFeed = () => {
     return (
       userStore.isLoadingProfile ||
+      !userStore.user ||
       userStore.user.followingCount === 0 ||
       feedStore.feedWorkouts.size === 0
     )
@@ -137,7 +144,7 @@ export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
       ScrollViewProps={{ refreshControl: isEmptyFeed() ? FeedRefreshControl : undefined }}
     >
       <View style={$headingContainer}>
-        <Text tx="common.appTitle" preset="heading" />
+        <Text tx="common.appTitle" preset="screenTitle" />
       </View>
       {renderFeed()}
     </Screen>

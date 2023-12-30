@@ -1,10 +1,10 @@
 import { Activity } from "app/data/model/activityModel"
 import { MainStackScreenProps } from "app/navigators"
 import React, { FC, useState } from "react"
-import { Modal, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
-import { Card, RowView, Screen, Text } from "../components"
+import { StyleProp, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
+import { Button, Card, Modal, RowView, Screen, Spacer, Text } from "../components"
 import { useStores } from "../stores"
-import { colors, spacing } from "../theme"
+import { spacing } from "../theme"
 
 type ResetWorkoutDialogProps = {
   visible: boolean
@@ -16,29 +16,6 @@ type ResetWorkoutDialogProps = {
 const ResetWorkoutDialog: FC<ResetWorkoutDialogProps> = function ResetWorkoutDialog(
   props: ResetWorkoutDialogProps,
 ) {
-  const $saveDialogContainer: ViewStyle = {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  }
-
-  const $saveDialog: ViewStyle = {
-    flexBasis: "auto",
-    margin: 20,
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 35,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  }
-
   return (
     <Modal
       animationType="slide"
@@ -46,20 +23,11 @@ const ResetWorkoutDialog: FC<ResetWorkoutDialogProps> = function ResetWorkoutDia
       visible={props.visible}
       onRequestClose={props.onCancel}
     >
-      <View style={$saveDialogContainer}>
-        <View style={$saveDialog}>
-          <Text tx="newActivityScreen.resumeWorkoutPromptMessage" />
-          <TouchableOpacity onPress={props.onResume}>
-            <Text tx="newActivityScreen.resumeWorkout" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={props.onReset}>
-            <Text tx="newActivityScreen.startNewWorkoutText" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={props.onCancel}>
-            <Text tx="common.cancel" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Text tx="newActivityScreen.resumeWorkoutPromptMessage" />
+      <Spacer type="vertical" size="medium" />
+      <Button tx="newActivityScreen.resumeWorkout" preset="text" onPress={props.onResume} />
+      <Button tx="newActivityScreen.startNewWorkoutText" preset="text" onPress={props.onReset} />
+      <Button tx="common.cancel" preset="text" onPress={props.onCancel} />
     </Modal>
   )
 }
@@ -69,7 +37,7 @@ interface NewWorkoutScreenProps extends MainStackScreenProps<"NewWorkout"> {}
 export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutScreen({
   navigation,
 }) {
-  const { workoutStore, activityStore } = useStores()
+  const { workoutStore, activityStore, themeStore } = useStores()
   const [showResetWorkoutDialog, setShowResetWorkoutDialog] = useState(false)
   const [selectedActivityId, setSelectedActivityId] = useState(null)
   const [noActivitySelectedError, setNoActivitySelectedError] = useState(false)
@@ -107,11 +75,11 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
     navigation.navigate("ActiveWorkout")
   }
 
-  const $activitySelector: ViewStyle[] = [
+  const $activitySelector: StyleProp<ViewStyle> = [
     $activitySelectorBase,
     {
       borderWidth: noActivitySelectedError ? 1 : null,
-      borderColor: noActivitySelectedError ? colors.error : null,
+      borderColor: noActivitySelectedError ? themeStore.colors("error") : null,
     },
   ]
 
@@ -124,11 +92,13 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
         onCancel={() => setShowResetWorkoutDialog(false)}
       />
 
-      <Text
-        tx="newActivityScreen.startNewWorkoutText"
-        style={$pressableText}
-        onPress={startNewWorkout}
-      />
+      <RowView style={$startButtonContainer}>
+        <Button
+          tx="newActivityScreen.startNewWorkoutText"
+          preset="text"
+          onPress={startNewWorkout}
+        />
+      </RowView>
 
       <RowView scrollable={true} style={$activitySelector}>
         {Array.from(activityStore.allActivities.entries()).map(
@@ -148,7 +118,7 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
         )}
       </RowView>
 
-      <Text tx="newActivityScreen.nextWorkoutHeading" preset="heading" style={$heading} />
+      <Text tx="newActivityScreen.nextWorkoutHeading" preset="subheading" style={$heading} />
       <TouchableOpacity
         onPress={() => {
           console.debug("TODO: Start next workout in program")
@@ -162,7 +132,7 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
         />
       </TouchableOpacity>
 
-      <Text tx="newActivityScreen.savedWorkoutHeading" preset="heading" style={$heading} />
+      <Text tx="newActivityScreen.savedWorkoutHeading" preset="subheading" style={$heading} />
       <TouchableOpacity
         onPress={() => {
           console.debug("TODO: Start workout from template")
@@ -180,12 +150,12 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
 }
 
 const $container: ViewStyle = {
+  flex: 1,
   padding: spacing.screenPadding,
 }
 
-const $pressableText: TextStyle = {
-  textAlign: "right",
-  color: colors.actionable,
+const $startButtonContainer: ViewStyle = {
+  justifyContent: "flex-end",
 }
 
 const $heading: TextStyle = {

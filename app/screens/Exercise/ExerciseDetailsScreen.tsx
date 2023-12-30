@@ -1,13 +1,14 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { RowView, Screen, Spacer, TabBar, Text } from "app/components"
-import { ExerciseVolumeType, WeightUnit } from "app/data/constants"
+import { ExerciseVolumeType, WeightUnit, WorkoutSource } from "app/data/constants"
 import { ExerciseRecord, RepsPersonalRecord, TimePersonalRecord, WorkoutId } from "app/data/model"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
-import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
+import { formatDate } from "app/utils/formatDate"
+import { formatSecondsAsTime } from "app/utils/formatTime"
 import { Weight } from "app/utils/weight"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
@@ -26,16 +27,26 @@ const WorkoutHistoryTabScene = (exerciseId: string) =>
     if (!exerciseHistory) return <Text tx="exerciseDetailsScreen.noExerciseHistoryFound" />
 
     function getWorkoutData() {
-      const workouts = Array.from(feedStore.userWorkouts.values()).filter(({ workoutId }) => {
-        return exerciseHistory.includes(workoutId)
-      })
-      workouts.sort((a, b) => (a.workout.startTime > b.workout.startTime ? -1 : 1))
+      const workouts = Array.from(feedStore.userWorkouts.values())
+        .filter(({ workoutId }) => {
+          return exerciseHistory.includes(workoutId)
+        })
+        .map(({ workout }) => workout)
+      workouts.sort((a, b) => (a.startTime > b.startTime ? -1 : 1))
 
       return workouts
     }
 
     function renderWorkoutItem({ item }) {
-      return <WorkoutSummaryCard {...item} highlightExerciseId={exerciseId} />
+      return (
+        <WorkoutSummaryCard
+          workoutSource={WorkoutSource.User}
+          workoutId={item.workoutId}
+          workout={item}
+          byUser={userStore.user}
+          highlightExerciseId={exerciseId}
+        />
+      )
     }
 
     return (
@@ -69,7 +80,7 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
 
         return (
           <RowView key={`${exerciseId}_${i}`} style={$recordItem}>
-            <Text style={$recordsDateColumn}>{record.datePerformed.toLocaleString()}</Text>
+            <Text style={$recordsDateColumn}>{formatDate(record.datePerformed)}</Text>
             <Text style={$recordsTimeColumn}>{recordTime}</Text>
           </RowView>
         )
@@ -84,7 +95,7 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
 
         return (
           <RowView key={`${exerciseId}_${reps}`} style={$recordItem}>
-            <Text style={$recordsDateColumn}>{bestRecord.datePerformed.toLocaleString()}</Text>
+            <Text style={$recordsDateColumn}>{formatDate(bestRecord.datePerformed)}</Text>
             <Text style={$recordsRepsColumn}>{reps}</Text>
             <Text style={$recordsWeightColumn}>{weight.formattedDisplayWeight(1, true)}</Text>
           </RowView>

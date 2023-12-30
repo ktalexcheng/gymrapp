@@ -2,12 +2,13 @@ import { WorkoutSource } from "app/data/constants"
 import { User, UserId, WorkoutComment, WorkoutId, WorkoutInteraction } from "app/data/model"
 import { translate } from "app/i18n"
 import { useStores } from "app/stores"
-import { colors, spacing, styles } from "app/theme"
+import { spacing, styles } from "app/theme"
+import { formatDate } from "app/utils/formatDate"
 import { BlurView } from "expo-blur"
 import * as Clipboard from "expo-clipboard"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useRef, useState } from "react"
-import { ActivityIndicator, TouchableOpacity, View, ViewStyle } from "react-native"
+import { ActivityIndicator, StyleProp, TouchableOpacity, View, ViewStyle } from "react-native"
 import { FlatList, Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
   AnimatedStyleProp,
@@ -18,7 +19,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated"
 import Toast from "react-native-root-toast"
-import { Avatar, Icon, RowView, Spacer, Text, TextField } from "../../components"
+import { Avatar, Button, Icon, RowView, Spacer, Text, TextField } from "../../components"
 
 const WorkoutCommentTile = (props: {
   byUserId: UserId
@@ -28,20 +29,20 @@ const WorkoutCommentTile = (props: {
   selectedState?: boolean
 }) => {
   const { byUserId, comment, commentDate, onLongPress, selectedState } = props
-  const { userStore } = useStores()
+  const { userStore, themeStore } = useStores()
   const [user, setUser] = useState<User>(undefined)
 
   useEffect(() => {
     userStore.getOtherUser(byUserId).then((user) => setUser(user))
   }, [])
 
-  const $commentContainer: ViewStyle[] = [
+  const $commentContainer: StyleProp<ViewStyle> = [
     {
       padding: spacing.small,
       alignItems: "center",
     },
     selectedState && {
-      backgroundColor: colors.contentBackground,
+      backgroundColor: themeStore.colors("contentBackground"),
     },
   ]
 
@@ -61,7 +62,7 @@ const WorkoutCommentTile = (props: {
             <Text weight="bold" size="xs">
               {user ? `${user.firstName} ${user.lastName}` : "..."}
             </Text>
-            <Text size="xs">{commentDate.toLocaleString()}</Text>
+            <Text size="xs">{formatDate(commentDate)}</Text>
           </RowView>
           <Text style={styles.flex1}>{comment}</Text>
         </View>
@@ -78,14 +79,13 @@ const PANEL_HIDDEN_Y_POSITION = 1000
 type WorkoutCommentsPanelProps = {
   workoutSource: WorkoutSource
   workoutId: WorkoutId
-  // workout: Workout
-  // workoutInteractions: WorkoutInteraction
+  workoutByUserId: UserId
   toggleShowCommentsPanel: () => void
 }
 
 export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) => {
-  const { workoutSource, workoutId, toggleShowCommentsPanel } = props
-  const { userStore, feedStore } = useStores()
+  const { workoutSource, workoutId, workoutByUserId, toggleShowCommentsPanel } = props
+  const { userStore, feedStore, themeStore } = useStores()
   const panelTranslateY = useSharedValue(PANEL_INITIAL_Y_POSITION)
   const context = useSharedValue({ yPosition: PANEL_INITIAL_Y_POSITION })
   const [interactions, setInteractions] = useState<WorkoutInteraction>(undefined)
@@ -94,13 +94,14 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
   const commentInputRef = useRef(null)
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [selectedComment, setSelectedComment] = useState<WorkoutComment>(undefined)
+  const [isCommentDeleteConfirmation, setIsCommentDeleteConfirmation] = useState(false)
 
   useEffect(() => {
     commentInputRef.current.focus()
   }, [])
 
   useEffect(() => {
-    console.debug("WorkoutCommentsPanel useEffect [getInteractionsForWorkout] called")
+    console.debug("WorkoutCommentsPanel.useEffect [getInteractionsForWorkout] called")
     setInteractions(feedStore.getInteractionsForWorkout(workoutSource, workoutId))
   }, [feedStore.getInteractionsForWorkout(workoutSource, workoutId)])
 
@@ -136,6 +137,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
 
   const tapGestureHandler = Gesture.Tap().onEnd(() => {
     runOnJS(setSelectedComment)(undefined)
+    runOnJS(setIsCommentDeleteConfirmation)(false)
   })
 
   const $animatedStyle = useAnimatedStyle(() => {
@@ -158,21 +160,46 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
     if (!commentInput) return
 
     setIsSubmittingComment(true)
-    feedStore.addCommentToWorkout(workoutId, userStore.userId, commentInput).then(() => {
-      setIsSubmittingComment(false)
-      setCommentInput("")
-    })
+    feedStore
+      .addCommentToWorkout(workoutId, workoutByUserId, userStore.userId, commentInput)
+      .then(() => {
+        setIsSubmittingComment(false)
+        setCommentInput("")
+      })
   }
 
-  const commentSubmitButton = () => {
+  const commentSubmitButton = (props) => {
     if (isSubmittingComment) {
-      return <ActivityIndicator size="small" color={colors.actionable} />
+      return <ActivityIndicator size="small" color={themeStore.colors("actionable")} {...props} />
     }
-    return <Icon name="send-outline" size={28} onPress={submitComment} />
+    return <Icon name="send-outline" size={28} onPress={submitComment} {...props} />
   }
 
   const panelHeader = () => {
-    if (selectedComment) {
+    if (isCommentDeleteConfirmation) {
+      return (
+        <RowView style={[$panelHeaderSelected, { backgroundColor: themeStore.colors("danger") }]}>
+          <Text tx="workoutCommentsPanel.deleteCommentConfirmationMessage" />
+          <RowView style={styles.alignCenter}>
+            <Button
+              preset="text"
+              tx="common.cancel"
+              textStyle={{ color: themeStore.colors("text") }}
+              onPress={() => setIsCommentDeleteConfirmation(false)}
+            />
+            <Spacer type="horizontal" size="medium" />
+            <Icon
+              name="trash-bin-outline"
+              size={28}
+              onPress={() => {
+                feedStore.removeCommentFromWorkout(workoutId, selectedComment)
+                setSelectedComment(undefined)
+              }}
+            />
+          </RowView>
+        </RowView>
+      )
+    } else if (selectedComment) {
       return (
         <RowView style={$panelHeaderSelected}>
           <Text tx="common.selected" />
@@ -208,15 +235,53 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
             <Icon
               name="trash-bin-outline"
               size={28}
-              onPress={() => {
-                feedStore.removeCommentFromWorkout(workoutId, selectedComment)
-                setSelectedComment(undefined)
-              }}
+              onPress={() => setIsCommentDeleteConfirmation(true)}
             />
           </>
         )}
       </RowView>
     )
+  }
+
+  const $panelContainer: AnimatedStyleProp<ViewStyle> = {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    backgroundColor: themeStore.colors("background"),
+    overflow: "hidden",
+  }
+
+  const $panelHeaderSelected: ViewStyle = {
+    height: 80,
+    padding: spacing.screenPadding,
+    backgroundColor: themeStore.colors("actionable"),
+    justifyContent: "space-between",
+    alignItems: "center",
+  }
+
+  const $panelDraggableIndicator: ViewStyle = {
+    height: 5,
+    width: 40,
+    borderRadius: 5,
+    backgroundColor: themeStore.colors("actionable"),
+  }
+
+  const $separator: ViewStyle = {
+    width: "100%",
+    height: 1,
+    backgroundColor: themeStore.colors("border"),
+  }
+
+  const $commentInputContainerStyle: ViewStyle = {
+    position: "absolute",
+    width: "100%",
+    bottom: 0,
+    paddingHorizontal: spacing.small,
+    borderTopWidth: 1,
+    borderColor: themeStore.colors("border"),
+    backgroundColor: themeStore.colors("background"),
   }
 
   return (
@@ -225,7 +290,10 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
         style={$blurView}
         tint="dark"
         intensity={90}
-        onTouchEnd={() => setSelectedComment(undefined)}
+        onTouchEnd={() => {
+          setSelectedComment(undefined)
+          setIsCommentDeleteConfirmation(false)
+        }}
       />
       <GestureDetector gesture={panGestureHandler}>
         <Animated.View style={[$panelContainer, $animatedStyle]}>
@@ -261,7 +329,6 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
         ref={commentInputRef}
         placeholderTx="workoutSummaryScreen.commentInputPlaceholder"
         multiline={true}
-        numberOfLines={4}
         value={commentInput}
         onChangeText={setCommentInput}
         textAlignVertical="center"
@@ -269,9 +336,9 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
           setCommentInputHeight(event.nativeEvent.contentSize.height)
         }}
         containerStyle={$commentInputContainerStyle}
-        inputWrapperStyle={[$commentInputWrapperStyle]}
+        inputWrapperStyle={$commentInputWrapperStyle}
         style={[$commentInputStyle, commentInputHeightStyle()]}
-        LeftAccessory={() => <Avatar user={userStore.user} size="sm" />}
+        LeftAccessory={(props) => <Avatar user={userStore.user} size="sm" {...props} />}
         RightAccessory={commentSubmitButton}
       />
     </View>
@@ -291,41 +358,10 @@ const $blurView: ViewStyle = {
   width: "100%",
 }
 
-const $panelContainer: AnimatedStyleProp<ViewStyle> = {
-  position: "absolute",
-  width: "100%",
-  height: "100%",
-  borderTopLeftRadius: 20,
-  borderTopRightRadius: 20,
-  backgroundColor: colors.background,
-  overflow: "hidden",
-}
-
 const $panelHeader: ViewStyle = {
   height: 80,
   padding: spacing.screenPadding,
   alignItems: "center",
-}
-
-const $panelHeaderSelected: ViewStyle = {
-  height: 80,
-  padding: spacing.screenPadding,
-  backgroundColor: colors.actionable,
-  justifyContent: "space-between",
-  alignItems: "center",
-}
-
-const $panelDraggableIndicator: ViewStyle = {
-  height: 5,
-  width: 40,
-  borderRadius: 5,
-  backgroundColor: colors.actionable,
-}
-
-const $separator: ViewStyle = {
-  width: "100%",
-  height: 1,
-  backgroundColor: colors.border,
 }
 
 const $panelContent: ViewStyle = {
@@ -338,17 +374,10 @@ const $noCommentsContainer: ViewStyle = {
   justifyContent: "center",
 }
 
-const $commentInputContainerStyle: ViewStyle = {
-  position: "absolute",
-  width: "100%",
-  bottom: 0,
-}
-
 const $commentInputWrapperStyle: ViewStyle = {
   minHeight: null,
   alignItems: "center",
-  paddingLeft: spacing.small,
-  paddingRight: spacing.small,
+  borderWidth: 0,
 }
 
 const $commentInputStyle: ViewStyle = {

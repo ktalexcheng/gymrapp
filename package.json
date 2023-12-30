@@ -29,9 +29,11 @@
     "react-error-overlay": "6.0.9"
   },
   "dependencies": {
+    "@expo-google-fonts/lexend-exa": "^0.2.3",
     "@expo-google-fonts/space-grotesk": "^0.2.3",
     "@expo/config-plugins": "~7.2.2",
     "@react-native-async-storage/async-storage": "1.18.2",
+    "@react-native-community/netinfo": "9.3.10",
     "@react-native-firebase/app": "^18.6.1",
     "@react-native-firebase/auth": "^18.6.1",
     "@react-native-firebase/firestore": "^18.6.1",
@@ -63,9 +65,11 @@
     "expo-linking": "~5.0.2",
     "expo-localization": "~14.3.0",
     "expo-location": "~16.1.0",
+    "expo-navigation-bar": "~2.3.0",
     "expo-splash-screen": "~0.20.5",
     "expo-sqlite": "~11.3.3",
     "expo-status-bar": "~1.6.0",
+    "expo-system-ui": "~2.4.0",
     "geolib": "^3.3.4",
     "i18n-js": "3.9.2",
     "mobx": "^6.11.0",
@@ -139,6 +143,7 @@
     "reactotron-core-client": "^2.8.10",
     "regenerator-runtime": "^0.13.4",
     "ts-jest": "29",
+    "ts-node": "^10.9.2",
     "typescript": "^5.1.3"
   },
   "resolutions": {

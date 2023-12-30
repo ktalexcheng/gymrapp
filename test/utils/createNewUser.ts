@@ -9,7 +9,7 @@ export const createNewUser = async (
 ) => {
   const userRecord = await admin.auth().createUser({
     email,
-    password: "password",
+    password: "Pass1234",
   })
 
   const { userStore, feedStore } = rootStore

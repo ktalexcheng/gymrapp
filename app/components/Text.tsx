@@ -1,12 +1,23 @@
+import { useStores } from "app/stores"
 import i18n from "i18n-js"
+import { observer } from "mobx-react-lite"
 import React from "react"
 import { Text as RNText, TextProps as RNTextProps, StyleProp, TextStyle } from "react-native"
 import { TxKeyPath, isRTL, translate } from "../i18n"
-import { colors, typography } from "../theme"
+import { typography } from "../theme"
 
 type Sizes = keyof typeof $sizeStyles
 type Weights = keyof typeof typography.primary
-type Presets = keyof typeof $presets
+type Presets =
+  | "default"
+  | "bold"
+  | "light"
+  | "screenTitle"
+  | "heading"
+  | "subheading"
+  | "formLabel"
+  | "formHelper"
+  | "danger"
 
 export interface TextProps extends RNTextProps {
   /**
@@ -27,6 +38,14 @@ export interface TextProps extends RNTextProps {
    */
   style?: StyleProp<TextStyle>
   /**
+   * Convenient prop for setting text alignment.
+   */
+  textAlign?: TextStyle["textAlign"]
+  /**
+   * Color of the text
+   */
+  textColor?: string
+  /**
    * One of the different types of text presets.
    */
   preset?: Presets
@@ -42,6 +61,10 @@ export interface TextProps extends RNTextProps {
    * Children components.
    */
   children?: React.ReactNode
+  /**
+   * Visibility of the text.
+   */
+  visible?: boolean
 }
 
 /**
@@ -50,19 +73,68 @@ export interface TextProps extends RNTextProps {
  *
  * - [Documentation and Examples](https://github.com/infinitered/ignite/blob/master/docs/Components-Text.md)
  */
-export function Text(props: TextProps) {
-  const { weight, size, tx, txOptions, text, children, style: $styleOverride, ...rest } = props
+export const Text = observer((props: TextProps) => {
+  const {
+    weight,
+    size,
+    tx,
+    txOptions,
+    text,
+    children,
+    style: $styleOverride,
+    textAlign: $textAlignOverride,
+    textColor: textColorOverride,
+    visible = true,
+    ...rest
+  } = props
+
+  const { themeStore } = useStores()
 
   const i18nText = tx && translate(tx, txOptions)
   const content = i18nText || text || children
+
+  const $baseStyle: StyleProp<TextStyle> = [
+    $sizeStyles.sm,
+    $primaryWeightStyles.normal,
+    { color: themeStore.colors("text") },
+  ]
+
+  const $presets = {
+    default: $baseStyle,
+
+    bold: [$baseStyle, $primaryWeightStyles.bold] as StyleProp<TextStyle>,
+
+    light: [$baseStyle, $primaryWeightStyles.light] as StyleProp<TextStyle>,
+
+    screenTitle: [$baseStyle, $sizeStyles.xxl, $secondaryWeightStyles.bold] as StyleProp<TextStyle>,
+
+    heading: [$baseStyle, $sizeStyles.xl, $secondaryWeightStyles.medium] as StyleProp<TextStyle>,
+
+    subheading: [$baseStyle, $sizeStyles.lg, $secondaryWeightStyles.medium] as StyleProp<TextStyle>,
+
+    formLabel: [$baseStyle, $primaryWeightStyles.medium] as StyleProp<TextStyle>,
+
+    formHelper: [$baseStyle, $sizeStyles.sm, $primaryWeightStyles.normal] as StyleProp<TextStyle>,
+
+    danger: [
+      $baseStyle,
+      $primaryWeightStyles.bold,
+      { color: themeStore.colors("danger") },
+    ] as StyleProp<TextStyle>,
+  }
 
   const preset: Presets = $presets[props.preset] ? props.preset : "default"
   const $styles = [
     $rtlStyle,
     $presets[preset],
-    $fontWeightStyles[weight],
+    $primaryWeightStyles[weight],
     $sizeStyles[size],
     $styleOverride,
+    textColorOverride && {
+      color: textColorOverride,
+    },
+    $textAlignOverride && { textAlign: $textAlignOverride },
+    !visible && { opacity: 0 },
   ]
 
   return (
@@ -70,11 +142,11 @@ export function Text(props: TextProps) {
       {content}
     </RNText>
   )
-}
+})
 
 const $sizeStyles = {
   xxl: { fontSize: 36, lineHeight: 44 } as TextStyle,
-  xl: { fontSize: 24, lineHeight: 34 } as TextStyle,
+  xl: { fontSize: 28, lineHeight: 38 } as TextStyle,
   lg: { fontSize: 20, lineHeight: 32 } as TextStyle,
   md: { fontSize: 18, lineHeight: 26 } as TextStyle,
   sm: { fontSize: 16, lineHeight: 24 } as TextStyle,
@@ -82,32 +154,18 @@ const $sizeStyles = {
   xxs: { fontSize: 12, lineHeight: 18 } as TextStyle,
 }
 
-const $fontWeightStyles = Object.entries(typography.primary).reduce((acc, [weight, fontFamily]) => {
-  return { ...acc, [weight]: { fontFamily } }
-}, {}) as Record<Weights, TextStyle>
+const $primaryWeightStyles = Object.entries(typography.primary).reduce(
+  (acc, [weight, fontFamily]) => {
+    return { ...acc, [weight]: { fontFamily } }
+  },
+  {},
+) as Record<Weights, TextStyle>
 
-const $baseStyle: StyleProp<TextStyle> = [
-  $sizeStyles.sm,
-  $fontWeightStyles.normal,
-  { color: colors.text },
-]
-
-const $presets = {
-  default: $baseStyle,
-
-  bold: [$baseStyle, $fontWeightStyles.bold] as StyleProp<TextStyle>,
-
-  light: [$baseStyle, $fontWeightStyles.light] as StyleProp<TextStyle>,
-
-  heading: [$baseStyle, $sizeStyles.xxl, $fontWeightStyles.bold] as StyleProp<TextStyle>,
-
-  subheading: [$baseStyle, $sizeStyles.lg, $fontWeightStyles.medium] as StyleProp<TextStyle>,
-
-  formLabel: [$baseStyle, $fontWeightStyles.medium] as StyleProp<TextStyle>,
-
-  formHelper: [$baseStyle, $sizeStyles.sm, $fontWeightStyles.normal] as StyleProp<TextStyle>,
-
-  danger: [$baseStyle, $fontWeightStyles.bold, { color: colors.danger }] as StyleProp<TextStyle>,
-}
+const $secondaryWeightStyles = Object.entries(typography.secondary).reduce(
+  (acc, [weight, fontFamily]) => {
+    return { ...acc, [weight]: { fontFamily } }
+  },
+  {},
+) as Record<Weights, TextStyle>
 
 const $rtlStyle: TextStyle = isRTL ? { writingDirection: "rtl" } : {}

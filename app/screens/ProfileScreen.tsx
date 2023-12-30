@@ -8,8 +8,15 @@ import { useStores } from "app/stores"
 import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
 import { format, milliseconds } from "date-fns"
 import { observer } from "mobx-react-lite"
-import React, { FC, useState } from "react"
-import { FlatList, TouchableOpacity, View, ViewStyle } from "react-native"
+import React, { FC, useEffect, useState } from "react"
+import {
+  ActivityIndicator,
+  FlatList,
+  TextStyle,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from "react-native"
 import { SceneMap, TabView } from "react-native-tab-view"
 import { DomainPropType, DomainTuple } from "victory-core"
 import {
@@ -19,7 +26,7 @@ import {
   VictoryLabel,
   VictoryZoomContainer,
 } from "victory-native"
-import { colors, spacing } from "../theme"
+import { spacing } from "../theme"
 import { WorkoutSummaryCard } from "./FinishedWorkout"
 import { UserProfileStatsBar } from "./UserProfile/UserProfileStatsBar"
 
@@ -27,12 +34,13 @@ const UserActivitiesTabScene: FC = observer(() => {
   const { userStore, feedStore } = useStores()
 
   function getWorkoutData() {
-    const workouts = Array.from(feedStore.userWorkouts.values())
-    workouts.sort((a, b) => (a.workout.startTime > b.workout.startTime ? -1 : 1))
+    const workouts = Array.from(feedStore.userWorkouts.values()).map(({ workout }) => workout)
+    workouts.sort((a, b) => (a.startTime > b.startTime ? -1 : 1))
 
     return workouts.map((workout) => {
       return {
-        ...workout,
+        workoutId: workout.workoutId,
+        workout,
         byUser: userStore.user,
         workoutSource: WorkoutSource.User,
       }
@@ -43,14 +51,16 @@ const UserActivitiesTabScene: FC = observer(() => {
     return <WorkoutSummaryCard {...item} />
   }
 
-  if (feedStore.isLoadingUserWorkouts) return <Text tx="common.loading" />
+  if (feedStore.isLoadingUserWorkouts) return <ActivityIndicator />
   if (feedStore.userWorkouts.size === 0) return <Text tx="profileScreen.noActivityhistory" />
 
   return (
     <FlatList
       data={getWorkoutData()}
       renderItem={renderWorkoutItem}
+      showsVerticalScrollIndicator={false}
       ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
+      ListFooterComponent={() => <Spacer type="vertical" size="extraLarge" />}
     />
   )
 })
@@ -65,7 +75,9 @@ type VictoryDomainType = {
   y?: DomainTuple
 }
 
-const WeeklyWorkoutChart: FC<WeeklyWorkoutChartProps> = ({ data }) => {
+const WeeklyWorkoutChart: FC<WeeklyWorkoutChartProps> = observer(({ data }) => {
+  const { themeStore } = useStores()
+
   // Constant for date arithmetics
   const weekAsMilliseconds = milliseconds({ weeks: 1 })
 
@@ -147,26 +159,40 @@ const WeeklyWorkoutChart: FC<WeeklyWorkoutChartProps> = ({ data }) => {
         tickFormat={(x: number) => format(x, "MM/dd")}
         tickValues={getXTickValues()}
         tickLabelComponent={<VictoryLabel angle={-45} dy={-spacing.tiny} dx={-spacing.tiny * 4} />}
+        style={{
+          axis: { stroke: themeStore.colors("foreground") },
+          tickLabels: { fill: themeStore.colors("foreground") },
+        }}
       />
-      <VictoryAxis dependentAxis tickValues={getYTickValues()} />
+      <VictoryAxis
+        dependentAxis
+        tickValues={getYTickValues()}
+        style={{
+          axis: { stroke: themeStore.colors("foreground") },
+          tickLabels: { fill: themeStore.colors("foreground") },
+        }}
+      />
       <VictoryBar
         data={getVisibleData()}
         x="weekStartDate"
         y="workoutsCount"
         labels={({ datum }) => datum.workoutsCount}
         labelComponent={<VictoryLabel dy={20} />}
-        style={{ data: { fill: colors.actionable }, labels: { fill: "white" } }}
+        style={{
+          data: { fill: themeStore.colors("tint") },
+          labels: { fill: themeStore.colors("actionableForeground") },
+        }}
         barWidth={24}
         cornerRadius={4}
       />
     </VictoryChart>
   )
-}
+})
 
 const DashboardTabScene: FC = observer(() => {
   const { feedStore } = useStores()
 
-  if (feedStore.isLoadingUserWorkouts) return <Text tx="common.loading" />
+  if (feedStore.isLoadingUserWorkouts) return <ActivityIndicator />
   if (feedStore.userWorkouts.size === 0) return <Text tx="profileScreen.noActivityhistory" />
 
   return (
@@ -181,16 +207,14 @@ interface ProfileScreenProps extends NativeStackScreenProps<TabScreenProps<"Prof
 
 export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileScreen() {
   const mainNavigation = useMainNavigation()
-  const { userStore, workoutStore } = useStores()
-  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? ["bottom"] : ["top", "bottom"]
-
+  const { userStore, workoutStore, themeStore } = useStores()
+  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? [] : ["top"]
   const [tabIndex, setTabIndex] = useState(0)
-  // const isTrainer = false
 
-  // const $coachsCenterButtonStatus: ViewStyle | TextStyle = {
-  //   backgroundColor: isTrainer ? colors.actionable : colors.disabled,
-  //   color: isTrainer ? colors.text : colors.textDim,
-  // }
+  useEffect(() => {
+    console.debug("ProfileScreen mounted")
+    userStore.fetchUserProfile()
+  }, [])
 
   const routes = [
     {
@@ -220,30 +244,57 @@ export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileSc
     )
   }
 
+  const $notificationsBadge: ViewStyle = {
+    backgroundColor: themeStore.colors("tint"),
+    borderRadius: 4,
+    paddingHorizontal: 2,
+    position: "absolute",
+    top: -5,
+    right: -5,
+    alignItems: "center",
+    justifyContent: "center",
+  }
+
+  const $notificationsBadgeText: TextStyle = {
+    color: themeStore.colors("tintForeground"),
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 18,
+  }
+
   if (!userStore.userProfileExists) return null
 
   return (
-    <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={$screenContentContainer}>
-      {userStore.isLoadingProfile ? (
-        <Text tx="common.loading" />
-      ) : (
+    <Screen
+      safeAreaEdges={safeAreaEdges}
+      contentContainerStyle={$screenContentContainer}
+      isBusy={userStore.isLoadingProfile}
+    >
+      {!userStore.isLoadingProfile && (
         <>
           <RowView alignItems="center" style={$userAvatarRow}>
             <TouchableOpacity onPress={() => mainNavigation.navigate("UserSettings")}>
               <RowView alignItems="center">
                 <Avatar user={userStore.user} size="sm" />
-                <Text style={$userDisplayName}>{userStore?.displayName}</Text>
+                <View style={$userDisplayName}>
+                  <Text weight="semiBold" text={userStore.getProp("user.userHandle")} />
+                  <Text weight="light" text={userStore.displayName} />
+                </View>
               </RowView>
             </TouchableOpacity>
             <View>
               <Icon
                 name="notifications-outline"
                 onPress={() => mainNavigation.navigate("Notifications")}
-                color={colors.actionable}
                 size={32}
               />
               {userStore.newNotificationsCount > 0 && (
-                <Text style={$notificationsBadge} text={`${userStore.newNotificationsCount}`} />
+                <View style={$notificationsBadge}>
+                  <Text
+                    style={$notificationsBadgeText}
+                    text={`${Math.min(userStore.newNotificationsCount, 99)}`}
+                  />
+                </View>
               )}
             </View>
           </RowView>
@@ -289,10 +340,4 @@ const $tabViewContainer: ViewStyle = {
   flex: 1,
   // justifyContent: "center",
   // alignItems: "center",
-}
-
-const $notificationsBadge: ViewStyle = {
-  position: "absolute",
-  top: -5,
-  right: -5,
 }

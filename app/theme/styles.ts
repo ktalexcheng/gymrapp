@@ -1,5 +1,4 @@
 import { StyleSheet } from "react-native"
-import { colors } from "./colors"
 import { spacing } from "./spacing"
 
 export const styles = StyleSheet.create({
@@ -14,6 +13,20 @@ export const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
     justifyContent: "center",
+  },
+  modalContent: {
+    flexBasis: "auto",
+    alignContent: "center",
+    padding: spacing.large,
+    margin: spacing.large,
+    borderRadius: 20,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   // eslint-disable-next-line react-native/no-color-literals
   transparentBackground: {
@@ -40,14 +53,19 @@ export const styles = StyleSheet.create({
   textAlignCenter: {
     textAlign: "center",
   },
+  justifyStart: {
+    justifyContent: "flex-start",
+  },
   justifyCenter: {
     justifyContent: "center",
   },
   justifyBetween: {
     justifyContent: "space-between",
   },
+  justifyAround: {
+    justifyContent: "space-around",
+  },
   listItemContainer: {
-    borderColor: colors.separator,
     borderRadius: 10,
     borderWidth: 1,
     padding: spacing.extraSmall,
@@ -61,5 +79,19 @@ export const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
+  },
+  screenTitleMinHeight: {
+    minHeight: 100,
+  },
+  menuPopoverContainer: {
+    padding: spacing.medium,
+    width: 200,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  menuItemContainer: {
+    width: "100%",
+    alignItems: "flex-start",
+    paddingVertical: spacing.small,
   },
 })

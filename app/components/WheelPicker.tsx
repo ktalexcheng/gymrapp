@@ -1,20 +1,27 @@
 // Source: https://medium.com/@gogulbharathisubbaraj/implementing-ios-style-picker-in-react-native-part-1-4e938e218b92
 
-import { colors } from "app/theme"
-import React, { FC, useRef } from "react"
+import { useStores } from "app/stores"
+import { styles } from "app/theme"
+import { observer } from "mobx-react-lite"
+import React, { forwardRef, useImperativeHandle, useRef } from "react"
 import {
   Animated,
   ListRenderItemInfo,
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
-  Text,
   TextStyle,
+  TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native"
+import { Text } from "./Text"
 
 type ListItem = { label: string; value: any }
+
+export type WheelPickerRef = {
+  scrollToIndex: (index: number) => void
+}
 
 type WheelPickerProps = {
   items: ListItem[]
@@ -24,10 +31,16 @@ type WheelPickerProps = {
   disabled?: boolean
 }
 
-export const WheelPickerFlat: FC<WheelPickerProps> = (props) => {
+const ExoticWheelPickerFlat = forwardRef<WheelPickerRef, WheelPickerProps>((props, ref) => {
   const { items, onIndexChange, itemHeight, initialScrollIndex, disabled } = props
   const modifiedItems = [{ label: "", value: null }, ...items, { label: "", value: null }]
   const scrollViewRef = useRef<ScrollView>(null)
+  useImperativeHandle(ref, () => ({
+    scrollToIndex: (index: number) => {
+      scrollViewRef.current.scrollTo({ y: index * itemHeight })
+    },
+  }))
+  const { themeStore } = useStores()
 
   const scrollToInitialIndex = () => {
     scrollViewRef.current.scrollTo({ y: initialScrollIndex * itemHeight, animated: false })
@@ -53,12 +66,25 @@ export const WheelPickerFlat: FC<WheelPickerProps> = (props) => {
     onIndexChange(index)
   }
 
-  const $container: ViewStyle = { height: itemHeight * 3, opacity: disabled ? 0.5 : 1 }
+  const $container: ViewStyle = {
+    alignItems: "center",
+    height: itemHeight * 3,
+    width: "100%",
+    opacity: disabled ? 0.5 : 1,
+  }
+
+  const $indicator: ViewStyle = {
+    backgroundColor: themeStore.colors("separator"),
+    height: 1,
+    position: "absolute",
+    width: "100%",
+  }
 
   console.debug("WheelPickerFlat initialScrollIndex", initialScrollIndex)
   return (
     <View style={$container} pointerEvents={disabled ? "none" : "auto"}>
       <ScrollView
+        style={styles.fullWidth}
         ref={scrollViewRef}
         decelerationRate="fast"
         showsVerticalScrollIndicator={false}
@@ -66,16 +92,22 @@ export const WheelPickerFlat: FC<WheelPickerProps> = (props) => {
         onMomentumScrollEnd={momentumScrollEnd}
         onLayout={scrollToInitialIndex}
       >
-        {modifiedItems.map((item, index) => renderItem(item, index))}
+        <TouchableOpacity activeOpacity={1}>
+          {modifiedItems.map((item, index) => renderItem(item, index))}
+        </TouchableOpacity>
       </ScrollView>
       <View style={[$indicator, { top: itemHeight }]} />
       <View style={[$indicator, { top: itemHeight * 2 }]} />
     </View>
   )
-}
+})
+ExoticWheelPickerFlat.displayName = "ExoticWheelPickerFlat"
 
-export const WheelPickerAnimated: React.FC<WheelPickerProps> = (props) => {
+export const WheelPickerFlat = observer(ExoticWheelPickerFlat)
+
+export const WheelPickerAnimated: React.FC<WheelPickerProps> = observer((props) => {
   const { items, onIndexChange, itemHeight } = props
+  const { themeStore } = useStores()
 
   const scrollY = useRef(new Animated.Value(0)).current
 
@@ -101,6 +133,13 @@ export const WheelPickerAnimated: React.FC<WheelPickerProps> = (props) => {
     onIndexChange(index)
   }
 
+  const $indicator: ViewStyle = {
+    backgroundColor: themeStore.colors("separator"),
+    height: 1,
+    position: "absolute",
+    width: "100%",
+  }
+
   return (
     <View style={{ height: itemHeight * 3 }}>
       <Animated.FlatList
@@ -123,18 +162,11 @@ export const WheelPickerAnimated: React.FC<WheelPickerProps> = (props) => {
       <View style={[$indicator, { top: itemHeight * 2 }]} />
     </View>
   )
-}
+})
 
 const $animatedContainer: ViewStyle = {
   alignItems: "center",
   justifyContent: "center",
-}
-
-const $indicator: ViewStyle = {
-  backgroundColor: colors.separator,
-  height: 1,
-  position: "absolute",
-  width: "100%",
 }
 
 const $pickerItemText: TextStyle = {

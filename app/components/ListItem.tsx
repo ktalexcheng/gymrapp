@@ -1,3 +1,5 @@
+import { useStores } from "app/stores"
+import { observer } from "mobx-react-lite"
 import React, { ReactElement } from "react"
 import {
   StyleProp,
@@ -7,7 +9,7 @@ import {
   View,
   ViewStyle,
 } from "react-native"
-import { colors, spacing } from "../theme"
+import { spacing } from "../theme"
 import { CustomIcon, CustomIconTypes } from "./CustomIcon"
 import { Text, TextProps } from "./Text"
 
@@ -101,7 +103,7 @@ interface ListItemActionProps {
  *
  * - [Documentation and Examples](https://github.com/infinitered/ignite/blob/master/docs/Components-ListItem.md)
  */
-export function ListItem(props: ListItemProps) {
+export const ListItem = observer((props: ListItemProps) => {
   const {
     bottomSeparator,
     children,
@@ -123,7 +125,19 @@ export function ListItem(props: ListItemProps) {
     ...TouchableOpacityProps
   } = props
 
+  const { themeStore } = useStores()
+
   const $textStyles = [$textStyle, $textStyleOverride, TextProps?.style]
+
+  const $separatorTop: ViewStyle = {
+    borderTopWidth: 1,
+    borderTopColor: themeStore.colors("separator"),
+  }
+
+  const $separatorBottom: ViewStyle = {
+    borderBottomWidth: 1,
+    borderBottomColor: themeStore.colors("separator"),
+  }
 
   const $containerStyles = [
     topSeparator && $separatorTop,
@@ -158,7 +172,7 @@ export function ListItem(props: ListItemProps) {
       </TouchableOpacity>
     </View>
   )
-}
+})
 
 function ListItemAction(props: ListItemActionProps) {
   const { icon, Component, iconColor, size, side } = props
@@ -184,16 +198,6 @@ function ListItemAction(props: ListItemActionProps) {
   }
 
   return null
-}
-
-const $separatorTop: ViewStyle = {
-  borderTopWidth: 1,
-  borderTopColor: colors.separator,
-}
-
-const $separatorBottom: ViewStyle = {
-  borderBottomWidth: 1,
-  borderBottomColor: colors.separator,
 }
 
 const $textStyle: TextStyle = {

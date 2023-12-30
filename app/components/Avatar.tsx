@@ -1,5 +1,6 @@
 import { User } from "app/data/model"
-import { colors } from "app/theme"
+import { useStores } from "app/stores"
+import { observer } from "mobx-react-lite"
 import React from "react"
 import { Image, ImageStyle, TextStyle, View, ViewProps, ViewStyle } from "react-native"
 import { Text } from "./Text"
@@ -31,12 +32,13 @@ export interface AvatarProps extends ViewProps {
   imageStyle?: ImageStyle
 }
 
-export const Avatar = (props: AvatarProps) => {
+export const Avatar = observer((props: AvatarProps) => {
+  const { themeStore } = useStores()
   const {
     imageUrl: source,
     user,
     size = "md",
-    backgroundColor = colors.palette.neutral300,
+    backgroundColor = themeStore.colors("contentBackground"),
     containerStyle: $containerStyleOverride,
     imageStyle: $imageStyleOverride,
   } = props
@@ -58,8 +60,13 @@ export const Avatar = (props: AvatarProps) => {
   }
 
   const renderAvatarImage = () => {
-    if (!source && user && !user?.avatarUrl) {
-      const userInitialsText: string = [user?.firstName?.[0], user?.lastName?.[0]].join("")
+    if (!source && !user?.avatarUrl && user) {
+      let userInitialsText: string
+      if (/^[\u4E00-\u9FA5]+$/.test(user.lastName + user.firstName)) {
+        userInitialsText = `${user.lastName}${user.firstName}`.slice(-2)
+      } else {
+        userInitialsText = [user.firstName?.[0], user.lastName?.[0]].join("")
+      }
       const $text: TextStyle = {
         fontSize: avatarSize[size] / 3,
         lineHeight: avatarSize[size] / 2.5,
@@ -67,15 +74,17 @@ export const Avatar = (props: AvatarProps) => {
       return <Text text={userInitialsText} style={$text} />
     }
 
-    const imageSource = { uri: source || user?.avatarUrl }
+    const imageUri = source || user?.avatarUrl
+    const imageSource = imageUri ? { uri: imageUri } : undefined
 
     return <Image source={imageSource} style={[$image, $imageStyleOverride]} />
   }
 
   return <View style={[$avatarContainer, $containerStyleOverride]}>{renderAvatarImage()}</View>
-}
+})
 
 export const avatarSize = {
+  xs: 24,
   sm: 36,
   md: 48,
   lg: 64,

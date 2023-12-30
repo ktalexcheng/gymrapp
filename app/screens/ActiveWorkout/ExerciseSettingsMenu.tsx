@@ -1,7 +1,7 @@
 import { WeightUnit } from "app/data/constants"
 import { useExerciseSetting } from "app/hooks/useExerciseSetting"
 import { spacing, styles } from "app/theme"
-import { formatSecondsAsTime } from "app/utils/formatSecondsAsTime"
+import { formatSecondsAsTime } from "app/utils/formatTime"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
 import { TouchableOpacity, TouchableOpacityProps, View, ViewStyle } from "react-native"
@@ -27,7 +27,7 @@ export type ExerciseSettingsProps = {
 export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
   (props: ExerciseSettingsProps) => {
     const { exerciseId } = props
-    const { workoutStore, exerciseStore } = useStores()
+    const { workoutStore, exerciseStore, themeStore } = useStores()
     const [weightUnitSetting] = useExerciseSetting<WeightUnit>(exerciseId, "weightUnit")
     const [restTimerEnabledSetting] = useExerciseSetting<boolean>(
       exerciseId,
@@ -153,12 +153,7 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
           <Icon name="ellipsis-vertical" size={24} />
         </Popover.Trigger>
 
-        <Popover.Content
-          alignItems="flex-start"
-          width={200}
-          borderWidth={1}
-          borderColor="$borderColor"
-        >
+        <Popover.Content unstyled style={themeStore.styles("menuPopoverContainer")}>
           <View style={styles.fullWidth}>{renderPopoverContent()}</View>
         </Popover.Content>
       </Popover>

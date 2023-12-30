@@ -8,7 +8,12 @@ module.exports = {
     "<rootDir>/node_modules/(react-clone-referenced-element|@react-native-community|react-navigation|@react-navigation/.*|@unimodules/.*|react-native-code-push)",
     "jest-runner",
   ],
-  testPathIgnorePatterns: ["<rootDir>/node_modules/", "<rootDir>/.maestro/", "@react-native"],
+  testPathIgnorePatterns: [
+    "<rootDir>/node_modules/",
+    "<rootDir>/.maestro/",
+    "@react-native",
+    "<rootDir>/test/scripts",
+  ],
   // Note: firebase-admin is meant for node.js
   //       set testEnvironment: "node" in order to use firebase-admin
   testEnvironment: "node",

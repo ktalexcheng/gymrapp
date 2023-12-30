@@ -7,17 +7,20 @@ import {
   TextField,
   TextFieldAccessoryProps,
 } from "app/components"
+import { AuthErrorTxKey, AuthErrorType } from "app/data/constants"
 import { translate } from "app/i18n"
 import { AuthStackScreenProps } from "app/navigators"
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useMemo, useRef, useState } from "react"
-import { TextInput, TextStyle, ViewStyle } from "react-native"
-import { colors, spacing } from "../theme"
+import { TextInput, TextStyle, View, ViewStyle } from "react-native"
+import Toast from "react-native-root-toast"
+import { spacing, styles } from "../theme"
 
 interface SignUpScreenProps extends NativeStackScreenProps<AuthStackScreenProps<"SignUp">> {}
 
 export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScreen() {
+  const { authenticationStore: authStore, themeStore } = useStores()
   const [newEmail, setNewEmail] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -25,39 +28,102 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
   const [newLastName, setNewLastName] = useState("")
   const [isNewPasswordHidden, setIsNewPasswordHidden] = useState(true)
   const [isConfirmPasswordHidden, setIsConfirmPasswordHidden] = useState(true)
-  const [isPasswordMismatch, setIsPasswordMismatch] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const { authenticationStore: authStore } = useStores()
+  const [attemptsCount, setAttemptsCount] = useState(0)
   const newLastNameInputRef = useRef<TextInput>()
   const newEmailInputRef = useRef<TextInput>()
   const newPasswordInputRef = useRef<TextInput>()
   const confirmPasswordInputRef = useRef<TextInput>()
+  const [firstNameError, setFirstNameError] = useState(null)
+  const [lastNameError, setLastNameError] = useState(null)
+  const [emailError, setEmailError] = useState(null)
+  const [passwordError, setPasswordError] = useState(null)
+  const [confirmPasswordError, setConfirmPasswordError] = useState(null)
 
   useEffect(() => {
     authStore.resetAuthError()
   }, [])
-  const error = isSubmitted ? authStore.signInCredentialsError : ""
+
+  useEffect(() => {
+    if (authStore.authError) {
+      // If error is email in use, set email error
+      if (authStore.authError === AuthErrorType.EmailDuplicateError) {
+        setEmailError(translate(AuthErrorTxKey[authStore.authError]))
+      }
+
+      Toast.show(translate(AuthErrorTxKey[authStore.authError]), {
+        onHidden: () => {
+          authStore.resetAuthError()
+        },
+      })
+    }
+  }, [authStore.authError])
+
+  function validateForm() {
+    let isValid = true
+
+    if (!newFirstName) {
+      setFirstNameError(translate("signUpScreen.error.firstNameMissing"))
+      isValid = false
+    } else {
+      setFirstNameError(null)
+    }
+
+    if (!newLastName) {
+      setLastNameError(translate("signUpScreen.error.lastNameMissing"))
+      isValid = false
+    } else {
+      setLastNameError(null)
+    }
+
+    if (!newEmail) {
+      setEmailError(translate("signUpScreen.error.emailMissing"))
+      isValid = false
+    } else if (authStore.emailIsInvalid(newEmail)) {
+      setEmailError(translate("signUpScreen.error.emailInvalid"))
+      isValid = false
+    } else {
+      setEmailError(null)
+    }
+
+    if (!newPassword) {
+      setPasswordError(translate("signUpScreen.error.passwordMissing"))
+      isValid = false
+    } else if (authStore.passwordIsWeak(newPassword)) {
+      setPasswordError(translate("signUpScreen.error.passwordInsecure"))
+      isValid = false
+    } else {
+      setPasswordError(null)
+    }
+
+    if (newPassword !== confirmPassword) {
+      setConfirmPasswordError(translate("signUpScreen.error.passwordMismatch"))
+      isValid = false
+    } else {
+      setConfirmPasswordError(null)
+    }
+
+    return isValid
+  }
 
   function createNewAccount() {
-    setIsSubmitted(true)
+    setAttemptsCount(attemptsCount + 1)
+    if (!validateForm()) {
+      return
+    }
 
     authStore.setLoginEmail(newEmail)
     authStore.setLoginPassword(newPassword)
     authStore.setNewFirstName(newFirstName)
     authStore.setNewLastName(newLastName)
 
-    if (authStore.signInCredentialsError) return
-    if (authStore.signUpInfoError) return
     if (newPassword !== confirmPassword) {
-      setIsPasswordMismatch(true)
+      setConfirmPasswordError(true)
       return
     } else {
-      setIsPasswordMismatch(false)
+      setConfirmPasswordError(false)
     }
 
     authStore.signUpWithEmail()
-
-    setIsSubmitted(false)
   }
 
   const PasswordRightAccessory = useMemo(
@@ -66,7 +132,7 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
         return (
           <CustomIcon
             icon={isNewPasswordHidden ? "view" : "hidden"}
-            color={colors.palette.neutral800}
+            color={themeStore.palette("neutral800")}
             containerStyle={props.style}
             size={20}
             onPress={() => setIsNewPasswordHidden(!isNewPasswordHidden)}
@@ -82,7 +148,7 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
         return (
           <CustomIcon
             icon={isConfirmPasswordHidden ? "view" : "hidden"}
-            color={colors.palette.neutral800}
+            color={themeStore.palette("neutral800")}
             containerStyle={props.style}
             size={20}
             onPress={() => setIsConfirmPasswordHidden(!isConfirmPasswordHidden)}
@@ -98,96 +164,100 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
       contentContainerStyle={$screenContentContainer}
       safeAreaEdges={["top", "bottom"]}
     >
-      <Text testID="signIn-heading" tx="signUpScreen.signUp" preset="heading" style={$signIn} />
+      <View style={styles.screenTitleMinHeight}>
+        <Text testID="signIn-heading" tx="signUpScreen.signUp" preset="heading" style={$signIn} />
+      </View>
 
-      {authStore.authError && (
-        <Text size="sm" weight="light" style={$hint}>
-          {authStore.authError}
-        </Text>
-      )}
+      <View>
+        <TextField
+          value={newFirstName}
+          onChangeText={setNewFirstName}
+          containerStyle={$textField}
+          autoCapitalize="words"
+          autoCorrect={false}
+          labelTx="common.firstName"
+          placeholderTx="signUpScreen.firstNamePlaceholder"
+          status={firstNameError ? "error" : undefined}
+          helper={!!firstNameError && firstNameError}
+          onSubmitEditing={() => newLastNameInputRef.current?.focus()}
+        />
 
-      <TextField
-        value={newFirstName}
-        onChangeText={setNewFirstName}
-        containerStyle={$textField}
-        autoCapitalize="words"
-        autoCorrect={false}
-        labelTx="common.firstName"
-        onSubmitEditing={() => newLastNameInputRef.current?.focus()}
-      />
+        <TextField
+          ref={newLastNameInputRef}
+          value={newLastName}
+          onChangeText={setNewLastName}
+          containerStyle={$textField}
+          autoCapitalize="words"
+          autoCorrect={false}
+          labelTx="common.lastName"
+          placeholderTx="signUpScreen.lastNamePlaceholder"
+          status={lastNameError ? "error" : undefined}
+          helper={!!lastNameError && lastNameError}
+          onSubmitEditing={() => newEmailInputRef.current?.focus()}
+        />
 
-      <TextField
-        ref={newLastNameInputRef}
-        value={newLastName}
-        onChangeText={setNewLastName}
-        containerStyle={$textField}
-        autoCapitalize="words"
-        autoCorrect={false}
-        labelTx="common.lastName"
-        onSubmitEditing={() => newEmailInputRef.current?.focus()}
-      />
+        <TextField
+          ref={newEmailInputRef}
+          value={newEmail}
+          onChangeText={setNewEmail}
+          containerStyle={$textField}
+          autoCapitalize="none"
+          autoComplete="email"
+          autoCorrect={false}
+          keyboardType="email-address"
+          labelTx="signUpScreen.emailFieldLabel"
+          placeholderTx="signUpScreen.emailFieldPlaceholder"
+          status={emailError ? "error" : undefined}
+          helper={!!emailError && emailError}
+          onSubmitEditing={() => newPasswordInputRef.current?.focus()}
+        />
 
-      <TextField
-        ref={newEmailInputRef}
-        value={newEmail}
-        onChangeText={setNewEmail}
-        containerStyle={$textField}
-        autoCapitalize="none"
-        autoComplete="email"
-        autoCorrect={false}
-        keyboardType="email-address"
-        labelTx="signUpScreen.emailFieldLabel"
-        placeholderTx="signUpScreen.emailFieldPlaceholder"
-        helper={error}
-        status={error ? "error" : undefined}
-        onSubmitEditing={() => newPasswordInputRef.current?.focus()}
-      />
+        <TextField
+          ref={newPasswordInputRef}
+          value={newPassword}
+          onChangeText={setNewPassword}
+          containerStyle={$textField}
+          autoCapitalize="none"
+          autoComplete="password"
+          autoCorrect={false}
+          secureTextEntry={isNewPasswordHidden}
+          labelTx="signUpScreen.passwordFieldLabel"
+          placeholderTx="signUpScreen.passwordFieldPlaceholder"
+          status={passwordError ? "error" : undefined}
+          helper={passwordError || translate("signUpScreen.passwordFieldHint")}
+          onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
+          RightAccessory={PasswordRightAccessory}
+        />
 
-      <TextField
-        ref={newPasswordInputRef}
-        value={newPassword}
-        onChangeText={setNewPassword}
-        containerStyle={$textField}
-        autoCapitalize="none"
-        autoComplete="password"
-        autoCorrect={false}
-        secureTextEntry={isNewPasswordHidden}
-        labelTx="signUpScreen.passwordFieldLabel"
-        placeholderTx="signUpScreen.passwordFieldPlaceholder"
-        onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
-        RightAccessory={PasswordRightAccessory}
-      />
+        <TextField
+          ref={confirmPasswordInputRef}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          containerStyle={$textField}
+          autoCapitalize="none"
+          autoComplete="password"
+          autoCorrect={false}
+          secureTextEntry={isConfirmPasswordHidden}
+          labelTx="signUpScreen.confirmPasswordFieldLabel"
+          placeholderTx="signUpScreen.confirmPasswordFieldPlaceholder"
+          status={confirmPasswordError ? "error" : undefined}
+          helper={!!confirmPasswordError && confirmPasswordError}
+          onSubmitEditing={createNewAccount}
+          RightAccessory={ConfirmPasswordRightAccessory}
+        />
 
-      <TextField
-        ref={confirmPasswordInputRef}
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        containerStyle={$textField}
-        autoCapitalize="none"
-        autoComplete="password"
-        autoCorrect={false}
-        secureTextEntry={isConfirmPasswordHidden}
-        labelTx="signUpScreen.confirmPasswordFieldLabel"
-        placeholderTx="signUpScreen.confirmPasswordFieldPlaceholder"
-        helper={isPasswordMismatch ? translate("signUpScreen.passwordMismatchLabel") : undefined}
-        status={isPasswordMismatch ? "error" : undefined}
-        onSubmitEditing={createNewAccount}
-        RightAccessory={ConfirmPasswordRightAccessory}
-      />
-
-      <Button
-        testID="createAccount-email"
-        tx="signUpScreen.tapToCreateAccount"
-        style={$tapButton}
-        onPress={createNewAccount}
-      />
+        <Button
+          tx="signUpScreen.tapToCreateAccount"
+          style={$tapButton}
+          onPress={createNewAccount}
+        />
+      </View>
     </Screen>
   )
 })
 
 const $screenContentContainer: ViewStyle = {
-  paddingVertical: spacing.huge,
-  paddingHorizontal: spacing.large,
+  padding: spacing.screenPadding,
 }
 
 const $signIn: TextStyle = {
@@ -200,9 +270,4 @@ const $textField: ViewStyle = {
 
 const $tapButton: ViewStyle = {
   marginTop: spacing.extraSmall,
-}
-
-const $hint: TextStyle = {
-  color: colors.tint,
-  marginBottom: spacing.medium,
 }

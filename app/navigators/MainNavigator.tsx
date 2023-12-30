@@ -1,24 +1,26 @@
 import firestore from "@react-native-firebase/firestore"
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { WorkoutSource } from "app/data/constants"
-import { FollowRequest, Notification, User } from "app/data/model"
+import { FollowRequest, Notification, User, Workout } from "app/data/model"
+import { translate } from "app/i18n"
 import {
   ActiveWorkoutScreen,
+  AddToMyGymsScreen,
   CreateExerciseScreen,
+  CreateNewGymScreen,
   ExerciseDetailsScreen,
-  ExerciseManagerScreen,
   ExercisePickerScreen,
-  GymPickerScreen,
+  GymDetailsScreen,
   LoadingScreen,
   NewWorkoutScreen,
+  NotificationsScreen,
   ProfileVisitorViewScreen,
   RestTimerScreen,
   SaveWorkoutScreen,
   UserSettingsScreen,
+  WorkoutGymPickerScreen,
   WorkoutSummaryScreen,
 } from "app/screens"
-import { CreateNewGymScreen, GymDetailsScreen, GymSearchScreen } from "app/screens/Gym"
-import { NotificationsScreen } from "app/screens/UserProfile/NotificationsScreen"
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React, { useEffect } from "react"
@@ -32,17 +34,22 @@ export type MainStackParamList = {
   NewWorkout: undefined
   ActiveWorkout: undefined
   SaveWorkout: undefined
-  GymPicker: undefined
+  WorkoutGymPicker: undefined
   ExercisePicker: undefined
   CreateExercise: undefined
   RestTimer: undefined
-  ExerciseManager: undefined
+  // ExerciseManager: undefined
   ExerciseDetails: { exerciseId: string }
   UserSettings: undefined
   Notifications: undefined
-  WorkoutSummary: { workoutSource: WorkoutSource; workoutId: string; jumpToComments: boolean }
+  WorkoutSummary: {
+    workoutSource: WorkoutSource
+    workoutId: string
+    workout: Workout
+    jumpToComments: boolean
+  }
   OnboardingNavigator: undefined
-  GymSearch: undefined
+  AddToMyGyms: undefined
   CreateNewGym: { searchString: string }
   GymDetails: { gymId: string }
   ProfileVisitorView: { userId: string }
@@ -87,6 +94,7 @@ export const MainNavigator = observer(function MainNavigator() {
           if (!snapshot.exists) return
 
           userStore.setUser(snapshot.data() as User)
+          feedStore.loadUserWorkouts()
         },
         (e) => console.error("MainNavigator.userSubscriber.onSnapshot error:", e),
       )
@@ -100,7 +108,6 @@ export const MainNavigator = observer(function MainNavigator() {
         }
 
         const notifications = snapshot.docs.map((doc) => {
-          console.debug("notificationsSubscriber data received:", doc.data())
           return { notificationId: doc.id, ...doc.data() }
         })
         userStore.setNotifications(notifications as Notification[])
@@ -134,6 +141,7 @@ export const MainNavigator = observer(function MainNavigator() {
     //   })
 
     return () => {
+      console.debug("MainNavigator.useEffect [] cleanup called")
       userSubscriber()
       // exercisesSubscriber()
       notificationsSubscriber()
@@ -155,13 +163,13 @@ export const MainNavigator = observer(function MainNavigator() {
         routes: [{ name: "OnboardingNavigator" }],
       })
     } else {
-      // Check if navigator is on route "OnboardingNavigator", if so, navigate to "HomeTabNavigator"
+      // If profile is complete and there is nothing in the navigator stack or the navigator is on "Loading"
+      // (i.e. the user has just logged in), navigate to "HomeTabNavigator"
       // The root navigator is MainNavigator, so we need to get the state of routes[0]
       const navigationState = mainNavigation.getState()
       const mainNavigatorState = navigationState.routes[0].state
       const isOnLoading = mainNavigatorState?.routes.find((r) => r.name === "Loading")
-      // If profile is complete and there is nothing in the navigator stack or the navigator is on "Loading"
-      // (i.e. the user has just logged in), navigate to "HomeTabNavigator"
+
       if (!mainNavigatorState || isOnLoading) {
         console.debug("Profile is complete, navigating to HomeTabNavigator")
         mainNavigation.reset({
@@ -180,65 +188,58 @@ export const MainNavigator = observer(function MainNavigator() {
 
       <MainStack.Group>
         <MainStack.Screen name="NewWorkout" component={NewWorkoutScreen} />
-        <MainStack.Screen name="ActiveWorkout" component={ActiveWorkoutScreen} />
+        <MainStack.Screen
+          name="ActiveWorkout"
+          component={ActiveWorkoutScreen}
+          options={{
+            animation: "slide_from_bottom",
+          }}
+        />
         <MainStack.Screen name="SaveWorkout" component={SaveWorkoutScreen} />
-        <MainStack.Screen name="GymPicker" component={GymPickerScreen} />
+        <MainStack.Screen name="WorkoutGymPicker" component={WorkoutGymPickerScreen} />
         <MainStack.Screen
           name="ExercisePicker"
-          options={{ headerShown: true }}
+          options={{ headerShown: true, title: translate("exercisePickerScreen.headerTitle") }}
           component={ExercisePickerScreen}
         />
-        <MainStack.Screen
-          name="CreateExercise"
-          options={{ headerShown: true }}
-          component={CreateExerciseScreen}
-        />
+        <MainStack.Screen name="CreateExercise" component={CreateExerciseScreen} />
         <MainStack.Screen
           name="RestTimer"
-          options={{ headerShown: true }}
+          options={{ headerShown: true, title: translate("restTimerScreen.headerTitle") }}
           component={RestTimerScreen}
         />
       </MainStack.Group>
 
       <MainStack.Group>
-        <MainStack.Screen
+        {/* <MainStack.Screen
           name="ExerciseManager"
-          options={{ headerShown: true }}
           component={ExerciseManagerScreen}
-        />
+        /> */}
         <MainStack.Screen
           name="ExerciseDetails"
-          options={{ headerShown: true }}
+          options={{ headerShown: true, title: translate("exerciseDetailsScreen.headerTitle") }}
           component={ExerciseDetailsScreen}
         />
         <MainStack.Screen
           name="WorkoutSummary"
-          options={{ headerShown: true }}
           component={WorkoutSummaryScreen}
+          options={{ headerShown: true, title: translate("workoutSummaryScreen.headerTitle") }}
         />
       </MainStack.Group>
 
       <MainStack.Group>
-        <MainStack.Screen
-          name="GymSearch"
-          options={{ headerShown: true }}
-          component={GymSearchScreen}
-        />
-        <MainStack.Screen
-          name="CreateNewGym"
-          options={{ headerShown: true }}
-          component={CreateNewGymScreen}
-        />
+        <MainStack.Screen name="AddToMyGyms" component={AddToMyGymsScreen} />
+        <MainStack.Screen name="CreateNewGym" component={CreateNewGymScreen} />
         <MainStack.Screen
           name="GymDetails"
-          options={{ headerShown: true }}
+          options={{ headerShown: true, title: translate("gymDetailsScreen.headerTitle") }}
           component={GymDetailsScreen}
         />
       </MainStack.Group>
 
       <MainStack.Screen
         name="UserSettings"
-        options={{ headerShown: false, gestureEnabled: false }}
+        options={{ gestureEnabled: false }}
         component={UserSettingsScreen}
       />
       <MainStack.Screen name="Notifications" component={NotificationsScreen} />

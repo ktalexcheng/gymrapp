@@ -1,33 +1,61 @@
+import { ExerciseSource } from "app/data/constants"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
-import { SectionList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import { SectionList, TouchableOpacity, View, ViewStyle } from "react-native"
 import { TabView } from "react-native-tab-view"
-import { TabBar, Text } from "../../components"
+import { Icon, RowView, Spacer, TabBar, Text } from "../../components"
 import { Exercise } from "../../data/model"
 import { useStores } from "../../stores"
-import { colors } from "../../theme"
 
-interface ExerciseListScreenProps extends ExerciseCatalogProps {
+interface ExerciseListProps extends ExerciseCatalogProps {
   sectionsData: {
     title: string
     data: Exercise[]
   }[]
+  listFooterComponent?: SectionList["props"]["ListFooterComponent"]
 }
 
-const ExerciseListScreen: FC<ExerciseListScreenProps> = (props: ExerciseListScreenProps) => {
+const ExerciseList: FC<ExerciseListProps> = (props: ExerciseListProps) => {
+  const { sectionsData, onItemPress, listFooterComponent } = props
+  const { themeStore } = useStores()
+
+  const $sectionHeader: ViewStyle = {
+    paddingTop: 2,
+    paddingLeft: 10,
+    paddingRight: 10,
+    paddingBottom: 2,
+    backgroundColor: themeStore.colors("separator"),
+  }
+
+  const $sectionListContainer: ViewStyle = {
+    flex: 1,
+    backgroundColor: themeStore.colors("background"),
+  }
+
   return (
     <View style={$sectionListContainer}>
       <SectionList
-        sections={props.sectionsData}
+        sections={sectionsData}
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => props.onItemPress(item)}>
-            <Text style={[$listItem, $listItemText]}>{item.exerciseName}</Text>
+          <TouchableOpacity onPress={() => onItemPress(item)}>
+            <RowView style={$listItem}>
+              {item.exerciseSource === ExerciseSource.Private && (
+                <>
+                  <Icon name="lock-closed" size={16} />
+                  <Spacer type="horizontal" size="tiny" />
+                </>
+              )}
+              <Text size="md">{item.exerciseName}</Text>
+            </RowView>
           </TouchableOpacity>
         )}
         renderSectionHeader={({ section }) => (
-          <Text style={[$sectionHeader, $sectionHeaderText]}>{section.title}</Text>
+          <Text weight="bold" style={$sectionHeader}>
+            {section.title}
+          </Text>
         )}
         keyExtractor={(item) => item.exerciseId}
+        ListFooterComponent={listFooterComponent}
       />
     </View>
   )
@@ -35,37 +63,48 @@ const ExerciseListScreen: FC<ExerciseListScreenProps> = (props: ExerciseListScre
 
 interface ExerciseCatalogProps {
   onItemPress: (exercise: Exercise) => void
+  listFooterComponent?: SectionList["props"]["ListFooterComponent"]
 }
 
 export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: ExerciseCatalogProps) => {
+  const { onItemPress, listFooterComponent } = props
   const [tabIndex, setTabIndex] = useState(0)
   const [routes, setRoutes] = useState([])
   const { exerciseStore } = useStores()
 
   useEffect(() => {
-    const createSectionsData = (exercises: Exercise[]): ExerciseListScreenProps["sectionsData"] => {
-      const groupedExercises: { [group: string]: Exercise[] } = {}
+    // createSectionsData creates the section data for each tab, grouping exercises by first letter of name
+    // Sorting of exercise by name is also done here
+    const createSectionedData = (exercises: Exercise[]): ExerciseListProps["sectionsData"] => {
+      const groupedExercises: { [initialLetter: string]: Exercise[] } = {}
       exercises.forEach((exercise) => {
-        const groupId = exercise.exerciseName[0].toUpperCase()
-        if (groupId in groupedExercises) {
-          groupedExercises[groupId].push(exercise)
+        // In each tab, group exercises by first letter of name
+        const initialLetter = exercise.exerciseName[0].toUpperCase()
+        if (initialLetter in groupedExercises) {
+          groupedExercises[initialLetter].push(exercise)
         } else {
-          groupedExercises[groupId] = [exercise]
+          groupedExercises[initialLetter] = [exercise]
         }
       })
 
-      const sectionsData: ExerciseListScreenProps["sectionsData"] = []
-      Object.entries(groupedExercises).forEach(([exerciseType, exercises]) => {
-        sectionsData.push({
-          title: exerciseType,
+      const sectionedData: ExerciseListProps["sectionsData"] = []
+      Object.entries(groupedExercises).forEach(([initialLetter, exercises]) => {
+        // Sort exercises within each section by exercise name
+        exercises.sort((a, b) => (a.exerciseName < b.exerciseName ? -1 : 1))
+
+        sectionedData.push({
+          title: initialLetter,
           data: exercises,
         })
       })
 
-      return sectionsData
+      // Sort sections by by initial letter
+      sectionedData.sort((a, b) => (a.title < b.title ? -1 : 1))
+
+      return sectionedData
     }
 
-    // Categorize exercises into CategorizedExerciseList
+    // Exercises are grouped by category for each tab
     const groupedAllExercises: {
       [category: string]: Exercise[]
     } = {}
@@ -75,14 +114,16 @@ export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: Exerci
       } else {
         groupedAllExercises[e.exerciseCat1] = [e]
       }
+
+      // Add to "All" category
+      if ("All" in groupedAllExercises) {
+        groupedAllExercises.All.push(e)
+      } else {
+        groupedAllExercises.All = [e]
+      }
     })
 
-    // Sort by exercise name
-    Object.values(groupedAllExercises).forEach((d) =>
-      d.sort((a, b) => (a.exerciseName[0] < b.exerciseName[0] ? -1 : 1)),
-    )
-
-    // Generate routes
+    // Generate tab routes
     const routes = []
     Object.entries(groupedAllExercises).forEach(([category, exercises]: [string, Exercise[]]) => {
       // Group exercises within each category by first letter of name
@@ -90,14 +131,18 @@ export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: Exerci
       //   title: 'B',
       //   data: ExerciseData[]
       // }
-      const sectionedListData = createSectionsData(exercises)
+      const sectionedListData = createSectionedData(exercises)
 
       routes.push({
-        key: category,
+        // Special key for "All" category to sure that it is always the first tab
+        key: category === "All" ? "_All" : category,
         title: category,
         data: sectionedListData,
       })
     })
+
+    // Sort by category
+    routes.sort((a, b) => (a.title < b.title ? -1 : 1))
 
     setRoutes(routes)
   }, [exerciseStore.lastUpdated])
@@ -105,54 +150,17 @@ export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: Exerci
   // Create custom renderScene function to avoid passing inline function to SceneMap()
   // See doc: https://www.npmjs.com/package/react-native-tab-view
   const renderScene = ({ route }) => {
-    return <ExerciseListScreen sectionsData={route.data} onItemPress={props.onItemPress} />
+    return (
+      <ExerciseList
+        sectionsData={route.data}
+        onItemPress={onItemPress}
+        listFooterComponent={listFooterComponent}
+      />
+    )
   }
 
   const renderTabBar = (props) => {
     return <TabBar tabIndex={tabIndex} setTabIndex={setTabIndex} {...props} />
-    // const inputRange = props.navigationState.routes.map((_, i) => i)
-
-    // return (
-    //   <RowView scrollable={true}>
-    //     {props.navigationState.routes.map((route, i) => {
-    //       const opacity = props.position.interpolate({
-    //         inputRange,
-    //         outputRange: inputRange.map((inputIndex) => (inputIndex === i ? 1 : 0.5)),
-    //       })
-    //       const textColor = tabIndex === i ? colors.actionable : colors.textDim
-    //       const borderColor = tabIndex === i ? colors.actionable : colors.disabled
-
-    //       const $tabBarItem: ViewStyle = {
-    //         flex: 1,
-    //         alignItems: "center",
-    //         justifyContent: "flex-end",
-    //         paddingBottom: spacing.extraSmall,
-    //         paddingHorizontal: spacing.small,
-    //         borderBottomWidth: 3,
-    //         height: 40,
-    //         borderColor,
-    //       }
-
-    //       const $tabText: TextStyle = {
-    //         fontSize: 16,
-    //         color: textColor,
-    //         opacity,
-    //       }
-
-    //       return (
-    //         <View key={i} style={$tabBarItem}>
-    //           <TouchableOpacity
-    //             onPress={() => {
-    //               setTabIndex(i)
-    //             }}
-    //           >
-    //             <Animated.Text style={$tabText}>{route.title}</Animated.Text>
-    //           </TouchableOpacity>
-    //         </View>
-    //       )
-    //     })}
-    //   </RowView>
-    // )
   }
 
   // Note that tab press does not work properly when a debugger is attached
@@ -168,28 +176,7 @@ export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: Exerci
 })
 
 const $listItem: ViewStyle = {
+  alignItems: "center",
   padding: 10,
   height: 44,
-}
-
-const $listItemText: TextStyle = {
-  fontSize: 18,
-}
-
-const $sectionHeader: ViewStyle = {
-  paddingTop: 2,
-  paddingLeft: 10,
-  paddingRight: 10,
-  paddingBottom: 2,
-  backgroundColor: colors.separator,
-}
-
-const $sectionHeaderText: TextStyle = {
-  fontSize: 14,
-  fontWeight: "bold",
-}
-
-const $sectionListContainer: ViewStyle = {
-  flex: 1,
-  backgroundColor: colors.background,
 }

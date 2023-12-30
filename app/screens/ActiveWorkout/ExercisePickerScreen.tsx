@@ -1,5 +1,4 @@
 import { Exercise } from "app/data/model"
-import { colors } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { ViewStyle } from "react-native"
@@ -11,7 +10,7 @@ import { ExerciseCatalog } from "../Exercise"
 interface ExercisePickerScreenProps extends MainStackScreenProps<"ExercisePicker"> {}
 
 export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ navigation }) => {
-  const { workoutStore } = useStores()
+  const { workoutStore, themeStore } = useStores()
 
   function handleSelectExercise(exercise: Exercise) {
     workoutStore.addExercise(exercise.exerciseId, exercise.volumeType)
@@ -24,9 +23,11 @@ export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ n
     <Screen safeAreaEdges={["bottom"]} contentContainerStyle={[$screenContainer]}>
       <Fab
         size="lg"
-        icon={<Icon color="white" name="add-outline" size={30} />}
+        icon={
+          <Icon color={themeStore.colors("actionableForeground")} name="add-outline" size={30} />
+        }
         position="bottomRight"
-        backgroundColor={colors.actionable}
+        backgroundColor={themeStore.colors("actionable")}
         onPress={() => navigation.navigate("CreateExercise")}
       />
       <ExerciseCatalog onItemPress={handleSelectExercise} />

@@ -1,4 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons"
+import { useStores } from "app/stores"
+import { observer } from "mobx-react-lite"
 import * as React from "react"
 import { ComponentType } from "react"
 import {
@@ -29,14 +31,14 @@ interface IconProps extends TouchableOpacityProps {
   size?: number
 
   /**
-   * Style overrides for the icon image
-   */
-  style?: StyleProp<ImageStyle | ViewStyle>
-
-  /**
    * Style overrides for the icon container
    */
-  containerStyle?: StyleProp<ViewStyle>
+  style?: StyleProp<ViewStyle>
+
+  /**
+   * Style overrides for the icon image
+   */
+  iconStyle?: StyleProp<ImageStyle | ViewStyle>
 
   /**
    * An optional function to be called when the icon is pressed
@@ -50,15 +52,17 @@ interface IconProps extends TouchableOpacityProps {
  *
  * - [Documentation and Examples](https://github.com/infinitered/ignite/blob/master/docs/Components-Icon.md)
  */
-export function Icon(props: IconProps) {
+export const Icon = observer((props: IconProps) => {
   const {
     name,
     color,
     size,
-    style: $iconStyleOverride,
-    containerStyle: $containerStyleOverride,
+    style: $containerStyleOverride,
+    iconStyle: $iconStyleOverride,
     ...WrapperProps
   } = props
+
+  const { themeStore } = useStores()
 
   const isPressable = !!WrapperProps.onPress
   const Wrapper: ComponentType<TouchableOpacityProps> = WrapperProps?.onPress
@@ -71,11 +75,12 @@ export function Icon(props: IconProps) {
       {...WrapperProps}
       style={$containerStyleOverride}
     >
-      <Ionicons name={name} color={color} size={size} style={[$iconStyle, $iconStyleOverride]} />
+      <Ionicons
+        name={name}
+        color={color ?? themeStore.colors("foreground")}
+        size={size}
+        style={$iconStyleOverride}
+      />
     </Wrapper>
   )
-}
-
-const $iconStyle: ImageStyle = {
-  // resizeMode: "contain",
-}
+})
