@@ -87,7 +87,7 @@ web-build/
 
 google-services.json
 GoogleService-Info.plist
-.env
+.env*
 
 # Build native source code with Expo 
 android/

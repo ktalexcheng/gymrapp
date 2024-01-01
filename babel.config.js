@@ -20,13 +20,11 @@ const plugins = [
     "@tamagui/babel-plugin",
     {
       components: ["tamagui"],
-      config: "./tamagui.config.ts",
+      config: "./app/tamagui.config.ts",
       logTimings: true,
     },
   ],
-  /** react-native-reanimated web support @see https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation/#web */
-  "@babel/plugin-proposal-export-namespace-from",
-  /** NOTE: This must be last in the plugins @see https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/installation/#babel-plugin */
+  /** NOTE: This must be last in the plugins @see https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started/#step-2-add-reanimateds-babel-plugin */
   "react-native-reanimated/plugin",
 ]
 

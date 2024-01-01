@@ -1,6 +1,6 @@
 import { repositorySingletons } from "app/data/repository"
 import { createContext, useContext, useEffect, useState } from "react"
-import { setReactotronRootStore } from "../../services/reactotron"
+// import { setReactotronRootStore } from "../../services/reactotron"
 import { RootStore, RootStoreModel } from "../RootStore"
 import { setupRootStore } from "./setupRootStore"
 
@@ -74,8 +74,10 @@ export const useInitialRootStore = (callback: () => void | Promise<void>) => {
       const { restoredState, unsubscribe } = await setupRootStore(rootStore)
       _unsubscribe = unsubscribe
 
-      // reactotron integration with the MST root store (DEV only)
-      setReactotronRootStore(rootStore, restoredState)
+      // if (__DEV__) {
+      //   // reactotron integration with the MST root store (DEV only)
+      //   setReactotronRootStore(rootStore, restoredState)
+      // }
 
       // let the app know we've finished rehydrating
       setRehydrated(true)

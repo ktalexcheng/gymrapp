@@ -1,8 +1,8 @@
-import * as firestore from "@google-cloud/firestore"
+import * as admin from "firebase-admin"
 import { RootStore } from "../../app/stores/RootStore"
 
 export async function createNewUserFollows(
-  firestoreClient: firestore.Firestore,
+  firestoreClient: admin.firestore.Firestore,
   rootStore: RootStore,
   followerEmail: string,
   followeeEmail: string,

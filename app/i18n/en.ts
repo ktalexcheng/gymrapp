@@ -28,10 +28,22 @@ const en = {
     selected: "Selected",
     discard: "Discard",
     save: "Save",
-    networkError: "Internet connection is not available",
-    unknownError: "Something went wrong",
     user: "User",
     workouts: "Workouts",
+    error: {
+      networkErrorMessage: "Internet connection is not available",
+      unknownErrorMessage: "Something went wrong",
+    },
+  },
+  updateApp: {
+    update: "Update",
+    updateAvailableTitle: "Update available",
+    updateAvailableMessage: "A new version of the app is available. Would you like to update now?",
+    forceUpdateTitle: "Update required",
+    forceUpdateMessage:
+      "A new version of the app is available. Please update now to continue using the app.",
+    checkForUpdateErrorMessage:
+      "Failed to check for updates. Please make sure you are connected to the internet or restart the app.",
   },
   welcomeScreen: {
     welcomeTitle: "Welcome to GYMRAPP!",
@@ -41,9 +53,8 @@ const en = {
     signUpButtonLabel: "Create account",
   },
   errorScreen: {
-    title: "Something went wrong!",
-    friendlySubtitle:
-      "This is the screen that your users will see in production when an error is thrown. You'll want to customize this message (located in `app/i18n/en.ts`) and probably the layout as well (`app/screens/ErrorScreen`). If you want to remove this entirely, check `app/app.tsx` for the <ErrorBoundary> component.",
+    title: "This is awkward...",
+    message: "Something went wrong with GYMRAPP. Please report it to us so we can fix it.",
     reset: "RESET APP",
   },
   emptyStateComponent: {

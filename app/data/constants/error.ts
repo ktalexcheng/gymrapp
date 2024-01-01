@@ -30,6 +30,6 @@ export const AuthErrorTxKey: Record<AuthErrorType, TxKeyPath> = {
   [AuthErrorType.PasswordWrongError]: "signInScreen.error.invalidCredentials",
   [AuthErrorType.TooManyRequestsError]: "signInScreen.error.tooManyRequests",
   [AuthErrorType.LoginCancelledError]: "signInScreen.error.loginCancelled",
-  [AuthErrorType.NetworkError]: "common.networkError",
-  [AuthErrorType.UnknownError]: "common.unknownError",
+  [AuthErrorType.NetworkError]: "common.error.networkErrorMessage",
+  [AuthErrorType.UnknownError]: "common.error.unknownErrorMessage",
 }

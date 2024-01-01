@@ -163,6 +163,7 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
       preset="auto"
       contentContainerStyle={$screenContentContainer}
       safeAreaEdges={["top", "bottom"]}
+      isBusy={authStore.isAuthenticating}
     >
       <View style={styles.screenTitleMinHeight}>
         <Text testID="signIn-heading" tx="signUpScreen.signUp" preset="heading" style={$signIn} />

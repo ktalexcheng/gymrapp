@@ -5,11 +5,12 @@
  * and a "main" flow which the user will use once logged in.
  */
 import NetInfo from "@react-native-community/netinfo"
-import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
+import auth from "@react-native-firebase/auth"
 import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/native"
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
-import { Icon, RowView, Text } from "app/components"
+import { Icon, RowView, Spacer, Text } from "app/components"
 import { AppColorScheme } from "app/data/constants"
+import { translate } from "app/i18n"
 import { LoadingScreen } from "app/screens"
 import { api } from "app/services/api"
 import { spacing } from "app/theme"
@@ -17,7 +18,7 @@ import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
 import * as NavigationBar from "expo-navigation-bar"
 import { setStatusBarStyle } from "expo-status-bar"
 import { observer } from "mobx-react-lite"
-import React, { useEffect, useState } from "react"
+import React, { useCallback, useEffect, useState } from "react"
 import {
   Alert,
   AppState,
@@ -70,12 +71,11 @@ export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStack
 // Documentation: https://reactnavigation.org/docs/stack-navigator/
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
-const AppStack = observer(function AppStack() {
+const AppStack = observer(() => {
   const { authenticationStore: authStore, userStore, feedStore, exerciseStore } = useStores()
   const [forceUpdate, setForceUpdate] = useState(false)
-
-  // Set an initializing state whilst Firebase connects
-  const [initializing, setInitializing] = useState(true)
+  const [checkUpdateError, setCheckUpdateError] = useState(false)
+  const [initializing, setInitializing] = useState(true) // Set an initializing state whilst Firebase connects
 
   // Handle user state changes
   async function onAuthStateChanged(user) {
@@ -98,51 +98,55 @@ const AppStack = observer(function AppStack() {
   useEffect(() => {
     // Check for updates
     const checkForUpdates = async () => {
-      const updates = await api.checkForUpdates(exerciseStore.lastUpdated)
+      try {
+        const updates = await api.checkForUpdates(exerciseStore.lastUpdated)
+        console.debug("AppNavigator.checkForUpdates response:", updates)
+        setCheckUpdateError(false)
 
-      if (updates.updateAvailable) {
-        if (updates.forceUpdate) {
-          setForceUpdate(true)
+        if (updates && updates.updateAvailable) {
+          if (updates.forceUpdate) {
+            setForceUpdate(true)
+          }
+
+          Alert.alert(
+            updates.forceUpdate
+              ? translate("updateApp.forceUpdateTitle")
+              : translate("updateApp.updateAvailableTitle"),
+            updates.forceUpdate
+              ? translate("updateApp.forceUpdateMessage")
+              : translate("updateApp.updateAvailableMessage"),
+            [
+              {
+                text: translate("updateApp.update"),
+                onPress: () => {
+                  Linking.openURL(updates.updateLink)
+                },
+              },
+              !updates.forceUpdate && {
+                text: translate("common.cancel"),
+                onPress: () => {},
+                style: "cancel",
+              },
+            ],
+          )
         }
 
-        Alert.alert(
-          "Update available",
-          updates.forceUpdate
-            ? "There is a new version of GymRapp available. Please update now to continue using the app."
-            : "There is a new version of GymRapp available. Would you like to update now?",
-          [
-            {
-              text: "Update",
-              onPress: () => {
-                Linking.openURL(updates.updateLink)
-              },
-            },
-            !updates.forceUpdate && {
-              text: "Cancel",
-              onPress: () => {},
-              style: "cancel",
-            },
-          ],
-        )
-      }
-
-      if (authStore.isAuthenticated && updates.exercisesUpdateAvailable) {
-        await exerciseStore.getAllExercises()
+        if (updates && updates.exercisesUpdateAvailable && authStore.isAuthenticated) {
+          await exerciseStore.getAllExercises()
+        }
+      } catch (e) {
+        console.warn("AppNavigator.checkForUpdates failed:", e)
+        setCheckUpdateError(true)
       }
     }
     checkForUpdates()
 
-    // Force token refresh
-    if (auth().currentUser) {
-      auth()
-        .currentUser.getIdToken(true)
-        .catch((e: FirebaseAuthTypes.NativeFirebaseAuthError) => {
-          console.debug("Unable to refresh token:", e.code)
-        })
-    }
+    // Refresh authentication status by freshing token
+    authStore.refreshAuth()
 
-    // Event is fired upon app initialization as well
+    // onAuthStateChanged is fired upon app initialization as well
     const unsubscribeAuthChange = auth().onAuthStateChanged(onAuthStateChanged)
+    // Check for updates when app is resumed
     const subscriptionAppStateChange = AppState.addEventListener("change", (state) => {
       if (state === "active") {
         checkForUpdates()
@@ -155,25 +159,48 @@ const AppStack = observer(function AppStack() {
     }
   }, [])
 
+  useEffect(() => {
+    if (checkUpdateError) {
+      Alert.alert(
+        translate("common.error.unknownErrorMessage"),
+        translate("updateApp.checkForUpdateErrorMessage"),
+        [
+          {
+            text: translate("common.ok"),
+            onPress: () => {},
+            style: "cancel",
+          },
+        ],
+      )
+    }
+  }, [checkUpdateError])
+
+  const setInitialRouteName = useCallback(() => {
+    return forceUpdate || checkUpdateError
+      ? "AppDisabled"
+      : authStore.isAuthenticated
+      ? "MainNavigator"
+      : "AuthNavigator"
+  }, [forceUpdate, checkUpdateError, authStore.isAuthenticated])
+
+  const setStackScreen = useCallback(() => {
+    return forceUpdate || checkUpdateError ? (
+      <Stack.Screen name="AppDisabled" component={LoadingScreen} />
+    ) : authStore.isAuthenticated ? (
+      <Stack.Screen name="MainNavigator" component={MainNavigator} />
+    ) : (
+      <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
+    )
+  }, [forceUpdate, checkUpdateError, authStore.isAuthenticated])
+
   if (initializing) return null
 
   return (
     <Stack.Navigator
       screenOptions={{ headerShown: false }}
-      initialRouteName={
-        forceUpdate ? "AppDisabled" : authStore.isAuthenticated ? "MainNavigator" : "AuthNavigator"
-      }
+      initialRouteName={setInitialRouteName()}
     >
-      {/* <Stack.Screen name="Welcome" component={Screens.WelcomeScreen} /> */}
-      {/** 🔥 Your screens go here */}
-      {forceUpdate ? (
-        <Stack.Screen name="AppDisabled" component={LoadingScreen} />
-      ) : authStore.isAuthenticated ? (
-        <Stack.Screen name="MainNavigator" component={MainNavigator} />
-      ) : (
-        <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
-      )}
-      {/* IGNITE_GENERATOR_ANCHOR_APP_STACK_SCREENS */}
+      {setStackScreen()}
     </Stack.Navigator>
   )
 })
@@ -181,7 +208,7 @@ const AppStack = observer(function AppStack() {
 export interface NavigationProps
   extends Partial<React.ComponentProps<typeof NavigationContainer>> {}
 
-export const AppNavigator = observer(function AppNavigator(props: NavigationProps) {
+export const AppNavigator = observer((props: NavigationProps) => {
   const { userStore, themeStore } = useStores()
   const systemColorScheme = useColorScheme() // Initial system color scheme
   const [isInternetConnected, setIsInternetConnected] = useState(true)
@@ -265,7 +292,8 @@ export const AppNavigator = observer(function AppNavigator(props: NavigationProp
       {!isInternetConnected && (
         <RowView style={$internetStatusBarInset}>
           <Icon name="alert-circle-outline" size={14} />
-          <Text tx="common.networkError" size="xxs" />
+          <Spacer type="horizontal" size="tiny" />
+          <Text tx="common.error.networkErrorMessage" size="xxs" />
         </RowView>
       )}
       <AppStack />

@@ -4,7 +4,7 @@ import { useStores } from "app/stores"
 import { typography } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
-import { StyleProp, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
+import { Platform, StyleProp, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
 import { Text, TextProps } from "./Text"
 
 export interface PickerProps {
@@ -87,11 +87,21 @@ export const Picker: FC<PickerProps> = observer(function Picker(props: PickerPro
 
   const { themeStore } = useStores()
 
+  const pickerPopoverTextColor = () => {
+    if (themeStore.isDark && Platform.OS === "android") {
+      // On Android with dark mode, react-native-picker does not support styling the popover text color
+      // so leave the text unstyled (i.e. black text on white background)
+      return undefined
+    } else {
+      return themeStore.colors("text")
+    }
+  }
+
   const $containerStyles = [$containerStyleOverride]
   const $labelStyles = [LabelTextProps?.style]
   const $pickerStyles = [
     {
-      color: themeStore.colors("text"),
+      color: themeStore.colors("text"), // On Android, this is the color of the picker prompt (not the modal); no effect on iOS
       fontFamily: typography.primary.normal,
     },
     $pickerStyleOverride,
@@ -122,6 +132,7 @@ export const Picker: FC<PickerProps> = observer(function Picker(props: PickerPro
           <RNPicker.Item
             key="clearSelection"
             style={[$itemStyles, $clearSelectionItemStyle]}
+            color={pickerPopoverTextColor()} // On Android, this is the color of the modal text; on iOS this is wheel picker text
             label={translate(clearSelectionPlaceholderTx)}
             value={undefined}
           />
@@ -131,7 +142,7 @@ export const Picker: FC<PickerProps> = observer(function Picker(props: PickerPro
             <RNPicker.Item
               key={item.value}
               style={$itemStyles}
-              color={themeStore.colors("text")}
+              color={pickerPopoverTextColor()} // On Android, this is the color of the modal text; on iOS this is wheel picker text
               label={item.label}
               value={item.value}
             />

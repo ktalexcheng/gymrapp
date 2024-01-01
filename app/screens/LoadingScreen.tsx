@@ -57,6 +57,7 @@ export const LoadingScreen = observer(() => {
     return undefined
   })
 
+  console.debug("LoadingScreen.render")
   return (
     <View style={$loadingScreen}>
       <Animated.Text style={$glowAnimation}>GYMRAPP</Animated.Text>

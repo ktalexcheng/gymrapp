@@ -1,5 +1,5 @@
-import * as firestore from "@google-cloud/firestore"
-import { ExerciseSetType } from "../../app/data/constants"
+import * as admin from "firebase-admin"
+import { ExerciseSetType, ExerciseVolumeType } from "../../app/data/constants"
 import { RootStore } from "../../app/stores/RootStore"
 import { readCSV } from "./readCSV"
 
@@ -21,7 +21,7 @@ interface StrongExportDatum {
 }
 
 export async function createWorkoutsFromStrongExport(
-  firestoreClient: firestore.Firestore,
+  firestoreClient: admin.firestore.Firestore,
   rootStore: RootStore,
   csvPath: string,
   byUserEmail: string,
@@ -93,7 +93,7 @@ export async function createWorkoutsFromStrongExport(
 
       if (_exerciseIdState !== existingExerciseIds[_exerciseName]) {
         _exerciseIdState = existingExerciseIds[_exerciseName]
-        workoutStore.addExercise(_exerciseIdState)
+        workoutStore.addExercise(_exerciseIdState, ExerciseVolumeType.Reps)
         _exerciseOrderState = workoutStore.exercises.length - 1
       }
 
@@ -115,7 +115,7 @@ export async function createWorkoutsFromStrongExport(
       workoutStore.setProp("endTime", new Date(d.Date))
       workoutStore.setProp("workoutTitle", d["Workout Name"])
       workoutStore.endWorkout()
-      await workoutStore.saveWorkout()
+      await workoutStore.saveWorkout(false)
       workoutStore.resetWorkout()
       _dateState = null
       _exerciseIdState = null

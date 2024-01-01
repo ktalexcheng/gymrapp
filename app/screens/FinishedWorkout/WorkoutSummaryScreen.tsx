@@ -121,7 +121,9 @@ export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenPro
                 mainNavigation.navigate("GymDetails", { gymId: workout.performedAtGymId })
               }
             >
-              <Text weight="bold">{workout.performedAtGymName}</Text>
+              <Text weight="bold" numberOfLines={2}>
+                {workout.performedAtGymName}
+              </Text>
             </TouchableOpacity>
           </>
         )}

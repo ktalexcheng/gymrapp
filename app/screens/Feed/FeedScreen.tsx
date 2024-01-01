@@ -15,7 +15,7 @@ import { LoadingScreen } from "../LoadingScreen"
 interface FeedScreenProps extends NativeStackScreenProps<TabScreenProps<"Profile">> {}
 
 export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
-  const { feedStore, userStore, workoutStore } = useStores()
+  const { feedStore, userStore, workoutStore, themeStore } = useStores()
   const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? [] : ["top"]
   const [feedData, setFeedData] = useState<WorkoutSummaryCardProps[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -144,7 +144,7 @@ export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
       ScrollViewProps={{ refreshControl: isEmptyFeed() ? FeedRefreshControl : undefined }}
     >
       <View style={$headingContainer}>
-        <Text tx="common.appTitle" preset="screenTitle" />
+        <Text tx="common.appTitle" preset="screenTitle" textColor={themeStore.colors("logo")} />
       </View>
       {renderFeed()}
     </Screen>

@@ -267,28 +267,35 @@ export const FeedStoreModel = types
       self.isLoadingFeed = true
       const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
 
-      const { lastFeedItemId, noMoreItems, workouts } = yield api.getFeedWorkouts(
-        self.oldestFeedItemId,
-      )
-      self.oldestFeedItemId = lastFeedItemId === null ? undefined : lastFeedItemId
-      self.noMoreFeedItems = noMoreItems
-      const workoutIds = []
-      for (const workout of workouts) {
-        self.feedWorkouts.put({ workoutId: workout.workoutId, workout })
-        workoutIds.push(workout.workoutId)
-      }
-      const workoutInteractions = yield workoutInteractionRepository.getMany(workoutIds)
-      for (const interaction of workoutInteractions) {
-        self.workoutInteractions.put(interaction)
+      try {
+        const { lastFeedItemId, noMoreItems, workouts } = yield api.getFeedWorkouts(
+          self.oldestFeedItemId,
+        )
+        self.oldestFeedItemId = lastFeedItemId === null ? undefined : lastFeedItemId
+        self.noMoreFeedItems = noMoreItems
+        const workoutIds = []
+        for (const workout of workouts) {
+          self.feedWorkouts.put({ workoutId: workout.workoutId, workout })
+          workoutIds.push(workout.workoutId)
+        }
+        const workoutInteractions = yield workoutInteractionRepository.getMany(workoutIds)
+        for (const interaction of workoutInteractions) {
+          self.workoutInteractions.put(interaction)
+        }
+
+        const feedUserIds = workouts.map((w) => w.byUserId)
+        for (const feedUserId of feedUserIds) {
+          yield fetchUserProfileToStore(feedUserId)
+        }
+
+        return workouts
+      } catch (e) {
+        console.error("FeedStore.loadMoreFeedItems error:", e)
+      } finally {
+        self.isLoadingFeed = false
       }
 
-      const feedUserIds = workouts.map((w) => w.byUserId)
-      for (const feedUserId of feedUserIds) {
-        fetchUserProfileToStore(feedUserId)
-      }
-
-      self.isLoadingFeed = false
-      return workouts
+      return []
     })
 
     const addCommentToWorkout = flow(function* (
@@ -392,7 +399,7 @@ export const FeedStoreModel = types
     })
 
     const refreshFeedItems = flow(function* () {
-      self.isLoadingFeed = true
+      // self.isLoadingFeed = true
       self.lastFeedRefresh = undefined
       self.oldestFeedItemId = undefined
       self.noMoreFeedItems = false

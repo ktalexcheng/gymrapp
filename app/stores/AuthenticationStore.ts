@@ -43,8 +43,11 @@ function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.User
 export const AuthenticationStoreModel = types
   .model("AuthenticationStore")
   .props({
+    // TODO: Volatile properties do not support getters and setters, but we really don't want sensitive info to persist
+    // will need to revise this later
     firebaseUserCredential: types.maybe(FirebaseUserCredentialType),
-    isAuthenticating: true,
+    isAuthenticating: false,
+    authToken: types.maybe(types.string),
   })
   .volatile(() => ({
     loginEmail: "",
@@ -52,12 +55,15 @@ export const AuthenticationStoreModel = types
     newFirstName: "",
     newLastName: "",
     authError: "",
+    // isAuthenticating: false,
+    // firebaseUserCredential: undefined,
+    // authToken: undefined,
   }))
   .views((self) => ({
     // isAuthenticated() checks if firebaseUserCredential exists in store
     // firebaseUserCredential can only exist if we got the credentials from Firebase
     get isAuthenticated() {
-      return !self.isAuthenticating && !!self.firebaseUserCredential
+      return !self.isAuthenticating && !!self.firebaseUserCredential && !!self.authToken
     },
     get userId() {
       return self.firebaseUserCredential?.user.uid ?? null
@@ -81,6 +87,7 @@ export const AuthenticationStoreModel = types
   .actions(withSetPropAction)
   .actions((self) => {
     function catchAuthError(caller, error) {
+      console.error("AuthenticationStore.catchAuthError:", { caller, error })
       // expo-apple-authentication errors if login is aborted
       // ERR_REQUEST_UNKNOWN can happen when the user is not signed in to iCloud on iOS
       // ERR_REQUEST_CANCELED can happen when the user is signed in to iCloud on iOS but cancels the login
@@ -144,7 +151,8 @@ export const AuthenticationStoreModel = types
     // because for some reason that is what onAuthStateChanged() returns
     function setFirebaseUser(firebaseUser: FirebaseAuthTypes.User) {
       self.isAuthenticating = true
-      if (!firebaseUser) throw new Error("AuthenticationStore.setFirebaseUser failed")
+      if (!firebaseUser)
+        throw new Error("AuthenticationStore.setFirebaseUser error: invalid firebaseUser")
       self.firebaseUserCredential = {
         ...self.firebaseUserCredential,
         user: firebaseUser,
@@ -154,8 +162,14 @@ export const AuthenticationStoreModel = types
 
     function setFirebaseUserCredential(firebaseUserCredential: FirebaseAuthTypes.UserCredential) {
       self.isAuthenticating = true
-      if (!firebaseUserCredential)
-        throw new Error("AuthenticationStore.setFirebaseUserCredential failed")
+      if (!firebaseUserCredential) {
+        console.warn(
+          "AuthenticationStore.setFirebaseUserCredential error: invalid firebaseUserCredential",
+        )
+      }
+      console.debug(
+        "AuthenticationStore.setFirebaseUserCredential setting valid firebaseUserCredential",
+      )
       self.firebaseUserCredential = firebaseUserCredential
       self.isAuthenticating = false
     }
@@ -190,6 +204,22 @@ export const AuthenticationStoreModel = types
         }
       }
       self.firebaseUserCredential = undefined
+    })
+
+    const refreshAuth = flow(function* () {
+      try {
+        let token
+        if (auth().currentUser) token = yield auth().currentUser.getIdToken(true)
+
+        if (token) {
+          self.authToken = token
+        } else {
+          console.debug("AuthenticationStore.refreshAuth received invalid token:", token)
+        }
+      } catch (e) {
+        self.authToken = undefined
+        console.error("AuthenticationStore.refreshAuth failed to refresh token:", e)
+      }
     })
 
     const logout = flow(function* () {
@@ -277,6 +307,7 @@ export const AuthenticationStoreModel = types
     const signInWithGoogle = flow(function* () {
       resetAuthError()
       self.isAuthenticating = true
+      console.debug("AuthenticationStore.signInWithGoogle called")
 
       // Check if your device supports Google Play
       const hasPlayServices = yield GoogleSignin.hasPlayServices({
@@ -298,6 +329,7 @@ export const AuthenticationStoreModel = types
         const googleCredential = auth.GoogleAuthProvider.credential(idToken)
         // Sign-in the user with the credential
         const userCred = yield auth().signInWithCredential(googleCredential)
+        console.debug("AuthenticationStore.signInWithGoogle success:", !!userCred)
 
         setFirebaseUserCredential(userCred)
 
@@ -351,6 +383,7 @@ export const AuthenticationStoreModel = types
 
         const firebaseCredential = auth.AppleAuthProvider.credential(identityToken, nonce)
         const userCred = yield auth().signInWithCredential(firebaseCredential)
+        console.debug("AuthenticationStore.signInWithApple success:", !!userCred)
 
         setFirebaseUserCredential(userCred)
 
@@ -379,6 +412,7 @@ export const AuthenticationStoreModel = types
       setNewLastName,
       invalidateSession,
       resetAuthError,
+      refreshAuth,
       logout,
       deleteAccount,
       signInWithEmail,

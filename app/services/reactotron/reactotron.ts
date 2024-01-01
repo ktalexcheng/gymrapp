@@ -23,7 +23,6 @@ import { RootStore, RootStoreSnapshot } from "../../stores/RootStore"
 import { clear } from "../../utils/storage"
 import { Reactotron } from "./reactotronClient"
 import { DEFAULT_REACTOTRON_CONFIG, ReactotronConfig } from "./reactotronConfig"
-import { fakeReactotron } from "./reactotronFake"
 
 /**
  * We tell typescript we intend to hang Reactotron off of the console object.
@@ -47,10 +46,10 @@ declare global {
 
 // in dev, we attach Reactotron, in prod we attach a interface-compatible mock.
 if (__DEV__) {
-  console.tron = Reactotron // attach reactotron to `console.tron`
+  // console.tron = Reactotron // attach reactotron to `console.tron`
 } else {
   // attach a mock so if things sneak by our __DEV__ guards, we won't crash.
-  console.tron = fakeReactotron
+  // console.tron = fakeReactotron
 }
 
 const config = DEFAULT_REACTOTRON_CONFIG

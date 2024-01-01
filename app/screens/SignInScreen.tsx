@@ -1,10 +1,9 @@
 import { AuthErrorTxKey } from "app/data/constants"
 import { translate } from "app/i18n"
 import { useAuthNavigation } from "app/navigators/navigationUtilities"
-import * as AppleAuthentication from "expo-apple-authentication"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useMemo, useRef, useState } from "react"
-import { Image, ImageStyle, TextInput, TextStyle, View, ViewStyle } from "react-native"
+import { Image, ImageStyle, Platform, TextInput, TextStyle, View, ViewStyle } from "react-native"
 import {
   Button,
   CustomIcon,
@@ -45,6 +44,7 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
   useEffect(() => {
     if (authStore.authError) {
       setAuthError(translate(AuthErrorTxKey[authStore.authError]))
+      authStore.resetAuthError()
     }
   }, [authStore.authError])
 
@@ -111,6 +111,7 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
       preset="auto"
       contentContainerStyle={$screenContentContainer}
       safeAreaEdges={["top", "bottom"]}
+      isBusy={authStore.isAuthenticating}
     >
       <View style={styles.screenTitleMinHeight}>
         <Text testID="signIn-heading" tx="signInScreen.signIn" preset="heading" />
@@ -145,7 +146,7 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
           RightAccessory={PasswordRightAccessory}
         />
 
-        {attemptsCount > 0 && !!authError && (
+        {!!authError && (
           <Text preset="danger" text={authError} style={{ marginVertical: spacing.small }} />
         )}
 
@@ -169,7 +170,7 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
 
           <Spacer type="vertical" size="small" />
 
-          {AppleAuthentication.isAvailableAsync() && (
+          {Platform.OS === "ios" && (
             <Button
               tx="signInScreen.signInWithApple"
               style={$identityProviderButton}

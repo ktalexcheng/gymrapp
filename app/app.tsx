@@ -28,27 +28,12 @@ import { AppNavigator } from "./navigators"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { LoadingScreen } from "./screens"
 import { ErrorBoundary } from "./screens/ErrorScreen/ErrorBoundary"
-import { setupReactotron } from "./services/reactotron"
+// import { setupReactotron } from "./services/reactotron"
 import { useInitialRootStore } from "./stores"
 import tamaguiConfig from "./tamagui.config"
 import { customFontsToLoad } from "./theme"
 import "./utils/ignoreWarnings"
 import * as storage from "./utils/storage"
-
-// Set up Reactotron, which is a free desktop app for inspecting and debugging
-// React Native apps. Learn more here: https://github.com/infinitered/reactotron
-setupReactotron({
-  // clear the Reactotron window when the app loads/reloads
-  clearOnLoad: true,
-  // generally going to be localhost
-  host: "localhost",
-  // Reactotron can monitor AsyncStorage for you
-  useAsyncStorage: true,
-  // log the initial restored state from AsyncStorage
-  logInitialState: true,
-  // log out any snapshots as they happen (this is useful for debugging but slow)
-  logSnapshots: false,
-})
 
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 
@@ -75,23 +60,51 @@ const config = {
 
 // Firebase emulator setup
 if (__DEV__) {
-  let localIp
-  if (Device.isDevice) {
-    console.debug("Running on physical device")
-    localIp = "192.168.50.176" // For physical device, use local IP on network
-  } else {
-    console.debug("Running on emulator")
-    localIp = "localhost" // For emulators
-  }
-  auth().useEmulator(`http://${localIp}:9099`)
-  firestore().useEmulator(localIp, 8080)
-  functions().useEmulator(localIp, 5001)
-  fbStorage().useEmulator(localIp, 9199)
+  // Set up Reactotron, which is a free desktop app for inspecting and debugging
+  // React Native apps. Learn more here: https://github.com/infinitered/reactotron
+  // setupReactotron({
+  //   // clear the Reactotron window when the app loads/reloads
+  //   clearOnLoad: true,
+  //   // generally going to be localhost
+  //   host: "localhost",
+  //   // Reactotron can monitor AsyncStorage for you
+  //   useAsyncStorage: true,
+  //   // log the initial restored state from AsyncStorage
+  //   logInitialState: true,
+  //   // log out any snapshots as they happen (this is useful for debugging but slow)
+  //   logSnapshots: false,
+  // })
 
-  // See: https://github.com/firebase/firebase-js-sdk/issues/3838
-  firestore().settings({
-    persistence: false,
-  })
+  if (Number(process.env.EXPO_PUBLIC_USE_EMULATOR)) {
+    console.debug("Connecting to Firebase emulators (In DEV mode and EXPO_PUBLIC_USE_EMULATOR = 1)")
+
+    let localIp
+    if (Device.isDevice) {
+      console.debug(
+        "Running on physical device, make sure local environment variable EXPO_PUBLIC_EMULATOR_IP is updated when switching networks",
+      )
+      localIp = process.env.EXPO_PUBLIC_EMULATOR_IP // For physical device, use local IP on network
+    } else {
+      console.debug("Running on emulator")
+      localIp = "localhost" // For emulators
+    }
+
+    auth().useEmulator(
+      `http://${localIp}:process.env.${process.env.EXPO_PUBLIC_EMULATOR_AUTH_PORT}`,
+    )
+    firestore().useEmulator(localIp, Number(process.env.EXPO_PUBLIC_EMULATOR_FIRESTORE_PORT))
+    functions().useEmulator(localIp, Number(process.env.EXPO_PUBLIC_EMULATOR_FUNCTIONS_PORT))
+    fbStorage().useEmulator(localIp, Number(process.env.EXPO_PUBLIC_EMULATOR_STORAGE_PORT))
+
+    // See: https://github.com/firebase/firebase-js-sdk/issues/3838
+    firestore().settings({
+      persistence: false,
+    })
+  } else {
+    console.warn(
+      "Connected to the production database. If this is unintentional, please set environment variable EXPO_PUBLIC_USE_EMULATOR = 1",
+    )
+  }
 }
 
 interface AppProps {
@@ -111,6 +124,8 @@ function App(props: AppProps) {
 
   const [areFontsLoaded] = useFonts(customFontsToLoad)
 
+  // IMPORTANT: Make sure to test the app with and without useInitialRootStore to ensure
+  // that your app works both with existing store snapshots and without (fresh install).
   const { rehydrated } = useInitialRootStore(() => {
     // This runs after the root store has been initialized and rehydrated.
 

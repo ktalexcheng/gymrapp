@@ -70,16 +70,22 @@ export class Api {
     exercisesUpdateAvailable: boolean
   }> {
     try {
-      const response = await this.firebaseFunctionsClient.httpsCallable("appCheckForUpdates")({
+      const requestData = {
         appPlatform: Platform.OS,
         appVersion: Application.nativeApplicationVersion,
+        buildVersion: Application.nativeBuildVersion,
         exercisesLastUpdate,
-      })
+      }
+      console.debug("checkForUpdates current app version:", requestData)
+      const response = await this.firebaseFunctionsClient.httpsCallable("appCheckForUpdates")(
+        requestData,
+      )
 
+      console.debug("checkForUpdates response:", response)
       return response.data
     } catch (e) {
       console.error("checkForUpdates error:", e)
-      throw new Error("Error checking for updates.")
+      throw e
     }
   }
 
@@ -100,7 +106,7 @@ export class Api {
       return predictions.data as GoogleMapsPlacePrediction[]
     } catch (e) {
       console.error("getPlacePredictions error:", e)
-      throw new Error("Error getting place predictions.")
+      throw e
     }
   }
 
@@ -113,7 +119,7 @@ export class Api {
       return placeDetails.data as GoogleMapsPlaceDetails
     } catch (e) {
       console.error("getPlaceDetails error:", e)
-      throw new Error("Error getting place details.")
+      throw e
     }
   }
 
@@ -127,7 +133,7 @@ export class Api {
       return searchResult
     } catch (e) {
       console.error("searchGyms error:", e)
-      throw new Error("Error searching gyms.")
+      throw e
     }
   }
 
@@ -141,7 +147,7 @@ export class Api {
       return searchResult
     } catch (e) {
       console.error("searchUsers error:", e)
-      throw new Error("Error searching users.")
+      throw e
     }
   }
 
@@ -180,7 +186,7 @@ export class Api {
       }
     } catch (e) {
       console.error("getOtherUserWorkouts error:", e)
-      throw new Error("Error getting other user workouts.")
+      throw e
     }
   }
 
@@ -199,7 +205,7 @@ export class Api {
       }
     } catch (e) {
       console.error("getFeedWorkouts error:", e)
-      throw new Error("Error getting user feed workouts.")
+      throw e
     }
   }
 
@@ -220,7 +226,7 @@ export class Api {
       }
     } catch (e) {
       console.error("getGymWorkouts error:", e)
-      throw new Error("Error getting gym workouts.")
+      throw e
     }
   }
 
@@ -238,7 +244,7 @@ export class Api {
       return convertFirestoreTimestampToDate(response.data)
     } catch (e) {
       console.error("requestFollowOtherUser error:", e)
-      throw new Error("Error requesting to follow other user.")
+      throw e
     }
   }
 
@@ -249,7 +255,7 @@ export class Api {
       })
     } catch (e) {
       console.error("acceptFollowRequest error:", e)
-      throw new Error("Error accepting follow request.")
+      throw e
     }
   }
 
@@ -260,7 +266,7 @@ export class Api {
       })
     } catch (e) {
       console.error("unfollowOtherUser error:", e)
-      throw new Error("Error unfollowing other user.")
+      throw e
     }
   }
 
@@ -275,7 +281,7 @@ export class Api {
       return reponse.data.status
     } catch (e) {
       console.error("updateUserHandle error:", e)
-      throw new Error("Error updating user handle.")
+      throw e
     }
   }
 }
