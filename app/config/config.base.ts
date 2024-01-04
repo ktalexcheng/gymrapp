@@ -2,6 +2,7 @@ export interface ConfigBaseProps {
   persistNavigation: "always" | "dev" | "prod" | "never"
   catchErrors: "always" | "dev" | "prod" | "never"
   exitRoutes: string[]
+  checkAppUpdateInterval: number
 }
 
 export type PersistNavigationConfig = ConfigBaseProps["persistNavigation"]
@@ -21,6 +22,11 @@ const BaseConfig: ConfigBaseProps = {
    * is pressed while in that screen. Only affects Android.
    */
   exitRoutes: ["Welcome", "HomeTabNavigator"],
+
+  /**
+   * The interval at which the app should check for updates (in milliseconds)
+   */
+  checkAppUpdateInterval: 1000 * 60 * 60 * 24, // 24 hours
 }
 
 export default BaseConfig

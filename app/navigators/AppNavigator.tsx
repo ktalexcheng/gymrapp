@@ -12,7 +12,7 @@ import { Icon, RowView, Spacer, Text } from "app/components"
 import { AppColorScheme } from "app/data/constants"
 import { translate } from "app/i18n"
 import { LoadingScreen } from "app/screens"
-import { api } from "app/services/api"
+import { api, storage } from "app/services/api"
 import { spacing } from "app/theme"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
 import * as NavigationBar from "expo-navigation-bar"
@@ -99,6 +99,13 @@ const AppStack = observer(() => {
     // Check for updates
     const checkForUpdates = async () => {
       try {
+        const appLastUpdated = await storage.getAppLastUpdated()
+        console.debug("AppNavigator.checkForUpdates appLastUpdated:", appLastUpdated)
+        if (appLastUpdated && Date.now() - appLastUpdated < Config.checkAppUpdateInterval) {
+          console.debug("AppNavigator.checkForUpdates: app updated < 24 hours, skipping")
+          return
+        }
+
         const updates = await api.checkForUpdates(exerciseStore.lastUpdated)
         console.debug("AppNavigator.checkForUpdates response:", updates)
         setCheckUpdateError(false)
@@ -134,6 +141,9 @@ const AppStack = observer(() => {
         if (updates && updates.exercisesUpdateAvailable && authStore.isAuthenticated) {
           await exerciseStore.getAllExercises()
         }
+
+        // Set last updated timestamp only if successful
+        await storage.setAppLastUpdated()
       } catch (e) {
         console.warn("AppNavigator.checkForUpdates failed:", e)
         setCheckUpdateError(true)
@@ -142,20 +152,21 @@ const AppStack = observer(() => {
     checkForUpdates()
 
     // Refresh authentication status by freshing token
-    authStore.refreshAuth()
+    authStore.refreshAuthToken()
 
     // onAuthStateChanged is fired upon app initialization as well
     const unsubscribeAuthChange = auth().onAuthStateChanged(onAuthStateChanged)
     // Check for updates when app is resumed
-    const subscriptionAppStateChange = AppState.addEventListener("change", (state) => {
+    const subscribeAppStateChange = AppState.addEventListener("change", (state) => {
       if (state === "active") {
+        console.debug("AppNavigator.subscribeAppStateChange: app resumed")
         checkForUpdates()
       }
     })
 
     return () => {
       unsubscribeAuthChange()
-      subscriptionAppStateChange.remove()
+      subscribeAppStateChange.remove()
     }
   }, [])
 
