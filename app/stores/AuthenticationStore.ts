@@ -6,7 +6,6 @@ import * as Crypto from "expo-crypto"
 import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
 import { AuthErrorType, WeightUnit } from "../data/constants"
 import { User } from "../data/model"
-import { Env } from "../utils/expo"
 import { createCustomType } from "./helpers/createCustomType"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
@@ -21,9 +20,9 @@ const FirebaseUserCredentialType = createCustomType<FirebaseAuthTypes.UserCreden
   isFirebaseUserCredential,
 )
 
-GoogleSignin.configure({
-  webClientId: Env.GOOGLE_CLIENT_ID,
-})
+// GoogleSignin.configure({
+//   webClientId: Env.GOOGLE_CLIENT_ID,
+// })
 
 function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.UserCredential): User {
   return {
@@ -43,10 +42,8 @@ function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.User
 export const AuthenticationStoreModel = types
   .model("AuthenticationStore")
   .props({
-    // TODO: Volatile properties do not support getters and setters, but we really don't want sensitive info to persist
-    // will need to revise this later
-    firebaseUserCredential: types.maybe(FirebaseUserCredentialType),
     isAuthenticating: false,
+    firebaseUserCredential: types.maybe(FirebaseUserCredentialType),
     authToken: types.maybe(types.string),
   })
   .volatile(() => ({
@@ -55,15 +52,10 @@ export const AuthenticationStoreModel = types
     newFirstName: "",
     newLastName: "",
     authError: "",
-    // isAuthenticating: false,
-    // firebaseUserCredential: undefined,
-    // authToken: undefined,
   }))
   .views((self) => ({
-    // isAuthenticated() checks if firebaseUserCredential exists in store
-    // firebaseUserCredential can only exist if we got the credentials from Firebase
     get isAuthenticated() {
-      return !self.isAuthenticating && !!self.firebaseUserCredential && !!self.authToken
+      return !!self.authToken
     },
     get userId() {
       return self.firebaseUserCredential?.user.uid ?? null
@@ -147,33 +139,6 @@ export const AuthenticationStoreModel = types
       )
     }
 
-    // This is specifically to only overwrite the user property of firebaseUserCredential
-    // because for some reason that is what onAuthStateChanged() returns
-    function setFirebaseUser(firebaseUser: FirebaseAuthTypes.User) {
-      self.isAuthenticating = true
-      if (!firebaseUser)
-        throw new Error("AuthenticationStore.setFirebaseUser error: invalid firebaseUser")
-      self.firebaseUserCredential = {
-        ...self.firebaseUserCredential,
-        user: firebaseUser,
-      }
-      self.isAuthenticating = false
-    }
-
-    function setFirebaseUserCredential(firebaseUserCredential: FirebaseAuthTypes.UserCredential) {
-      self.isAuthenticating = true
-      if (!firebaseUserCredential) {
-        console.warn(
-          "AuthenticationStore.setFirebaseUserCredential error: invalid firebaseUserCredential",
-        )
-      }
-      console.debug(
-        "AuthenticationStore.setFirebaseUserCredential setting valid firebaseUserCredential",
-      )
-      self.firebaseUserCredential = firebaseUserCredential
-      self.isAuthenticating = false
-    }
-
     function setLoginEmail(email: string) {
       self.loginEmail = email
     }
@@ -204,9 +169,11 @@ export const AuthenticationStoreModel = types
         }
       }
       self.firebaseUserCredential = undefined
+      self.authToken = undefined
     })
 
-    const refreshAuth = flow(function* () {
+    const refreshAuthToken = flow(function* () {
+      self.isAuthenticating = true
       try {
         let token
         if (auth().currentUser) token = yield auth().currentUser.getIdToken(true)
@@ -214,16 +181,54 @@ export const AuthenticationStoreModel = types
         if (token) {
           self.authToken = token
         } else {
-          console.debug("AuthenticationStore.refreshAuth received invalid token:", token)
+          console.debug("AuthenticationStore.refreshAuthToken received invalid token:", token)
+          yield invalidateSession()
         }
       } catch (e) {
-        self.authToken = undefined
-        console.error("AuthenticationStore.refreshAuth failed to refresh token:", e)
+        yield invalidateSession()
+        console.error("AuthenticationStore.refreshAuthToken failed to refresh token:", e)
+      } finally {
+        self.isAuthenticating = false
       }
     })
 
+    // This is specifically to only overwrite the user property of firebaseUserCredential
+    // because for some reason that is what onAuthStateChanged() returns
+    function setFirebaseUser(firebaseUser: FirebaseAuthTypes.User) {
+      self.isAuthenticating = true
+      if (!firebaseUser) {
+        throw new Error("AuthenticationStore.setFirebaseUser error: invalid firebaseUser")
+      }
+      self.firebaseUserCredential = {
+        ...self.firebaseUserCredential,
+        user: firebaseUser,
+      }
+      console.debug("AuthenticationStore.setFirebaseUser firebaseUser:", firebaseUser)
+      console.debug(
+        "AuthenticationStore.setFirebaseUser firebaseUserCredential:",
+        self.firebaseUserCredential,
+      )
+      refreshAuthToken()
+      self.isAuthenticating = false
+    }
+
+    function setFirebaseUserCredential(firebaseUserCredential: FirebaseAuthTypes.UserCredential) {
+      self.isAuthenticating = true
+      if (!firebaseUserCredential) {
+        console.warn(
+          "AuthenticationStore.setFirebaseUserCredential error: invalid firebaseUserCredential",
+        )
+      }
+      console.debug(
+        "AuthenticationStore.setFirebaseUserCredential firebaseUserCredential:",
+        firebaseUserCredential,
+      )
+      self.firebaseUserCredential = firebaseUserCredential
+      refreshAuthToken()
+      self.isAuthenticating = false
+    }
+
     const logout = flow(function* () {
-      resetAuthError()
       self.isAuthenticating = true
       yield invalidateSession()
       self.isAuthenticating = false
@@ -235,7 +240,7 @@ export const AuthenticationStoreModel = types
       try {
         yield getEnv<RootStoreDependencies>(self).userRepository.delete(self.userId)
         yield auth().currentUser.delete() // Also signs user out
-        self.firebaseUserCredential = undefined
+        yield invalidateSession()
       } catch (error) {
         catchAuthError("deleteAccount", error)
       } finally {
@@ -280,6 +285,7 @@ export const AuthenticationStoreModel = types
 
         if (userCred) {
           setFirebaseUserCredential(userCred)
+
           const { userRepository } = getEnv<RootStoreDependencies>(self)
           userRepository.setUserId(userCred.user.uid)
           yield userRepository.create({
@@ -404,15 +410,15 @@ export const AuthenticationStoreModel = types
     return {
       emailIsInvalid,
       passwordIsWeak,
-      setFirebaseUser,
-      setFirebaseUserCredential,
       setLoginEmail,
       setLoginPassword,
       setNewFirstName,
       setNewLastName,
-      invalidateSession,
       resetAuthError,
-      refreshAuth,
+      invalidateSession,
+      refreshAuthToken,
+      setFirebaseUser,
+      setFirebaseUserCredential,
       logout,
       deleteAccount,
       signInWithEmail,

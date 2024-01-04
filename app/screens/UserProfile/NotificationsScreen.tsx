@@ -1,5 +1,4 @@
 import { Avatar, Divider, Icon, RowView, Screen, Text } from "app/components"
-import { WorkoutSource } from "app/data/constants"
 import { FollowRequest, Notification, NotificationType, User } from "app/data/model"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
@@ -92,32 +91,32 @@ const NotificationTile = ({ notification }: { notification: Notification }) => {
   }, [isInitialized])
 
   const handleOnPress = () => {
-    switch (notification.notificationType) {
-      case NotificationType.Comment:
-        mainNavigation.navigate("WorkoutSummary", {
-          workoutSource: WorkoutSource.User,
-          workoutId: notification.workoutId,
-          jumpToComments: true,
-        })
-        break
-      case NotificationType.Like:
-        mainNavigation.navigate("WorkoutSummary", {
-          workoutSource: WorkoutSource.User,
-          workoutId: notification.workoutId,
-          jumpToComments: false,
-        })
-        break
-      case NotificationType.FollowRequest:
-        mainNavigation.navigate("ProfileVisitorView", {
-          userId: notification.senderUserId,
-        })
-        break
-      case NotificationType.FollowAccepted:
-        mainNavigation.navigate("ProfileVisitorView", {
-          userId: notification.senderUserId,
-        })
-        break
-    }
+    // switch (notification.notificationType) {
+    //   case NotificationType.Comment:
+    //     mainNavigation.navigate("WorkoutSummary", {
+    //       workoutSource: WorkoutSource.User,
+    //       workoutId: notification.workoutId,
+    //       jumpToComments: true,
+    //     })
+    //     break
+    //   case NotificationType.Like:
+    //     mainNavigation.navigate("WorkoutSummary", {
+    //       workoutSource: WorkoutSource.User,
+    //       workoutId: notification.workoutId,
+    //       jumpToComments: false,
+    //     })
+    //     break
+    //   case NotificationType.FollowRequest:
+    //     mainNavigation.navigate("ProfileVisitorView", {
+    //       userId: notification.senderUserId,
+    //     })
+    //     break
+    //   case NotificationType.FollowAccepted:
+    //     mainNavigation.navigate("ProfileVisitorView", {
+    //       userId: notification.senderUserId,
+    //     })
+    //     break
+    // }
 
     if (!notification.isRead) {
       userStore.markNotificationAsRead(notification.notificationId)

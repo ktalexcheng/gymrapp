@@ -1,4 +1,4 @@
-# GymRapp -- The social app for gym rats
+# Gymrapp -- The social app for gym rats
 
 ## Building with Expo
 

@@ -3,7 +3,7 @@ import { Exercise, NewExercise } from "app/data/model"
 import { translate } from "app/i18n"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
-import React, { FC, useState } from "react"
+import React, { FC, useEffect, useState } from "react"
 import { ViewStyle } from "react-native"
 import Toast from "react-native-root-toast"
 import { Button, Picker, Screen, Spacer, Text, TextField } from "../../components"
@@ -48,6 +48,12 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
     return dropdownValues
   }
 
+  useEffect(() => {
+    setExerciseCat1(getDropdownValues("exerciseCat1")[0].value)
+    setExerciseCat2(getDropdownValues("exerciseCat2")[0].value)
+    setVolumeType(getDropdownValues("volumeType")[0].value)
+  }, [])
+
   return (
     <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$container} preset="auto">
       <Text tx="createExerciseScreen.createExerciseTitle" preset="heading" />
@@ -67,7 +73,7 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
       />
       <Picker
         selectedValue={exerciseCat2}
-        onValueChange={setExerciseCat2}
+        onValueChange={(value) => setExerciseCat2(value ?? "")}
         labelTx="createExerciseScreen.exerciseCat2"
         itemsList={getDropdownValues("exerciseCat2")}
         clearSelectionPlaceholderTx="createExerciseScreen.setAsBlankLabel"

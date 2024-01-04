@@ -2,7 +2,7 @@ import { ConfigContext, ExpoConfig } from "expo/config"
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "GymRapp",
+  name: "Gymrapp",
   slug: "gymrapp",
   scheme: "gymrapp",
   version: "0.0.1",
@@ -51,6 +51,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     "@react-native-firebase/app",
+    "@react-native-firebase/perf",
+    "@react-native-firebase/crashlytics",
     [
       "expo-build-properties",
       {
@@ -66,13 +68,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         locationWhenInUsePermission: "Allow $(PRODUCT_NAME) to use your location.",
       },
     ],
+    "@react-native-google-signin/google-signin",
     "expo-apple-authentication",
   ],
   extra: {
     eas: {
       projectId: "f5644dcf-c1f4-47a8-b64c-712e94371abb",
     },
-    googleClientId: process.env.GOOGLE_CLIENT_ID,
+    // googleClientId: process.env.GOOGLE_CLIENT_ID, // TODO: Not sure if this is needed, try building without
   },
   owner: "ktalexcheng",
 })

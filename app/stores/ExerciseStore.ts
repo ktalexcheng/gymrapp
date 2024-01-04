@@ -21,7 +21,7 @@ const ExerciseModel = types
     ]),
     activityName: types.string,
     exerciseCat1: types.string,
-    exerciseCat2: types.string,
+    exerciseCat2: types.maybeNull(types.string),
     exerciseName: types.string,
     volumeType: types.enumeration("exerciseVolumeType", Object.values(ExerciseVolumeType)),
     hasLeaderboard: types.boolean,
