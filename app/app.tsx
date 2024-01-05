@@ -9,10 +9,12 @@
  * The app navigation resides in ./app/navigators, so head over there
  * if you're interested in adding screens and navigators.
  */
+import firebaseApp from "@react-native-firebase/app"
 import auth from "@react-native-firebase/auth"
 import firestore from "@react-native-firebase/firestore"
 import functions from "@react-native-firebase/functions"
 import fbStorage from "@react-native-firebase/storage"
+import Constants from "expo-constants"
 import * as Device from "expo-device"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
@@ -98,9 +100,17 @@ if (__DEV__) {
       persistence: false,
     })
   } else {
-    console.warn(
-      "Connected to the production database. If this is unintentional, please set environment variable EXPO_PUBLIC_USE_EMULATOR = 1",
-    )
+    const firebaseProjectId = firebaseApp.app().options.projectId
+    const envMode = Constants.expoConfig.extra.gymrappEnvironment
+    if (envMode !== "development" || firebaseProjectId !== "gymrapp-test") {
+      throw new Error(
+        "Environment variable GYMRAPP_ENVIRONMENT must be 'development' in __DEV__ mode. This ensures you connect to the test Firebase project if you are not using the emulator",
+      )
+    } else {
+      console.debug(
+        "Connecting to Firebase test project (In DEV mode, EXPO_PUBLIC_USE_EMULATOR = 0, GYMRAPP_ENVIRONMENT = development)",
+      )
+    }
   }
 }
 

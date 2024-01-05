@@ -1,5 +1,23 @@
 import { ConfigContext, ExpoConfig } from "expo/config"
 
+const getEnv = (key: string) => {
+  const envMode = process.env?.GYMRAPP_ENVIRONMENT?.toLowerCase()
+  switch (envMode) {
+    case "production":
+      return process.env[key]
+    // case "staging":
+    //   return process.env[`STAGING_${key}`]
+    // case "test":
+    //   return process.env[`TEST_${key}`]
+    case "development":
+      return process.env[`DEV_${key}`]
+    default:
+      throw new Error(
+        `GYMRAPP_ENVIRONMENT '${envMode}' not valid. Must be one of: production, development`,
+      )
+  }
+}
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Gymrapp",
@@ -22,7 +40,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     // Only using app.json for versionCode and buildNumber since we are using "appVersionSource" = "local" in EAS
     ...config.android,
-    googleServicesFile: process.env.GOOGLE_SERVICES_JSON,
+    googleServicesFile: getEnv("GOOGLE_SERVICES_JSON"),
     icon: "./assets/images/app-icon-android-legacy.png",
     package: "com.gymrapp",
     adaptiveIcon: {
@@ -39,7 +57,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // Only using app.json for versionCode and buildNumber since we are using "appVersionSource" = "local" in EAS
     ...config.ios,
     usesAppleSignIn: true,
-    googleServicesFile: process.env.GOOGLE_SERVICES_PLIST,
+    googleServicesFile: getEnv("GOOGLE_SERVICES_PLIST"),
     icon: "./assets/images/app-icon-ios.png",
     supportsTablet: true,
     bundleIdentifier: "com.gymrapp",
@@ -75,6 +93,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     eas: {
       projectId: "f5644dcf-c1f4-47a8-b64c-712e94371abb",
     },
+    gymrappEnvironment: process.env.GYMRAPP_ENVIRONMENT,
     // googleClientId: process.env.GOOGLE_CLIENT_ID, // TODO: Not sure if this is needed, try building without
   },
   owner: "ktalexcheng",
