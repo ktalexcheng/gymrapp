@@ -115,50 +115,8 @@ export class UserRepository extends BaseRepository<User, UserId> {
     return imageUrl
   }
 
-  // async followUser(followeeUserId: UserId): Promise<void> {
-  //   console.debug("UserRepository.followUser called")
-  //   this.checkRepositoryInitialized()
-
-  //   const userFollowingDocRef = this.#userFollowsCollection
-  //     .doc(this.#userId)
-  //     .collection(this.#userFollowingCollectionName)
-  //     .doc(followeeUserId)
-  //   const followeeFollowersDocRef = this.#userFollowsCollection
-  //     .doc(followeeUserId)
-  //     .collection(this.#userFollowersCollectionName)
-  //     .doc(this.#userId)
-
-  //   try {
-  //     await userFollowingDocRef.set({ followDate: new Date() } as UserFollowing)
-  //     await followeeFollowersDocRef.set({ followDate: new Date() } as UserFollowing)
-  //   } catch (e) {
-  //     throw new RepositoryError(this.repositoryId, `followUser error: ${e}`)
-  //   }
-  // }
-
-  // async unfollowUser(followeeUserId: UserId): Promise<void> {
-  //   console.debug("UserRepository.unfollowUser called")
-  //   this.checkRepositoryInitialized()
-
-  //   const userFollowingDocRef = this.#userFollowsCollection
-  //     .doc(this.#userId)
-  //     .collection(this.#userFollowingCollectionName)
-  //     .doc(followeeUserId)
-  //   const followeeFollowersDocRef = this.#userFollowsCollection
-  //     .doc(followeeUserId)
-  //     .collection(this.#userFollowersCollectionName)
-  //     .doc(this.#userId)
-
-  //   try {
-  //     await userFollowingDocRef.delete()
-  //     await followeeFollowersDocRef.delete()
-  //   } catch (e) {
-  //     throw new RepositoryError(this.repositoryId, `unfollowUser error: ${e}`)
-  //   }
-  // }
-
-  // This check is done once when the user enters a new user handle
-  // and it is done again in a transaction when the user submits the new user handle
+  // This check is done once when the user enters a new user handle (to inform availability)
+  // and it is done again in a transaction when the user submits the new user handle (to avoid duplicate)
   async userHandleIsAvailable(userHandle: string): Promise<boolean> {
     console.debug("UserRepository.userHandleAvailable called")
 
@@ -293,18 +251,6 @@ export class UserRepository extends BaseRepository<User, UserId> {
       throw new RepositoryError(this.repositoryId, `acceptFollowRequest error: ${e}`)
     }
   }
-
-  // async getUserLocation() {
-  //   console.debug("UserRepository.getUserLocation called")
-  //   const { status } = await Location.requestForegroundPermissionsAsync()
-  //   if (status !== Location.PermissionStatus.GRANTED) {
-  //     console.debug("UserRepository.getUserLocation status !== granted")
-  //     return undefined
-  //   }
-
-  //   const location = await Location.getCurrentPositionAsync({})
-  //   return location
-  // }
 
   async addToMyGyms(gym: GymDetails) {
     const userUpdate = {

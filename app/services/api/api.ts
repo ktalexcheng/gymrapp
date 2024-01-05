@@ -155,18 +155,6 @@ export class Api {
     return getDistance(gpsLatLng1, gpsLatLng2)
   }
 
-  // async getOtherUser(userId: UserId): Promise<User> {
-  //   try {
-  //     const reponse = await this.firebaseFunctionsClient.httpsCallable("userGetOtherUser")({
-  //       userId,
-  //     })
-  //     return reponse.data.user
-  //   } catch (e) {
-  //     console.error("getOtherUser error:", e)
-  //     throw new Error("Error getting other user profile.")
-  //   }
-  // }
-
   async getOtherUserWorkouts(
     userId: UserId,
     lastWorkoutId?: WorkoutId,

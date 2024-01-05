@@ -91,6 +91,7 @@ export const CreateNewGymScreen: FC = ({ route }: CreateNewGymScreenProps) => {
               key={place.place_id}
               preset="text"
               text={place.structured_formatting.main_text}
+              numberOfLines={2}
               onPress={() => selectGymFromPrediction(place)}
             />
           ))}
