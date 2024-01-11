@@ -71,7 +71,9 @@ const WorkoutStoreModel = types
     exercises: types.optional(Exercises, []),
     inProgress: false,
     restTime: 0,
-    restTimeRemaining: 0,
+    // restTimeRemaining: 0,
+    restTimeStartedAt: types.maybe(types.Date),
+    restTimeElapsed: 0,
     restTimeRunning: false,
     lastSetCompletedTime: types.maybe(types.Date),
     workoutTitle: translate("activeWorkoutScreen.newActiveWorkoutTitle"),
@@ -137,7 +139,8 @@ const WorkoutStoreModel = types
       self.startTime = new Date()
       self.lastSetCompletedTime = undefined
       self.restTime = 0
-      self.restTimeRemaining = 0
+      // self.restTimeRemaining = 0
+      self.restTimeStartedAt = undefined
       self.exercises = Exercises.create()
       self.workoutTitle = translate("activeWorkoutScreen.newActiveWorkoutTitle")
       self.performedAtGymId = undefined
@@ -400,35 +403,38 @@ const WorkoutStoreModel = types
     let intervalId
 
     const setRestTime = (seconds: number) => {
-      const _seconds = seconds < 0 ? 0 : seconds
-      self.restTime = _seconds
-      self.restTimeRemaining = _seconds
+      self.restTime = Math.max(seconds, 0)
+      // self.restTimeRemaining = _seconds
     }
 
     const adjustRestTime = (seconds: number) => {
       self.restTime = Math.max(self.restTime + seconds, 0)
-      self.restTimeRemaining = Math.max(self.restTimeRemaining + seconds, 0)
+      // self.restTimeRemaining = Math.max(self.restTimeRemaining + seconds, 0)
     }
 
     const startRestTimer = () => {
-      self.lastSetCompletedTime = new Date()
+      const now = new Date()
+      self.lastSetCompletedTime = now
+      // The sole purpose for this is to trigger an observable change
+      // in the view restTimeRemaining.
       intervalId = setInterval(() => {
-        if (self.restTimeRemaining > 0) {
-          self.setProp("restTimeRemaining", self.restTimeRemaining - 1)
-        } else {
-          console.debug("WorkoutStore.startRestTimer cleared")
+        if (self.restTimeElapsed === self.restTime) {
           clearInterval(intervalId)
-          self.setProp("restTimeRunning", false)
+        } else {
+          self.setProp("restTimeElapsed", self.restTimeElapsed + 1)
         }
       }, 1000)
+      self.restTimeStartedAt = now
       self.restTimeRunning = true
     }
 
     const stopRestTimer = () => {
       if (intervalId) {
         clearInterval(intervalId)
-        self.restTimeRunning = false
       }
+      self.restTimeStartedAt = undefined
+      self.restTimeElapsed = 0
+      self.restTimeRunning = false
     }
 
     const resetRestTimer = () => {
@@ -451,5 +457,25 @@ const WorkoutStoreModel = types
       restartRestTimer,
     }
   })
+  .views((self) => ({
+    get restTimeRemaining() {
+      if (!self.restTimeStartedAt || !self.restTimeRunning) return 0
+
+      // We need to recalculate elapsed time just in case app went to background
+      const actualTimeElapsed = differenceInSeconds(new Date(), self.restTimeStartedAt)
+      // Timer has finished
+      if (actualTimeElapsed >= self.restTime) {
+        self.resetRestTimer()
+        return 0
+      }
+
+      // Timer still running but self.restTimeElapsed is not updated when app is in background
+      if (actualTimeElapsed > self.restTimeElapsed) {
+        self.setProp("restTimeElapsed", actualTimeElapsed)
+      }
+
+      return self.restTime - actualTimeElapsed
+    },
+  }))
 
 export { ExerciseSets, WorkoutStoreModel }

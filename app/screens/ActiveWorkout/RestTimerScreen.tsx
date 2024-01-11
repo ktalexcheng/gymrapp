@@ -54,6 +54,13 @@ export const RestTimerScreen: FC = observer(() => {
       (progressCircleLength * (restTime.value - timerRemaining.value)) / restTime.value,
   }))
 
+  // useAnimatedReaction(
+  //   () => timerRemaining.value,
+  //   (newValue, prevValue) => {
+  //     console.log("timerRemaining.value changed from", prevValue, "to", newValue)
+  //   },
+  // )
+
   useEffect(() => {
     // Initialize the timer picker with the current rest time
     // and update the timer when the rest time changes

@@ -12,9 +12,10 @@ const getEnv = (key: string) => {
     case "development":
       return process.env[`DEV_${key}`]
     default:
-      throw new Error(
-        `GYMRAPP_ENVIRONMENT '${envMode}' not valid. Must be one of: production, development`,
-      )
+      return process.env[key]
+    // throw new Error(
+    //   `GYMRAPP_ENVIRONMENT '${envMode}' not valid. Must be one of: production, development`,
+    // )
   }
 }
 
