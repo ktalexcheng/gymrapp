@@ -41,6 +41,10 @@ interface BaseScreenProps {
    */
   backgroundColor?: string
   /**
+   * Override the default status bar behavior. Defaults to false.
+   */
+  overrideStatusBar?: boolean
+  /**
    * Status bar setting. Defaults to dark.
    */
   statusBarStyle?: "light" | "dark"
@@ -212,6 +216,7 @@ export const Screen = observer((props: ScreenProps) => {
     KeyboardAvoidingViewProps,
     keyboardOffset = 0,
     safeAreaEdges,
+    overrideStatusBar = false,
     StatusBarProps,
     statusBarStyle = "dark",
     isBusy = false,
@@ -241,7 +246,7 @@ export const Screen = observer((props: ScreenProps) => {
 
   return (
     <View style={[$containerStyle, $containerInsets]}>
-      <StatusBar style={statusBarStyle} {...StatusBarProps} />
+      {overrideStatusBar && <StatusBar style={statusBarStyle} {...StatusBarProps} />}
 
       {isBusy && (
         <View style={$busyIndicator}>
