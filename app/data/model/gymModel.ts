@@ -37,6 +37,7 @@ export interface GymDetails extends Gym {
   googleMapsPlaceDetails: GoogleMapsPlaceDetails
   gymLocation: FirebaseFirestoreTypes.GeoPoint
   gymMembersCount: number
+  gymWorkoutsCount: number
   gymLeaderboard: GymLeaderboard
 }
 
@@ -45,6 +46,7 @@ export interface GymSearchResult {
   gymName: string
   gymAddress: string
   gymMembersCount: number
+  gymWorkoutsCount: number
   gymIconUrl: string
   gymIconBackgroundColor: string
 }
@@ -52,5 +54,5 @@ export interface GymSearchResult {
 export interface GymMember {
   userId: UserId
   dateAdded: Date
-  workoutCount: number
+  workoutsCount: number
 }

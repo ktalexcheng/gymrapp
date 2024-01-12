@@ -19,12 +19,17 @@ const GymSearchResultItem: FC<GymSearchResultItemProps> = ({ gym }: GymSearchRes
   return (
     <TouchableOpacity onPress={() => mainNavigator.navigate("GymDetails", { gymId: gym.gymId })}>
       <RowView style={$gymResultItemContainer}>
-        <View>
-          <Icon name="barbell-outline" size={48} />
+        <View style={styles.alignCenter}>
+          <Icon name="business" size={36} />
+          <Spacer type="vertical" size="tiny" />
           <RowView style={[styles.alignCenter, styles.justifyCenter]}>
+            {/* <Icon name="barbell" size={16} />
+            <Spacer type="horizontal" size="tiny" />
+            <Text size="xxs">{simplifyNumber(gym.gymWorkoutsCount ?? 0)}</Text>
+            <Spacer type="horizontal" size="tiny" /> */}
             <Icon name="people" size={16} />
             <Spacer type="horizontal" size="tiny" />
-            <Text size="xxs">{simplifyNumber(gym.gymMembersCount)}</Text>
+            <Text size="xxs">{simplifyNumber(gym.gymMembersCount ?? 0)}</Text>
           </RowView>
         </View>
         <Spacer type="horizontal" size="small" />

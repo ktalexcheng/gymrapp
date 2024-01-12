@@ -27,7 +27,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const googleOauthClientId = (googleServicesFile.client[0].oauth_client as Array<any>).find(
     (c) => c.client_type === 3,
   ).client_id
-  console.debug("app.config.ts googleOauthClientId", googleOauthClientId)
 
   return {
     ...config,

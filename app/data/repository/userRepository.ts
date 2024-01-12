@@ -261,14 +261,14 @@ export class UserRepository extends BaseRepository<User, UserId> {
       await this.firestoreClient.runTransaction(async (tx) => {
         tx.update(this.firestoreCollection.doc(this.#userId), userUpdate)
 
-        const gymMembersCollection = this.firestoreClient
-          .collection("gyms")
-          .doc(gym.gymId)
-          .collection("gymMembers")
-        tx.set(gymMembersCollection.doc(this.#userId), {
-          userId: this.#userId,
-          dateAdded: firestore.FieldValue.serverTimestamp(),
-        })
+        // const gymMembersCollection = this.firestoreClient
+        //   .collection("gyms")
+        //   .doc(gym.gymId)
+        //   .collection("gymMembers")
+        // tx.set(gymMembersCollection.doc(this.#userId), {
+        //   userId: this.#userId,
+        //   dateAdded: firestore.FieldValue.serverTimestamp(),
+        // })
       })
     } catch (e) {
       throw new RepositoryError(this.repositoryId, `addToMyGyms error: ${e}`)
@@ -291,11 +291,11 @@ export class UserRepository extends BaseRepository<User, UserId> {
       await this.firestoreClient.runTransaction(async (tx) => {
         tx.update(this.firestoreCollection.doc(this.#userId), userUpdate)
 
-        const gymMembersCollection = this.firestoreClient
-          .collection("gyms")
-          .doc(gym.gymId)
-          .collection("gymMembers")
-        tx.delete(gymMembersCollection.doc(this.#userId))
+        // const gymMembersCollection = this.firestoreClient
+        //   .collection("gyms")
+        //   .doc(gym.gymId)
+        //   .collection("gymMembers")
+        // tx.delete(gymMembersCollection.doc(this.#userId))
       })
     } catch (e) {
       throw new RepositoryError(this.repositoryId, `removeFromMyGyms error: ${e}`)

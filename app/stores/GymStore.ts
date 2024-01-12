@@ -103,7 +103,9 @@ export const GymStoreModel = types
         lastMemberId: newLastMemberId,
         noMoreItems,
         gymMembers,
-      } = yield gymRepository.getGymMembers(gymId, lastMemberId, limit)
+      } = yield gymRepository.getGymMembers(gymId, lastMemberId, limit).catch((e) => {
+        console.error("GymStore.getGymMemberProfiles getGymMembers error:", e)
+      })
       if (gymMembers.length === 0) {
         return {
           lastMemberId: null,
@@ -112,9 +114,11 @@ export const GymStoreModel = types
         }
       }
 
-      const users = yield getEnv<RootStoreDependencies>(self).userRepository.getMany(
-        gymMembers.map((member) => member.userId),
-      )
+      const users = yield getEnv<RootStoreDependencies>(self)
+        .userRepository.getMany(gymMembers.map((member) => member.userId))
+        .catch((e) => {
+          console.error("GymStore.getGymMemberProfiles userRepository.getMany error:", e)
+        })
       const gymMemberProfiles = gymMembers.map((gymMember) => ({
         ...gymMember,
         ...users.find((user) => user.userId === gymMember.userId),
@@ -127,6 +131,13 @@ export const GymStoreModel = types
       }
     })
 
+    const getGymMember = flow(function* (gymId: GymId, userId: string) {
+      const { gymRepository } = getEnv<RootStoreDependencies>(self)
+      return yield gymRepository.getGymMember(gymId, userId).catch((e) => {
+        console.error("GymStore.getGymMember error:", e)
+      })
+    })
+
     return {
       getGymById,
       getGymByIds,
@@ -136,5 +147,6 @@ export const GymStoreModel = types
       createNewGym,
       getDistanceToGym,
       getGymMemberProfiles,
+      getGymMember,
     }
   })

@@ -22,7 +22,7 @@ enum NumberUnit {
  * @param input A number to be simplified
  * @returns Original number for anything <1000, then 2 significant digits for anything >=1000
  */
-export function simplifyNumber(input: number): string {
+export function simplifyNumber(input: number): string | null {
   if (!Number.isFinite(input)) return null
 
   // If the number is negative, return the absolute value with a negative sign
