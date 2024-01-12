@@ -280,7 +280,7 @@ export const AppNavigator = observer((props: NavigationProps) => {
   }
 
   const $topSafeAreaInset = useSafeAreaInsetsStyle(["top"], "margin")
-  const $internetStatusBarInset: StyleProp<ViewStyle> = {
+  const $internetStatusBar: StyleProp<ViewStyle> = {
     position: "absolute",
     zIndex: 1,
     top: $topSafeAreaInset.marginTop,
@@ -288,6 +288,17 @@ export const AppNavigator = observer((props: NavigationProps) => {
     right: 0,
     height: spacing.screenPadding,
     backgroundColor: themeStore.colors("danger"),
+    alignItems: "center",
+    justifyContent: "center",
+  }
+  const $devModStatusBar: StyleProp<ViewStyle> = {
+    position: "absolute",
+    zIndex: 1,
+    top: $topSafeAreaInset.marginTop,
+    left: 0,
+    right: 0,
+    height: spacing.screenPadding,
+    backgroundColor: themeStore.colors("contentBackground"),
     alignItems: "center",
     justifyContent: "center",
   }
@@ -300,9 +311,24 @@ export const AppNavigator = observer((props: NavigationProps) => {
       theme={themeStore.isDark ? darkTheme : lightTheme}
       {...props}
     >
-      {!isInternetConnected && (
-        <RowView style={$internetStatusBarInset}>
+      {__DEV__ && (
+        <RowView style={$devModStatusBar}>
           <Icon name="alert-circle-outline" size={14} />
+          <Spacer type="horizontal" size="tiny" />
+          <Text
+            text={
+              "DEV mode! " +
+              (process.env.EXPO_PUBLIC_USE_EMULATOR === "0"
+                ? "Connected to Firebase test"
+                : "Connected to emulator")
+            }
+            size="xxs"
+          />
+        </RowView>
+      )}
+      {!isInternetConnected && (
+        <RowView style={$internetStatusBar}>
+          <Icon name="cloud-offline" size={14} />
           <Spacer type="horizontal" size="tiny" />
           <Text tx="common.error.networkErrorMessage" size="xxs" />
         </RowView>

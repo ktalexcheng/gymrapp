@@ -13,7 +13,7 @@ export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ n
   const { workoutStore, themeStore } = useStores()
 
   function handleSelectExercise(exercise: Exercise) {
-    workoutStore.addExercise(exercise.exerciseId, exercise.volumeType)
+    workoutStore.addExercise(exercise)
     navigation.goBack()
   }
 

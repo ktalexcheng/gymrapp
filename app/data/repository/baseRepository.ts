@@ -208,7 +208,7 @@ export class BaseRepository<T, D extends string> {
     }
   }
 
-  async get(id: D, refresh = false): Promise<T> {
+  async get(id: D, refresh = true): Promise<T> {
     this.checkRepositoryInitialized()
 
     if (!id) {
@@ -297,7 +297,7 @@ export class BaseRepository<T, D extends string> {
 
   // TODO: Might be a more efficient way of doing this?
   // Maybe individual queries for each ID (to leverage cache) and then merge the results?
-  async getMany(ids?: D[], refresh = false): Promise<T[]> {
+  async getMany(ids?: D[], refresh = true): Promise<T[]> {
     this.checkRepositoryInitialized()
 
     let cacheKey = this.#getAllCacheKey

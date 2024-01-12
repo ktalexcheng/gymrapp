@@ -19,7 +19,8 @@ export const ExerciseSummary = (props: ExerciseSummaryProps) => {
   const weightUnitTx = useWeightUnitTx()
   const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
   const { exercise } = props
-  const exerciseName = exerciseStore.getExerciseName(props.exercise.exerciseId)
+  const exerciseName =
+    exerciseStore.getExerciseName(props.exercise.exerciseId) || props.exercise?.exerciseName
 
   const $exerciseSummaryContainer: ViewStyle = {
     marginTop: spacing.small,

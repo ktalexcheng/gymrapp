@@ -2,6 +2,7 @@ import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import { GoogleSignin } from "@react-native-google-signin/google-signin"
 import { defaultAppLocale } from "app/utils/appLocale"
 import * as AppleAuthentication from "expo-apple-authentication"
+import Constants from "expo-constants"
 import * as Crypto from "expo-crypto"
 import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
 import { AuthErrorType, WeightUnit } from "../data/constants"
@@ -20,9 +21,10 @@ const FirebaseUserCredentialType = createCustomType<FirebaseAuthTypes.UserCreden
   isFirebaseUserCredential,
 )
 
-// GoogleSignin.configure({
-//   webClientId: Env.GOOGLE_CLIENT_ID,
-// })
+// See why: https://rnfirebase.io/auth/social-auth#google
+GoogleSignin.configure({
+  webClientId: Constants.expoConfig.extra.googleOauthClientId,
+})
 
 function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.UserCredential): User {
   return {

@@ -46,6 +46,8 @@ export type NewExerciseRecord = Record<Reps, PersonalRecord>
 export type ExerciseId = string
 interface BaseExercisePerformed {
   exerciseId: ExerciseId
+  exerciseSource: ExerciseSource
+  exerciseName: string // If the exercise is private from another user, it won't be in the target user's exercise list, so we need to store this to display exercise summary
   exerciseOrder: number
   setsPerformed: ExerciseSet[]
   datePerformed: Date

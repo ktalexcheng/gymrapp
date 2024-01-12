@@ -1,8 +1,9 @@
 import { ActivityId } from "app/data/model/activityModel"
 import { differenceInSeconds } from "date-fns"
 import { SnapshotIn, destroy, flow, getEnv, types } from "mobx-state-tree"
-import { ExerciseSetType, ExerciseVolumeType } from "../../app/data/constants"
+import { ExerciseSetType, ExerciseSource, ExerciseVolumeType } from "../../app/data/constants"
 import {
+  Exercise,
   ExerciseHistory,
   ExercisePerformed,
   ExerciseSet,
@@ -55,6 +56,8 @@ const SingleExercise = types
   .model({
     exerciseOrder: types.number,
     exerciseId: types.string,
+    exerciseSource: types.enumeration(Object.values(ExerciseSource)),
+    exerciseName: types.string,
     volumeType: types.enumeration(Object.values(ExerciseVolumeType)),
     setsPerformed: types.optional(ExerciseSets, []),
     exerciseNotes: types.maybeNull(types.string),
@@ -343,12 +346,14 @@ const WorkoutStoreModel = types
       }
     })
 
-    function addExercise(newExerciseId: string, volumeType: ExerciseVolumeType) {
+    function addExercise(exercise: Exercise) {
       const newExerciseOrder = self.exercises.length
       const newExercise = SingleExercise.create({
         exerciseOrder: newExerciseOrder,
-        exerciseId: newExerciseId,
-        volumeType,
+        exerciseId: exercise.exerciseId,
+        exerciseSource: exercise.exerciseSource,
+        exerciseName: exercise.exerciseName,
+        volumeType: exercise.volumeType,
         setsPerformed: [],
       })
       self.exercises.push(newExercise)
