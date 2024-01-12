@@ -1,4 +1,14 @@
-import { TimePicker } from "app/components/TimePicker"
+import {
+  Button,
+  Icon,
+  Modal,
+  PickerModal,
+  RowView,
+  Spacer,
+  Text,
+  TextField,
+  TimePicker,
+} from "app/components"
 import { ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import { ExerciseSet, RepsExerciseSet, TimeExerciseSet } from "app/data/model"
 import { useExerciseSetting, useSetFromLastWorkout, useWeight } from "app/hooks"
@@ -10,16 +20,6 @@ import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
 import { TextStyle, TouchableOpacity, View, ViewProps, ViewStyle } from "react-native"
 import { Swipeable } from "react-native-gesture-handler"
-import {
-  Button,
-  Icon,
-  Modal,
-  PickerModal,
-  RowView,
-  Spacer,
-  Text,
-  TextField,
-} from "../../components"
 import { useStores } from "../../stores"
 import { spacing, styles, thresholds } from "../../theme"
 

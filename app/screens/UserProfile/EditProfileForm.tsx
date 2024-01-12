@@ -5,11 +5,11 @@ import {
   Icon,
   Modal,
   Picker,
+  RestTimePicker,
   RowView,
   Spacer,
   Text,
   TextField,
-  WheelPickerFlat,
 } from "app/components"
 import {
   AppColorScheme,
@@ -39,38 +39,6 @@ import {
 } from "react-native"
 import Toast from "react-native-root-toast"
 import { SwitchSettingTile } from "./UserSettingTile"
-
-const restTimeList = Array(60)
-  .fill(null)
-  .map<any>((_, i) => {
-    const seconds = (i + 1) * 5
-    return {
-      label: formatSecondsAsTime(seconds),
-      value: seconds,
-    }
-  })
-
-type RestTimePickerProps = {
-  restTime: number
-  setRestTime: (restTime: number) => void
-}
-
-const RestTimePicker = (props: RestTimePickerProps) => {
-  const { restTime, setRestTime } = props
-
-  function updateRestTime(index: number) {
-    setRestTime(restTimeList[index].value)
-  }
-
-  return (
-    <WheelPickerFlat
-      items={restTimeList}
-      onIndexChange={updateRestTime}
-      itemHeight={40}
-      initialScrollIndex={restTime / 5 - 1}
-    />
-  )
-}
 
 type EditProfileFormProps = {
   saveProfileCompletedCallback: () => void
@@ -380,7 +348,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
         onRequestClose={() => setShowRestTimePicker(false)}
       >
         <Text tx="editProfileForm.defaultRestTimeSelectorLabel" preset="formLabel" />
-        <RestTimePicker restTime={restTime} setRestTime={setRestTime} />
+        <RestTimePicker initialRestTime={restTime} onRestTimeChange={setRestTime} />
         <Button tx="common.ok" preset="text" onPress={() => setShowRestTimePicker(false)} />
       </Modal>
       <View style={$contentContainer}>

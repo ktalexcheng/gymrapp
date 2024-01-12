@@ -26,7 +26,10 @@ export type TimePickerProps = {
   onValueChange: (timeAsSeconds: number) => void
 }
 
-const ExoticTimePicker = forwardRef<TimePickerRef, TimePickerProps>((props, ref) => {
+const ExoticTimePicker = forwardRef<TimePickerRef, TimePickerProps>(function ExoticTimePicker(
+  props,
+  ref,
+) {
   const { initialValue, onValueChange } = props
   const [timerMinutes, setTimerMinutes] = useState(Math.floor(initialValue / 60))
   const [timerSeconds, setTimerSeconds] = useState(initialValue % 60)
@@ -65,7 +68,7 @@ const ExoticTimePicker = forwardRef<TimePickerRef, TimePickerProps>((props, ref)
             ref={timerMinutesRef}
             items={minutesPickerItems}
             onIndexChange={setTimerMinutes}
-            itemHeight={30}
+            itemHeight={40}
             initialScrollIndex={timerMinutes}
           />
         </View>
@@ -77,7 +80,7 @@ const ExoticTimePicker = forwardRef<TimePickerRef, TimePickerProps>((props, ref)
             ref={timerSecondsRef}
             items={secondsPickerItems}
             onIndexChange={setTimerSeconds}
-            itemHeight={30}
+            itemHeight={40}
             initialScrollIndex={timerSeconds}
           />
         </View>
@@ -85,6 +88,5 @@ const ExoticTimePicker = forwardRef<TimePickerRef, TimePickerProps>((props, ref)
     </View>
   )
 })
-ExoticTimePicker.displayName = "ExoticTimePicker"
 
 export const TimePicker = observer(ExoticTimePicker)

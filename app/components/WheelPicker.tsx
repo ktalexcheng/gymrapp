@@ -31,77 +31,78 @@ type WheelPickerProps = {
   disabled?: boolean
 }
 
-const ExoticWheelPickerFlat = forwardRef<WheelPickerRef, WheelPickerProps>((props, ref) => {
-  const { items, onIndexChange, itemHeight, initialScrollIndex, disabled } = props
-  const modifiedItems = [{ label: "", value: null }, ...items, { label: "", value: null }]
-  const scrollViewRef = useRef<ScrollView>(null)
-  useImperativeHandle(ref, () => ({
-    scrollToIndex: (index: number) => {
-      scrollViewRef.current.scrollTo({ y: index * itemHeight })
-    },
-  }))
-  const { themeStore } = useStores()
+const ExoticWheelPickerFlat = forwardRef<WheelPickerRef, WheelPickerProps>(
+  function ExoticWheelPickerFlat(props, ref) {
+    const { items, onIndexChange, itemHeight, initialScrollIndex, disabled } = props
+    const modifiedItems = [{ label: "", value: null }, ...items, { label: "", value: null }]
+    const scrollViewRef = useRef<ScrollView>(null)
+    useImperativeHandle(ref, () => ({
+      scrollToIndex: (index: number) => {
+        scrollViewRef.current.scrollTo({ y: index * itemHeight })
+      },
+    }))
+    const { themeStore } = useStores()
 
-  const scrollToInitialIndex = () => {
-    scrollViewRef.current.scrollTo({ y: initialScrollIndex * itemHeight, animated: false })
-  }
+    const scrollToInitialIndex = () => {
+      scrollViewRef.current.scrollTo({ y: initialScrollIndex * itemHeight, animated: false })
+    }
 
-  const $itemContainer: ViewStyle = {
-    height: itemHeight,
-    alignItems: "center",
-    justifyContent: "center",
-  }
+    const $itemContainer: ViewStyle = {
+      height: itemHeight,
+      alignItems: "center",
+      justifyContent: "center",
+    }
 
-  const renderItem = (item: ListItem, index: number) => {
+    const renderItem = (item: ListItem, index: number) => {
+      return (
+        <View key={index} style={$itemContainer}>
+          <Text style={$pickerItemText}>{item.label}</Text>
+        </View>
+      )
+    }
+
+    const momentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const y = event.nativeEvent.contentOffset.y
+      const index = Math.round(y / itemHeight)
+      onIndexChange(index)
+    }
+
+    const $container: ViewStyle = {
+      alignItems: "center",
+      height: itemHeight * 3,
+      width: "100%",
+      opacity: disabled ? 0.5 : 1,
+    }
+
+    const $indicator: ViewStyle = {
+      backgroundColor: themeStore.colors("separator"),
+      height: 1,
+      position: "absolute",
+      width: "100%",
+    }
+
+    console.debug("WheelPickerFlat initialScrollIndex", initialScrollIndex)
     return (
-      <View key={index} style={$itemContainer}>
-        <Text style={$pickerItemText}>{item.label}</Text>
+      <View style={$container} pointerEvents={disabled ? "none" : "auto"}>
+        <ScrollView
+          style={styles.fullWidth}
+          ref={scrollViewRef}
+          decelerationRate="fast"
+          showsVerticalScrollIndicator={false}
+          snapToInterval={itemHeight}
+          onMomentumScrollEnd={momentumScrollEnd}
+          onLayout={scrollToInitialIndex}
+        >
+          <TouchableOpacity activeOpacity={1}>
+            {modifiedItems.map((item, index) => renderItem(item, index))}
+          </TouchableOpacity>
+        </ScrollView>
+        <View style={[$indicator, { top: itemHeight }]} />
+        <View style={[$indicator, { top: itemHeight * 2 }]} />
       </View>
     )
-  }
-
-  const momentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const y = event.nativeEvent.contentOffset.y
-    const index = Math.round(y / itemHeight)
-    onIndexChange(index)
-  }
-
-  const $container: ViewStyle = {
-    alignItems: "center",
-    height: itemHeight * 3,
-    width: "100%",
-    opacity: disabled ? 0.5 : 1,
-  }
-
-  const $indicator: ViewStyle = {
-    backgroundColor: themeStore.colors("separator"),
-    height: 1,
-    position: "absolute",
-    width: "100%",
-  }
-
-  console.debug("WheelPickerFlat initialScrollIndex", initialScrollIndex)
-  return (
-    <View style={$container} pointerEvents={disabled ? "none" : "auto"}>
-      <ScrollView
-        style={styles.fullWidth}
-        ref={scrollViewRef}
-        decelerationRate="fast"
-        showsVerticalScrollIndicator={false}
-        snapToInterval={itemHeight}
-        onMomentumScrollEnd={momentumScrollEnd}
-        onLayout={scrollToInitialIndex}
-      >
-        <TouchableOpacity activeOpacity={1}>
-          {modifiedItems.map((item, index) => renderItem(item, index))}
-        </TouchableOpacity>
-      </ScrollView>
-      <View style={[$indicator, { top: itemHeight }]} />
-      <View style={[$indicator, { top: itemHeight * 2 }]} />
-    </View>
-  )
-})
-ExoticWheelPickerFlat.displayName = "ExoticWheelPickerFlat"
+  },
+)
 
 export const WheelPickerFlat = observer(ExoticWheelPickerFlat)
 

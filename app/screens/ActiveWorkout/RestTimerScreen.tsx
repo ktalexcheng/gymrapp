@@ -1,12 +1,4 @@
-import {
-  Button,
-  RowView,
-  Screen,
-  Spacer,
-  Text,
-  WheelPickerFlat,
-  WheelPickerRef,
-} from "app/components"
+import { Button, RowView, Screen, Spacer, Text, TimePicker, TimePickerRef } from "app/components"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { formatSecondsAsTime } from "app/utils/formatTime"
@@ -22,22 +14,10 @@ import Animated, {
 } from "react-native-reanimated"
 import Svg, { Circle } from "react-native-svg"
 
-const minutesPickerItems = Array.from(Array(60).keys()).map((_, i) => ({
-  label: i.toString().padStart(2, "0"),
-  value: i,
-}))
-
-const secondsPickerItems = Array.from(Array(60).keys()).map((_, i) => ({
-  label: i.toString().padStart(2, "0"),
-  value: i,
-}))
-
 export const RestTimerScreen: FC = observer(() => {
   const { workoutStore, themeStore } = useStores()
-  const [timerMinutes, setTimerMinutes] = useState(Math.floor(workoutStore.restTime / 60))
-  const [timerSeconds, setTimerSeconds] = useState(workoutStore.restTime % 60)
-  const timerMinutesRef = useRef<WheelPickerRef>(null)
-  const timerSecondsRef = useRef<WheelPickerRef>(null)
+  const timePickerRef = useRef<TimePickerRef>(null)
+  const [timePickerValue, setTimePickerValue] = useState(workoutStore.restTime)
 
   // Timer figure and animation setup
   const progressCircleLength = 1000
@@ -69,13 +49,8 @@ export const RestTimerScreen: FC = observer(() => {
 
   // Sync the timer with the store, with the store as the source of truth
   const syncTimerWithStore = () => {
-    const minutes = Math.floor(workoutStore.restTime / 60)
-    const seconds = workoutStore.restTime % 60
-    console.debug("RestTimerScreen.useEffect", { minutes, seconds })
-    setTimerMinutes(minutes)
-    setTimerSeconds(seconds)
-    timerMinutesRef.current.scrollToIndex(minutes)
-    timerSecondsRef.current.scrollToIndex(seconds)
+    setTimePickerValue(workoutStore.restTime)
+    timePickerRef.current.scrollToTime(workoutStore.restTime)
 
     timerRemaining.value = workoutStore.restTimeRemaining
     restTime.value = workoutStore.restTime
@@ -97,9 +72,8 @@ export const RestTimerScreen: FC = observer(() => {
   }
 
   const startTimer = () => {
-    const totalSeconds = timerMinutes * 60 + timerSeconds
-    if (totalSeconds > 0) {
-      updateRestTime(totalSeconds)
+    if (timePickerValue > 0) {
+      updateRestTime(timePickerValue)
       workoutStore.startRestTimer()
       startAnimation()
     }
@@ -163,40 +137,11 @@ export const RestTimerScreen: FC = observer(() => {
             />
           </View>
           <View style={styles.flex3}>
-            <RowView style={styles.alignCenter}>
-              <View style={styles.flex1}>
-                <Text preset="light" tx="restTimerScreen.minutes" textAlign="center" />
-              </View>
-              <Spacer type="horizontal" size="tiny" />
-              <Text weight="bold" text=":" visible={false} />
-              <Spacer type="horizontal" size="tiny" />
-              <View style={[styles.flex1, styles.justifyCenter]}>
-                <Text preset="light" tx="restTimerScreen.seconds" textAlign="center" />
-              </View>
-            </RowView>
-            <RowView style={styles.alignCenter}>
-              <View style={styles.flex1}>
-                <WheelPickerFlat
-                  ref={timerMinutesRef}
-                  items={minutesPickerItems}
-                  onIndexChange={setTimerMinutes}
-                  itemHeight={30}
-                  initialScrollIndex={timerMinutes}
-                />
-              </View>
-              <Spacer type="horizontal" size="tiny" />
-              <Text weight="bold" text=":" />
-              <Spacer type="horizontal" size="tiny" />
-              <View style={styles.flex1}>
-                <WheelPickerFlat
-                  ref={timerSecondsRef}
-                  items={secondsPickerItems}
-                  onIndexChange={setTimerSeconds}
-                  itemHeight={30}
-                  initialScrollIndex={timerSeconds}
-                />
-              </View>
-            </RowView>
+            <TimePicker
+              ref={timePickerRef}
+              initialValue={timePickerValue}
+              onValueChange={setTimePickerValue}
+            />
           </View>
           <View style={styles.flex2}>
             <Button

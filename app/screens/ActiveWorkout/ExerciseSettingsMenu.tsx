@@ -1,12 +1,11 @@
 import { WeightUnit } from "app/data/constants"
 import { useExerciseSetting } from "app/hooks/useExerciseSetting"
 import { spacing, styles } from "app/theme"
-import { formatSecondsAsTime } from "app/utils/formatTime"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
 import { TouchableOpacity, TouchableOpacityProps, View, ViewStyle } from "react-native"
 import { Popover, Switch } from "tamagui"
-import { Icon, RowView, Spacer, Text, WheelPickerFlat } from "../../components"
+import { Icon, RestTimePicker, RowView, Spacer, Text } from "../../components"
 import { useStores } from "../../stores"
 
 const MenuItem = (props: TouchableOpacityProps) => {
@@ -36,22 +35,12 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
     const [restTimeSetting] = useExerciseSetting<number>(exerciseId, "restTime")
     const [page, setPage] = useState("")
 
-    const restTimeList = Array(60)
-      .fill(null)
-      .map<any>((_, i) => {
-        const seconds = (i + 1) * 5
-        return {
-          label: formatSecondsAsTime(seconds),
-          value: seconds,
-        }
-      })
-
     function updateRestTimerEnabled(status: boolean) {
       exerciseStore.updateExerciseSetting(exerciseId, "autoRestTimerEnabled", status)
     }
 
-    function updateRestTime(index: number) {
-      exerciseStore.updateExerciseSetting(exerciseId, "restTime", restTimeList[index].value)
+    function updateRestTime(restTime: number) {
+      exerciseStore.updateExerciseSetting(exerciseId, "restTime", restTime)
     }
 
     function updateWeightUnit(weightUnit: WeightUnit) {
@@ -85,12 +74,10 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
                 </Switch>
               </RowView>
               <View>
-                <WheelPickerFlat
+                <RestTimePicker
                   disabled={!restTimerEnabledSetting}
-                  items={restTimeList}
-                  onIndexChange={updateRestTime}
-                  itemHeight={40}
-                  initialScrollIndex={restTimeSetting / 5 - 1}
+                  initialRestTime={restTimeSetting}
+                  onRestTimeChange={updateRestTime}
                 />
               </View>
             </>
