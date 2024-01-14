@@ -99,6 +99,8 @@ export const MainNavigator = observer(function MainNavigator() {
         (e) => console.error("MainNavigator.userSubscriber.onSnapshot error:", e),
       )
 
+    // TODO: Should only process the documents that changed, not the entire collection
+    // leverage snapshot.docChanges() to get the changes
     const notificationsSubscriber = firestore()
       .collection(`notifications/${authStore.userId}/inbox`)
       .onSnapshot((snapshot) => {

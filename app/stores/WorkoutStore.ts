@@ -1,5 +1,6 @@
 import { ActivityId } from "app/data/model/activityModel"
 import { differenceInSeconds } from "date-fns"
+import * as Notifications from "expo-notifications"
 import { SnapshotIn, destroy, flow, getEnv, types } from "mobx-state-tree"
 import { ExerciseSetType, ExerciseSource, ExerciseVolumeType } from "../../app/data/constants"
 import {
@@ -406,6 +407,7 @@ const WorkoutStoreModel = types
   })
   .actions((self) => {
     let intervalId
+    let notificationId
 
     const setRestTime = (seconds: number) => {
       self.restTime = Math.max(seconds, 0)
@@ -431,6 +433,44 @@ const WorkoutStoreModel = types
       }, 1000)
       self.restTimeStartedAt = now
       self.restTimeRunning = true
+
+      // Find last set completed
+      const lastCompletedExercise = self.exercises
+        .filter((e) => e.setsPerformed.some((s) => s.isCompleted))
+        .pop()
+      const lastCompletedSet = self.exercises
+        .map((e) => e.setsPerformed)
+        .flat()
+        .filter((s) => s.isCompleted)
+        .pop()
+
+      let notificationMessage
+      if (lastCompletedSet) {
+        let setDescription = ` ${lastCompletedExercise.exerciseName} ${lastCompletedSet.weight} kg x ${lastCompletedSet.reps}`
+        if (lastCompletedSet.rpe) setDescription += ` @ RPE ${lastCompletedSet.rpe}`
+
+        notificationMessage = translate(
+          "notification.restTime.restTimeCompletedFromLastSetPrompt",
+          {
+            setDescription,
+          },
+        )
+      } else {
+        notificationMessage = translate("notification.restTime.restTimeCompletedGenericPrompt")
+      }
+
+      Notifications.scheduleNotificationAsync({
+        content: {
+          title: translate("notification.restTime.restTimeCompletedTitle"),
+          body: notificationMessage,
+          data: {
+            url: "gymrapp://activeWorkout",
+          },
+        },
+        trigger: { seconds: self.restTime },
+      }).then((id) => {
+        notificationId = id
+      })
     }
 
     const stopRestTimer = () => {
@@ -445,6 +485,12 @@ const WorkoutStoreModel = types
     const resetRestTimer = () => {
       stopRestTimer()
       setRestTime(self.restTime)
+
+      if (notificationId) {
+        Notifications.cancelScheduledNotificationAsync(notificationId).then(() => {
+          notificationId = undefined
+        })
+      }
     }
 
     const restartRestTimer = (seconds: number) => {

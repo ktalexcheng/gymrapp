@@ -1,6 +1,8 @@
 import { Avatar, RowView, Spacer, Text } from "app/components"
 import { ExerciseVolumeType, WeightUnit, WorkoutSource } from "app/data/constants"
 import { ExercisePerformed, User, Workout } from "app/data/model"
+import { useWeightUnitTx } from "app/hooks"
+import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
@@ -26,6 +28,7 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
     const { exerciseStore, userStore, themeStore } = useStores()
     const mainNavigation = useMainNavigation()
     const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
+    const weightUnitTx = useWeightUnitTx()
 
     const renderBestSet = (e: ExercisePerformed, i: number) => {
       const $highlightExercise: TextStyle =
@@ -106,7 +109,9 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
           />
           <RowView style={$workoutItemHeader}>
             <Text preset="bold" tx="common.exercise" />
-            <Text preset="bold" tx="common.bestSet" />
+            <Text preset="bold">
+              {translate("common.bestSet") + ` (${translate(weightUnitTx)})`}
+            </Text>
           </RowView>
           {workout.exercises.map((e, i) => renderBestSet(e, i))}
         </View>

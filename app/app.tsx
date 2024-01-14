@@ -31,6 +31,8 @@ import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { LoadingScreen } from "./screens"
 import { ErrorBoundary } from "./screens/ErrorScreen/ErrorBoundary"
 // import { setupReactotron } from "./services/reactotron"
+import * as Notifications from "expo-notifications"
+import { useNotification } from "./hooks"
 import tamaguiConfig from "./tamagui.config"
 import { customFontsToLoad } from "./theme"
 import "./utils/ignoreWarnings"
@@ -38,24 +40,56 @@ import * as storage from "./utils/storage"
 
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 
-// Web linking configuration
-const prefix = Linking.createURL("/")
-const config = {
+// Linking configuration
+const linkPrefix = Linking.createURL("")
+// See: https://reactnavigation.org/docs/configuring-links#mapping-path-to-route-names
+const linkingConfig = {
   screens: {
-    // Login: {
-    //   path: "",
-    // },
-    // Welcome: "welcome",
-    // Demo: {
-    //   screens: {
-    //     DemoShowroom: {
-    //       path: "showroom/:queryIndex?/:itemIndex?",
-    //     },
-    //     DemoDebug: "debug",
-    //     DemoPodcastList: "podcast",
-    //     DemoCommunity: "community",
-    //   },
-    // },
+    MainNavigator: {
+      screens: {
+        ActiveWorkout: "activeWorkout",
+      },
+    },
+  },
+}
+const linking = {
+  prefixes: [linkPrefix],
+  config: linkingConfig,
+  // See: https://reactnavigation.org/docs/navigation-container#linkinggetinitialurl
+  async getInitialURL() {
+    // First, you may want to do the default deep link handling
+    // Check if app was opened from a deep link
+    const url = await Linking.getInitialURL()
+
+    if (url != null) {
+      return url
+    }
+
+    // Handle URL from expo push notifications
+    const response = await Notifications.getLastNotificationResponseAsync()
+
+    return response?.notification.request.content?.data?.url
+  },
+  // See: https://reactnavigation.org/docs/navigation-container/#linkingsubscribe
+  subscribe(listener) {
+    const onReceiveURL = ({ url }: { url: string }) => listener(url)
+
+    // Listen to incoming links from deep linking
+    const eventListenerSubscription = Linking.addEventListener("url", onReceiveURL)
+
+    // Listen to expo push notifications
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const url = response.notification.request.content.data.url
+
+      // Let React Navigation handle the URL
+      listener(url)
+    })
+
+    return () => {
+      // Clean up the event listeners
+      eventListenerSubscription.remove()
+      subscription.remove()
+    }
   },
 }
 
@@ -134,6 +168,8 @@ function App(props: AppProps) {
 
   const [areFontsLoaded] = useFonts(customFontsToLoad)
 
+  useNotification()
+
   // IMPORTANT: Make sure to test the app with and without useInitialRootStore to ensure
   // that your app works both with existing store snapshots and without (fresh install).
   // TODO: Disabling store rehydration for now, as it's causing issues with the app not loading
@@ -158,15 +194,6 @@ function App(props: AppProps) {
   // You can replace with your own loading component if you wish.
   if (!rehydrated || !isNavigationStateRestored || !areFontsLoaded) return <LoadingScreen />
 
-  const linking = {
-    prefixes: [prefix],
-    config,
-  }
-
-  const $gestureHandlerRootView: ViewStyle = {
-    flex: 1,
-  }
-
   // otherwise, we're ready to render the app
   return (
     <GestureHandlerRootView style={$gestureHandlerRootView}>
@@ -176,6 +203,7 @@ function App(props: AppProps) {
             <ErrorBoundary catchErrors={Config.catchErrors}>
               <AppNavigator
                 linking={linking}
+                fallback={<LoadingScreen />}
                 initialState={initialNavigationState}
                 onStateChange={onNavigationStateChange}
               />
@@ -188,3 +216,7 @@ function App(props: AppProps) {
 }
 
 export default App
+
+const $gestureHandlerRootView: ViewStyle = {
+  flex: 1,
+}

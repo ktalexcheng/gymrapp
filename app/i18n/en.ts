@@ -35,6 +35,13 @@ const en = {
       unknownErrorMessage: "Something went wrong",
     },
   },
+  notification: {
+    restTime: {
+      restTimeCompletedTitle: "Rest time is up!",
+      restTimeCompletedGenericPrompt: "Time to get back to work!",
+      restTimeCompletedFromLastSetPrompt: "Last completed set: {{setDescription}}",
+    },
+  },
   updateApp: {
     update: "Update",
     updateAvailableTitle: "Update available",
