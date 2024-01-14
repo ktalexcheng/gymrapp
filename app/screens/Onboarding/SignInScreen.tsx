@@ -1,9 +1,3 @@
-import { AuthErrorTxKey } from "app/data/constants"
-import { translate } from "app/i18n"
-import { useAuthNavigation } from "app/navigators/navigationUtilities"
-import { observer } from "mobx-react-lite"
-import React, { FC, useEffect, useMemo, useRef, useState } from "react"
-import { Image, ImageStyle, Platform, TextInput, TextStyle, View, ViewStyle } from "react-native"
 import {
   Button,
   CustomIcon,
@@ -14,12 +8,18 @@ import {
   Text,
   TextField,
   TextFieldAccessoryProps,
-} from "../components"
-import { AuthStackScreenProps } from "../navigators"
-import { useStores } from "../stores"
-import { spacing, styles } from "../theme"
+} from "app/components"
+import { AuthErrorTxKey } from "app/data/constants"
+import { translate } from "app/i18n"
+import { AuthStackScreenProps } from "app/navigators"
+import { useAuthNavigation } from "app/navigators/navigationUtilities"
+import { useStores } from "app/stores"
+import { spacing, styles } from "app/theme"
+import { observer } from "mobx-react-lite"
+import React, { FC, useEffect, useMemo, useRef, useState } from "react"
+import { Image, ImageStyle, Platform, TextInput, TextStyle, View, ViewStyle } from "react-native"
 
-const googleGLogo = require("../../assets/images/google-g-logo.png")
+const googleGLogo = require("../../../assets/images/google-g-logo.png")
 
 interface SignInScreenProps extends AuthStackScreenProps<"SignIn"> {}
 

@@ -12,7 +12,6 @@ import {
   ExercisePickerScreen,
   GymDetailsScreen,
   LoadingScreen,
-  NewWorkoutScreen,
   NotificationsScreen,
   ProfileVisitorViewScreen,
   RestTimerScreen,
@@ -202,7 +201,6 @@ export const MainNavigator = observer(function MainNavigator() {
       <MainStack.Screen name="HomeTabNavigator" component={HomeTabNavigator} />
 
       <MainStack.Group>
-        <MainStack.Screen name="NewWorkout" component={NewWorkoutScreen} />
         <MainStack.Screen
           name="ActiveWorkout"
           component={ActiveWorkoutScreen}

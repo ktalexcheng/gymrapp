@@ -5,6 +5,7 @@ import { translate } from "app/i18n"
 import { TabScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
+import { spacing } from "app/theme"
 import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
 import { format, milliseconds } from "date-fns"
 import { observer } from "mobx-react-lite"
@@ -26,9 +27,8 @@ import {
   VictoryLabel,
   VictoryZoomContainer,
 } from "victory-native"
-import { spacing } from "../theme"
-import { WorkoutSummaryCard } from "./FinishedWorkout"
-import { UserProfileStatsBar } from "./UserProfile/UserProfileStatsBar"
+import { WorkoutSummaryCard } from "../FinishedWorkout"
+import { UserProfileStatsBar } from "./UserProfileStatsBar"
 
 const UserActivitiesTabScene: FC = observer(() => {
   const { userStore, feedStore } = useStores()

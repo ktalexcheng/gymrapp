@@ -1,4 +1,6 @@
 export * from "./AddToMyGymsScreen"
 export * from "./EditProfileForm"
 export * from "./NotificationsScreen"
+export * from "./ProfileScreen"
 export * from "./ProfileVisitorViewScreen"
+export * from "./UserSettingsScreen"

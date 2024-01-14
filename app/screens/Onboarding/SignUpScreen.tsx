@@ -11,11 +11,11 @@ import { AuthErrorTxKey, AuthErrorType } from "app/data/constants"
 import { translate } from "app/i18n"
 import { AuthStackScreenProps } from "app/navigators"
 import { useStores } from "app/stores"
+import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useMemo, useRef, useState } from "react"
 import { TextInput, TextStyle, View, ViewStyle } from "react-native"
 import Toast from "react-native-root-toast"
-import { spacing, styles } from "../theme"
 
 interface SignUpScreenProps extends NativeStackScreenProps<AuthStackScreenProps<"SignUp">> {}
 

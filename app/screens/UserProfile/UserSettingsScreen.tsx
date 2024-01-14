@@ -6,7 +6,7 @@ import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { useState } from "react"
 import { Alert, ViewStyle } from "react-native"
-import { EditProfileForm } from "./UserProfile"
+import { EditProfileForm } from "./EditProfileForm"
 
 export const UserSettingsScreen = observer(function () {
   const { authenticationStore: authStore } = useStores()
