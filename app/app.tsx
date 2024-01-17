@@ -18,6 +18,7 @@ import Constants from "expo-constants"
 import * as Device from "expo-device"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
+import * as Notifications from "expo-notifications"
 import React from "react"
 import { ViewStyle } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
@@ -25,14 +26,13 @@ import { RootSiblingParent } from "react-native-root-siblings"
 import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context"
 import { TamaguiProvider } from "tamagui"
 import Config from "./config"
+import { useNotification } from "./hooks"
 import "./i18n"
 import { AppNavigator } from "./navigators"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { LoadingScreen } from "./screens"
 import { ErrorBoundary } from "./screens/ErrorScreen/ErrorBoundary"
-// import { setupReactotron } from "./services/reactotron"
-import * as Notifications from "expo-notifications"
-import { useNotification } from "./hooks"
+import { useInitialRootStore } from "./stores"
 import tamaguiConfig from "./tamagui.config"
 import { customFontsToLoad } from "./theme"
 import "./utils/ignoreWarnings"
@@ -50,10 +50,15 @@ const linkingConfig = {
         ActiveWorkout: "activeWorkout",
       },
     },
+    AuthNavigator: {
+      screens: {
+        EmailVerified: "auth/email-verified",
+      },
+    },
   },
 }
 const linking = {
-  prefixes: [linkPrefix],
+  prefixes: [linkPrefix, "https://gymrapp.com", "https://gymrapp-test.web.app"],
   config: linkingConfig,
   // See: https://reactnavigation.org/docs/navigation-container#linkinggetinitialurl
   async getInitialURL() {
@@ -95,20 +100,7 @@ const linking = {
 
 // Firebase emulator setup
 if (__DEV__) {
-  // Set up Reactotron, which is a free desktop app for inspecting and debugging
-  // React Native apps. Learn more here: https://github.com/infinitered/reactotron
-  // setupReactotron({
-  //   // clear the Reactotron window when the app loads/reloads
-  //   clearOnLoad: true,
-  //   // generally going to be localhost
-  //   host: "localhost",
-  //   // Reactotron can monitor AsyncStorage for you
-  //   useAsyncStorage: true,
-  //   // log the initial restored state from AsyncStorage
-  //   logInitialState: true,
-  //   // log out any snapshots as they happen (this is useful for debugging but slow)
-  //   logSnapshots: false,
-  // })
+  require("./utils/devtools/ReactotronConfig.ts")
 
   if (Number(process.env.EXPO_PUBLIC_USE_EMULATOR)) {
     console.debug("Connecting to Firebase emulators (In DEV mode and EXPO_PUBLIC_USE_EMULATOR = 1)")
@@ -174,17 +166,17 @@ function App(props: AppProps) {
   // that your app works both with existing store snapshots and without (fresh install).
   // TODO: Disabling store rehydration for now, as it's causing issues with the app not loading
   // and troubles with app updates still hydrating with old possibly problematic store snapshots
-  const rehydrated = true
-  setTimeout(hideSplashScreen, 500)
-  // const { rehydrated } = useInitialRootStore(() => {
-  //   // This runs after the root store has been initialized and rehydrated.
+  // const rehydrated = true
+  // setTimeout(hideSplashScreen, 500)
+  const { rehydrated } = useInitialRootStore(() => {
+    // This runs after the root store has been initialized and rehydrated.
 
-  //   // If your initialization scripts run very fast, it's good to show the splash screen for just a bit longer to prevent flicker.
-  //   // Slightly delaying splash screen hiding for better UX; can be customized or removed as needed,
-  //   // Note: (vanilla Android) The splash-screen will not appear if you launch your app via the terminal or Android Studio. Kill the app and launch it normally by tapping on the launcher icon. https://stackoverflow.com/a/69831106
-  //   // Note: (vanilla iOS) You might notice the splash-screen logo change size. This happens in debug/development mode. Try building the app for release.
-  //   setTimeout(hideSplashScreen, 500)
-  // })
+    // If your initialization scripts run very fast, it's good to show the splash screen for just a bit longer to prevent flicker.
+    // Slightly delaying splash screen hiding for better UX; can be customized or removed as needed,
+    // Note: (vanilla Android) The splash-screen will not appear if you launch your app via the terminal or Android Studio. Kill the app and launch it normally by tapping on the launcher icon. https://stackoverflow.com/a/69831106
+    // Note: (vanilla iOS) You might notice the splash-screen logo change size. This happens in debug/development mode. Try building the app for release.
+    setTimeout(hideSplashScreen, 500)
+  })
 
   // Before we show the app, we have to wait for our state to be ready.
   // In the meantime, don't render anything. This will be the background

@@ -1,3 +1,4 @@
+import { useFocusEffect } from "@react-navigation/native"
 import {
   Button,
   CustomIcon,
@@ -16,7 +17,7 @@ import { useAuthNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
-import React, { FC, useEffect, useMemo, useRef, useState } from "react"
+import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Image, ImageStyle, Platform, TextInput, TextStyle, View, ViewStyle } from "react-native"
 
 const googleGLogo = require("../../../assets/images/google-g-logo.png")
@@ -24,7 +25,7 @@ const googleGLogo = require("../../../assets/images/google-g-logo.png")
 interface SignInScreenProps extends AuthStackScreenProps<"SignIn"> {}
 
 export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScreen(_props) {
-  const navigation = useAuthNavigation()
+  const authNavigation = useAuthNavigation()
   const { authenticationStore: authStore, themeStore } = useStores()
   const [isAuthPasswordHidden, setIsAuthPasswordHidden] = useState(true)
   const [attemptsCount, setAttemptsCount] = useState(0)
@@ -33,18 +34,17 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
   const [authError, setAuthError] = useState(null)
   const loginPasswordRef = useRef<TextInput>()
 
-  useEffect(() => {
-    // TODO: Here is where you could fetch credentials from keychain or storage
-    // and pre-fill the form fields.
-    // setAuthEmail("ignite@infinite.red")
-    // setAuthPassword("ign1teIsAwes0m3")
-    authStore.resetAuthError()
-  }, [])
+  useFocusEffect(
+    useCallback(() => {
+      authStore.resetAuthError()
+      setAuthError(null)
+    }, []),
+  )
 
   useEffect(() => {
+    console.debug("SignInScreen: Auth error changed", authStore.authError)
     if (authStore.authError) {
       setAuthError(translate(AuthErrorTxKey[authStore.authError]))
-      authStore.resetAuthError()
     }
   }, [authStore.authError])
 
@@ -74,7 +74,17 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
 
     authStore.setLoginEmail(loginEmail)
     authStore.setLoginPassword(loginPassword)
-    authStore.signInWithEmail()
+    authStore
+      .signInWithEmail()
+      .then(() => {
+        if (authStore.isPendingVerification) {
+          authNavigation.reset({
+            index: 0,
+            routes: [{ name: "EmailVerification", params: { email: authStore.email } }],
+          })
+        }
+      })
+      .catch()
   }
 
   const PasswordRightAccessory = useMemo(
@@ -194,7 +204,7 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
           testID="signup-button"
           tx="signInScreen.signUpWithEmail"
           preset="text"
-          onPress={() => navigation.navigate("SignUp")}
+          onPress={() => authNavigation.navigate("SignUp")}
         />
       </View>
     </Screen>

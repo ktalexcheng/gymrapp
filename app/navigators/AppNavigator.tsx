@@ -5,7 +5,7 @@
  * and a "main" flow which the user will use once logged in.
  */
 import NetInfo from "@react-native-community/netinfo"
-import auth from "@react-native-firebase/auth"
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/native"
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { Icon, RowView, Spacer, Text } from "app/components"
@@ -75,24 +75,25 @@ const AppStack = observer(() => {
   const { authenticationStore: authStore, userStore, feedStore, exerciseStore } = useStores()
   const [forceUpdate, setForceUpdate] = useState(false)
   const [checkUpdateError, setCheckUpdateError] = useState(false)
-  const [initializing, setInitializing] = useState(true) // Set an initializing state whilst Firebase connects
+  // const [initializing, setInitializing] = useState(true) // Set an initializing state whilst Firebase connects
 
   // Handle user state changes
-  async function onAuthStateChanged(user) {
+  async function onAuthStateChanged(user: FirebaseAuthTypes.User) {
     // Update authentication and user data
     if (user) {
       console.debug("onAuthStateChanged received valid user")
       authStore.setFirebaseUser(user)
-      userStore.loadUserWithId(authStore.userId)
-      feedStore.setUserId(authStore.userId)
+      // Don't load user data if email is not verified
+      if (user.emailVerified) {
+        userStore.loadUserWithId(authStore.userId)
+        feedStore.setUserId(authStore.userId)
+      }
     } else {
       console.debug("onAuthStateChanged received invalid user, invalidating session")
       authStore.invalidateSession()
       userStore.invalidateSession()
       feedStore.resetFeed()
     }
-
-    if (initializing) setInitializing(false)
   }
 
   useEffect(() => {
@@ -156,6 +157,7 @@ const AppStack = observer(() => {
 
     // onAuthStateChanged is fired upon app initialization as well
     const unsubscribeAuthChange = auth().onAuthStateChanged(onAuthStateChanged)
+
     // Check for updates when app is resumed
     const subscribeAppStateChange = AppState.addEventListener("change", (state) => {
       if (state === "active") {
@@ -204,8 +206,6 @@ const AppStack = observer(() => {
     )
   }, [forceUpdate, checkUpdateError, authStore.isAuthenticated])
 
-  if (initializing) return null
-
   return (
     <Stack.Navigator
       screenOptions={{ headerShown: false }}
@@ -244,7 +244,7 @@ export const AppNavigator = observer((props: NavigationProps) => {
   useEffect(() => {
     // Listen to network state change
     const unsubscribeNetworkChange = NetInfo.addEventListener((state) => {
-      console.debug("AppNavigator.useEffect NetInfo", state)
+      console.debug("AppNavigator.useEffect NetInfo state.isConnected", state.isConnected)
       setIsInternetConnected(state.isConnected)
     })
 

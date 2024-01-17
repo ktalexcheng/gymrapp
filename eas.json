@@ -33,7 +33,11 @@
       "autoIncrement": true
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "GYMRAPP_ENVIRONMENT": "production",
+        "EXPO_PUBLIC_GYMRAPP_BASE_URL": "https://gymrapp.com"
+      }
     }
   },
   "submit": {

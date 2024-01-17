@@ -68,9 +68,9 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
 
   // Form state
   const [userHandleHelper, setUserHandleHelper] = useState(null)
-  const [userHandleError, setUserHandleError] = useState(null)
-  const [firstNameError, setFirstNameError] = useState(false)
-  const [lastNameError, setLastNameError] = useState(false)
+  const [userHandleError, setUserHandleError] = useState<string>(null)
+  const [firstNameError, setFirstNameError] = useState<string>(null)
+  const [lastNameError, setLastNameError] = useState<string>(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isAutofilled, setIsAutofilled] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
@@ -208,15 +208,20 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   const isInvalidForm = () => {
     let errorFound = false
 
-    if (userHandleError) {
+    if (!userHandle || userHandleError) {
+      setUserHandleError(
+        (prev) => prev || translate("editProfileForm.error.userHandleMissingMessage"),
+      )
       errorFound = true
     }
-    if (firstName.length === 0) {
-      setFirstNameError(true)
+
+    if (!firstName || firstName.length === 0) {
+      setFirstNameError(translate("editProfileForm.error.firstNameMissingMessage"))
       errorFound = true
     }
-    if (lastName.length === 0) {
-      setLastNameError(true)
+
+    if (!lastName || lastName.length === 0) {
+      setLastNameError(translate("editProfileForm.error.lastNameMissingMessage"))
       errorFound = true
     }
 
@@ -236,7 +241,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
         setImagePath(result.assets[0].uri)
       }
     } catch (e) {
-      console.error("editProfileForm.pickImage error:", e)
+      console.error("EditProfileForm.pickImage error:", e)
     }
   }
 
@@ -261,7 +266,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
         },
       } as User
 
-      if (imagePath !== userStore.getProp("user.avatarUrl")) {
+      if (imagePath && imagePath !== userStore.getProp("user.avatarUrl")) {
         const avatarUrl = await userStore.uploadUserAvatar(imagePath)
         user.avatarUrl = avatarUrl
       }
@@ -279,9 +284,8 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
           },
         )
       } else {
-        // User profile should already be created upon sign up,
-        // this condition should only be possible if connection was lost
-        // or during development
+        // New user profile is created after the user has verified their email,
+        // or after the user signs in with a social provider (Google, Apple)
         user.userId = authStore.userId
         user.email = authStore.email
         user.providerId = authStore.providerId
@@ -291,9 +295,9 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
           setIsSaved(true)
         })
       }
-      console.debug("editProfileForm.saveProfile: profile saved successfully")
+      console.debug("EditProfileForm.saveProfile: profile saved successfully")
     } catch (e) {
-      console.error("editProfileForm.createProfile error:", e)
+      console.error("EditProfileForm.createProfile error:", e)
     } finally {
       onBusyChange && onBusyChange(false)
     }
@@ -414,6 +418,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
           autoCorrect={false}
           labelTx="common.firstName"
           onSubmitEditing={() => lastNameInputRef.current?.focus()}
+          helper={firstNameError}
         />
 
         <TextField
@@ -425,6 +430,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
           autoCapitalize="words"
           autoCorrect={false}
           labelTx="common.lastName"
+          helper={lastNameError}
         />
 
         <View style={styles.formFieldTopMargin}>

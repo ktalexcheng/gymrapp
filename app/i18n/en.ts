@@ -56,8 +56,7 @@ const en = {
     welcomeTitle: "Welcome to GYMRAPP!",
     welcomeMessage:
       "This is the app for gym rats. Track and share your progress with the community and celebrate your accomplishments.",
-    signInButtonLabel: "Sign in",
-    signUpButtonLabel: "Create account",
+    getStartedButtonLabel: "Get started",
   },
   errorScreen: {
     title: "This is awkward...",
@@ -116,13 +115,23 @@ const en = {
       firstNameMissing: "First name is not provided",
       lastNameMissing: "Last name is not provided",
       emailMissing: "Email is not provided",
-      emailDuplicate: "Email is already in use",
+      emailAlreadyInUse: "Email is already in use",
       emailInvalid: "Email is invalid",
       passwordMissing: "Password is not set",
       passwordInsecure:
         "Password is too weak; please use a minimum 8 characters with at least one uppercase letter, one lowercase letter, one number",
       passwordMismatch: "Passwords do not match",
     },
+  },
+  emailVerificationScreen: {
+    emailVerificationTitle: "Check your inbox!",
+    emailVerificationMessage:
+      "We have sent a verification email to {{email}}. Please use the link in the email to verify your account.",
+  },
+  emailVerifiedScreen: {
+    emailVerifiedTitle: "Email verified!",
+    emailVerifiedMessage: "Your email address has been verified.",
+    continueButtonLabel: "Let's go!",
   },
   feedScreen: {
     notFollowingAnyone: "Start following people to see their workouts here",
@@ -163,9 +172,12 @@ const en = {
     discardAlertMessage: "There are unsaved changes. Are you sure you want to discard them?",
     alertDialogResume: "Keep editing",
     error: {
+      userHandleMissingMessage: "Please enter a user handle",
       userHandleIsTakenMessage: "This user handle is already taken",
       userHandleInvalidMessage:
         "User handle can only contain up to 30 characters of English letters, numbers, underscores and periods",
+      firstNameMissingMessage: "Please enter your first name",
+      lastNameMissingMessage: "Please enter your last name",
     },
     backButtonDisabledMessage:
       "Use the discard or save button at the top and bottom of the screen to exit",

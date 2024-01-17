@@ -5,7 +5,7 @@ import * as AppleAuthentication from "expo-apple-authentication"
 import Constants from "expo-constants"
 import * as Crypto from "expo-crypto"
 import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
-import { AuthErrorType, WeightUnit } from "../data/constants"
+import { AuthErrorType } from "../data/constants"
 import { User } from "../data/model"
 import { createCustomType } from "./helpers/createCustomType"
 import { RootStoreDependencies } from "./helpers/useStores"
@@ -47,6 +47,7 @@ export const AuthenticationStoreModel = types
     isAuthenticating: false,
     firebaseUserCredential: types.maybe(FirebaseUserCredentialType),
     authToken: types.maybe(types.string),
+    isEmailVerified: false,
   })
   .volatile(() => ({
     loginEmail: "",
@@ -57,7 +58,10 @@ export const AuthenticationStoreModel = types
   }))
   .views((self) => ({
     get isAuthenticated() {
-      return !!self.authToken
+      return !!self.authToken && self.isEmailVerified
+    },
+    get isPendingVerification() {
+      return !!self.authToken && !self.isEmailVerified
     },
     get userId() {
       return self.firebaseUserCredential?.user.uid ?? null
@@ -81,7 +85,7 @@ export const AuthenticationStoreModel = types
   .actions(withSetPropAction)
   .actions((self) => {
     function catchAuthError(caller, error) {
-      console.error("AuthenticationStore.catchAuthError:", { caller, error })
+      // console.error("AuthenticationStore.catchAuthError:", { caller, error })
       // expo-apple-authentication errors if login is aborted
       // ERR_REQUEST_UNKNOWN can happen when the user is not signed in to iCloud on iOS
       // ERR_REQUEST_CANCELED can happen when the user is signed in to iCloud on iOS but cancels the login
@@ -99,10 +103,13 @@ export const AuthenticationStoreModel = types
       // firebase.auth() errors should be one of the following
       switch (error?.code) {
         case "auth/email-already-in-use":
-          self.authError = AuthErrorType.EmailDuplicateError
+          self.authError = AuthErrorType.EmailAlreadyInUseError
           break
         case "auth/user-not-found":
           self.authError = AuthErrorType.UserNotFoundError
+          break
+        case "auth/invalid-credential":
+          self.authError = AuthErrorType.InvalidCredentialsError
           break
         case "auth/invalid-email":
           self.authError = AuthErrorType.EmailInvalidError
@@ -188,7 +195,23 @@ export const AuthenticationStoreModel = types
         }
       } catch (e) {
         yield invalidateSession()
-        console.error("AuthenticationStore.refreshAuthToken failed to refresh token:", e)
+        console.error(
+          "AuthenticationStore.refreshAuthToken failed to refresh token, invaliding session:",
+          e,
+        )
+      } finally {
+        self.isAuthenticating = false
+      }
+    })
+
+    const checkEmailVerified = flow(function* () {
+      self.isAuthenticating = true
+      try {
+        yield auth().currentUser.reload()
+        self.isEmailVerified = auth().currentUser.emailVerified
+        yield refreshAuthToken()
+      } catch (e) {
+        console.error("AuthenticationStore.checkEmailVerified error:", e)
       } finally {
         self.isAuthenticating = false
       }
@@ -210,6 +233,7 @@ export const AuthenticationStoreModel = types
         "AuthenticationStore.setFirebaseUser firebaseUserCredential:",
         self.firebaseUserCredential,
       )
+      self.isEmailVerified = firebaseUser.emailVerified
       refreshAuthToken()
       self.isAuthenticating = false
     }
@@ -226,6 +250,7 @@ export const AuthenticationStoreModel = types
         firebaseUserCredential,
       )
       self.firebaseUserCredential = firebaseUserCredential
+      self.isEmailVerified = firebaseUserCredential.user.emailVerified
       refreshAuthToken()
       self.isAuthenticating = false
     }
@@ -266,8 +291,9 @@ export const AuthenticationStoreModel = types
           setFirebaseUserCredential(userCred)
         }
       } catch (e) {
-        // console.error("AuthenticationStore.signInWithEmail error:", e)
         catchAuthError("signInWithEmail", e)
+        // We still throw the error here so that the call site SignUpScreen can handle it
+        throw e
       } finally {
         self.isAuthenticating = false
       }
@@ -280,33 +306,18 @@ export const AuthenticationStoreModel = types
       self.isAuthenticating = true
 
       try {
-        const userCred = yield auth().createUserWithEmailAndPassword(
-          self.loginEmail,
-          self.loginPassword,
-        )
+        yield auth().createUserWithEmailAndPassword(self.loginEmail, self.loginPassword)
 
-        if (userCred) {
-          setFirebaseUserCredential(userCred)
-
-          const { userRepository } = getEnv<RootStoreDependencies>(self)
-          userRepository.setUserId(userCred.user.uid)
-          yield userRepository.create({
-            userId: userCred.user.uid,
-            privateAccount: true,
-            email: userCred.user.email,
-            firstName: self.newFirstName,
-            lastName: self.newLastName,
-            providerId: userCred.additionalUserInfo?.providerId ?? "",
-            preferences: {
-              appLocale: defaultAppLocale(),
-              weightUnit: WeightUnit.kg,
-            },
-            avatarUrl: null,
-          } as User)
-        }
+        // IMPORTANT: Firebase Dynamic Links had to be set up for this to work on iOS (it works without Dynamic Links on Android)
+        // but Dynamic Links are deprecated by Firebase and will be removed by August 25, 2025
+        // https://gymrapp.page.link/email-verified is a Firebase Dynamic Link that redirects to https://gymrapp.com/auth/email-verified
+        yield auth().currentUser.sendEmailVerification({
+          url: `${process.env.EXPO_PUBLIC_GYMRAPP_BASE_URL}/auth/email-verified`,
+        })
       } catch (e) {
-        // console.error("AuthenticationStore.signUpWithEmail error:", e)
         catchAuthError("signUpWithEmail", e)
+        // We still throw the error here so that the call site SignUpScreen can handle it
+        throw e
       } finally {
         self.isAuthenticating = false
       }
@@ -419,6 +430,7 @@ export const AuthenticationStoreModel = types
       resetAuthError,
       invalidateSession,
       refreshAuthToken,
+      checkEmailVerified,
       setFirebaseUser,
       setFirebaseUserCredential,
       logout,

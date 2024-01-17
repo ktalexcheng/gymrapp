@@ -9,7 +9,7 @@
  *
  * @refresh reset
  */
-import { applySnapshot, IDisposer, onSnapshot } from "mobx-state-tree"
+import { IDisposer, applySnapshot, onSnapshot } from "mobx-state-tree"
 import * as storage from "../../utils/storage"
 import { RootStore, RootStoreSnapshot } from "../RootStore"
 
@@ -32,7 +32,8 @@ export async function setupRootStore(rootStore: RootStore) {
   } catch (e) {
     // if there's any problems loading, then inform the dev what happened
     if (__DEV__) {
-      // console.tron.error(e.message, null)
+      console.error("setupRootStore error:", e.message)
+      console.tron.error(e.message, null)
     }
   }
 

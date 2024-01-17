@@ -55,13 +55,6 @@ export const UserStoreModel = types
   })
   .views((self) => ({
     get profileIncomplete() {
-      console.debug("UserStore.profileIncomplete called")
-      // While loading we cannot determine if the profile is incomplete
-      if (self.isLoadingProfile) {
-        console.debug("UserStore.profileIncomplete still loading profile, returned false")
-        return false
-      }
-
       if (
         self.user === null ||
         self.user === undefined ||
@@ -187,6 +180,7 @@ export const UserStoreModel = types
         const { userRepository } = getEnv<RootStoreDependencies>(self)
         userRepository.setUserId(newUser.userId)
         yield userRepository.create(newUser)
+        yield loadUserWithId(newUser.userId)
 
         self.isLoadingProfile = false
       } catch (e) {
@@ -348,6 +342,7 @@ export const UserStoreModel = types
       const { userRepository } = getEnv<RootStoreDependencies>(self)
       try {
         yield userRepository.delete(self.userId)
+        self.user = undefined
       } catch (e) {
         console.error("UserStore.deleteProfile error:", e)
       }

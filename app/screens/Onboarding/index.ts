@@ -1,3 +1,5 @@
 export * from "./CreateProfileScreen"
+export * from "./EmailVerificationScreen"
+export * from "./EmailVerifiedScreen"
 export * from "./SignInScreen"
 export * from "./SignUpScreen"

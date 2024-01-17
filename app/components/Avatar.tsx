@@ -77,6 +77,8 @@ export const Avatar = observer((props: AvatarProps) => {
     const imageUri = source || user?.avatarUrl
     const imageSource = imageUri ? { uri: imageUri } : undefined
 
+    if (!imageSource) return null
+
     return <Image source={imageSource} style={[$image, $imageStyleOverride]} />
   }
 

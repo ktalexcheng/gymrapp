@@ -1,3 +1,4 @@
+import { useFocusEffect } from "@react-navigation/native"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import {
   Button,
@@ -7,25 +8,26 @@ import {
   TextField,
   TextFieldAccessoryProps,
 } from "app/components"
-import { AuthErrorTxKey, AuthErrorType } from "app/data/constants"
+import { AuthErrorTxKey } from "app/data/constants"
 import { translate } from "app/i18n"
 import { AuthStackScreenProps } from "app/navigators"
+import { useAuthNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
-import React, { FC, useEffect, useMemo, useRef, useState } from "react"
+import React, { FC, useCallback, useMemo, useRef, useState } from "react"
 import { TextInput, TextStyle, View, ViewStyle } from "react-native"
-import Toast from "react-native-root-toast"
 
 interface SignUpScreenProps extends NativeStackScreenProps<AuthStackScreenProps<"SignUp">> {}
 
 export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScreen() {
+  const authNavigation = useAuthNavigation()
   const { authenticationStore: authStore, themeStore } = useStores()
-  const [newEmail, setNewEmail] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [newFirstName, setNewFirstName] = useState("")
-  const [newLastName, setNewLastName] = useState("")
+  const [newEmail, setNewEmail] = useState("kuangtingalex@gmail.com")
+  const [newPassword, setNewPassword] = useState("Pass1234")
+  const [confirmPassword, setConfirmPassword] = useState("Pass1234")
+  const [newFirstName, setNewFirstName] = useState("User")
+  const [newLastName, setNewLastName] = useState("Test")
   const [isNewPasswordHidden, setIsNewPasswordHidden] = useState(true)
   const [isConfirmPasswordHidden, setIsConfirmPasswordHidden] = useState(true)
   const [attemptsCount, setAttemptsCount] = useState(0)
@@ -39,24 +41,11 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
   const [passwordError, setPasswordError] = useState(null)
   const [confirmPasswordError, setConfirmPasswordError] = useState(null)
 
-  useEffect(() => {
-    authStore.resetAuthError()
-  }, [])
-
-  useEffect(() => {
-    if (authStore.authError) {
-      // If error is email in use, set email error
-      if (authStore.authError === AuthErrorType.EmailDuplicateError) {
-        setEmailError(translate(AuthErrorTxKey[authStore.authError]))
-      }
-
-      Toast.show(translate(AuthErrorTxKey[authStore.authError]), {
-        onHidden: () => {
-          authStore.resetAuthError()
-        },
-      })
-    }
-  }, [authStore.authError])
+  useFocusEffect(
+    useCallback(() => {
+      authStore.resetAuthError()
+    }, []),
+  )
 
   function validateForm() {
     let isValid = true
@@ -123,7 +112,19 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
       setConfirmPasswordError(false)
     }
 
-    authStore.signUpWithEmail()
+    authStore
+      .signUpWithEmail()
+      .then(() => {
+        console.debug("Navigating to EmailVerification after signUpWithEmail")
+        authNavigation.navigate("EmailVerification", { email: newEmail })
+      })
+      .catch((e) => {
+        console.debug("Caught error signing up with email")
+        if (e.code === "auth/email-already-in-use") {
+          // If error is email in use, set email error
+          setEmailError(translate(AuthErrorTxKey["email-already-in-use"]))
+        }
+      })
   }
 
   const PasswordRightAccessory = useMemo(

@@ -43,7 +43,6 @@ export const LoadingScreen = observer(() => {
         ),
       }
     } else if (Platform.OS === "android") {
-      console.debug("LoadingScreen.$glowAnimation is android")
       return {
         ...$logoText,
         ...$logoTextAndroid,
@@ -57,7 +56,6 @@ export const LoadingScreen = observer(() => {
     return undefined
   })
 
-  console.debug("LoadingScreen.render")
   return (
     <View style={$loadingScreen}>
       <Animated.Text style={$glowAnimation}>GYMRAPP</Animated.Text>

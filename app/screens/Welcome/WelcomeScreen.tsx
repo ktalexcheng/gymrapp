@@ -20,7 +20,7 @@ export const WelcomeScreen = observer(() => {
         <Text tx="welcomeScreen.welcomeMessage" preset="default" />
         <Spacer type="vertical" size="massive" />
         <Button
-          tx="welcomeScreen.signInButtonLabel"
+          tx="welcomeScreen.getStartedButtonLabel"
           preset="default"
           style={$button}
           onPress={() => authNavigation.navigate("SignIn")}
