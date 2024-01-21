@@ -72,6 +72,7 @@
     "expo-splash-screen": "~0.20.5",
     "expo-status-bar": "~1.6.0",
     "expo-system-ui": "~2.4.0",
+    "expo-task-manager": "~11.3.0",
     "geolib": "^3.3.4",
     "i18n-js": "3.9.2",
     "mobx": "^6.11.0",

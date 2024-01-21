@@ -410,44 +410,46 @@ const WorkoutStoreModel = types
     let notificationId
 
     const setRestTime = (seconds: number) => {
-      self.restTime = Math.max(seconds, 0)
-      // self.restTimeRemaining = _seconds
+      // Use the setProp action so this works in the setInterval callback
+      self.setProp("restTime", Math.max(seconds, 0))
     }
 
     const adjustRestTime = (seconds: number) => {
       self.restTime = Math.max(self.restTime + seconds, 0)
-      // self.restTimeRemaining = Math.max(self.restTimeRemaining + seconds, 0)
     }
 
     const startRestTimer = () => {
-      const now = new Date()
-      self.lastSetCompletedTime = now
-      // The sole purpose for this is to trigger an observable change
-      // in the view restTimeRemaining.
-      intervalId = setInterval(() => {
-        if (self.restTimeElapsed === self.restTime) {
-          clearInterval(intervalId)
-        } else {
-          self.setProp("restTimeElapsed", self.restTimeElapsed + 1)
-        }
-      }, 1000)
-      self.restTimeStartedAt = now
-      self.restTimeRunning = true
-
       // Find last set completed
       const lastCompletedExercise = self.exercises
-        .filter((e) => e.setsPerformed.some((s) => s.isCompleted))
+        .filter((e) =>
+          e.setsPerformed.some((s) => {
+            console.debug("s.isCompleted", s.isCompleted)
+            return s.isCompleted
+          }),
+        )
         .pop()
-      const lastCompletedSet = self.exercises
-        .map((e) => e.setsPerformed)
-        .flat()
-        .filter((s) => s.isCompleted)
-        .pop()
+      const lastCompletedSet = lastCompletedExercise?.setsPerformed
+        ?.filter((s) => s.isCompleted)
+        ?.pop()
+      console.debug("WorkoutStore.startRestTimer lastCompletedSet:", {
+        lastCompletedExercise,
+        lastCompletedSet,
+      })
 
       let notificationMessage
-      if (lastCompletedSet) {
-        let setDescription = ` ${lastCompletedExercise.exerciseName} ${lastCompletedSet.weight} kg x ${lastCompletedSet.reps}`
-        if (lastCompletedSet.rpe) setDescription += ` @ RPE ${lastCompletedSet.rpe}`
+      if (lastCompletedExercise) {
+        let setDescription
+        switch (lastCompletedExercise.volumeType) {
+          case ExerciseVolumeType.Reps:
+            setDescription = `${lastCompletedExercise.exerciseName} ${lastCompletedSet.weight} kg x ${lastCompletedSet.reps}`
+            if (lastCompletedSet.rpe) setDescription += ` @ RPE ${lastCompletedSet.rpe}`
+            break
+          case ExerciseVolumeType.Time:
+            setDescription = `${lastCompletedExercise.exerciseName} ${formatSecondsAsTime(
+              lastCompletedSet.time,
+            )}`
+            break
+        }
 
         notificationMessage = translate(
           "notification.restTime.restTimeCompletedFromLastSetPrompt",
@@ -458,6 +460,21 @@ const WorkoutStoreModel = types
       } else {
         notificationMessage = translate("notification.restTime.restTimeCompletedGenericPrompt")
       }
+
+      const now = new Date()
+      self.lastSetCompletedTime = now
+      // The sole purpose for this is to trigger an observable change
+      // in the view restTimeRemaining.
+      intervalId = setInterval(() => {
+        if (self.restTimeElapsed === self.restTime) {
+          clearInterval(intervalId)
+          resetRestTimer()
+        } else {
+          self.setProp("restTimeElapsed", self.restTimeElapsed + 1)
+        }
+      }, 1000)
+      self.restTimeStartedAt = now
+      self.restTimeRunning = true
 
       Notifications.scheduleNotificationAsync({
         content: {
@@ -477,15 +494,25 @@ const WorkoutStoreModel = types
       if (intervalId) {
         clearInterval(intervalId)
       }
-      self.restTimeStartedAt = undefined
-      self.restTimeElapsed = 0
-      self.restTimeRunning = false
+      // Use the setProp action so this works in the setInterval callback
+      self.setProp("restTimeStartedAt", undefined)
+      self.setProp("restTimeElapsed", 0)
+      self.setProp("restTimeRunning", false)
+      cancelRestNotifications()
     }
 
     const resetRestTimer = () => {
       stopRestTimer()
       setRestTime(self.restTime)
+    }
 
+    const restartRestTimer = (seconds: number) => {
+      stopRestTimer()
+      setRestTime(seconds)
+      startRestTimer()
+    }
+
+    const cancelRestNotifications = () => {
       if (notificationId) {
         Notifications.cancelScheduledNotificationAsync(notificationId).then(() => {
           notificationId = undefined
@@ -493,10 +520,15 @@ const WorkoutStoreModel = types
       }
     }
 
-    const restartRestTimer = (seconds: number) => {
-      stopRestTimer()
-      setRestTime(seconds)
-      startRestTimer()
+    const dismissRestNotifications = () => {
+      if (notificationId) {
+        Notifications.dismissNotificationAsync(notificationId).then(() => {
+          console.debug("WorkoutStore.dismissRestNotifications dismissing notification:", {
+            notificationId,
+          })
+          notificationId = undefined
+        })
+      }
     }
 
     return {
@@ -506,6 +538,7 @@ const WorkoutStoreModel = types
       stopRestTimer,
       resetRestTimer,
       restartRestTimer,
+      dismissRestNotifications,
     }
   })
   .views((self) => ({
@@ -516,7 +549,6 @@ const WorkoutStoreModel = types
       const actualTimeElapsed = differenceInSeconds(new Date(), self.restTimeStartedAt)
       // Timer has finished
       if (actualTimeElapsed >= self.restTime) {
-        self.resetRestTimer()
         return 0
       }
 

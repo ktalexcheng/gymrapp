@@ -1,11 +1,12 @@
 import { WeightUnit } from "app/data/constants"
 import { useExerciseSetting } from "app/hooks/useExerciseSetting"
 import { spacing, styles } from "app/theme"
+import { formatSecondsAsTime } from "app/utils/formatTime"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
-import { TouchableOpacity, TouchableOpacityProps, View, ViewStyle } from "react-native"
+import { Platform, TouchableOpacity, TouchableOpacityProps, View, ViewStyle } from "react-native"
 import { Popover, Switch } from "tamagui"
-import { Icon, RestTimePicker, RowView, Spacer, Text } from "../../components"
+import { Icon, PickerModal, RestTimePicker, RowView, Spacer, Text } from "../../components"
 import { useStores } from "../../stores"
 
 const MenuItem = (props: TouchableOpacityProps) => {
@@ -34,6 +35,9 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
     )
     const [restTimeSetting] = useExerciseSetting<number>(exerciseId, "restTime")
     const [page, setPage] = useState("")
+    // This is only used for the Android picker modal to workaround Tamagui popover bug
+    // where scrolling is disabled in Popover.Content
+    const [restTimeModalVisible, setRestTimeModalVisible] = useState(false)
 
     function updateRestTimerEnabled(status: boolean) {
       exerciseStore.updateExerciseSetting(exerciseId, "autoRestTimerEnabled", status)
@@ -73,13 +77,35 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
                   <Switch.Thumb animation="quick" />
                 </Switch>
               </RowView>
-              <View>
-                <RestTimePicker
-                  disabled={!restTimerEnabledSetting}
-                  initialRestTime={restTimeSetting}
-                  onRestTimeChange={updateRestTime}
-                />
-              </View>
+              {Platform.select({
+                android: (
+                  <>
+                    <Spacer type="vertical" size="small" />
+                    <PickerModal
+                      disabled={!restTimerEnabledSetting}
+                      value={restTimeSetting}
+                      onChange={updateRestTime}
+                      itemsList={Array(60)
+                        .fill(null)
+                        .map<any>((_, i) => {
+                          const seconds = (i + 1) * 5
+                          return {
+                            label: formatSecondsAsTime(seconds),
+                            value: seconds,
+                          }
+                        })}
+                      modalTitleTx={"exerciseEntrySettings.restTimeLabel"}
+                    />
+                  </>
+                ),
+                native: (
+                  <RestTimePicker
+                    disabled={!restTimerEnabledSetting}
+                    initialRestTime={restTimeSetting}
+                    onRestTimeChange={updateRestTime}
+                  />
+                ),
+              })}
             </>
           )
         case "weightUnit":
@@ -141,7 +167,7 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
         </Popover.Trigger>
 
         <Popover.Content unstyled style={themeStore.styles("menuPopoverContainer")}>
-          <View style={styles.fullWidth}>{renderPopoverContent()}</View>
+          {renderPopoverContent()}
         </Popover.Content>
       </Popover>
     )

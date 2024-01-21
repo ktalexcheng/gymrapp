@@ -167,8 +167,6 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 
   // States
   const [time, setTime] = useState<number>(exerciseSetStore.time)
-  // const [timeMinutesInput, setTimeMinutesInput] = useState<string>("")
-  // const [timeSecondsInput, setTimeSecondsInput] = useState<string>("")
   const [pickerTimeAsSeconds, setPickerTimeAsSeconds] = useState<number>(exerciseSetStore.time)
   const [isNullTime, setIsNullTime] = useState(false)
   const [showTimeInput, setShowTimeInput] = useState(false)
@@ -176,8 +174,6 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   useEffect(() => {
     if (time) {
       exerciseSetStore.updateSetValues("time", time)
-      // setTimeMinutesInput(Math.floor(time / 60).toString())
-      // setTimeSecondsInput((time % 60).toString())
     }
   }, [time])
 
@@ -192,45 +188,10 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     setTime(setFromLastWorkout.time)
   }
 
-  // const updateTime = () => {
-  //   console.debug("updateTime timeMinutesInput", parseInt(timeMinutesInput ?? "0"))
-  //   console.debug("updateTime timeSecondsInput", parseInt(timeSecondsInput) ?? 0)
-  //   let seconds = timeMinutesInput ? parseInt(timeMinutesInput) * 60 : 0
-  //   seconds += timeSecondsInput ? parseInt(timeSecondsInput) : 0
-
-  //   if (!seconds) {
-  //     setTime(undefined)
-  //   } else {
-  //     setTime(seconds)
-  //   }
-  // }
-
   const updateTime = () => {
     if (pickerTimeAsSeconds) setTime(pickerTimeAsSeconds)
     else setTime(undefined)
   }
-
-  // const handleTimeChangeText = (
-  //   setter: React.Dispatch<React.SetStateAction<string>>,
-  //   value: string,
-  //   maxValue: number,
-  // ) => {
-  //   if (!value) {
-  //     setter(null)
-  //     return
-  //   }
-
-  //   if (!isValidPrecision(value, 0)) {
-  //     return
-  //   }
-
-  //   if (parseInt(value) > maxValue) {
-  //     setter(maxValue.toString())
-  //     return
-  //   }
-
-  //   setter(value)
-  // }
 
   function toggleSetStatus() {
     if (exerciseSetStore.isCompleted) {
@@ -243,17 +204,15 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       return
     }
 
+    // Make sure to mark complete before restarting the rest timer
+    // so that the last completed set can be identified and used for notification
+    exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
+    setIsNullTime(false)
+
     if (autoRestTimerEnabled) {
       workoutStore.restartRestTimer(restTimeSetting)
     }
-
-    exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
-    setIsNullTime(false)
   }
-
-  // const $timeInputTextField: ViewStyle = {
-  //   minWidth: 60,
-  // }
 
   const $timeColumn: ViewStyle = {
     flex: 3,
@@ -274,29 +233,6 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
         onRequestClose={() => setShowTimeInput(false)}
       >
         <Text tx="activeWorkoutScreen.enterTimeLabel" preset="formHelper" />
-        {/* <RowView style={[styles.justifyCenter, styles.alignCenter]}>
-          <TextField
-            status={exerciseSetStore.isCompleted ? "disabled" : null}
-            containerStyle={$timeInputTextField}
-            textAlign="center"
-            value={timeMinutesInput}
-            onChangeText={(value) => handleTimeChangeText(setTimeMinutesInput, value, 99)}
-            onBlur={() => {
-              if (timeMinutesInput && !timeSecondsInput) setTimeSecondsInput("00")
-            }}
-          />
-          <Text text=":" />
-          <TextField
-            status={exerciseSetStore.isCompleted ? "disabled" : null}
-            containerStyle={$timeInputTextField}
-            textAlign="center"
-            value={timeSecondsInput}
-            onChangeText={(value) => handleTimeChangeText(setTimeSecondsInput, value, 59)}
-            onBlur={() => {
-              if (timeSecondsInput === "0") setTimeSecondsInput("00")
-            }}
-          />
-        </RowView> */}
         <TimePicker initialValue={pickerTimeAsSeconds} onValueChange={setPickerTimeAsSeconds} />
         <Spacer type="vertical" size="medium" />
         <RowView style={styles.justifyCenter}>
@@ -392,11 +328,13 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       setIsNullReps(false)
       updateSetStore()
 
+      // Make sure to mark complete before restarting the rest timer
+      // so that the last completed set can be identified and used for notification
+      exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
+
       if (autoRestTimerEnabled) {
         workoutStore.restartRestTimer(restTimeSetting)
       }
-
-      exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
     } else {
       // setIsNullWeight(!displayWeight)
       setIsNullReps(!reps)
@@ -593,5 +531,4 @@ const $textFieldWrapper: ViewStyle = {
 
 const $previousSetText: TextStyle = {
   textAlign: "center",
-  // fontSize: 14, lineHeight: 21
 }

@@ -82,6 +82,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         resizeMode: "contain",
         backgroundColor: "#212121",
       },
+      infoPlist: {
+        UIBackgroundModes: ["remote-notification"],
+      },
       associatedDomains: ["applinks:gymrapp.com", "applinks:gymrapp-test.web.app"],
     },
     plugins: [

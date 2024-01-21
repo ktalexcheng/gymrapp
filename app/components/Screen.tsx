@@ -191,7 +191,6 @@ function ScreenWithScrolling(props: ScreenProps) {
         ScrollViewProps?.onLayout?.(e)
       }}
       onContentSizeChange={(w: number, h: number) => {
-        console.debug("ScreenWithScrolling: onContentSizeChange", w, h)
         onContentSizeChange(w, h)
         ScrollViewProps?.onContentSizeChange?.(w, h)
       }}
@@ -202,6 +201,7 @@ function ScreenWithScrolling(props: ScreenProps) {
         contentContainerStyle,
         $flexGrow,
       ]}
+      nestedScrollEnabled={true}
     >
       {children}
     </ScrollView>

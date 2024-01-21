@@ -6,7 +6,9 @@
   "build": {
     "development": {
       "env": {
-        "EXPO_NO_KEYCHAIN": "1"
+        "EXPO_NO_KEYCHAIN": "1",
+        "GYMRAPP_ENVIRONMENT": "development",
+        "EXPO_PUBLIC_GYMRAPP_BASE_URL": "https://gymrapp-test.web.app"
       },
       "developmentClient": true,
       "distribution": "internal",

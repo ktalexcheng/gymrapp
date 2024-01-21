@@ -80,41 +80,40 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
   }
 
   return (
-    <View>
-      <View style={$exercise}>
-        <RowView style={styles.justifyBetween}>
-          <TouchableOpacity onPress={navigateToExerciseDetails}>
-            <Text preset="bold">{"#" + (props.exerciseOrder + 1) + " " + exerciseName}</Text>
-          </TouchableOpacity>
-          <ExerciseSettingsMenu exerciseOrder={props.exerciseOrder} exerciseId={props.exerciseId} />
-        </RowView>
-        <TextField
-          containerStyle={$exerciseNotesContainer}
-          inputWrapperStyle={$exerciseNotesInputWrapper}
-          style={$exerciseNotesInputStyle}
-          multiline={true}
-          value={thisExercise.exerciseNotes}
-          onChangeText={(text) => thisExercise.setProp("exerciseNotes", text)}
-          placeholderTx="activeWorkoutScreen.addNotesPlaceholder"
-        />
+    <View style={$exercise}>
+      <RowView style={styles.justifyBetween}>
+        <TouchableOpacity onPress={navigateToExerciseDetails}>
+          <Text preset="bold">{"#" + (props.exerciseOrder + 1) + " " + exerciseName}</Text>
+        </TouchableOpacity>
+        <ExerciseSettingsMenu exerciseOrder={props.exerciseOrder} exerciseId={props.exerciseId} />
+      </RowView>
 
-        <RowView style={$exerciseSetsHeader}>
-          <View style={$setOrderColumn}>
-            <Text tx="activeWorkoutScreen.setOrderColumnHeader" textAlign="center" />
-          </View>
-          <View style={$previousColumn}>
-            <Text tx="activeWorkoutScreen.previousColumnHeader" textAlign="center" />
-          </View>
-          {renderVolumeTypeSpecificHeaders()}
-          <View style={$isCompletedColumn}>
-            <Icon name="checkmark" color={themeStore.colors("foreground")} size={30} />
-          </View>
-        </RowView>
+      <TextField
+        containerStyle={$exerciseNotesContainer}
+        inputWrapperStyle={$exerciseNotesInputWrapper}
+        style={$exerciseNotesInputStyle}
+        multiline={true}
+        value={thisExercise.exerciseNotes}
+        onChangeText={(text) => thisExercise.setProp("exerciseNotes", text)}
+        placeholderTx="activeWorkoutScreen.addNotesPlaceholder"
+      />
 
-        {renderSets()}
+      <RowView style={$exerciseSetsHeader}>
+        <View style={$setOrderColumn}>
+          <Text tx="activeWorkoutScreen.setOrderColumnHeader" textAlign="center" />
+        </View>
+        <View style={$previousColumn}>
+          <Text tx="activeWorkoutScreen.previousColumnHeader" textAlign="center" />
+        </View>
+        {renderVolumeTypeSpecificHeaders()}
+        <View style={$isCompletedColumn}>
+          <Icon name="checkmark" color={themeStore.colors("foreground")} size={30} />
+        </View>
+      </RowView>
 
-        <Button preset="text" tx="activeWorkoutScreen.addSetAction" onPress={addSet} />
-      </View>
+      {renderSets()}
+
+      <Button preset="text" tx="activeWorkoutScreen.addSetAction" onPress={addSet} />
     </View>
   )
 })

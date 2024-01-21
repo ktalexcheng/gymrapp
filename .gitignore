@@ -85,14 +85,14 @@ web-build/
 # Configurations
 !env.js
 
-google-services.json
-GoogleService-Info.plist
-.env*
-
 # Build native source code with Expo 
 android/
 ios/
 
-firebase-sa-key.json
-eas-submit-sa-key.json
+# Miscellaneous
+.env*
 .tamagui
+test/.firebase/
+google-services.json
+GoogleService-Info.plist
+eas-submit-sa-key.json

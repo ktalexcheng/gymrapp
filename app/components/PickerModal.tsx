@@ -10,9 +10,9 @@ import { Picker } from "./Picker"
 import { Text } from "./Text"
 
 export interface PickerModalProps {
-  value: string
-  onChange: (value: string) => void
-  itemsList: { label: string; value: string }[]
+  value: any
+  onChange: (value: any) => void
+  itemsList: { label: string; value: any }[]
   modalTitleTx: TxKeyPath
   wrapperStyle?: StyleProp<ViewStyle>
   disabled?: boolean
@@ -38,8 +38,10 @@ export const PickerModal: FC<PickerModalProps> = observer((props: PickerModalPro
     borderColor: themeStore.palette("neutral400"),
     justifyContent: "center",
     alignContent: "center",
+    opacity: disabled ? 0.5 : 1,
   }
 
+  console.debug("PickerModal", { value })
   return (
     <>
       <TouchableOpacity
@@ -47,7 +49,10 @@ export const PickerModal: FC<PickerModalProps> = observer((props: PickerModalPro
         onPress={() => setModalVisible(true)}
         disabled={disabled}
       >
-        <Text style={styles.textAlignCenter} text={value} />
+        <Text
+          style={styles.textAlignCenter}
+          text={!!value && itemsList.find((i) => i.value === value)?.label}
+        />
       </TouchableOpacity>
 
       <Modal

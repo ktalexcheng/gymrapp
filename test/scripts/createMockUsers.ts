@@ -3,7 +3,7 @@ import { AppLocale, WeightUnit } from "../../app/data/constants"
 import { UserRepository } from "../../app/data/repository"
 import { readCSV } from "../utils/readCSV"
 
-const MOCK_USER_FILE_PATH = "/Users/alexcheng/AppDev/gymrapp/test/scripts/data/mock_users.csv"
+const MOCK_USERS_FILE_PATH = "/Users/alexcheng/AppDev/gymrapp/test/scripts/data/mock_users.csv"
 
 interface MockUserData {
   Gender: string
@@ -41,14 +41,15 @@ describe("create mock users", () => {
       })
 
     // Mock user data
-    const mockUserData = await readCSV<MockUserData>(MOCK_USER_FILE_PATH, ",")
+    const mockUserData = await readCSV<MockUserData>(MOCK_USERS_FILE_PATH, ",")
 
     // Create user document
     for (const user of mockUserData) {
+      const userHandle = user.EmailAddress.match(/^([\w.-]{1,30})@/)[1]
       await userRepository.create({
-        userId: "_" + user.GUID,
-        userHandle: user.Password, // Only because password looks more random
-        _userHandleLower: user.Password.toLowerCase(),
+        userId: "MOCK-" + user.GUID,
+        userHandle,
+        _userHandleLower: userHandle.toLowerCase(),
         firstName: user.GivenName,
         lastName: user.Surname,
         email: user.EmailAddress,

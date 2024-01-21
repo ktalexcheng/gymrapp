@@ -37,9 +37,15 @@ const en = {
   },
   notification: {
     restTime: {
+      channelName: "Rest timer",
       restTimeCompletedTitle: "Rest time is up!",
       restTimeCompletedGenericPrompt: "Time to get back to work!",
       restTimeCompletedFromLastSetPrompt: "Last completed set: {{setDescription}}",
+    },
+    permissionAlert: {
+      title: "Permission required",
+      message: "Please enable notifications to receive updates about your workouts.",
+      goToAppSettingsButtonLabel: "App settings",
     },
   },
   updateApp: {

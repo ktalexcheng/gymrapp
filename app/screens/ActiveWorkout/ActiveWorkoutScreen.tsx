@@ -1,3 +1,4 @@
+import { useFocusEffect } from "@react-navigation/native"
 import { Gym } from "app/data/model"
 import { useUserLocation } from "app/hooks"
 import { translate } from "app/i18n"
@@ -5,8 +6,8 @@ import { MainStackScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { formatSecondsAsTime } from "app/utils/formatTime"
 import { observer } from "mobx-react-lite"
-import React, { FC, useEffect, useState } from "react"
-import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import React, { FC, useCallback, useEffect, useState } from "react"
+import { AppState, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { Button, Icon, Modal, RowView, Screen, Spacer, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
 import { fontSize, spacing, styles } from "../../theme"
@@ -170,6 +171,18 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
         }
       }
     }, [workoutStore.inProgress])
+
+    useFocusEffect(
+      useCallback(() => {
+        const subscribeAppStateChange = AppState.addEventListener("change", (state) => {
+          if (state === "active") {
+            workoutStore.dismissRestNotifications()
+          }
+        })
+
+        return () => subscribeAppStateChange.remove()
+      }, []),
+    )
 
     function updateWorkoutTitle(value: string) {
       setWorkoutTitle(value)

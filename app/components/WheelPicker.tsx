@@ -1,7 +1,6 @@
 // Source: https://medium.com/@gogulbharathisubbaraj/implementing-ios-style-picker-in-react-native-part-1-4e938e218b92
 
 import { useStores } from "app/stores"
-import { styles } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { forwardRef, useImperativeHandle, useRef } from "react"
 import {
@@ -68,10 +67,13 @@ const ExoticWheelPickerFlat = forwardRef<WheelPickerRef, WheelPickerProps>(
     }
 
     const $container: ViewStyle = {
-      alignItems: "center",
       height: itemHeight * 3,
       width: "100%",
       opacity: disabled ? 0.5 : 1,
+    }
+
+    const $contentContainer: ViewStyle = {
+      flexGrow: 1,
     }
 
     const $indicator: ViewStyle = {
@@ -83,9 +85,11 @@ const ExoticWheelPickerFlat = forwardRef<WheelPickerRef, WheelPickerProps>(
 
     console.debug("WheelPickerFlat initialScrollIndex", initialScrollIndex)
     return (
-      <View style={$container} pointerEvents={disabled ? "none" : "auto"}>
+      <View>
         <ScrollView
-          style={styles.fullWidth}
+          scrollEnabled={!disabled}
+          style={$container}
+          contentContainerStyle={$contentContainer}
           ref={scrollViewRef}
           decelerationRate="fast"
           showsVerticalScrollIndicator={false}

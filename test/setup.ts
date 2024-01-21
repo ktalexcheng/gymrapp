@@ -1,7 +1,7 @@
-// we always make sure 'react-native' gets included first
 import * as admin from "firebase-admin"
 import { initializeApp } from "firebase/app"
 import { getFunctions, httpsCallable } from "firebase/functions"
+require("dotenv").config({ path: ".env.local" })
 
 declare const tron // eslint-disable-line @typescript-eslint/no-unused-vars
 
@@ -55,10 +55,17 @@ jest.mock("expo-constants", () => {
   }
 })
 
-// Do this in setup so it is done only once for all tests
+// If not using emulator, remove these environment variables
+if (process.env.EXPO_PUBLIC_USE_EMULATOR === "0") {
+  delete process.env.FIRESTORE_EMULATOR_HOST
+  delete process.env.FIREBASE_AUTH_EMULATOR_HOST
+  delete process.env.FIREBASE_STORAGE_EMULATOR_HOST
+}
+// Set environment variable GOOGLE_APPLICATION_CREDENTIALS to path of the service account key
+// See: https://firebase.google.com/docs/admin/setup#initialize_the_sdk_in_non-google_environments
 admin.initializeApp()
-export const firebaseApp = initializeApp(require("./firebase-sa-key.json"))
-export const firebaseFunctionsClient = getFunctions(firebaseApp)
+const firebaseApp = initializeApp(require(process.env.FIREBASE_WEB_CONFIG))
+const firebaseFunctionsClient = getFunctions(firebaseApp)
 
 jest.mock("@react-native-firebase/functions", () => {
   return {

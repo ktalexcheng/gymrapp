@@ -24,16 +24,22 @@ Add this to your VS Code `launch.json`:
     "/node_modules/"
   ],
   "console": "integratedTerminal",
-  "env": {
-    "GCLOUD_PROJECT": "firebase-project-id",
-    "FIRESTORE_EMULATOR_HOST": "localhost:8080",
-    "FIREBASE_AUTH_EMULATOR_HOST": "127.0.0.1:9099",
-    "FIREBASE_STORAGE_EMULATOR_HOST": "localhost:9199",
-  }
 }
 ```
 
-Note that `env` variables are only if you are using a local emulator. Remove otherwise.
+To connect to a local emulator, make sure the following environment variables are present:
+
+```
+FIRESTORE_EMULATOR_HOST=localhost:8080
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
+FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199
+```
+
+To connect to a live Firebase project, set the following environment variable:
+
+```
+GOOGLE_CLOUD_PROJECT=gymrapp-test
+```
 
 ## Setup for ts-node (not using)
 
