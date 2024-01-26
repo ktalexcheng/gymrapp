@@ -172,16 +172,33 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
       }
     }, [workoutStore.inProgress])
 
-    useFocusEffect(
-      useCallback(() => {
-        const subscribeAppStateChange = AppState.addEventListener("change", (state) => {
-          if (state === "active") {
+    // Dismiss stale rest timer notification when app is resumed from background
+    useEffect(() => {
+      const subscribeAppStateChange = AppState.addEventListener("change", (state) => {
+        if (state === "active") {
+          if (!workoutStore.restTimeRunning) {
+            console.debug(
+              "ActiveWorkoutScreen AppState.addEventListener: dismiss exercise rest notifications",
+            )
             workoutStore.dismissRestNotifications()
           }
-        })
+        }
+      })
 
-        return () => subscribeAppStateChange.remove()
-      }, []),
+      return () => subscribeAppStateChange.remove()
+    }, [])
+
+    // Dismiss stale rest timer notification when user navigates back to this screen
+    // Set a 3 second delay to allow the notification to be displayed briefly
+    useFocusEffect(
+      useCallback(() => {
+        if (!workoutStore.restTimeRunning) {
+          console.debug("ActiveWorkoutScreen useFocusEffect: dismiss exercise rest notifications")
+          const timeout = setTimeout(() => workoutStore.dismissRestNotifications(), 3000)
+          return () => clearTimeout(timeout)
+        }
+        return undefined
+      }, [workoutStore.restTimeRunning]),
     )
 
     function updateWorkoutTitle(value: string) {

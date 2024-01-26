@@ -17,6 +17,12 @@ Refer to this [Expo documentation](https://docs.expo.dev/develop/development-bui
 
 Build failures are more likely than not dependency issues, follow instructions here: https://docs.expo.dev/build-reference/troubleshooting/#verify-that-your-javascript-bundles-locally to build locally in release mode to make sure there are no issues before submitted to EAS.
 
+```
+# Locally compile and run in release mode
+npx expo run:android --variant release
+npx expo run:ios --configuration Release
+```
+
 To debug error messages, it can be helpful to find which module is throwing it with
 
 `find node_modules/ -type f -exec grep -H '<error message keyword>' {} \;`

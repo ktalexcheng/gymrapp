@@ -17,6 +17,7 @@ import {
   TimePersonalRecord,
 } from "../../app/data/model"
 import { translate } from "../../app/i18n"
+import { REST_TIMER_CHANNEL_ID } from "../data/constants"
 import { formatSecondsAsTime } from "../utils/formatTime"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
@@ -79,6 +80,7 @@ const WorkoutStoreModel = types
     restTimeStartedAt: types.maybe(types.Date),
     restTimeElapsed: 0,
     restTimeRunning: false,
+    restTimeCompleted: false,
     lastSetCompletedTime: types.maybe(types.Date),
     workoutTitle: translate("activeWorkoutScreen.newActiveWorkoutTitle"),
     activityId: types.maybe(types.string),
@@ -416,9 +418,79 @@ const WorkoutStoreModel = types
 
     const adjustRestTime = (seconds: number) => {
       self.restTime = Math.max(self.restTime + seconds, 0)
+
+      if (self.restTimeRunning) {
+        scheduleRestNotifications()
+      }
+    }
+
+    /**
+     * Function to be called when rest timer is completed.
+     */
+    const handleEndOfTimer = () => {
+      if (intervalId) {
+        clearInterval(intervalId)
+      }
+
+      self.setProp("restTimeStartedAt", undefined)
+      self.setProp("restTimeRunning", false)
+      self.setProp("restTimeElapsed", 0)
+
+      // Set restTimeCompleted to true for 3 seconds and then set it back to false
+      self.setProp("restTimeCompleted", true)
+      const timeout = setTimeout(() => {
+        self.setProp("restTimeCompleted", false)
+        clearTimeout(timeout)
+      }, 3000)
+    }
+
+    /**
+     * Stops the rest timer before completion and cancels any scheduled notifications.
+     * Notifications need to be canceled.
+     */
+    const stopRestTimer = () => {
+      handleEndOfTimer()
+      cancelRestNotifications()
     }
 
     const startRestTimer = () => {
+      const now = new Date()
+      self.lastSetCompletedTime = now
+      // The sole purpose for this is to trigger an observable change
+      // in the view restTimeRemaining.
+      intervalId = setInterval(() => {
+        self.setProp("restTimeElapsed", self.restTimeElapsed + 1)
+        if (self.restTimeElapsed === self.restTime) {
+          handleEndOfTimer()
+        }
+      }, 1000)
+      self.restTimeStartedAt = now
+      self.restTimeRunning = true
+
+      scheduleRestNotifications()
+    }
+
+    const resetRestTimer = () => {
+      stopRestTimer()
+    }
+
+    const restartRestTimer = (seconds: number) => {
+      stopRestTimer()
+      setRestTime(seconds)
+      startRestTimer()
+    }
+
+    /**
+     * Schedule a notification to be sent when rest timer is completed.
+     * If there is a notification already scheduled, it will be cancelled first.
+     */
+    const scheduleRestNotifications = async () => {
+      // Make sure to cancel any existing notifications
+      if (notificationId) {
+        await dismissRestNotifications()
+        await cancelRestNotifications()
+      }
+
       // Find last set completed
       const lastCompletedExercise = self.exercises
         .filter((e) =>
@@ -461,22 +533,7 @@ const WorkoutStoreModel = types
         notificationMessage = translate("notification.restTime.restTimeCompletedGenericPrompt")
       }
 
-      const now = new Date()
-      self.lastSetCompletedTime = now
-      // The sole purpose for this is to trigger an observable change
-      // in the view restTimeRemaining.
-      intervalId = setInterval(() => {
-        if (self.restTimeElapsed === self.restTime) {
-          clearInterval(intervalId)
-          resetRestTimer()
-        } else {
-          self.setProp("restTimeElapsed", self.restTimeElapsed + 1)
-        }
-      }, 1000)
-      self.restTimeStartedAt = now
-      self.restTimeRunning = true
-
-      Notifications.scheduleNotificationAsync({
+      notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: translate("notification.restTime.restTimeCompletedTitle"),
           body: notificationMessage,
@@ -484,51 +541,63 @@ const WorkoutStoreModel = types
             url: "gymrapp://activeWorkout",
           },
         },
-        trigger: { seconds: self.restTime },
-      }).then((id) => {
-        notificationId = id
+        trigger: { seconds: self.restTime, channelId: REST_TIMER_CHANNEL_ID },
       })
     }
 
-    const stopRestTimer = () => {
-      if (intervalId) {
-        clearInterval(intervalId)
-      }
-      // Use the setProp action so this works in the setInterval callback
-      self.setProp("restTimeStartedAt", undefined)
-      self.setProp("restTimeElapsed", 0)
-      self.setProp("restTimeRunning", false)
-      cancelRestNotifications()
-    }
-
-    const resetRestTimer = () => {
-      stopRestTimer()
-      setRestTime(self.restTime)
-    }
-
-    const restartRestTimer = (seconds: number) => {
-      stopRestTimer()
-      setRestTime(seconds)
-      startRestTimer()
-    }
-
-    const cancelRestNotifications = () => {
+    const cancelRestNotifications = async () => {
       if (notificationId) {
-        Notifications.cancelScheduledNotificationAsync(notificationId).then(() => {
-          notificationId = undefined
+        await Notifications.cancelScheduledNotificationAsync(notificationId)
+        console.debug("WorkoutStore.cancelRestNotifications canceled notification:", {
+          notificationId,
+        })
+
+        notificationId = undefined
+      }
+    }
+
+    /**
+     * Just in case the scheduled notification is not presented yet,
+     * we also cancel the scheduled notification.
+     */
+    const dismissRestNotifications = async () => {
+      if (notificationId) {
+        await Notifications.dismissNotificationAsync(notificationId)
+        console.debug("WorkoutStore.dismissRestNotifications dismissed presented notification:", {
+          notificationId,
         })
       }
-    }
 
-    const dismissRestNotifications = () => {
-      if (notificationId) {
-        Notifications.dismissNotificationAsync(notificationId).then(() => {
-          console.debug("WorkoutStore.dismissRestNotifications dismissing notification:", {
-            notificationId,
-          })
-          notificationId = undefined
-        })
-      }
+      // if (notificationId) {
+      //   const presentedNotifications = await Notifications.getPresentedNotificationsAsync()
+      //   const findPresentedNotification = presentedNotifications.find(
+      //     (n) => n.request.identifier === notificationId,
+      //   )
+
+      //   if (findPresentedNotification) {
+      //     await Notifications.dismissNotificationAsync(notificationId)
+      //     console.debug("WorkoutStore.dismissRestNotifications dismissed presented notification:", {
+      //       presentedNotifications,
+      //       findPresentedNotification,
+      //     })
+      //     return
+      //   }
+
+      //   const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync()
+      //   const findScheduledNotification = scheduledNotifications.find(
+      //     (n) => n.identifier === notificationId,
+      //   )
+
+      //   if (findScheduledNotification) {
+      //     await Notifications.cancelScheduledNotificationAsync(notificationId)
+      //     console.debug("WorkoutStore.dismissRestNotifications dismissed scheduled notification:", {
+      //       presentedNotifications,
+      //       findPresentedNotification,
+      //     })
+      //   }
+
+      //   notificationId = undefined
+      // }
     }
 
     return {

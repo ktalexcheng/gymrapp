@@ -268,6 +268,7 @@ const en = {
     seconds: "seconds",
     subtract15Seconds: "-15 sec",
     add15Seconds: "+15 sec",
+    timesUpMessage: "Time's up!",
   },
   exerciseManagerScreen: {
     exerciseManagerTitle: "Exercises",

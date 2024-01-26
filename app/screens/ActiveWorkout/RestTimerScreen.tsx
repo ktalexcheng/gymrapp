@@ -82,6 +82,7 @@ export const RestTimerScreen: FC = observer(() => {
   const resetTimer = () => {
     workoutStore.resetRestTimer()
     cancelAnimation(timerRemaining)
+    timerRemaining.value = workoutStore.restTimeRemaining
     // syncTimerWithStore()
   }
 
@@ -122,10 +123,16 @@ export const RestTimerScreen: FC = observer(() => {
             })`}
           />
         </Svg>
-        <View style={$remainingTimeContainer}>
-          <Text preset="subheading">{formatSecondsAsTime(workoutStore.restTime)}</Text>
-          <Text>{formatSecondsAsTime(workoutStore.restTimeRemaining)}</Text>
-        </View>
+        {workoutStore.restTimeCompleted ? (
+          <View style={$remainingTimeContainer}>
+            <Text preset="subheading" tx="restTimerScreen.timesUpMessage" />
+          </View>
+        ) : (
+          <View style={$remainingTimeContainer}>
+            <Text preset="subheading">{formatSecondsAsTime(workoutStore.restTime)}</Text>
+            <Text>{formatSecondsAsTime(workoutStore.restTimeRemaining)}</Text>
+          </View>
+        )}
       </View>
       <View style={[styles.flex2, $timerControls]}>
         <RowView style={$timerManualInput}>

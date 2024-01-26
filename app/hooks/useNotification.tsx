@@ -4,6 +4,7 @@ import * as Notifications from "expo-notifications"
 import * as TaskManager from "expo-task-manager"
 import { useEffect, useRef } from "react"
 import { Alert, Linking, Platform } from "react-native"
+import { BACKGROUND_NOTIFICATION_TASK_NAME, REST_TIMER_CHANNEL_ID } from "../data/constants"
 
 // See: https://docs.expo.dev/versions/latest/sdk/notifications/#handle-incoming-notifications-when-the-app-is
 // This handles notifications received when app is in the foreground
@@ -11,7 +12,7 @@ Notifications.setNotificationHandler({
   handleNotification: async () => {
     console.debug("Received a notification while app is in the foreground!")
     return {
-      shouldShowAlert: false,
+      shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
     }
@@ -20,16 +21,12 @@ Notifications.setNotificationHandler({
 
 // See: https://docs.expo.dev/versions/latest/sdk/notifications/#handle-incoming-notifications-when-the-app-is-1
 // This handles notifications received when app is in the background
-const BACKGROUND_NOTIFICATION_TASK = "GYMRAPP-BACKGROUND-NOTIFICATION-TASK"
-
-TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, ({ data, error, executionInfo }) => {
+TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK_NAME, ({ data, error, executionInfo }) => {
   console.debug("Received a notification in the background!", { data, error, executionInfo })
   // Do something with the notification data
 })
 
-Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK)
-
-export const REST_TIMER_CHANNEL_ID = "GYMRAPP-REST-TIMER"
+Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK_NAME)
 
 export const useNotification = () => {
   const { themeStore } = useStores()
