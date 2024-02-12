@@ -1,10 +1,9 @@
-import { Exercise } from "app/data/model"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { ViewStyle } from "react-native"
 import { Fab, Icon, Screen } from "../../components"
 import { MainStackScreenProps } from "../../navigators"
-import { useStores } from "../../stores"
+import { IExerciseModel, useStores } from "../../stores"
 import { ExerciseCatalog } from "../Exercise"
 
 interface ExercisePickerScreenProps extends MainStackScreenProps<"ExercisePicker"> {}
@@ -12,7 +11,7 @@ interface ExercisePickerScreenProps extends MainStackScreenProps<"ExercisePicker
 export const ExercisePickerScreen: FC<ExercisePickerScreenProps> = observer(({ navigation }) => {
   const { workoutStore, themeStore } = useStores()
 
-  function handleSelectExercise(exercise: Exercise) {
+  function handleSelectExercise(exercise: IExerciseModel) {
     workoutStore.addExercise(exercise)
     navigation.goBack()
   }

@@ -98,8 +98,8 @@ export const useNotification = () => {
     })
 
     return () => {
-      Notifications.removeNotificationSubscription(notificationListener.current)
-      Notifications.removeNotificationSubscription(responseListener.current)
+      Notifications.removeNotificationSubscription(notificationListener.current!)
+      Notifications.removeNotificationSubscription(responseListener.current!)
     }
   }, [])
 }

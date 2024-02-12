@@ -50,7 +50,7 @@ export const RestTimerScreen: FC = observer(() => {
   // Sync the timer with the store, with the store as the source of truth
   const syncTimerWithStore = () => {
     setTimePickerValue(workoutStore.restTime)
-    timePickerRef.current.scrollToTime(workoutStore.restTime)
+    timePickerRef.current?.scrollToTime(workoutStore.restTime)
 
     timerRemaining.value = workoutStore.restTimeRemaining
     restTime.value = workoutStore.restTime

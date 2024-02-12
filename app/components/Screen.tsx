@@ -103,8 +103,8 @@ function useAutoPreset(props: AutoScreenProps) {
   const { preset, scrollEnabledToggleThreshold } = props
   const { percent = 0.92, point = 0 } = scrollEnabledToggleThreshold || {}
 
-  const scrollViewHeight = useRef(null)
-  const scrollViewContentHeight = useRef(null)
+  const scrollViewHeight = useRef<number | null>(null)
+  const scrollViewContentHeight = useRef<number | null>(null)
   const [scrollEnabled, setScrollEnabled] = useState(true)
 
   function updateScrollState() {
@@ -167,7 +167,7 @@ function ScreenWithScrolling(props: ScreenProps) {
     style,
   } = props as ScrollScreenProps
 
-  const ref = useRef<ScrollView>()
+  const ref = useRef<ScrollView>(null)
 
   const { scrollEnabled, onContentSizeChange, onLayout } = useAutoPreset(props as AutoScreenProps)
 
@@ -178,7 +178,7 @@ function ScreenWithScrolling(props: ScreenProps) {
   // This makes sure we override any flex settings with flexGrow: 1
   // to allow for ScrollView content size to grow
   const $flexGrow = {
-    flex: null,
+    flex: undefined,
     flexGrow: 1,
   }
 
@@ -223,6 +223,10 @@ export const Screen = observer((props: ScreenProps) => {
   } = props
 
   const $containerInsets = useSafeAreaInsetsStyle(safeAreaEdges)
+  // TODO: Figure out proper way to get KeyboardAvoidingView to work with react-navigation
+  // See: https://stackoverflow.com/questions/48420468/keyboardavoidingview-not-working-properly
+  // const navigationHeaderHeight = useHeaderHeight()
+  const navigationHeaderHeight = 0
 
   const $containerStyle: ViewStyle = {
     flex: 1,
@@ -256,7 +260,7 @@ export const Screen = observer((props: ScreenProps) => {
 
       <KeyboardAvoidingView
         behavior={isIos ? "padding" : undefined}
-        keyboardVerticalOffset={keyboardOffset}
+        keyboardVerticalOffset={navigationHeaderHeight + keyboardOffset}
         {...KeyboardAvoidingViewProps}
         style={[$keyboardAvoidingViewStyle, KeyboardAvoidingViewProps?.style]}
       >

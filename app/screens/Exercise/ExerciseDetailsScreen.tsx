@@ -1,17 +1,17 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { RowView, Screen, Spacer, TabBar, Text } from "app/components"
 import { ExerciseVolumeType, WeightUnit, WorkoutSource } from "app/data/constants"
-import { ExerciseRecord, RepsPersonalRecord, TimePersonalRecord, WorkoutId } from "app/data/model"
+import { RepsPersonalRecord, WorkoutId } from "app/data/types"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
-import { useStores } from "app/stores"
+import { IPersonalRecordsModel, useStores } from "app/stores"
 import { spacing } from "app/theme"
 import { formatDate } from "app/utils/formatDate"
 import { formatSecondsAsTime } from "app/utils/formatTime"
 import { Weight } from "app/utils/weight"
 import { observer } from "mobx-react-lite"
-import React, { FC, useState } from "react"
+import React, { useState } from "react"
 import { FlatList, TextStyle, View, ViewStyle } from "react-native"
 import { SceneMap, TabView } from "react-native-tab-view"
 import { WorkoutSummaryCard } from "../FinishedWorkout"
@@ -19,7 +19,6 @@ import { WorkoutSummaryCard } from "../FinishedWorkout"
 const WorkoutHistoryTabScene = (exerciseId: string) =>
   observer(() => {
     const { userStore, feedStore } = useStores()
-    // const exerciseHistory = userStore.user?.exerciseHistory?.[exerciseId]?.performedWorkoutIds
     const exerciseHistory = userStore.getProp<WorkoutId[]>(
       `user.exerciseHistory.${exerciseId}.performedWorkoutIds`,
     )
@@ -27,17 +26,17 @@ const WorkoutHistoryTabScene = (exerciseId: string) =>
     if (!exerciseHistory) return <Text tx="exerciseDetailsScreen.noExerciseHistoryFound" />
 
     function getWorkoutData() {
-      const workouts = Array.from(feedStore.userWorkouts.values())
-        .filter(({ workoutId }) => {
-          return exerciseHistory.includes(workoutId)
-        })
-        .map(({ workout }) => workout)
+      const workouts = Array.from(feedStore.userWorkouts.values()).filter(({ workoutId }) => {
+        return exerciseHistory.includes(workoutId)
+      })
       workouts.sort((a, b) => (a.startTime > b.startTime ? -1 : 1))
 
       return workouts
     }
 
     function renderWorkoutItem({ item }) {
+      if (!userStore.user) return null
+
       return (
         <WorkoutSummaryCard
           workoutSource={WorkoutSource.User}
@@ -63,17 +62,15 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
     const { userStore, exerciseStore } = useStores()
     const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
     const weightUnitTx = useWeightUnitTx()
-    // const personalRecords = userStore.user?.exerciseHistory?.[exerciseId]
-    //   ?.personalRecords as ExerciseRecord
-    const personalRecords = userStore.getProp<ExerciseRecord>(
+    const personalRecords = userStore.getProp<IPersonalRecordsModel>(
       `user.exerciseHistory.${exerciseId}.personalRecords`,
     )
     const volumeType = exerciseStore.getExerciseVolumeType(exerciseId)
 
-    const renderTimePersonalRecords = (personalRecords: ExerciseRecord) => {
-      const sortedTimeRecords = (personalRecords[0] as TimePersonalRecord[]).sort(
-        (a, b) => b.time - a.time,
-      )
+    const renderTimePersonalRecords = (personalRecords: IPersonalRecordsModel) => {
+      if (!personalRecords?.[0]) return null
+
+      const sortedTimeRecords = personalRecords[0].records.sort((a, b) => b.time - a.time)
 
       return sortedTimeRecords.map((record, i) => {
         const recordTime = formatSecondsAsTime(record.time)
@@ -87,10 +84,12 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
       })
     }
 
-    const renderRepsPersonalRecords = (personalRecords: ExerciseRecord) => {
-      return Object.entries(personalRecords).map(([reps, records]) => {
-        const recordsCount = records.length
-        const bestRecord = records[recordsCount - 1] as RepsPersonalRecord
+    const renderRepsPersonalRecords = (personalRecords: IPersonalRecordsModel) => {
+      if (!personalRecords) return null
+
+      return Object.entries(personalRecords).map(([reps, recordModel]) => {
+        const recordsCount = recordModel.records.length
+        const bestRecord = recordModel.records[recordsCount - 1] as RepsPersonalRecord
         const weight = new Weight(bestRecord.weight, WeightUnit.kg, userWeightUnit)
 
         return (
@@ -104,9 +103,11 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
     }
 
     const renderPersonalRecords = () => {
+      if (!personalRecords) return null
+
       const sortedPersonalRecords = Object.fromEntries(
         Object.entries(personalRecords).sort((a, b) => parseInt(a[0]) - parseInt(b[0])),
-      ) as ExerciseRecord
+      )
 
       switch (volumeType) {
         case ExerciseVolumeType.Reps:
@@ -114,6 +115,8 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
         case ExerciseVolumeType.Time:
           return renderTimePersonalRecords(sortedPersonalRecords)
       }
+
+      return null
     }
 
     const renderHeaders = () => {
@@ -139,6 +142,8 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
             </Text>
           )
       }
+
+      return null
     }
 
     if (!personalRecords) return <Text tx="exerciseDetailsScreen.noExerciseHistoryFound" />
@@ -160,7 +165,7 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
 
 type ExerciseDetailsScreenProps = NativeStackScreenProps<MainStackParamList, "ExerciseDetails">
 
-export const ExerciseDetailsScreen: FC = observer(({ route }: ExerciseDetailsScreenProps) => {
+export const ExerciseDetailsScreen = observer(({ route }: ExerciseDetailsScreenProps) => {
   const exerciseId = route.params.exerciseId
   const { exerciseStore } = useStores()
   const exerciseName = exerciseStore.getExerciseName(exerciseId)

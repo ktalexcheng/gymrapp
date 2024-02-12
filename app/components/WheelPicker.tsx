@@ -37,12 +37,14 @@ const ExoticWheelPickerFlat = forwardRef<WheelPickerRef, WheelPickerProps>(
     const scrollViewRef = useRef<ScrollView>(null)
     useImperativeHandle(ref, () => ({
       scrollToIndex: (index: number) => {
+        if (!scrollViewRef.current) return
         scrollViewRef.current.scrollTo({ y: index * itemHeight })
       },
     }))
     const { themeStore } = useStores()
 
     const scrollToInitialIndex = () => {
+      if (!scrollViewRef.current) return
       scrollViewRef.current.scrollTo({ y: initialScrollIndex * itemHeight, animated: false })
     }
 
@@ -130,7 +132,8 @@ export const WheelPickerAnimated: React.FC<WheelPickerProps> = observer((props) 
     )
   }
 
-  const modifiedItems = ["", ...items, ""]
+  const blankItems = { label: "", value: null }
+  const modifiedItems = [blankItems, ...items, blankItems]
 
   const momentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = event.nativeEvent.contentOffset.y

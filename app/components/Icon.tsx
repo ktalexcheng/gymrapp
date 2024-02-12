@@ -2,13 +2,11 @@ import Ionicons from "@expo/vector-icons/Ionicons"
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import * as React from "react"
-import { ComponentType } from "react"
 import {
   ImageStyle,
   StyleProp,
   TouchableOpacity,
   TouchableOpacityProps,
-  View,
   ViewStyle,
 } from "react-native"
 
@@ -65,12 +63,13 @@ export const Icon = observer((props: IconProps) => {
   const { themeStore } = useStores()
 
   const isPressable = !!WrapperProps.onPress
-  const Wrapper: ComponentType<TouchableOpacityProps> = WrapperProps?.onPress
-    ? TouchableOpacity
-    : View
+  // const Wrapper: ComponentType<TouchableOpacityProps> = WrapperProps?.onPress
+  //   ? TouchableOpacity
+  //   : View
 
   return (
-    <Wrapper
+    <TouchableOpacity
+      disabled={!isPressable}
       accessibilityRole={isPressable ? "imagebutton" : undefined}
       {...WrapperProps}
       style={$containerStyleOverride}
@@ -81,6 +80,6 @@ export const Icon = observer((props: IconProps) => {
         size={size}
         style={$iconStyleOverride}
       />
-    </Wrapper>
+    </TouchableOpacity>
   )
 })

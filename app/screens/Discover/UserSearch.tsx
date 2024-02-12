@@ -1,5 +1,5 @@
-import { Avatar, Button, RowView, Search, Spacer, Text } from "app/components"
-import { User, UserSearchResult } from "app/data/model"
+import { Avatar, RowView, Search, Spacer, Text } from "app/components"
+import { UserSearchResult } from "app/data/types"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { api } from "app/services/api"
 import { spacing, styles } from "app/theme"
@@ -22,7 +22,7 @@ const UserSearchResultItem: FC<UserSearchResultItemProps> = ({
       onPress={() => mainNavigator.navigate("ProfileVisitorView", { userId: user.userId })}
     >
       <RowView style={$userResultItemContainer}>
-        <Avatar user={user as User} size="sm" />
+        <Avatar user={user} size="sm" />
         <Spacer type="horizontal" size="small" />
         <View>
           <Text weight="bold" text={user.userHandle} />
@@ -33,19 +33,19 @@ const UserSearchResultItem: FC<UserSearchResultItemProps> = ({
   )
 }
 
-const UserSearchFooterComponent = () => {
-  return (
-    <>
-      <Button
-        tx="userSearch.inviteFriendsButtonLabel"
-        preset="text"
-        style={styles.alignCenter}
-        onPress={() => console.debug("TODO: share download link to friends")}
-      />
-      <Spacer type="vertical" size="extraLarge" />
-    </>
-  )
-}
+// const UserSearchFooterComponent = () => {
+//   return (
+//     <>
+//       <Button
+//         tx="userSearch.inviteFriendsButtonLabel"
+//         preset="text"
+//         style={styles.alignCenter}
+//         onPress={() => console.debug("TODO: share download link to friends")}
+//       />
+//       <Spacer type="vertical" size="extraLarge" />
+//     </>
+//   )
+// }
 
 const UserSearchPromptComponent = () => {
   return (

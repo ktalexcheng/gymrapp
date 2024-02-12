@@ -1,4 +1,4 @@
-import { UserId } from "./userModel"
+import { UserId } from "./user.types"
 
 interface UserFollow {
   followDate: Date

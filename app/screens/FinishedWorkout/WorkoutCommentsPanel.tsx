@@ -1,14 +1,21 @@
 import { WorkoutSource } from "app/data/constants"
-import { User, UserId, WorkoutComment, WorkoutId, WorkoutInteraction } from "app/data/model"
+import { User, UserId, WorkoutId } from "app/data/types"
 import { translate } from "app/i18n"
-import { useStores } from "app/stores"
+import { IWorkoutCommentModel, IWorkoutInteractionModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { formatDate } from "app/utils/formatDate"
 import { BlurView } from "expo-blur"
 import * as Clipboard from "expo-clipboard"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useRef, useState } from "react"
-import { ActivityIndicator, StyleProp, TouchableOpacity, View, ViewStyle } from "react-native"
+import {
+  ActivityIndicator,
+  StyleProp,
+  TextInput,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from "react-native"
 import { FlatList, Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
   AnimatedStyleProp,
@@ -30,7 +37,7 @@ const WorkoutCommentTile = (props: {
 }) => {
   const { byUserId, comment, commentDate, onLongPress, selectedState } = props
   const { userStore, themeStore } = useStores()
-  const [user, setUser] = useState<User>(undefined)
+  const [user, setUser] = useState<User>()
 
   useEffect(() => {
     userStore.getOtherUser(byUserId).then((user) => setUser(user))
@@ -88,16 +95,16 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
   const { userStore, feedStore, themeStore } = useStores()
   const panelTranslateY = useSharedValue(PANEL_INITIAL_Y_POSITION)
   const context = useSharedValue({ yPosition: PANEL_INITIAL_Y_POSITION })
-  const [interactions, setInteractions] = useState<WorkoutInteraction>(undefined)
+  const [interactions, setInteractions] = useState<IWorkoutInteractionModel>()
   const [commentInput, setCommentInput] = useState("")
   const [commentInputHeight, setCommentInputHeight] = useState(50)
-  const commentInputRef = useRef(null)
+  const commentInputRef = useRef<TextInput>(null)
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
-  const [selectedComment, setSelectedComment] = useState<WorkoutComment>(undefined)
+  const [selectedComment, setSelectedComment] = useState<IWorkoutCommentModel>()
   const [isCommentDeleteConfirmation, setIsCommentDeleteConfirmation] = useState(false)
 
   useEffect(() => {
-    commentInputRef.current.focus()
+    commentInputRef.current?.focus()
   }, [])
 
   useEffect(() => {
@@ -157,7 +164,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
   }
 
   const submitComment = () => {
-    if (!commentInput) return
+    if (!commentInput || !userStore.userId) return
 
     setIsSubmittingComment(true)
     feedStore
@@ -192,6 +199,8 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
               name="trash-bin-outline"
               size={28}
               onPress={() => {
+                if (!selectedComment) return
+
                 feedStore.removeCommentFromWorkout(workoutId, selectedComment)
                 setSelectedComment(undefined)
               }}
@@ -224,12 +233,14 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
           name="clipboard-outline"
           size={28}
           onPress={() => {
+            if (!selectedComment) return
+
             Clipboard.setStringAsync(selectedComment.comment).then(() => {
               Toast.show(translate("common.copiedToClipboard"), { duration: Toast.durations.SHORT })
             })
           }}
         />
-        {selectedComment.byUserId === userStore.userId && (
+        {selectedComment?.byUserId === userStore.userId && (
           <>
             <Spacer type="horizontal" size="medium" />
             <Icon
@@ -309,7 +320,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
                     <WorkoutCommentTile
                       byUserId={item.byUserId}
                       comment={item.comment}
-                      commentDate={item._createdAt}
+                      commentDate={item._createdAt as Date}
                       onLongPress={() => setSelectedComment(item)}
                       selectedState={selectedComment?.commentId === item.commentId}
                     />

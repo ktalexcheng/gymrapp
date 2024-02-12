@@ -1,74 +1,80 @@
-import { ActivityId } from "app/data/model/activityModel"
+import { ActivityId } from "app/data/types/activity.types"
 import { differenceInSeconds } from "date-fns"
 import * as Notifications from "expo-notifications"
-import { SnapshotIn, destroy, flow, getEnv, types } from "mobx-state-tree"
+import { IKeyValueMap } from "mobx"
+import { Instance, SnapshotOrInstance, destroy, flow, getEnv, types } from "mobx-state-tree"
 import { ExerciseSetType, ExerciseSource, ExerciseVolumeType } from "../../app/data/constants"
-import {
-  Exercise,
-  ExerciseHistory,
-  ExercisePerformed,
-  ExerciseSet,
-  Gym,
-  NewExerciseRecord,
-  NewWorkout,
-  RepsExerciseSet,
-  RepsPersonalRecord,
-  TimeExerciseSet,
-  TimePersonalRecord,
-} from "../../app/data/model"
 import { translate } from "../../app/i18n"
 import { REST_TIMER_CHANNEL_ID } from "../data/constants"
+import { Gym, NewWorkout } from "../data/types"
 import { formatSecondsAsTime } from "../utils/formatTime"
+import { IExerciseModel } from "./ExerciseStore"
+import { IExerciseSummaryModel } from "./FeedStore"
+import { UserModel } from "./UserStore"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
+import {
+  IRepsPersonalRecordModel,
+  IRepsSetPerformedModel,
+  ITimePersonalRecordModel,
+  ITimeSetPerformedModel,
+  RepsSetPerformedModel,
+  TimeSetPerformedModel,
+} from "./models"
 
-const SingleExerciseSet = types
-  .model({
-    setOrder: types.number,
-    setType: types.enumeration(Object.values(ExerciseSetType)),
-    volumeType: types.enumeration(Object.values(ExerciseVolumeType)),
-    weight: types.maybeNull(types.number),
-    reps: types.maybeNull(types.number),
-    time: types.maybeNull(types.number),
-    rpe: types.maybeNull(types.number),
-    isCompleted: false,
-  })
-  .views((self) => ({
-    get validWeight() {
-      return self.weight !== undefined
-    },
-    get validReps() {
-      return self.reps !== undefined
-    },
-  }))
-  .actions(withSetPropAction)
-  .actions((self) => ({
-    updateSetValues(prop: "weight" | "reps" | "rpe" | "time", value: number) {
-      if (value !== null && value !== undefined && value >= 0) {
-        self.setProp(prop, value)
-      } else {
-        self.setProp(prop, undefined)
-      }
-    },
-  }))
-
-const ExerciseSets = types.array(SingleExerciseSet)
-
-const SingleExercise = types
-  .model({
+const BaseExercisePerformedModel = types
+  .model("BaseExercisePerformedModel", {
     exerciseOrder: types.number,
     exerciseId: types.string,
-    exerciseSource: types.enumeration(Object.values(ExerciseSource)),
+    exerciseSource: types.enumeration("ExerciseSource", Object.values(ExerciseSource)),
     exerciseName: types.string,
-    volumeType: types.enumeration(Object.values(ExerciseVolumeType)),
-    setsPerformed: types.optional(ExerciseSets, []),
     exerciseNotes: types.maybeNull(types.string),
+    // volumeType: types.enumeration("ExerciseVolumeType", Object.values(ExerciseVolumeType)),
+    // setsPerformed: types.optional(types.array(SetPerformedModel), []),
   })
   .actions(withSetPropAction)
 
-const Exercises = types.array(SingleExercise)
+const RepsExercisePerformedModel = types.compose(
+  "RepsExercisePerformedModel",
+  BaseExercisePerformedModel,
+  types.model({
+    volumeType: types.literal(ExerciseVolumeType.Reps),
+    setsPerformed: types.optional(types.array(RepsSetPerformedModel), []),
+  }),
+)
 
-const WorkoutStoreModel = types
+const TimeExercisePerformedModel = types.compose(
+  "TimeExercisePerformedModel",
+  BaseExercisePerformedModel,
+  types.model({
+    volumeType: types.literal(ExerciseVolumeType.Time),
+    setsPerformed: types.optional(types.array(TimeSetPerformedModel), []),
+  }),
+)
+
+const ExercisePerformedModel = types.union(
+  { eager: true },
+  RepsExercisePerformedModel,
+  TimeExercisePerformedModel,
+)
+
+// const SingleExercise = types
+//   .model({
+//     exerciseOrder: types.number,
+//     exerciseId: types.string,
+//     exerciseSource: types.enumeration(Object.values(ExerciseSource)),
+//     exerciseName: types.string,
+//     volumeType: types.enumeration(Object.values(ExerciseVolumeType)),
+//     exerciseNotes: types.maybeNull(types.string),
+//     setsPerformed: types.optional(types.array(SetPerformedModel), []),
+//   })
+//   .actions(withSetPropAction)
+
+const Exercises = types.array(ExercisePerformedModel)
+
+export type IExercisePerformedModel = SnapshotOrInstance<typeof ExercisePerformedModel>
+
+export const WorkoutStoreModel = types
   .model("WorkoutStore")
   .props({
     startTime: types.maybe(types.Date),
@@ -117,6 +123,8 @@ const WorkoutStoreModel = types
       return false
     },
     get timeElapsedFormatted() {
+      if (!self.startTime) return "00:00"
+
       const duration = differenceInSeconds(new Date(), self.startTime)
       return formatSecondsAsTime(duration, true)
     },
@@ -124,7 +132,9 @@ const WorkoutStoreModel = types
       let total = 0
       self.exercises.forEach((e) => {
         e.setsPerformed.forEach((s) => {
-          total += s.isCompleted ? s.weight * s.reps : 0
+          if (s.volumeType === ExerciseVolumeType.Reps) {
+            total += s.isCompleted ? (s.weight ?? 0) * (s.reps ?? 0) : 0
+          }
         })
       })
 
@@ -140,273 +150,6 @@ const WorkoutStoreModel = types
     },
   }))
   .actions(withSetPropAction)
-  .actions((self) => {
-    function resetWorkout() {
-      self.startTime = new Date()
-      self.lastSetCompletedTime = undefined
-      self.restTime = 0
-      // self.restTimeRemaining = 0
-      self.restTimeStartedAt = undefined
-      self.exercises = Exercises.create()
-      self.workoutTitle = translate("activeWorkoutScreen.newActiveWorkoutTitle")
-      self.performedAtGymId = undefined
-      self.performedAtGymName = undefined
-    }
-
-    function cleanUpWorkout() {
-      // Remove incompleted sets
-      self.exercises.forEach((e) => {
-        e.setsPerformed.forEach((s) => {
-          !s.isCompleted && destroy(s)
-        })
-      })
-    }
-
-    function setGym(gym: Gym) {
-      self.performedAtGymId = gym.gymId
-      self.performedAtGymName = gym.gymName
-    }
-
-    const getAllExerciseSummary = flow(function* () {
-      const exercisesSummary: ExercisePerformed[] = []
-
-      // self.exercises.forEach(async (e) => {
-      for (const e of self.exercises.values()) {
-        const exerciseHistory: ExerciseHistory = yield getEnv<RootStoreDependencies>(
-          self,
-        ).userRepository.getUserProp("exerciseHistory")
-        const exerciseRecord = exerciseHistory && exerciseHistory?.[e.exerciseId]?.personalRecords
-        let bestSet = {} as ExerciseSet
-        const newRecords = {} as NewExerciseRecord
-
-        if (e.volumeType === ExerciseVolumeType.Reps) {
-          let totalReps = 0
-          let totalVolume = 0
-
-          e.setsPerformed.forEach((s) => {
-            if (!s.reps || s.reps === 0) return
-
-            totalReps += s.reps
-            totalVolume += s.weight * s.reps
-
-            if (
-              (bestSet as RepsExerciseSet)?.weight === undefined ||
-              s.weight > (bestSet as RepsExerciseSet).weight
-            ) {
-              bestSet = s as RepsExerciseSet
-            }
-
-            const exerciseRepRecord = exerciseRecord && exerciseRecord?.[s.reps]
-            const recordsCount = exerciseRepRecord && Object.keys(exerciseRepRecord).length
-            if (s.weight > ((recordsCount && exerciseRepRecord[recordsCount - 1].weight) || 0)) {
-              if (
-                newRecords[s.reps] &&
-                s.weight < (newRecords[s.reps] as RepsPersonalRecord)?.weight
-              )
-                return
-
-              newRecords[s.reps] = {
-                // exerciseId: e.exerciseId,
-                datePerformed: self.startTime,
-                weight: s.weight,
-                reps: s.reps,
-              } as RepsPersonalRecord
-            }
-          })
-
-          exercisesSummary.push({
-            ...e,
-            volumeType: ExerciseVolumeType.Reps,
-            bestSet,
-            datePerformed: self.startTime,
-            totalReps,
-            totalVolume,
-            newRecords,
-          })
-        } else if (e.volumeType === ExerciseVolumeType.Time) {
-          let totalTime = 0
-
-          e.setsPerformed.forEach((s) => {
-            if (!s.time || s.time === 0) return
-
-            totalTime += s.time
-
-            if (s.time > ((bestSet as TimeExerciseSet)?.time || 0)) bestSet = s as TimeExerciseSet
-
-            // For time based exercises, records are only stored at the index 0
-            const exerciseTimeRecord = exerciseRecord && exerciseRecord?.[0]
-            const recordsCount = exerciseTimeRecord && Object.keys(exerciseTimeRecord).length
-            if (s.time > ((recordsCount && exerciseTimeRecord[recordsCount - 1].time) || 0)) {
-              if (newRecords[0] && s.time < (newRecords[0] as TimePersonalRecord)?.time) return
-
-              newRecords[0] = {
-                // exerciseId: e.exerciseId,
-                datePerformed: self.startTime,
-                time: s.time,
-              } as TimePersonalRecord
-            }
-          })
-
-          exercisesSummary.push({
-            ...e,
-            volumeType: ExerciseVolumeType.Time,
-            bestSet,
-            datePerformed: self.startTime,
-            totalTime,
-            newRecords,
-          })
-        }
-      }
-
-      return exercisesSummary
-    })
-
-    function startNewWorkout(activityId: ActivityId) {
-      resetWorkout()
-      self.activityId = activityId
-      self.inProgress = true
-    }
-
-    function pauseWorkout() {
-      self.endTime = new Date()
-    }
-
-    function resumeWorkout() {
-      self.endTime = undefined
-    }
-
-    function endWorkout() {
-      // self.resetWorkout()
-      self.endTime = new Date()
-      self.inProgress = false
-    }
-
-    const saveWorkout = flow(function* (isHidden: boolean) {
-      try {
-        if (self.inProgress) {
-          console.warn("WorkoutStore.saveWorkout: Unable to save, workout still in progress")
-          return undefined
-        }
-
-        cleanUpWorkout()
-
-        // console.debug("WorkoutStore.exerciseSummary:", self.exerciseSummary)
-        const { userRepository } = getEnv<RootStoreDependencies>(self)
-        const userId = yield userRepository.getUserProp("userId")
-        const privateAccount = yield userRepository.getUserProp("privateAccount")
-        const allExerciseSummary = yield getAllExerciseSummary()
-        const newWorkout = {
-          byUserId: userId,
-          userIsPrivate: privateAccount,
-          isHidden,
-          startTime: self.startTime,
-          endTime: self.endTime,
-          exercises: allExerciseSummary,
-          workoutTitle: self.workoutTitle,
-          activityId: self.activityId,
-          performedAtGymId: self.performedAtGymId ?? null,
-          performedAtGymName: self.performedAtGymName ?? null,
-        } as NewWorkout
-        console.debug("WorkoutStore.saveWorkout newWorkout:", newWorkout)
-        const workout = yield getEnv<RootStoreDependencies>(self).workoutRepository.create(
-          newWorkout,
-        )
-
-        // IMPORTANT: Moved these side effects to server side
-
-        // Update user workout metadata (keep track of workouts performed by user)
-        // yield getEnv<RootStoreDependencies>(self).userRepository.update(
-        //   null,
-        //   {
-        //     workoutMetas: {
-        //       [workoutId]: {
-        //         startTime: self.startTime,
-        //       },
-        //     },
-        //   },
-        //   true,
-        // )
-
-        // Update user exercise history
-        // const userUpdate = {} as Partial<User>
-        // allExerciseSummary.forEach((e) => {
-        //   userUpdate[`exerciseHistory.${e.exerciseId}.performedWorkoutIds`] =
-        //     firestore.FieldValue.arrayUnion(workoutId)
-        //   if (Object.keys(e.newRecords).length > 0) {
-        //     Object.entries(e.newRecords).forEach(([rep, record]) => {
-        //       const newRecord = firestore.FieldValue.arrayUnion(record)
-        //       userUpdate[`exerciseHistory.${e.exerciseId}.personalRecords.${rep}`] = newRecord
-        //     })
-        //   }
-        // })
-        // yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, false)
-
-        resetWorkout()
-        return workout
-      } catch (error) {
-        console.error("WorkoutStore.saveWorkout error:", error)
-        return undefined
-      }
-    })
-
-    function addExercise(exercise: Exercise) {
-      const newExerciseOrder = self.exercises.length
-      const newExercise = SingleExercise.create({
-        exerciseOrder: newExerciseOrder,
-        exerciseId: exercise.exerciseId,
-        exerciseSource: exercise.exerciseSource,
-        exerciseName: exercise.exerciseName,
-        volumeType: exercise.volumeType,
-        setsPerformed: [],
-      })
-      self.exercises.push(newExercise)
-    }
-
-    function removeExercise(exerciseOrder: number) {
-      self.exercises.splice(exerciseOrder, 1)
-      self.exercises.forEach((e, i) => {
-        e.exerciseOrder = i
-      })
-    }
-
-    function addSet(
-      targetExerciseOrder: number,
-      newSetObject: SnapshotIn<typeof SingleExerciseSet>,
-    ) {
-      const exercise = self.exercises.at(targetExerciseOrder)
-      const newSetOrder = exercise.setsPerformed.length
-      const newSet = SingleExerciseSet.create({
-        setOrder: newSetOrder,
-        volumeType: exercise.volumeType,
-        ...newSetObject,
-      })
-      exercise.setsPerformed.push(newSet)
-    }
-
-    function removeSet(targetExerciseOrder: number, targetExerciseSetOrder: number) {
-      const targetExercise = self.exercises.at(targetExerciseOrder)
-      const sets = targetExercise.setsPerformed
-      sets.splice(targetExerciseSetOrder, 1)
-      sets.forEach((s, i) => {
-        s.setOrder = i
-      })
-    }
-
-    return {
-      resetWorkout,
-      cleanUpWorkout,
-      setGym,
-      startNewWorkout,
-      pauseWorkout,
-      resumeWorkout,
-      endWorkout,
-      saveWorkout,
-      addExercise,
-      removeExercise,
-      addSet,
-      removeSet,
-    }
-  })
   .actions((self) => {
     let intervalId
     let notificationId
@@ -509,16 +252,16 @@ const WorkoutStoreModel = types
       })
 
       let notificationMessage
-      if (lastCompletedExercise) {
+      if (lastCompletedExercise && lastCompletedSet) {
         let setDescription
-        switch (lastCompletedExercise.volumeType) {
+        switch (lastCompletedSet.volumeType) {
           case ExerciseVolumeType.Reps:
             setDescription = `${lastCompletedExercise.exerciseName} ${lastCompletedSet.weight} kg x ${lastCompletedSet.reps}`
             if (lastCompletedSet.rpe) setDescription += ` @ RPE ${lastCompletedSet.rpe}`
             break
           case ExerciseVolumeType.Time:
             setDescription = `${lastCompletedExercise.exerciseName} ${formatSecondsAsTime(
-              lastCompletedSet.time,
+              lastCompletedSet.time ?? 0,
             )}`
             break
         }
@@ -567,37 +310,6 @@ const WorkoutStoreModel = types
           notificationId,
         })
       }
-
-      // if (notificationId) {
-      //   const presentedNotifications = await Notifications.getPresentedNotificationsAsync()
-      //   const findPresentedNotification = presentedNotifications.find(
-      //     (n) => n.request.identifier === notificationId,
-      //   )
-
-      //   if (findPresentedNotification) {
-      //     await Notifications.dismissNotificationAsync(notificationId)
-      //     console.debug("WorkoutStore.dismissRestNotifications dismissed presented notification:", {
-      //       presentedNotifications,
-      //       findPresentedNotification,
-      //     })
-      //     return
-      //   }
-
-      //   const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync()
-      //   const findScheduledNotification = scheduledNotifications.find(
-      //     (n) => n.identifier === notificationId,
-      //   )
-
-      //   if (findScheduledNotification) {
-      //     await Notifications.cancelScheduledNotificationAsync(notificationId)
-      //     console.debug("WorkoutStore.dismissRestNotifications dismissed scheduled notification:", {
-      //       presentedNotifications,
-      //       findPresentedNotification,
-      //     })
-      //   }
-
-      //   notificationId = undefined
-      // }
     }
 
     return {
@@ -629,5 +341,323 @@ const WorkoutStoreModel = types
       return self.restTime - actualTimeElapsed
     },
   }))
+  .actions((self) => {
+    function resetWorkout() {
+      self.startTime = new Date()
+      self.lastSetCompletedTime = undefined
+      self.restTime = 0
+      // self.restTimeRemaining = 0
+      self.restTimeStartedAt = undefined
+      self.exercises = Exercises.create()
+      self.workoutTitle = translate("activeWorkoutScreen.newActiveWorkoutTitle")
+      self.performedAtGymId = undefined
+      self.performedAtGymName = undefined
+    }
 
-export { ExerciseSets, WorkoutStoreModel }
+    function cleanUpWorkout() {
+      // Remove incompleted sets
+      self.exercises.forEach((e) => {
+        e.setsPerformed.forEach((s) => {
+          !s.isCompleted && destroy(s)
+        })
+      })
+    }
+
+    function setGym(gym: Gym) {
+      self.performedAtGymId = gym.gymId
+      self.performedAtGymName = gym.gymName
+    }
+
+    const getLatestExerciseRecord = (
+      user: Instance<typeof UserModel>,
+      exerciseId: string,
+      reps: number,
+    ) => {
+      const exerciseHistory = user.exerciseHistory
+      const exercisePersonalRecords = exerciseHistory?.get(exerciseId)?.personalRecords
+      console.debug("WorkoutStore.getLatestExerciseRecord()", {
+        exerciseHistory,
+        exercisePersonalRecords,
+      })
+
+      const exerciseRecords = exercisePersonalRecords?.get(reps)?.records
+      if (!exerciseRecords) return null
+
+      const recordsCount = exerciseRecords?.length
+      const latestRecord = exerciseRecords[recordsCount - 1]
+
+      return latestRecord
+    }
+
+    const getAllExerciseSummary = flow(function* (user: Instance<typeof UserModel>) {
+      const exercisesSummary: IExerciseSummaryModel[] = []
+
+      for (const e of self.exercises.values()) {
+        if (e.volumeType === ExerciseVolumeType.Reps) {
+          let bestSet = {} as IRepsSetPerformedModel
+          const newRecords = {} as IKeyValueMap<IRepsPersonalRecordModel>
+          let totalReps = 0
+          let totalVolume = 0
+
+          e.setsPerformed.forEach((s) => {
+            if (!s.reps || s.reps === 0) {
+              console.error("WorkoutStore.getAllExerciseSummary: Skipping set, reps is 0", {
+                exercise: e,
+                setsPerformed: s,
+              })
+              return
+            }
+
+            totalReps += s.reps
+            totalVolume += (s.weight ?? 0) * s.reps
+
+            if ((s.weight ?? 0) > (bestSet?.weight ?? -1)) {
+              bestSet = s
+            }
+
+            let latestRecord = getLatestExerciseRecord(user, e.exerciseId, s.reps)
+            // Safety check, in case the exercise was modified and the latest record is not a reps record
+            if (latestRecord?.volumeType !== ExerciseVolumeType.Reps) latestRecord = null
+
+            if ((s.weight ?? 0) > (latestRecord?.weight ?? 0)) {
+              // Make sure we don't overwrite a new record with a lower weight
+              if (newRecords[s.reps] && (s.weight ?? 0) < (newRecords[s.reps].weight ?? 0)) return
+
+              newRecords[s.reps] = {
+                // exerciseId: e.exerciseId,
+                volumeType: ExerciseVolumeType.Reps,
+                datePerformed: self.startTime ?? new Date(),
+                weight: s.weight,
+                reps: s.reps,
+              }
+            }
+          })
+
+          exercisesSummary.push({
+            ...e,
+            volumeType: ExerciseVolumeType.Reps,
+            bestSet,
+            datePerformed: self.startTime! ?? new Date(),
+            totalReps,
+            totalVolume,
+            newRecords,
+          })
+        } else if (e.volumeType === ExerciseVolumeType.Time) {
+          let bestSet = {} as ITimeSetPerformedModel
+          const newRecords = {} as IKeyValueMap<ITimePersonalRecordModel>
+          let totalTime = 0
+
+          e.setsPerformed.forEach((s) => {
+            if (!s.time || s.time === 0) {
+              console.error("WorkoutStore.getAllExerciseSummary: Skipping set, time is 0", {
+                exercise: e,
+                setsPerformed: s,
+              })
+              return
+            }
+
+            totalTime += s.time
+
+            if (s.time > (bestSet.time || 0)) {
+              bestSet = s
+            }
+
+            let latestRecord = getLatestExerciseRecord(user, e.exerciseId, 0)
+            // Safety check, in case the exercise was modified and the latest record is not a time record
+            if (latestRecord?.volumeType !== ExerciseVolumeType.Time) latestRecord = null
+
+            if (s.time > (latestRecord?.time ?? 0)) {
+              // Make sure we don't overwrite a new record with a shorter time
+              if (newRecords[0] && s.time < newRecords[0].time) return
+
+              newRecords[0] = {
+                // exerciseId: e.exerciseId,
+                reps: 0, // For time based exercises, reps is always 0
+                volumeType: ExerciseVolumeType.Time,
+                datePerformed: self.startTime ?? new Date(),
+                time: s.time,
+              }
+            }
+          })
+
+          exercisesSummary.push({
+            ...e,
+            volumeType: ExerciseVolumeType.Time,
+            bestSet,
+            datePerformed: self.startTime ?? new Date(),
+            totalTime,
+            newRecords,
+          })
+        }
+      }
+
+      return exercisesSummary
+    })
+
+    function startNewWorkout(activityId: ActivityId) {
+      resetWorkout()
+      self.activityId = activityId
+      self.inProgress = true
+    }
+
+    function pauseWorkout() {
+      self.endTime = new Date()
+    }
+
+    function resumeWorkout() {
+      self.endTime = undefined
+    }
+
+    function endWorkout() {
+      self.endTime = new Date()
+      self.stopRestTimer()
+      self.inProgress = false
+    }
+
+    const saveWorkout = flow(function* (isHidden: boolean, user: Instance<typeof UserModel>) {
+      try {
+        if (self.inProgress) {
+          console.warn("WorkoutStore.saveWorkout: Unable to save, workout still in progress")
+          return undefined
+        }
+
+        cleanUpWorkout()
+
+        // console.debug("WorkoutStore.exerciseSummary:", self.exerciseSummary)
+        const userId = user.userId
+        const privateAccount = user.privateAccount
+        const allExerciseSummary = yield getAllExerciseSummary(user)
+        const newWorkout = {
+          byUserId: userId,
+          userIsPrivate: privateAccount,
+          isHidden,
+          startTime: self.startTime,
+          endTime: self.endTime,
+          exercises: allExerciseSummary,
+          workoutTitle: self.workoutTitle,
+          activityId: self.activityId,
+          performedAtGymId: self.performedAtGymId ?? null,
+          performedAtGymName: self.performedAtGymName ?? null,
+        } as NewWorkout
+        console.debug("WorkoutStore.saveWorkout newWorkout:", newWorkout)
+        const workout = yield getEnv<RootStoreDependencies>(self).workoutRepository.create(
+          newWorkout,
+        )
+
+        // IMPORTANT: Moved these side effects to server side
+
+        // Update user workout metadata (keep track of workouts performed by user)
+        // yield getEnv<RootStoreDependencies>(self).userRepository.update(
+        //   null,
+        //   {
+        //     workoutMetas: {
+        //       [workoutId]: {
+        //         startTime: self.startTime,
+        //       },
+        //     },
+        //   },
+        //   true,
+        // )
+
+        // Update user exercise history
+        // const userUpdate = {} as Partial<User>
+        // allExerciseSummary.forEach((e) => {
+        //   userUpdate[`exerciseHistory.${e.exerciseId}.performedWorkoutIds`] =
+        //     firestore.FieldValue.arrayUnion(workoutId)
+        //   if (Object.keys(e.newRecords).length > 0) {
+        //     Object.entries(e.newRecords).forEach(([rep, record]) => {
+        //       const newRecord = firestore.FieldValue.arrayUnion(record)
+        //       userUpdate[`exerciseHistory.${e.exerciseId}.personalRecords.${rep}`] = newRecord
+        //     })
+        //   }
+        // })
+        // yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, false)
+
+        return workout
+      } catch (error) {
+        console.error("WorkoutStore.saveWorkout error:", error)
+        return undefined
+      }
+    })
+
+    function addExercise(exercise: IExerciseModel) {
+      const newExerciseOrder = self.exercises.length
+      const newExercise = ExercisePerformedModel.create({
+        exerciseOrder: newExerciseOrder,
+        exerciseId: exercise.exerciseId,
+        exerciseSource: exercise.exerciseSource,
+        exerciseName: exercise.exerciseName,
+        volumeType: exercise.volumeType,
+        setsPerformed: [],
+      })
+      self.exercises.push(newExercise)
+    }
+
+    function removeExercise(exerciseOrder: number) {
+      self.exercises.splice(exerciseOrder, 1)
+      self.exercises.forEach((e, i) => {
+        e.exerciseOrder = i
+      })
+    }
+
+    function addSet(targetExerciseOrder: number) {
+      const exercise = self.exercises.at(targetExerciseOrder)
+      if (!exercise) {
+        console.error("WorkoutStore.addSet: exercise not found")
+        return
+      }
+
+      const newSetOrder = exercise.setsPerformed.length
+      switch (exercise.volumeType) {
+        case ExerciseVolumeType.Reps:
+          exercise.setsPerformed.push(
+            RepsSetPerformedModel.create({
+              setOrder: newSetOrder,
+              volumeType: exercise.volumeType,
+              setType: ExerciseSetType.Normal,
+              isCompleted: false,
+            }),
+          )
+          break
+        case ExerciseVolumeType.Time:
+          exercise.setsPerformed.push(
+            TimeSetPerformedModel.create({
+              setOrder: newSetOrder,
+              volumeType: exercise.volumeType,
+              setType: ExerciseSetType.Normal,
+              isCompleted: false,
+            }),
+          )
+          break
+      }
+    }
+
+    function removeSet(targetExerciseOrder: number, targetExerciseSetOrder: number) {
+      const targetExercise = self.exercises.at(targetExerciseOrder)
+      if (!targetExercise) {
+        console.error("WorkoutStore.removeSet: exercise not found")
+        return
+      }
+
+      const sets = targetExercise.setsPerformed
+      sets.splice(targetExerciseSetOrder, 1)
+      sets.forEach((s, i) => {
+        s.setOrder = i
+      })
+    }
+
+    return {
+      resetWorkout,
+      cleanUpWorkout,
+      setGym,
+      startNewWorkout,
+      pauseWorkout,
+      resumeWorkout,
+      endWorkout,
+      saveWorkout,
+      addExercise,
+      removeExercise,
+      addSet,
+      removeSet,
+    }
+  })

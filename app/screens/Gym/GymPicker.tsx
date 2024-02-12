@@ -1,4 +1,4 @@
-import { Gym } from "app/data/model"
+import { Gym } from "app/data/types"
 import { useStores } from "app/stores"
 import { styles } from "app/theme"
 import { observer } from "mobx-react-lite"

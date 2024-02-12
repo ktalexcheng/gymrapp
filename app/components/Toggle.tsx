@@ -1,6 +1,6 @@
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
-import React, { ComponentType, FC, useMemo } from "react"
+import React, { FC, useMemo } from "react"
 import {
   GestureResponderEvent,
   Image,
@@ -27,7 +27,7 @@ interface BaseToggleProps extends Omit<TouchableOpacityProps, "style"> {
    * Options: "checkbox", "switch", "radio"
    * Default: "checkbox"
    */
-  variant?: unknown
+  variant: "checkbox" | "switch" | "radio"
   /**
    * A style modifier for different input states.
    */
@@ -39,7 +39,7 @@ interface BaseToggleProps extends Omit<TouchableOpacityProps, "style"> {
   /**
    * The value of the field. If true the component will be turned on.
    */
-  value?: boolean
+  value: boolean
   /**
    * Invoked with the new value when the value changes.
    */
@@ -108,7 +108,7 @@ interface BaseToggleProps extends Omit<TouchableOpacityProps, "style"> {
 }
 
 interface CheckboxToggleProps extends BaseToggleProps {
-  variant?: "checkbox"
+  variant: "checkbox"
   /**
    * Optional style prop that affects the Image component.
    */
@@ -120,7 +120,7 @@ interface CheckboxToggleProps extends BaseToggleProps {
 }
 
 interface RadioToggleProps extends BaseToggleProps {
-  variant?: "radio"
+  variant: "radio"
   /**
    * Optional style prop that affects the dot View.
    */
@@ -128,7 +128,7 @@ interface RadioToggleProps extends BaseToggleProps {
 }
 
 interface SwitchToggleProps extends BaseToggleProps {
-  variant?: "switch"
+  variant: "switch"
   /**
    * Switch-only prop that adds a text/icon label for on/off states.
    */
@@ -145,10 +145,10 @@ export type ToggleProps = CheckboxToggleProps | RadioToggleProps | SwitchToggleP
 interface ToggleInputProps {
   on: boolean
   status: BaseToggleProps["status"]
-  disabled: boolean
-  outerStyle: ViewStyle
-  innerStyle: ViewStyle
-  detailStyle: Omit<ViewStyle & ImageStyle, "overflow">
+  disabled?: boolean
+  outerStyle?: ViewStyle
+  innerStyle?: ViewStyle
+  detailStyle?: Omit<ViewStyle & ImageStyle, "overflow">
   switchAccessibilityMode?: SwitchToggleProps["switchAccessibilityMode"]
   checkboxIcon?: CheckboxToggleProps["checkboxIcon"]
 }
@@ -184,10 +184,10 @@ export const Toggle = observer(function Toggle(props: ToggleProps) {
 
   const disabled = editable === false || status === "disabled" || props.disabled
 
-  const Wrapper = useMemo<ComponentType<TouchableOpacityProps>>(
-    () => (disabled ? View : TouchableOpacity),
-    [disabled],
-  )
+  // const Wrapper = useMemo<ComponentType<TouchableOpacityProps>>(
+  //   () => (disabled ? View : TouchableOpacity),
+  //   [disabled],
+  // )
   const ToggleInput = useMemo(() => ToggleInputs[variant] || (() => null), [variant])
 
   const $containerStyles = [$containerStyleOverride]
@@ -205,7 +205,8 @@ export const Toggle = observer(function Toggle(props: ToggleProps) {
   }
 
   return (
-    <Wrapper
+    <TouchableOpacity
+      disabled={disabled}
       activeOpacity={1}
       accessibilityRole={variant}
       accessibilityState={{ checked: value, disabled }}
@@ -240,7 +241,7 @@ export const Toggle = observer(function Toggle(props: ToggleProps) {
           style={$helperStyles}
         />
       )}
-    </Wrapper>
+    </TouchableOpacity>
   )
 })
 
@@ -257,30 +258,26 @@ const Checkbox = observer((props: ToggleInputProps) => {
 
   const { themeStore } = useStores()
 
-  const offBackgroundColor = [
-    disabled && themeStore.palette("neutral400"),
-    status === "error" && themeStore.colors("errorBackground"),
-    themeStore.palette("neutral200"),
-  ].filter(Boolean)[0]
+  const offBackgroundColor =
+    (disabled && themeStore.palette("neutral400")) ||
+    (status === "error" && themeStore.colors("errorBackground")) ||
+    themeStore.palette("neutral200")
 
-  const outerBorderColor = [
-    disabled && themeStore.palette("neutral400"),
-    status === "error" && themeStore.colors("error"),
-    !on && themeStore.palette("neutral800"),
-    themeStore.palette("secondary500"),
-  ].filter(Boolean)[0]
+  const outerBorderColor =
+    (disabled && themeStore.palette("neutral400")) ||
+    (status === "error" && themeStore.colors("error")) ||
+    (!on && themeStore.palette("neutral800")) ||
+    themeStore.palette("secondary500")
 
-  const onBackgroundColor = [
-    disabled && themeStore.colors("transparent"),
-    status === "error" && themeStore.colors("errorBackground"),
-    themeStore.palette("secondary500"),
-  ].filter(Boolean)[0]
+  const onBackgroundColor =
+    (disabled && themeStore.colors("transparent")) ||
+    (status === "error" && themeStore.colors("errorBackground")) ||
+    themeStore.palette("secondary500")
 
-  const iconTintColor = [
-    disabled && themeStore.palette("neutral600"),
-    status === "error" && themeStore.colors("error"),
-    themeStore.palette("secondary100"),
-  ].filter(Boolean)[0]
+  const iconTintColor =
+    (disabled && themeStore.palette("neutral600")) ||
+    (status === "error" && themeStore.colors("error")) ||
+    themeStore.palette("secondary100")
 
   return (
     <View
@@ -299,7 +296,7 @@ const Checkbox = observer((props: ToggleInputProps) => {
         ]}
       >
         <Image
-          source={customIconRegistry[checkboxIcon] || customIconRegistry.check}
+          source={(checkboxIcon && customIconRegistry[checkboxIcon]) || customIconRegistry.check}
           style={[$checkboxDetail, { tintColor: iconTintColor }, $detailStyleOverride]}
         />
       </Animated.View>
@@ -319,30 +316,26 @@ const Radio = observer((props: ToggleInputProps) => {
 
   const { themeStore } = useStores()
 
-  const offBackgroundColor = [
-    disabled && themeStore.palette("neutral400"),
-    status === "error" && themeStore.colors("errorBackground"),
-    themeStore.palette("neutral200"),
-  ].filter(Boolean)[0]
+  const offBackgroundColor =
+    (disabled && themeStore.palette("neutral400")) ||
+    (status === "error" && themeStore.colors("errorBackground")) ||
+    themeStore.palette("neutral200")
 
-  const outerBorderColor = [
-    disabled && themeStore.palette("neutral400"),
-    status === "error" && themeStore.colors("error"),
-    !on && themeStore.palette("neutral800"),
-    themeStore.palette("secondary500"),
-  ].filter(Boolean)[0]
+  const outerBorderColor =
+    (disabled && themeStore.palette("neutral400")) ||
+    (status === "error" && themeStore.colors("error")) ||
+    (!on && themeStore.palette("neutral800")) ||
+    themeStore.palette("secondary500")
 
-  const onBackgroundColor = [
-    disabled && themeStore.colors("transparent"),
-    status === "error" && themeStore.colors("errorBackground"),
-    themeStore.palette("neutral100"),
-  ].filter(Boolean)[0]
+  const onBackgroundColor =
+    (disabled && themeStore.colors("transparent")) ||
+    (status === "error" && themeStore.colors("errorBackground")) ||
+    themeStore.palette("neutral100")
 
-  const dotBackgroundColor = [
-    disabled && themeStore.palette("neutral600"),
-    status === "error" && themeStore.colors("error"),
-    themeStore.palette("secondary500"),
-  ].filter(Boolean)[0]
+  const dotBackgroundColor =
+    (disabled && themeStore.palette("neutral600")) ||
+    (status === "error" && themeStore.colors("error")) ||
+    themeStore.palette("secondary500")
 
   return (
     <View
@@ -390,33 +383,31 @@ const Switch = observer((props: ToggleInputProps) => {
     (v) => typeof v === "number",
   )
 
-  const offBackgroundColor = [
-    disabled && themeStore.palette("neutral400"),
-    status === "error" && themeStore.colors("errorBackground"),
-    themeStore.palette("neutral300"),
-  ].filter(Boolean)[0]
+  const offBackgroundColor =
+    (disabled && themeStore.palette("neutral400")) ||
+    (status === "error" && themeStore.colors("errorBackground")) ||
+    themeStore.palette("neutral300")
 
-  const onBackgroundColor = [
-    disabled && themeStore.colors("transparent"),
-    status === "error" && themeStore.colors("errorBackground"),
-    themeStore.colors("tint"),
-  ].filter(Boolean)[0]
+  const onBackgroundColor =
+    (disabled && themeStore.colors("transparent")) ||
+    (status === "error" && themeStore.colors("errorBackground")) ||
+    themeStore.colors("tint")
 
   const knobBackgroundColor = (function () {
     if (on) {
-      return [
-        $detailStyleOverride?.backgroundColor,
-        status === "error" && themeStore.colors("error"),
-        disabled && themeStore.palette("neutral600"),
-        themeStore.palette("neutral100"),
-      ].filter(Boolean)[0]
+      return (
+        $detailStyleOverride?.backgroundColor ||
+        (status === "error" && themeStore.colors("error")) ||
+        (disabled && themeStore.palette("neutral600")) ||
+        themeStore.palette("neutral100")
+      )
     } else {
-      return [
-        $innerStyleOverride?.backgroundColor,
-        disabled && themeStore.palette("neutral600"),
-        status === "error" && themeStore.colors("error"),
-        themeStore.palette("neutral200"),
-      ].filter(Boolean)[0]
+      return (
+        $innerStyleOverride?.backgroundColor ||
+        (disabled && themeStore.palette("neutral600")) ||
+        (status === "error" && themeStore.colors("error")) ||
+        themeStore.palette("neutral200")
+      )
     }
   })()
 

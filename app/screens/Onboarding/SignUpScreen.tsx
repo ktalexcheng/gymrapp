@@ -1,5 +1,4 @@
 import { useFocusEffect } from "@react-navigation/native"
-import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import {
   Button,
   CustomIcon,
@@ -18,7 +17,7 @@ import { observer } from "mobx-react-lite"
 import React, { FC, useCallback, useMemo, useRef, useState } from "react"
 import { TextInput, TextStyle, View, ViewStyle } from "react-native"
 
-interface SignUpScreenProps extends NativeStackScreenProps<AuthStackScreenProps<"SignUp">> {}
+interface SignUpScreenProps extends AuthStackScreenProps<"SignUp"> {}
 
 export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScreen() {
   const authNavigation = useAuthNavigation()
@@ -31,15 +30,15 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
   const [isNewPasswordHidden, setIsNewPasswordHidden] = useState(true)
   const [isConfirmPasswordHidden, setIsConfirmPasswordHidden] = useState(true)
   const [attemptsCount, setAttemptsCount] = useState(0)
-  const newLastNameInputRef = useRef<TextInput>()
-  const newEmailInputRef = useRef<TextInput>()
-  const newPasswordInputRef = useRef<TextInput>()
-  const confirmPasswordInputRef = useRef<TextInput>()
-  const [firstNameError, setFirstNameError] = useState(null)
-  const [lastNameError, setLastNameError] = useState(null)
-  const [emailError, setEmailError] = useState(null)
-  const [passwordError, setPasswordError] = useState(null)
-  const [confirmPasswordError, setConfirmPasswordError] = useState(null)
+  const newLastNameInputRef = useRef<TextInput>(null)
+  const newEmailInputRef = useRef<TextInput>(null)
+  const newPasswordInputRef = useRef<TextInput>(null)
+  const confirmPasswordInputRef = useRef<TextInput>(null)
+  const [firstNameError, setFirstNameError] = useState<string>()
+  const [lastNameError, setLastNameError] = useState<string>()
+  const [emailError, setEmailError] = useState<string>()
+  const [passwordError, setPasswordError] = useState<string>()
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string>()
 
   useFocusEffect(
     useCallback(() => {
@@ -54,14 +53,14 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
       setFirstNameError(translate("signUpScreen.error.firstNameMissing"))
       isValid = false
     } else {
-      setFirstNameError(null)
+      setFirstNameError(undefined)
     }
 
     if (!newLastName) {
       setLastNameError(translate("signUpScreen.error.lastNameMissing"))
       isValid = false
     } else {
-      setLastNameError(null)
+      setLastNameError(undefined)
     }
 
     if (!newEmail) {
@@ -71,7 +70,7 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
       setEmailError(translate("signUpScreen.error.emailInvalid"))
       isValid = false
     } else {
-      setEmailError(null)
+      setEmailError(undefined)
     }
 
     if (!newPassword) {
@@ -81,14 +80,14 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
       setPasswordError(translate("signUpScreen.error.passwordInsecure"))
       isValid = false
     } else {
-      setPasswordError(null)
+      setPasswordError(undefined)
     }
 
     if (newPassword !== confirmPassword) {
       setConfirmPasswordError(translate("signUpScreen.error.passwordMismatch"))
       isValid = false
     } else {
-      setConfirmPasswordError(null)
+      setConfirmPasswordError(undefined)
     }
 
     return isValid
@@ -106,10 +105,10 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
     authStore.setNewLastName(newLastName)
 
     if (newPassword !== confirmPassword) {
-      setConfirmPasswordError(true)
+      setConfirmPasswordError(translate("signUpScreen.error.passwordMismatch"))
       return
     } else {
-      setConfirmPasswordError(false)
+      setConfirmPasswordError(undefined)
     }
 
     authStore
@@ -180,7 +179,7 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
           labelTx="common.firstName"
           placeholderTx="signUpScreen.firstNamePlaceholder"
           status={firstNameError ? "error" : undefined}
-          helper={!!firstNameError && firstNameError}
+          helper={firstNameError}
           onSubmitEditing={() => newLastNameInputRef.current?.focus()}
         />
 
@@ -194,7 +193,7 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
           labelTx="common.lastName"
           placeholderTx="signUpScreen.lastNamePlaceholder"
           status={lastNameError ? "error" : undefined}
-          helper={!!lastNameError && lastNameError}
+          helper={lastNameError}
           onSubmitEditing={() => newEmailInputRef.current?.focus()}
         />
 
@@ -210,7 +209,7 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
           labelTx="signUpScreen.emailFieldLabel"
           placeholderTx="signUpScreen.emailFieldPlaceholder"
           status={emailError ? "error" : undefined}
-          helper={!!emailError && emailError}
+          helper={emailError}
           onSubmitEditing={() => newPasswordInputRef.current?.focus()}
         />
 
@@ -243,7 +242,7 @@ export const SignUpScreen: FC<SignUpScreenProps> = observer(function SignUpScree
           labelTx="signUpScreen.confirmPasswordFieldLabel"
           placeholderTx="signUpScreen.confirmPasswordFieldPlaceholder"
           status={confirmPasswordError ? "error" : undefined}
-          helper={!!confirmPasswordError && confirmPasswordError}
+          helper={confirmPasswordError}
           onSubmitEditing={createNewAccount}
           RightAccessory={ConfirmPasswordRightAccessory}
         />

@@ -25,7 +25,8 @@ export const getNestedField = (obj: object | Map<any, any>, fieldPath: string) =
         return undefined
       }
     } else {
-      console.warn("getNestedField: field is not an object or map")
+      console.warn("getNestedField: field is not an object or map", { obj, fieldPath, field })
+      return undefined
     }
   }
 

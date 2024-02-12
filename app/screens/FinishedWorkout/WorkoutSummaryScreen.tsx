@@ -1,19 +1,17 @@
 import { firebase } from "@react-native-firebase/firestore"
-import { useHeaderHeight } from "@react-navigation/elements"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Avatar, RowView, Screen, Spacer, Text } from "app/components"
 import { WorkoutSource } from "app/data/constants"
-import { User, WorkoutInteraction } from "app/data/model"
 import { MainStackParamList } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
-import { useStores } from "app/stores"
+import { IUserModel, IWorkoutInteractionModel, IWorkoutSummaryModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { formatDate } from "app/utils/formatDate"
 import { formatName } from "app/utils/formatName"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
-import { TouchableOpacity, View, ViewStyle } from "react-native"
+import { RefreshControl, TouchableOpacity, View, ViewStyle } from "react-native"
 import { ExerciseSummary } from "./ExerciseSummary"
 import { WorkoutCommentsPanel } from "./WorkoutCommentsPanel"
 import { WorkoutSocialButtonGroup } from "./WorkoutSocialButtonGroup"
@@ -23,42 +21,64 @@ interface WorkoutSummaryScreenProps
   extends NativeStackScreenProps<MainStackParamList, "WorkoutSummary"> {}
 
 export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenProps) => {
-  const { workoutSource, workoutId, workout: workoutFromProps, jumpToComments } = route.params
-  const mainNavigation = useMainNavigation()
-  // See why useHeaderHeight() is needed: https://stackoverflow.com/questions/48420468/keyboardavoidingview-not-working-properly
-  const navigationHeaderHeight = useHeaderHeight()
-  const { feedStore, userStore } = useStores()
-  const [workout, setWorkout] = useState(workoutFromProps)
-  const [workoutByUser, setWorkoutByUser] = useState<User>(null)
-  const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [showCommentsPanel, setShowCommentsPanel] = useState<boolean>(jumpToComments)
+  const { workoutSource, workoutId, workoutByUserId, jumpToComments } = route.params
 
-  const toggleShowCommentsPanel = () => {
-    setShowCommentsPanel(!showCommentsPanel)
+  const mainNavigation = useMainNavigation()
+  const { feedStore, userStore } = useStores()
+  const [workout, setWorkout] = useState<IWorkoutSummaryModel>()
+  const [workoutByUser, setWorkoutByUser] = useState<IUserModel>()
+  const [isLoading, setIsLoading] = useState(false)
+  const [showCommentsPanel, setShowCommentsPanel] = useState(jumpToComments)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const workoutLoaded = !isLoading && workout && workoutByUser
+
+  const getWorkoutAndUser = async () => {
+    if (isLoading) return
+
+    setIsLoading(true)
+    try {
+      const _workout = feedStore.getWorkout(workoutSource, workoutId, workoutByUserId)
+      if (_workout) {
+        setWorkout(_workout)
+        userStore.getOtherUser(_workout.byUserId).then((user) => {
+          if (user) setWorkoutByUser(user)
+        })
+      }
+    } catch (e) {
+      console.error("WorkoutSummaryScreen.useEffect error:", e)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   useEffect(() => {
-    return firebase
+    getWorkoutAndUser()
+
+    const unsubscribeWorkoutInteractions = firebase
       .firestore()
       .collection("workoutInteractions")
       .doc(workoutId)
       .onSnapshot((doc) => {
-        const data = convertFirestoreTimestampToDate(doc.data()) as WorkoutInteraction
-        console.debug("workoutInteraction update received:", data)
-        console.debug("workoutInteractions likes count:", data?.likedByUserIds?.length)
-        console.debug("workoutInteractions comments count:", data?.comments?.length)
         if (!doc.exists) return
 
+        const data = convertFirestoreTimestampToDate(doc.data()) as IWorkoutInteractionModel
+        console.debug("workoutInteraction update received:", {
+          _likedByUserIdsCount: data?.likedByUserIds?.length,
+          _commentsCount: data?.comments?.length,
+          data,
+        })
         feedStore.updateWorkoutInteractions(data)
       })
-  }, [])
 
-  useEffect(() => {
-    userStore
-      .getOtherUser(workout.byUserId)
-      .then((user) => setWorkoutByUser(user))
-      .finally(() => setIsLoading(false))
-  }, [])
+    return () => {
+      unsubscribeWorkoutInteractions()
+    }
+  }, [refreshKey])
+
+  const toggleShowCommentsPanel = () => {
+    setShowCommentsPanel(!showCommentsPanel)
+  }
 
   const onWorkoutUpdated = () => {
     setIsLoading(true)
@@ -71,7 +91,11 @@ export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenPro
   }
 
   const renderScreen = () => {
-    if (!workout) return null
+    if (isLoading) return <Text tx="common.loading" />
+
+    if (!workoutLoaded) {
+      return <Text tx="workoutSummaryScreen.workoutUnavailableMessage" />
+    }
 
     return (
       <>
@@ -113,11 +137,12 @@ export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenPro
           </>
         )}
 
-        {workout.performedAtGymName && (
+        {workout.performedAtGymName && workout.performedAtGymId && (
           <>
             <Spacer type="vertical" size="small" />
             <TouchableOpacity
               onPress={() =>
+                // @ts-ignore
                 mainNavigation.navigate("GymDetails", { gymId: workout.performedAtGymId })
               }
             >
@@ -133,7 +158,7 @@ export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenPro
           workoutByUserId={workout.byUserId}
           onPressComments={toggleShowCommentsPanel}
         />
-        {workout.exercises.map((e, _) => {
+        {workout.exercises!.map((e, _) => {
           return <ExerciseSummary key={e.exerciseId} exercise={e} />
         })}
         {showCommentsPanel && (
@@ -152,8 +177,13 @@ export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenPro
     <Screen
       safeAreaEdges={["bottom"]}
       contentContainerStyle={$screenContentContainer}
-      keyboardOffset={navigationHeaderHeight}
-      isBusy={isLoading || !workout}
+      isBusy={isLoading}
+      preset="scroll"
+      ScrollViewProps={{
+        refreshControl: (
+          <RefreshControl refreshing={isLoading} onRefresh={() => setRefreshKey(refreshKey + 1)} />
+        ),
+      }}
     >
       {renderScreen()}
     </Screen>

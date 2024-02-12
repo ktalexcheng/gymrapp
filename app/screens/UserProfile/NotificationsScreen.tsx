@@ -1,19 +1,19 @@
 import { Avatar, Divider, Icon, RowView, Screen, Text } from "app/components"
-import { FollowRequest, Notification, NotificationType, User } from "app/data/model"
+import { NotificationType, User } from "app/data/types"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
-import { useStores } from "app/stores"
+import { IFollowRequestsModel, INotificationModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { formatName } from "app/utils/formatName"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
 import { FlatList, SectionList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 
-const FollowRequestTile = ({ followRequest }: { followRequest: FollowRequest }) => {
+const FollowRequestTile = ({ followRequest }: { followRequest: IFollowRequestsModel }) => {
   const mainNavigation = useMainNavigation()
   const { userStore } = useStores()
   const [isInitialized, setIsInitialized] = useState(false)
-  const [senderUser, setSenderUser] = useState<User>(undefined)
+  const [senderUser, setSenderUser] = useState<User>()
 
   useEffect(() => {
     if (isInitialized) return
@@ -32,7 +32,7 @@ const FollowRequestTile = ({ followRequest }: { followRequest: FollowRequest }) 
     userStore.declineFollowRequest(followRequest.requestId)
   }
 
-  if (!isInitialized) return null
+  if (!isInitialized || !senderUser) return null
 
   return (
     <TouchableOpacity
@@ -56,15 +56,14 @@ const FollowRequestTile = ({ followRequest }: { followRequest: FollowRequest }) 
   )
 }
 
-const NotificationTile = ({ notification }: { notification: Notification }) => {
-  const mainNavigation = useMainNavigation()
+const NotificationTile = ({ notification }: { notification: INotificationModel }) => {
   const [isInitialized, setIsInitialized] = useState(false)
   const { userStore } = useStores()
-  const [senderUser, setSenderUser] = useState<User>(undefined)
+  const [senderUser, setSenderUser] = useState<User>()
   const [message, setMessage] = useState("")
 
   useEffect(() => {
-    if (!isInitialized) {
+    if (!isInitialized || !senderUser) {
       userStore.getOtherUser(notification.senderUserId).then((senderUser) => {
         setSenderUser(senderUser)
         setIsInitialized(true)
@@ -131,7 +130,7 @@ const NotificationTile = ({ notification }: { notification: Notification }) => {
     console.debug("NotificationTile: Confirm and decline follow request")
   }
 
-  if (!isInitialized) return null
+  if (!isInitialized || !senderUser) return null
 
   return (
     <TouchableOpacity onPress={handleOnPress}>
@@ -155,17 +154,17 @@ const NotificationTile = ({ notification }: { notification: Notification }) => {
 export const NotificationsScreen = observer(() => {
   const { userStore } = useStores()
   const [isInitialized, setIsInitialized] = useState(false)
-  const [newNotifications, setNewNotifications] = useState<Notification[]>([])
-  const [oldNotifications, setOldNotifications] = useState<Notification[]>([])
-  const [pendingFollowRequests, setPendingFollowRequests] = useState<FollowRequest[]>([])
+  const [newNotifications, setNewNotifications] = useState<INotificationModel[]>([])
+  const [oldNotifications, setOldNotifications] = useState<INotificationModel[]>([])
+  const [pendingFollowRequests, setPendingFollowRequests] = useState<IFollowRequestsModel[]>([])
   const [showFollowRequests, setShowFollowRequests] = useState(false)
 
   useEffect(() => {
     console.debug("NotificationsScreen.useEffect [] called")
     if (isInitialized) {
-      setNewNotifications(userStore.newNotifications)
-      setOldNotifications(userStore.oldNotifications)
-      setPendingFollowRequests(userStore.pendingFollowRequests)
+      setNewNotifications(userStore.newNotifications ?? [])
+      setOldNotifications(userStore.oldNotifications ?? [])
+      setPendingFollowRequests(userStore.pendingFollowRequests ?? [])
     } else {
       userStore.loadNotifications().then(() => {
         setIsInitialized(true)

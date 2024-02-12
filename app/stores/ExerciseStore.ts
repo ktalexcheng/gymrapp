@@ -1,18 +1,19 @@
-import { ExerciseSource, ExerciseVolumeType, WeightUnit } from "app/data/constants"
-import { Exercise, ExerciseSettings, NewExercise, User, UserPreferences } from "app/data/model"
-import { flow, getEnv, getSnapshot, types } from "mobx-state-tree"
+import { ExerciseSource, ExerciseVolumeType } from "app/data/constants"
+import { Exercise, ExerciseSettings, NewExercise, User } from "app/data/types"
+import { SnapshotOrInstance, flow, getEnv, getSnapshot, types } from "mobx-state-tree"
+import { ExerciseSettingsModel, IUserModel } from "./UserStore"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
-const ExerciseSettingsModel = types
-  .model({
-    autoRestTimerEnabled: types.maybe(types.boolean),
-    restTime: types.maybe(types.number),
-    weightUnit: types.maybe(types.enumeration(Object.values(WeightUnit))),
-  })
-  .actions(withSetPropAction)
+// const ExerciseSettingsModel = types
+//   .model({
+//     autoRestTimerEnabled: types.maybe(types.boolean),
+//     restTime: types.maybe(types.number),
+//     weightUnit: types.maybe(types.enumeration(Object.values(WeightUnit))),
+//   })
+//   .actions(withSetPropAction)
 
-const ExerciseModel = types
+export const ExerciseModel = types
   .model({
     exerciseId: types.identifier,
     exerciseSource: types.enumeration("exerciseSource", [
@@ -28,6 +29,8 @@ const ExerciseModel = types
     exerciseSettings: types.maybe(ExerciseSettingsModel),
   })
   .actions(withSetPropAction)
+
+export type IExerciseModel = SnapshotOrInstance<typeof ExerciseModel>
 
 export const ExerciseStoreModel = types
   .model("ExerciseStore")
@@ -50,23 +53,20 @@ export const ExerciseStoreModel = types
       return self.allExercises.get(exerciseId)?.exerciseName
     },
     getExerciseVolumeType(exerciseId: string) {
-      return self.allExercises.get(exerciseId).volumeType
+      return self.allExercises.get(exerciseId)?.volumeType
     },
   }))
   .actions(withSetPropAction)
   .actions((self) => {
-    const applyUserSettings = flow(function* () {
+    const applyUserSettings = flow(function* (user: IUserModel) {
       self.isLoading = true
 
-      const { userRepository } = getEnv<RootStoreDependencies>(self)
-      const exerciseSettings = yield userRepository.getUserProp(
-        "preferences.exerciseSpecificSettings",
-      )
+      const exerciseSettings = user.preferences?.exerciseSpecificSettings
 
       // Update exercises with user settings
       if (exerciseSettings) {
-        exerciseSettings.forEach((item) => {
-          self.allExercises.get(item.exerciseId).setProp("exerciseSettings", item.exerciseSettings)
+        Object.entries(exerciseSettings).forEach(([exerciseId, settings]) => {
+          self.allExercises.get(exerciseId)?.setProp("exerciseSettings", settings)
         })
       }
 
@@ -109,18 +109,26 @@ export const ExerciseStoreModel = types
       exerciseSettingsValue,
     ) {
       if (!self.allExercises.has(exerciseId)) {
-        console.warn("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseId")
+        console.error("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseId")
         return
       }
+
       if (!(exerciseSettingsId in ExerciseSettingsModel.properties)) {
-        console.warn("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseSettingsId")
+        console.error("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseSettingsId")
         return
       }
 
       const exercise = self.allExercises.get(exerciseId)
-      if (!exercise.exerciseSettings) {
+      if (!exercise) {
+        console.error("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseId")
+        return
+      }
+
+      if (!exercise?.exerciseSettings) {
         console.debug("ExerciseStoreModel.updateExerciseSetting: Creating new exerciseSettings")
-        exercise.exerciseSettings = ExerciseSettingsModel.create()
+        exercise.exerciseSettings = ExerciseSettingsModel.create({
+          exerciseId,
+        })
       }
       exercise.exerciseSettings.setProp(exerciseSettingsId, exerciseSettingsValue)
       // self.allExercises.put(exercise)
@@ -130,13 +138,11 @@ export const ExerciseStoreModel = types
       self.isLoading = true
 
       try {
-        const exerciseSpecificSettings: UserPreferences["exerciseSpecificSettings"] = Array.from(
-          self.allExercises.values(),
-        ).reduce((acc, e) => {
+        const exerciseSpecificSettings = Array.from(self.allExercises.values()).reduce((acc, e) => {
           if (e.exerciseSettings !== undefined)
-            acc[e.exerciseId] = { ...getSnapshot(e.exerciseSettings) } // getSnapshot returns immutable object, we want vanilla object
+            acc[e.exerciseId] = { ...getSnapshot(e.exerciseSettings) } // getSnapshot returns as serialized JS object
           return acc
-        }, {} as { [key: string]: ExerciseSettings })
+        }, {})
 
         if (Object.keys(exerciseSpecificSettings).length > 0) {
           yield getEnv<RootStoreDependencies>(self).userRepository.update(

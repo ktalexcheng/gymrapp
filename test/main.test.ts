@@ -1,6 +1,6 @@
 import { ExerciseSetType, ExerciseVolumeType, WeightUnit } from "app/data/constants"
-import { ExerciseSet, User } from "app/data/model"
 import { repositorySingletons } from "app/data/repository/repositoryFactory"
+import { User } from "app/data/types"
 import { RootStore, RootStoreModel } from "app/stores/RootStore"
 import * as admin from "firebase-admin"
 import { firestore } from "firebase-admin"
@@ -13,6 +13,9 @@ import {
   WorkoutInteractionRepository,
   WorkoutRepository,
 } from "../app/data/repository"
+import { exercises } from "./data/exercises"
+import { getWorkout } from "./data/workouts"
+import { addSetToExercise } from "./utils/addSetToExercise"
 import { createNewUser } from "./utils/createNewUser"
 import { deleteCollection } from "./utils/deleteCollection"
 import { retryExpectAsync } from "./utils/retryExpectAsync"
@@ -24,12 +27,8 @@ const getUserUsingEmail = async (firestoreClient: firestore.Firestore, email: st
     .limit(1)
     .get()
 
-  if (!userSnapshot.empty) {
-    const userDoc = userSnapshot.docs[0]
-    return userDoc.data() as User
-  }
-
-  return undefined
+  const userDoc = userSnapshot.docs[0]
+  return userDoc.data() as User
 }
 
 describe.skip("Main test suite", () => {
@@ -137,32 +136,27 @@ describe.skip("Main test suite", () => {
     // Delete test user and all other test users
     for (const testUserStore of testRootStores.values()) {
       console.debug("Cleaning up test user:", testUserStore.userStore.user)
-      await testUserCleanup(testUserStore.userStore.userId)
+      await testUserCleanup(testUserStore.userStore.userId!)
     }
   })
 
   describe("Integration tests", () => {
     test("When a followee creates a workout, the follower should see it in their feed", async () => {
       // Let the other test user follow the main test user
-      const { userStore: userStoreTestUser2 } = testRootStores.get(testUser2Email)
+      const { userStore: userStoreTestUser2 } = testRootStores.get(testUser2Email)!
       const testUserMain = await getUserUsingEmail(firestoreClient, testUserMainEmail)
       await userStoreTestUser2.followUser(testUserMain.userId)
 
       // Let main test user create a workout
       const { workoutStore } = rootStoreTestUserMain
       workoutStore.startNewWorkout("test")
-      workoutStore.addExercise("test-exercise-id", ExerciseVolumeType.Reps)
-      workoutStore.addSet(0, {
-        setType: ExerciseSetType.Normal,
-        weight: 100,
-        reps: 10,
-        isCompleted: true,
-      } as ExerciseSet)
+      workoutStore.addExercise(exercises.testExercise1)
+      workoutStore.addSet(0)
       workoutStore.endWorkout()
-      await workoutStore.saveWorkout(false)
+      await workoutStore.saveWorkout(false, userStoreTestUser2.user!)
 
       // Check that the other test user has the workout in their feed
-      const { feedStore: feedStoreTestUser2 } = testRootStores.get(testUser2Email)
+      const { feedStore: feedStoreTestUser2 } = testRootStores.get(testUser2Email)!
       const expectFeedItems = async () => {
         await feedStoreTestUser2.refreshFeedItems()
         // expect(feedStoreTestUser2.feedItems.length).toBe(1)
@@ -184,49 +178,55 @@ describe.skip("Main test suite", () => {
     test("should manage exercises and sets order correctly", () => {
       const { workoutStore } = rootStoreTestUserMain
       workoutStore.startNewWorkout("test")
-      workoutStore.addExercise("test-exercise-id-1", ExerciseVolumeType.Reps)
-      workoutStore.addSet(0, {
+      workoutStore.addExercise(exercises.testExercise1)
+      addSetToExercise(workoutStore, 0, {
         setType: ExerciseSetType.Normal,
+        volumeType: ExerciseVolumeType.Reps,
         weight: 100,
         reps: 10,
         isCompleted: true,
-      } as ExerciseSet)
-      workoutStore.addSet(0, {
+      })
+      addSetToExercise(workoutStore, 0, {
         setType: ExerciseSetType.Normal,
-        weight: 200,
-        reps: 20,
+        volumeType: ExerciseVolumeType.Reps,
+        weight: 120,
+        reps: 12,
         isCompleted: true,
-      } as ExerciseSet)
+      })
+
       expect(workoutStore.exercises.length).toEqual(1)
-      expect(workoutStore.exercises.at(0).setsPerformed.length).toEqual(2)
+      expect(workoutStore.exercises.at(0)!.setsPerformed.length).toEqual(2)
 
       workoutStore.removeSet(0, 0)
-      expect(workoutStore.exercises.at(0).setsPerformed.length).toEqual(1)
-      expect(workoutStore.exercises.at(0).setsPerformed.at(0).setOrder).toEqual(0)
+      expect(workoutStore.exercises.at(0)!.setsPerformed.length).toEqual(1)
+      expect(workoutStore.exercises.at(0)!.setsPerformed.at(0)!.setOrder).toEqual(0)
 
-      workoutStore.addExercise("test-exercise-id-2", ExerciseVolumeType.Reps)
+      workoutStore.addExercise(exercises.testExercise2)
       expect(workoutStore.exercises.length).toEqual(2)
 
       workoutStore.removeExercise(0)
       expect(workoutStore.exercises.length).toEqual(1)
-      expect(workoutStore.exercises.at(0).exerciseId).toEqual("test-exercise-id-2")
+      expect(workoutStore.exercises.at(0)!.exerciseId).toEqual(exercises.testExercise2.exerciseId)
     })
 
     test("saveWorkout() should create new workout document and update user workoutMetas and exerciseHistory", async () => {
-      const { workoutStore } = rootStoreTestUserMain
+      const { workoutStore, userStore } = rootStoreTestUserMain
       workoutStore.startNewWorkout("test")
-      workoutStore.addExercise("test-exercise-id", ExerciseVolumeType.Reps)
-      workoutStore.addSet(0, {
+      workoutStore.addExercise(exercises.testExercise1)
+      addSetToExercise(workoutStore, 0, {
         setType: ExerciseSetType.Normal,
+        volumeType: ExerciseVolumeType.Reps,
         weight: 100,
         reps: 10,
         isCompleted: true,
-      } as ExerciseSet)
+      })
       workoutStore.endWorkout()
-      await workoutStore.saveWorkout(false)
+      await workoutStore.saveWorkout(false, userStore.user!)
 
       const userData = await getUserUsingEmail(firestoreClient, testUserMainEmail)
+
       // Check workoutMetas has been updated
+      if (!userData.workoutMetas) throw new Error("userData.workoutMetas not found")
       expect(Object.keys(userData.workoutMetas).length).toEqual(1)
       Object.entries(userData.workoutMetas).forEach(([_, workoutMeta]) => {
         expect(workoutMeta).toEqual(
@@ -237,6 +237,7 @@ describe.skip("Main test suite", () => {
       })
 
       // Check exerciseHistory has been updated
+      if (!userData.exerciseHistory) throw new Error("userData.exerciseHistory not found")
       expect(Object.keys(userData.exerciseHistory).length).toEqual(1)
       Object.entries(userData.exerciseHistory).forEach(([exerciseId, exerciseHistory]) => {
         expect(exerciseId).toEqual("test-exercise-id")
@@ -259,19 +260,20 @@ describe.skip("Main test suite", () => {
   describe("ExerciseStore", () => {
     test("updateExerciseSetting() should update exercise settings", async () => {
       const { exerciseStore, userStore } = rootStoreTestUserMain
-      const { userRepository } = testRepositories.get(testUserMainEmail)
       await exerciseStore.getAllExercises()
-
       const exerciseId = exerciseStore.allExercises.keys().next().value
-      const exercise = exerciseStore.allExercises.get(exerciseId)
+      const exercise = exerciseStore.allExercises.get(exerciseId)!
       expect(exercise.exerciseSettings).toBeUndefined()
 
       exerciseStore.updateExerciseSetting(exerciseId, "weightUnit", WeightUnit.kg)
-      expect(exercise.exerciseSettings.weightUnit).toEqual(WeightUnit.kg)
+      expect(exercise.exerciseSettings?.weightUnit).toEqual(WeightUnit.kg)
 
       await exerciseStore.uploadExerciseSettings()
-      const user = await userRepository.get(userStore.userId)
-      expect(user.preferences.exerciseSpecificSettings[exerciseId].weightUnit).toEqual(
+
+      const repositories = testRepositories.get(testUserMainEmail)!
+      const { userRepository } = repositories
+      const user = await userRepository!.get(userStore.userId)
+      expect(user?.preferences?.exerciseSpecificSettings?.[exerciseId]?.weightUnit).toEqual(
         WeightUnit.kg,
       )
     })
@@ -281,18 +283,13 @@ describe.skip("Main test suite", () => {
     it("should convert undefined to null before saving to Firestore", async () => {
       const { userStore } = rootStoreTestUserMain
       const userId = userStore.userId
-      const { workoutRepository } = testRepositories.get(testUserMainEmail)
+      const repositories = testRepositories.get(testUserMainEmail)!
+      const { workoutRepository } = repositories
       const testWorkoutId = "test-workout-id"
 
+      expect(() => workoutRepository!.create(getWorkout("testWorkout1", userId!))).not.toThrow()
       expect(() =>
-        workoutRepository.create({
-          workoutId: testWorkoutId,
-          byUserId: userId,
-          activityId: undefined,
-        }),
-      ).not.toThrow()
-      expect(() =>
-        workoutRepository.update(testWorkoutId, {
+        workoutRepository!.update(testWorkoutId, {
           activityId: undefined,
         }),
       ).not.toThrow()

@@ -4,7 +4,7 @@ import { View, ViewProps } from "react-native"
 
 interface SpacerProps extends React.PropsWithChildren<ViewProps> {
   type: "horizontal" | "vertical"
-  size?: Spacing
+  size: Spacing
 }
 
 export const Spacer: FC<SpacerProps> = (props: SpacerProps) => {

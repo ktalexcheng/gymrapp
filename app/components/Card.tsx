@@ -1,6 +1,6 @@
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
-import React, { ComponentType, Fragment, ReactElement } from "react"
+import React, { Fragment, ReactElement } from "react"
 import {
   StyleProp,
   TextStyle,
@@ -210,13 +210,13 @@ export const Card = observer((props: CardProps) => {
     dimmed: { color: themeStore.palette("neutral500") },
   }
 
-  const preset: Presets = $containerPresets[props.preset] ? props.preset : "default"
+  const preset: Presets = props.preset && $containerPresets[props.preset] ? props.preset : "default"
   const isPressable = !!WrapperProps.onPress
   const isHeadingPresent = !!(HeadingComponent || heading || headingTx)
   const isContentPresent = !!(ContentComponent || content || contentTx)
   const isFooterPresent = !!(FooterComponent || footer || footerTx)
 
-  const Wrapper: ComponentType<TouchableOpacityProps> = isPressable ? TouchableOpacity : View
+  // const Wrapper: ComponentType<TouchableOpacityProps> = isPressable ? TouchableOpacity : View
   const HeaderContentWrapper = verticalAlignment === "force-footer-bottom" ? View : Fragment
 
   const $containerStyle = [$containerPresets[preset], $containerStyleOverride]
@@ -247,7 +247,8 @@ export const Card = observer((props: CardProps) => {
   ]
 
   return (
-    <Wrapper
+    <TouchableOpacity
+      disabled={!isPressable}
       style={$containerStyle}
       activeOpacity={0.8}
       accessibilityRole={isPressable ? "button" : undefined}
@@ -297,7 +298,7 @@ export const Card = observer((props: CardProps) => {
       </View>
 
       {RightComponent}
-    </Wrapper>
+    </TouchableOpacity>
   )
 })
 

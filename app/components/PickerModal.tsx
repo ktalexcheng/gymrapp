@@ -33,7 +33,7 @@ export const PickerModal: FC<PickerModalProps> = observer((props: PickerModalPro
   const $touchable: ViewStyle = {
     height: 40,
     width: "100%",
-    borderWidth: disabled ? null : 1,
+    borderWidth: disabled ? undefined : 1,
     borderRadius: 4,
     borderColor: themeStore.palette("neutral400"),
     justifyContent: "center",
@@ -51,7 +51,7 @@ export const PickerModal: FC<PickerModalProps> = observer((props: PickerModalPro
       >
         <Text
           style={styles.textAlignCenter}
-          text={!!value && itemsList.find((i) => i.value === value)?.label}
+          text={itemsList.find((i) => i.value === value)?.label ?? ""}
         />
       </TouchableOpacity>
 

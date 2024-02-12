@@ -123,14 +123,14 @@ export const Text = observer((props: TextProps) => {
     ] as StyleProp<TextStyle>,
   }
 
-  const preset: Presets = $presets[props.preset] ? props.preset : "default"
+  const preset: Presets = props.preset && $presets[props.preset] ? props.preset : "default"
   const $styles = [
     $rtlStyle,
-    $presets[preset],
-    $primaryWeightStyles[weight],
-    $sizeStyles[size],
+    !!preset && $presets[preset],
+    !!weight && $primaryWeightStyles[weight],
+    !!size && $sizeStyles[size],
     $styleOverride,
-    textColorOverride && {
+    !!textColorOverride && {
       color: textColorOverride,
     },
     $textAlignOverride && { textAlign: $textAlignOverride },

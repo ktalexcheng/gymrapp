@@ -45,7 +45,8 @@ describe("create mock users", () => {
 
     // Create user document
     for (const user of mockUserData) {
-      const userHandle = user.EmailAddress.match(/^([\w.-]{1,30})@/)[1]
+      const userHandle =
+        user.EmailAddress.match(/^([\w.-]{1,30})@/)?.[1] || user.EmailAddress.slice(0, 30)
       await userRepository.create({
         userId: "MOCK-" + user.GUID,
         userHandle,

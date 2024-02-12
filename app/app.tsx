@@ -127,7 +127,7 @@ if (__DEV__) {
     })
   } else {
     const firebaseProjectId = firebaseApp.app().options.projectId
-    const envMode = Constants.expoConfig.extra.gymrappEnvironment
+    const envMode = Constants.expoConfig?.extra?.gymrappEnvironment
 
     if (envMode !== "development" || firebaseProjectId !== "gymrapp-test") {
       console.error("firebaseProjectId:", firebaseProjectId)
@@ -168,7 +168,7 @@ function App(props: AppProps) {
   // and troubles with app updates still hydrating with old possibly problematic store snapshots
   // const rehydrated = true
   // setTimeout(hideSplashScreen, 500)
-  const { rehydrated } = useInitialRootStore(() => {
+  const { rootStore, rehydrated } = useInitialRootStore(() => {
     // This runs after the root store has been initialized and rehydrated.
 
     // If your initialization scripts run very fast, it's good to show the splash screen for just a bit longer to prevent flicker.

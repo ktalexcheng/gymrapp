@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native"
-import { Exercise, NewExercise } from "app/data/model"
+import { Exercise, NewExercise } from "app/data/types"
 import { translate } from "app/i18n"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
@@ -21,6 +21,12 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
   const navigation = useNavigation()
 
   async function addExercise() {
+    console.debug("CreateExerciseScreen.addExercise:", {
+      activityName,
+      exerciseCat1,
+      volumeType,
+      exerciseName,
+    })
     if (!activityName || !exerciseCat1 || !volumeType || !exerciseName) {
       Toast.show(translate("createExerciseScreen.requiredFieldsMissingMessage", { duration: 500 }))
       return
@@ -49,6 +55,7 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
   }
 
   useEffect(() => {
+    setActivityName(getDropdownValues("activityName")[0].value)
     setExerciseCat1(getDropdownValues("exerciseCat1")[0].value)
     setExerciseCat2(getDropdownValues("exerciseCat2")[0].value)
     setVolumeType(getDropdownValues("volumeType")[0].value)

@@ -10,13 +10,15 @@ import {
   TimePicker,
 } from "app/components"
 import { ExerciseVolumeType, WeightUnit } from "app/data/constants"
-import { ExerciseSet, RepsExerciseSet, TimeExerciseSet } from "app/data/model"
+import { ExerciseSet, RepsExerciseSet, TimeExerciseSet } from "app/data/types"
 import { useExerciseSetting, useSetFromLastWorkout, useWeight } from "app/hooks"
 import { translate } from "app/i18n"
+import { RepsSetPerformedModel, TimeSetPerformedModel } from "app/stores"
 import { roundToString } from "app/utils/formatNumber"
 import { formatSecondsAsTime } from "app/utils/formatTime"
 import { Weight } from "app/utils/weight"
 import { observer } from "mobx-react-lite"
+import { Instance } from "mobx-state-tree"
 import React, { FC, useEffect, useState } from "react"
 import { TextStyle, TouchableOpacity, View, ViewProps, ViewStyle } from "react-native"
 import { Swipeable } from "react-native-gesture-handler"
@@ -24,7 +26,10 @@ import { useStores } from "../../stores"
 import { spacing, styles, thresholds } from "../../theme"
 
 // RPE list 6 - 10
-const rpeList = Array.from({ length: 9 }, (_, i) => {
+const rpeList: {
+  label: string
+  value: string | null
+}[] = Array.from({ length: 9 }, (_, i) => {
   const rpe = 6 + 0.5 * i
   return {
     label: rpe.toString(),
@@ -86,7 +91,7 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
     onPressCompleteSet,
   } = props
   const { workoutStore, themeStore } = useStores()
-  const exerciseSetStore = workoutStore.exercises.at(exerciseOrder).setsPerformed[setOrder]
+  const exerciseSetStore = workoutStore.exercises.at(exerciseOrder)?.setsPerformed?.[setOrder]
 
   function renderRightDelete() {
     const handleDelete = () => {
@@ -130,7 +135,7 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
         </TouchableOpacity>
         {props.children}
         <View style={[$isCompletedColumn, $textAlignCenter]}>
-          {exerciseSetStore.isCompleted ? (
+          {exerciseSetStore?.isCompleted ? (
             <Icon
               name="checkbox"
               color={themeStore.colors("foreground")}
@@ -156,7 +161,9 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const { workoutStore, themeStore } = useStores()
 
   // Current exercise set
-  const exerciseSetStore = workoutStore.exercises.at(exerciseOrder).setsPerformed[setOrder]
+  const exerciseSetStore = workoutStore.exercises.at(exerciseOrder)?.setsPerformed?.[
+    setOrder
+  ] as Instance<typeof TimeSetPerformedModel>
 
   // Set from previous workout
   const [setFromLastWorkout] = useSetFromLastWorkout<TimeExerciseSet>(exerciseId, setOrder)
@@ -166,14 +173,14 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const [restTimeSetting] = useExerciseSetting<number>(exerciseId, "restTime")
 
   // States
-  const [time, setTime] = useState<number>(exerciseSetStore.time)
-  const [pickerTimeAsSeconds, setPickerTimeAsSeconds] = useState<number>(exerciseSetStore.time)
+  const [time, setTime] = useState<number | null>(exerciseSetStore?.time)
+  const [timeInput, setTimeInput] = useState(exerciseSetStore?.time)
   const [isNullTime, setIsNullTime] = useState(false)
   const [showTimeInput, setShowTimeInput] = useState(false)
 
   useEffect(() => {
     if (time) {
-      exerciseSetStore.updateSetValues("time", time)
+      exerciseSetStore?.updateSetValues("time", time)
     }
   }, [time])
 
@@ -189,8 +196,8 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   }
 
   const updateTime = () => {
-    if (pickerTimeAsSeconds) setTime(pickerTimeAsSeconds)
-    else setTime(undefined)
+    if (timeInput) setTime(timeInput)
+    else setTime(null)
   }
 
   function toggleSetStatus() {
@@ -219,7 +226,7 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     height: 40,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: exerciseSetStore.isCompleted ? null : 1,
+    borderWidth: exerciseSetStore.isCompleted ? undefined : 1,
     borderRadius: 4,
     borderColor: isNullTime ? themeStore.colors("error") : themeStore.colors("border"),
   }
@@ -233,7 +240,7 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
         onRequestClose={() => setShowTimeInput(false)}
       >
         <Text tx="activeWorkoutScreen.enterTimeLabel" preset="formHelper" />
-        <TimePicker initialValue={pickerTimeAsSeconds} onValueChange={setPickerTimeAsSeconds} />
+        <TimePicker initialValue={timeInput ?? 0} onValueChange={setTimeInput} />
         <Spacer type="vertical" size="medium" />
         <RowView style={styles.justifyCenter}>
           <Button
@@ -252,7 +259,7 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
         exerciseOrder={exerciseOrder}
         setOrder={setOrder}
         isCompleted={exerciseSetStore.isCompleted}
-        setFromLastWorkout={setFromLastWorkout}
+        setFromLastWorkout={setFromLastWorkout ?? undefined}
         renderPreviousSetText={renderPreviousSetText}
         onPressPreviousSet={copyPreviousSet}
         onPressCompleteSet={toggleSetStatus}
@@ -274,7 +281,9 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const { exerciseId, exerciseOrder, setOrder } = props
 
   // Current exercise set
-  const exerciseSetStore = workoutStore.exercises.at(exerciseOrder).setsPerformed[setOrder]
+  const exerciseSetStore = workoutStore.exercises.at(exerciseOrder)?.setsPerformed?.[
+    setOrder
+  ] as Instance<typeof RepsSetPerformedModel>
 
   // Set from previous workout
   const [setFromLastWorkout] = useSetFromLastWorkout<RepsExerciseSet>(exerciseId, setOrder)
@@ -294,11 +303,11 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     exerciseSetStore.weight,
     weightUnitSetting,
   )
-  const [reps, setReps] = useState<number>(exerciseSetStore.reps)
-  const [rpe, setRpe] = useState<number>(exerciseSetStore.rpe)
-  const [weightInput, setWeightInput] = useState<string>("")
-  const [repsInput, setRepsInput] = useState<string>("")
-  const [rpeInput, setRpeInput] = useState<string>("")
+  const [reps, setReps] = useState(exerciseSetStore.reps)
+  const [rpe, setRpe] = useState(exerciseSetStore.rpe)
+  const [weightInput, setWeightInput] = useState<string>()
+  const [repsInput, setRepsInput] = useState<string>()
+  const [rpeInput, setRpeInput] = useState<string>()
 
   useEffect(() => {
     setDisplayUnit(weightUnitSetting)
@@ -306,14 +315,15 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 
   useEffect(() => {
     updateSetStore()
-    setWeightInput(roundToString(displayWeight, 2, false))
-    setRepsInput(reps?.toString())
-    setRpeInput(rpe?.toString())
+    // !!displayWeight && setWeightInput(roundToString(displayWeight, 2, false) ?? undefined)
+    // setRepsInput(reps?.toString())
+    // setRpeInput(rpe?.toString())
   }, [displayWeight, reps, rpe])
 
   function updateSetStore() {
-    exerciseSetStore.updateSetValues("weight", weightKg ?? 0)
-    exerciseSetStore.updateSetValues("reps", reps)
+    console.debug("RepsSetEntry updateSetStore", { weightKg, reps, rpe })
+    exerciseSetStore.updateSetValues("weight", weightKg ?? null)
+    exerciseSetStore.updateSetValues("reps", reps ?? null)
     exerciseSetStore.updateSetValues("rpe", rpe ?? null)
   }
 
@@ -341,9 +351,9 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     }
   }
 
-  function handleWeightChangeText(value: string) {
+  function handleWeightChangeText(value: string | null) {
     if (!value) {
-      setWeightInput(null)
+      setWeightInput(undefined)
       return
     }
 
@@ -353,9 +363,9 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     }
   }
 
-  function handleRepsChangeText(value: string) {
+  function handleRepsChangeText(value: string | null) {
     if (!value) {
-      setRepsInput(null)
+      setRepsInput(undefined)
       return
     }
 
@@ -384,7 +394,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const renderPreviousSetText = () => {
     if (!setFromLastWorkout) return "-"
 
-    const prevWeight = new Weight(setFromLastWorkout.weight, WeightUnit.kg, weightUnitSetting)
+    const prevWeight = new Weight(setFromLastWorkout.weight ?? 0, WeightUnit.kg, weightUnitSetting)
 
     let prevSet = `${prevWeight.formattedDisplayWeight(1)} ${weightUnitSetting} x ${
       setFromLastWorkout.reps
@@ -400,9 +410,11 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     if (!setFromLastWorkout) return
 
     // RPE will not be copied as it should be set by the user
-    const prevWeight = new Weight(setFromLastWorkout.weight, WeightUnit.kg, weightUnitSetting)
-
-    handleWeightChangeText(prevWeight.formattedDisplayWeight(1))
+    // If weight was null in the previous set, ignore it as well
+    if (setFromLastWorkout.weight) {
+      const prevWeight = new Weight(setFromLastWorkout.weight, WeightUnit.kg, weightUnitSetting)
+      handleWeightChangeText(prevWeight.formattedDisplayWeight(1))
+    }
     handleRepsChangeText(roundToString(setFromLastWorkout.reps, 0, false))
   }
 
@@ -411,7 +423,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       exerciseOrder={exerciseOrder}
       setOrder={setOrder}
       isCompleted={exerciseSetStore.isCompleted}
-      setFromLastWorkout={setFromLastWorkout}
+      setFromLastWorkout={setFromLastWorkout ?? undefined}
       renderPreviousSetText={renderPreviousSetText}
       onPressPreviousSet={copyPreviousSet}
       onPressCompleteSet={toggleSetStatus}
@@ -463,12 +475,12 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 export type SetEntryProps = {
   exerciseOrder: number
   exerciseId: string
-  volumeType: ExerciseVolumeType
   setOrder: number
-  setType: string
-  weight: number
-  reps: number
-  isCompleted: boolean
+  volumeType: ExerciseVolumeType
+  // setType: string
+  // isCompleted: boolean
+  // weight: number
+  // reps: number
 }
 
 export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
@@ -526,7 +538,7 @@ const $exerciseSet: ViewStyle = {
 const $textFieldWrapper: ViewStyle = {
   height: "100%",
   width: "100%",
-  backgroundColor: null,
+  backgroundColor: undefined,
 }
 
 const $previousSetText: TextStyle = {

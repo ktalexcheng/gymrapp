@@ -17,24 +17,27 @@ import { spacing } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
 import { TouchableOpacity, ViewStyle } from "react-native"
+import Toast from "react-native-root-toast"
 import { ExerciseSummary } from "../FinishedWorkout"
+
+const workoutIsHiddenOptions = [
+  {
+    label: translate("workoutSettings.workoutVisibleToFeedLabel"),
+    value: false,
+  },
+  {
+    label: translate("workoutSettings.workoutHiddenLabel"),
+    value: true,
+  },
+]
 
 export const SaveWorkoutScreen: FC = observer(() => {
   const mainNavigation = useMainNavigation()
-  const { workoutStore, exerciseStore, feedStore } = useStores()
+  const { workoutStore, exerciseStore, feedStore, userStore } = useStores()
   const [showEditTitleModal, setShowEditTitleModal] = useState(false)
   const [workoutTitle, setWorkoutTitle] = useState(workoutStore.workoutTitle)
   const [isHidden, setIsHidden] = useState(false)
-  const workoutIsHiddenOptions = [
-    {
-      label: translate("workoutSettings.workoutVisibleToFeedLabel"),
-      value: false,
-    },
-    {
-      label: translate("workoutSettings.workoutHiddenLabel"),
-      value: true,
-    },
-  ]
+  const [isSaving, setIsSaving] = useState(false)
 
   function discardWorkout() {
     workoutStore.endWorkout()
@@ -42,9 +45,19 @@ export const SaveWorkoutScreen: FC = observer(() => {
   }
 
   async function saveWorkout() {
-    const workout = await workoutStore.saveWorkout(isHidden)
+    if (!userStore.user) {
+      // This is highly unlikely to happen, but just in case
+      Toast.show(translate("common.error.unknownErrorMessage"))
+      return
+    }
+
+    setIsSaving(true)
+    const workout = await workoutStore.saveWorkout(isHidden, userStore.user)
+    console.debug("SaveWorkoutScreen workout", { workout })
+    feedStore.addUserWorkout(workout) // Manually add the workout so it is available in WorkoutSummary
+    workoutStore.resetWorkout()
     await exerciseStore.uploadExerciseSettings()
-    feedStore.loadUserWorkouts() // Do this asynchronously
+    setIsSaving(false)
 
     mainNavigation.reset({
       index: 1,
@@ -54,7 +67,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
           name: "WorkoutSummary",
           params: {
             workoutId: workout.workoutId,
-            workout,
+            workoutByUserId: workout.byUserId,
             workoutSource: WorkoutSource.User,
             jumpToComments: false,
           },
@@ -79,7 +92,12 @@ export const SaveWorkoutScreen: FC = observer(() => {
   }
 
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$container} preset="auto">
+    <Screen
+      safeAreaEdges={["top", "bottom"]}
+      contentContainerStyle={$container}
+      preset="auto"
+      isBusy={isSaving}
+    >
       <Modal
         animationType="slide"
         onRequestClose={() => setShowEditTitleModal(false)}

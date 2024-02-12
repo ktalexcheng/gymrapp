@@ -12,7 +12,7 @@ interface CategoryButtonProps extends ButtonProps {
   selected?: boolean
 }
 
-const CategoryButton: FC<CategoryButtonProps> = (props: CategoryButtonProps) => {
+const CategoryButton: FC<CategoryButtonProps> = observer((props: CategoryButtonProps) => {
   const { themeStore } = useStores()
 
   const $buttonView: ViewStyle = {
@@ -30,7 +30,7 @@ const CategoryButton: FC<CategoryButtonProps> = (props: CategoryButtonProps) => 
   }
 
   return <Button {...props} style={$buttonView} textStyle={$text} preset="filled" />
-}
+})
 
 export enum SearchCategory {
   // All = "all",

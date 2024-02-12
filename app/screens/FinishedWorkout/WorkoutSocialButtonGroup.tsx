@@ -1,7 +1,7 @@
 import { Icon, RowView, Spacer, Text } from "app/components"
 import { WorkoutSource } from "app/data/constants"
-import { UserId, WorkoutId, WorkoutInteraction } from "app/data/model"
-import { useStores } from "app/stores"
+import { UserId, WorkoutId } from "app/data/types"
+import { IWorkoutInteractionModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
@@ -19,9 +19,9 @@ const buttonGroupIconSize = 24
 export const WorkoutSocialButtonGroup = observer((props: WorkoutSocialButtonGroupProps) => {
   const { workoutSource, workoutId, workoutByUserId, onPressComments } = props
   const { userStore, feedStore, themeStore } = useStores()
-  const [workoutInteractions, setInteractions] = useState<WorkoutInteraction>(undefined)
+  const [workoutInteractions, setInteractions] = useState<IWorkoutInteractionModel>()
   const [isLikedByUser, setIsLikedByUser] = useState(false)
-  const [likesCount, setLikesCount] = useState(undefined)
+  const [likesCount, setLikesCount] = useState<number>(0)
 
   useEffect(() => {
     // console.debug("WorkoutSocialButtonGroup.useEffect [getInteractionsForWorkout] called")
@@ -29,11 +29,18 @@ export const WorkoutSocialButtonGroup = observer((props: WorkoutSocialButtonGrou
   }, [feedStore.getInteractionsForWorkout(workoutSource, workoutId)])
 
   useEffect(() => {
-    setIsLikedByUser(workoutInteractions?.likedByUserIds?.includes(userStore.userId) ?? false)
+    if (userStore.userId) {
+      setIsLikedByUser(workoutInteractions?.likedByUserIds?.includes(userStore.userId) ?? false)
+    }
     setLikesCount(workoutInteractions?.likedByUserIds?.length ?? 0)
   }, [workoutInteractions, userStore.userId])
 
   const handleLike = () => {
+    if (!userStore.userId) {
+      console.debug("WorkoutSocialButtonGroup.handleLike userStore.userId is null")
+      return
+    }
+
     if (isLikedByUser) {
       feedStore.unlikeWorkout(workoutId, userStore.userId)
       setLikesCount((prev) => Math.max(0, prev - 1))
@@ -51,7 +58,7 @@ export const WorkoutSocialButtonGroup = observer((props: WorkoutSocialButtonGrou
         <RowView style={styles.alignCenter}>
           <Icon
             name={isLikedByUser ? "thumbs-up" : "thumbs-up-outline"}
-            color={isLikedByUser ? themeStore.colors("tint") : null}
+            color={isLikedByUser ? themeStore.colors("tint") : undefined}
             size={buttonGroupIconSize}
           />
           <Spacer type="horizontal" size="micro" />

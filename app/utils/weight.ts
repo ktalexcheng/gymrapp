@@ -3,11 +3,11 @@ import { roundToString } from "app/utils/formatNumber"
 
 export class Weight {
   static LBS_IN_KG = 2.205
-  #weight: number
+  #weight: number | null
   #weightUnit: WeightUnit
   #displayUnit: WeightUnit
 
-  constructor(weight: number, weightUnit: WeightUnit, displayUnit: WeightUnit) {
+  constructor(weight: number | null, weightUnit: WeightUnit, displayUnit: WeightUnit) {
     this.#weight = weight
     this.#weightUnit = weightUnit
     this.#displayUnit = displayUnit
@@ -39,7 +39,10 @@ export class Weight {
   }
 
   static convertWeight(weight: number, sourceUnit: WeightUnit, targetUnit: WeightUnit) {
-    if (!Number.isFinite(weight)) return null
+    if (!Number.isFinite(weight)) {
+      throw new Error(`Weight.convertWeight: weight is not a finite number: ${weight}`)
+    }
+
     if (sourceUnit === targetUnit) return weight
 
     switch (targetUnit) {
@@ -58,33 +61,35 @@ export class Weight {
         }
 
       default:
-        return undefined
+        throw new Error(`Weight.convertWeight: invalid targetUnit: ${targetUnit}`)
     }
   }
 
-  get weight(): number {
+  get weight(): number | null {
     return this.#weight
   }
 
-  get displayWeight(): number {
+  get displayWeight(): number | null {
+    if (this.#weight === null) return null
     return Weight.convertWeight(this.#weight, this.#weightUnit, this.#displayUnit)
   }
 
-  get asKg(): number {
-    if (!this.#weight) return null
+  get asKg(): number | null {
+    if (this.#weight === null) return null
     if (this.#weightUnit === WeightUnit.kg) return this.#weight
 
     return this.#weight / Weight.LBS_IN_KG
   }
 
-  get asLbs(): number {
-    if (!this.#weight) return null
+  get asLbs(): number | null {
+    if (this.#weight === null) return null
     if (this.#weightUnit === WeightUnit.lbs) return this.#weight
 
     return this.#weight * Weight.LBS_IN_KG
   }
 
-  formattedDisplayWeight(decimals: number, showTrailingZero = true): string {
+  formattedDisplayWeight(decimals: number, showTrailingZero = true): string | null {
+    if (this.displayWeight === null) return null
     return roundToString(this.displayWeight, decimals, showTrailingZero)
   }
 }

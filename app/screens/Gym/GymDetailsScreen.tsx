@@ -1,11 +1,11 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Button, Icon, RowView, Screen, Spacer, TabBar, Text } from "app/components"
 import { WorkoutSource } from "app/data/constants"
-import { GymDetails, GymMember, User, UserId, Workout, WorkoutId } from "app/data/model"
+import { GymDetails, GymMember, UserId, WorkoutId } from "app/data/types"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
 import { api } from "app/services/api"
-import { useStores } from "app/stores"
+import { IUserModel, IWorkoutSummaryModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { simplifyNumber } from "app/utils/formatNumber"
 import { observer } from "mobx-react-lite"
@@ -15,8 +15,8 @@ import { SceneMap, TabView } from "react-native-tab-view"
 import { WorkoutSummaryCard } from "../FinishedWorkout"
 
 interface GymWorkoutsTabSceneProps {
-  workouts: Workout[]
-  byUsers: { [userId: string]: User }
+  workouts: IWorkoutSummaryModel[]
+  byUsers: { [userId: string]: IUserModel }
   onEndReached: () => void
   noMoreWorkouts: boolean
 }
@@ -39,7 +39,7 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
         ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
         keyExtractor={(item) => item.workoutId}
         onEndReachedThreshold={0.5}
-        onEndReached={!noMoreWorkouts && onEndReached}
+        onEndReached={() => !noMoreWorkouts && onEndReached()}
         ListFooterComponent={() => {
           if (workouts.length === 0) {
             return (
@@ -67,7 +67,7 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
 )
 
 interface GymMembersTabSceneProps {
-  gymMembers: { [userId: string]: GymMember & User }
+  gymMembers: { [userId: string]: GymMember & IUserModel }
   onEndReached: () => void
   noMoreMembers: boolean
 }
@@ -95,7 +95,7 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
       justifyContent: "space-between",
     }
 
-    const GymMemberTile = (gymMember: GymMember & User) => {
+    const GymMemberTile = (gymMember: GymMember & IUserModel) => {
       return (
         <RowView style={$tileContainer}>
           <Text>{`${gymMember.firstName} ${gymMember.lastName}`}</Text>
@@ -115,7 +115,7 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
           renderItem={({ item }) => <GymMemberTile {...item} />}
           keyExtractor={(item) => item.userId}
           onEndReachedThreshold={0.5}
-          onEndReached={!noMoreMembers && onEndReached}
+          onEndReached={() => !noMoreMembers && onEndReached()}
           ListFooterComponent={() => {
             if (sortedGymMembers.length === 0) {
               return (
@@ -145,19 +145,19 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
 
 type GymDetailsScreenProps = NativeStackScreenProps<MainStackParamList, "GymDetails">
 
-export const GymDetailsScreen: FC = observer(({ route }: GymDetailsScreenProps) => {
+export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
   const gymId = route.params.gymId
   const { gymStore, userStore } = useStores()
-  const [gymDetails, setGymDetails] = useState<GymDetails>(undefined)
+  const [gymDetails, setGymDetails] = useState<GymDetails>()
   const [showEntireName, setShowEntireName] = useState(false)
-  const [gymWorkouts, setGymWorkouts] = useState<Workout[]>([])
-  const [lastWorkoutId, setLastWorkoutId] = useState<WorkoutId>(undefined)
+  const [gymWorkouts, setGymWorkouts] = useState<IWorkoutSummaryModel[]>([])
+  const [lastWorkoutId, setLastWorkoutId] = useState<WorkoutId>()
   const [noMoreWorkouts, setNoMoreWorkouts] = useState(false)
   const [loadingWorkouts, setLoadingWorkouts] = useState(false)
   const [gymMemberProfiles, setGymMemberProfiles] = useState<{
-    [userId: string]: GymMember & User
+    [userId: string]: GymMember & IUserModel
   }>({})
-  const [lastMemberId, setLastMemberId] = useState<UserId>(undefined)
+  const [lastMemberId, setLastMemberId] = useState<UserId>()
   const [noMoreMembers, setNoMoreMembers] = useState(false)
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -305,6 +305,8 @@ export const GymDetailsScreen: FC = observer(({ route }: GymDetailsScreenProps) 
   }
 
   const handleAddToMyGyms = () => {
+    if (!gymDetails) return
+
     setIsRefreshing(true)
     userStore
       .addToMyGyms(gymDetails)
@@ -316,6 +318,8 @@ export const GymDetailsScreen: FC = observer(({ route }: GymDetailsScreenProps) 
   }
 
   const handleRemoveFromMyGyms = () => {
+    if (!gymDetails) return
+
     setIsRefreshing(true)
     userStore
       .removeFromMyGyms(gymDetails)
@@ -350,7 +354,7 @@ export const GymDetailsScreen: FC = observer(({ route }: GymDetailsScreenProps) 
         <Text
           text={gymDetails.gymName}
           preset="heading"
-          numberOfLines={showEntireName ? null : 2}
+          numberOfLines={showEntireName ? undefined : 2}
         />
       </TouchableOpacity>
       <Spacer type="vertical" size="tiny" />

@@ -1,13 +1,13 @@
 // Repository for feed data
 
-import { FeedItemId, UserFeedItem } from "../model"
+import { FeedItemId, UserFeedItem } from "../types"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class FeedRepository extends BaseRepository<UserFeedItem, FeedItemId> {
-  #userId: string
+  #userId?: string
 
   constructor(firestoreClient) {
-    super("FeedRepository", firestoreClient, undefined, "feedItemId")
+    super("FeedRepository", firestoreClient, null, "feedItemId")
   }
 
   setUserId(userId: string): void {

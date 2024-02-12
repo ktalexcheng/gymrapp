@@ -44,7 +44,7 @@ export interface PickerProps {
   /**
    * List of items to display in dropdown
    */
-  itemsList?: { label: string; value: any }[]
+  itemsList: { label: string; value: any }[]
   /**
    * The currently selected value
    */

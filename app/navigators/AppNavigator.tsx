@@ -21,6 +21,7 @@ import { observer } from "mobx-react-lite"
 import React, { useCallback, useEffect, useState } from "react"
 import {
   Alert,
+  AlertButton,
   AppState,
   Linking,
   Platform,
@@ -78,15 +79,15 @@ const AppStack = observer(() => {
   // const [initializing, setInitializing] = useState(true) // Set an initializing state whilst Firebase connects
 
   // Handle user state changes
-  async function onAuthStateChanged(user: FirebaseAuthTypes.User) {
+  async function onAuthStateChanged(user: FirebaseAuthTypes.User | null) {
     // Update authentication and user data
     if (user) {
       console.debug("onAuthStateChanged received valid user")
       authStore.setFirebaseUser(user)
       // Don't load user data if email is not verified
       if (user.emailVerified) {
-        userStore.loadUserWithId(authStore.userId)
-        feedStore.setUserId(authStore.userId)
+        userStore.loadUserWithId(user.uid)
+        feedStore.setUserId(user.uid)
       }
     } else {
       console.debug("onAuthStateChanged received invalid user, invalidating session")
@@ -107,13 +108,34 @@ const AppStack = observer(() => {
           return
         }
 
-        const updates = await api.checkForUpdates(exerciseStore.lastUpdated)
-        console.debug("AppNavigator.checkForUpdates response:", updates)
         setCheckUpdateError(false)
+
+        let updates
+        if (exerciseStore.lastUpdated) {
+          updates = await api.checkForUpdates(exerciseStore.lastUpdated)
+          console.debug("AppNavigator.checkForUpdates response:", updates)
+        }
 
         if (updates && updates.updateAvailable) {
           if (updates.forceUpdate) {
             setForceUpdate(true)
+          }
+
+          const alertButtons: AlertButton[] = [
+            {
+              text: translate("updateApp.update"),
+              onPress: () => {
+                Linking.openURL(updates.updateLink)
+              },
+            },
+          ]
+
+          if (!updates.forceUpdate) {
+            alertButtons.push({
+              text: translate("common.cancel"),
+              onPress: () => {},
+              style: "cancel",
+            })
           }
 
           Alert.alert(
@@ -123,25 +145,14 @@ const AppStack = observer(() => {
             updates.forceUpdate
               ? translate("updateApp.forceUpdateMessage")
               : translate("updateApp.updateAvailableMessage"),
-            [
-              {
-                text: translate("updateApp.update"),
-                onPress: () => {
-                  Linking.openURL(updates.updateLink)
-                },
-              },
-              !updates.forceUpdate && {
-                text: translate("common.cancel"),
-                onPress: () => {},
-                style: "cancel",
-              },
-            ],
+            alertButtons,
           )
         }
 
-        if (updates && updates.exercisesUpdateAvailable && authStore.isAuthenticated) {
-          await exerciseStore.getAllExercises()
-        }
+        // Exercise update is done in MainNavigator on each app start
+        // if (updates && updates.exercisesUpdateAvailable && authStore.isAuthenticated) {
+        //   await exerciseStore.getAllExercises()
+        // }
 
         // Set last updated timestamp only if successful
         await storage.setAppLastUpdated()
@@ -245,7 +256,7 @@ export const AppNavigator = observer((props: NavigationProps) => {
     // Listen to network state change
     const unsubscribeNetworkChange = NetInfo.addEventListener((state) => {
       console.debug("AppNavigator.useEffect NetInfo state.isConnected", state.isConnected)
-      setIsInternetConnected(state.isConnected)
+      setIsInternetConnected(!!state.isConnected)
     })
 
     return () => {

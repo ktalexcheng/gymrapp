@@ -35,9 +35,6 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
     )
     const [restTimeSetting] = useExerciseSetting<number>(exerciseId, "restTime")
     const [page, setPage] = useState("")
-    // This is only used for the Android picker modal to workaround Tamagui popover bug
-    // where scrolling is disabled in Popover.Content
-    const [restTimeModalVisible, setRestTimeModalVisible] = useState(false)
 
     function updateRestTimerEnabled(status: boolean) {
       exerciseStore.updateExerciseSetting(exerciseId, "autoRestTimerEnabled", status)

@@ -1,6 +1,6 @@
 import { Button, Icon, Modal, RowView, TextField } from "app/components"
 import { WorkoutSource } from "app/data/constants"
-import { WorkoutId } from "app/data/model"
+import { WorkoutId } from "app/data/types"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
@@ -9,6 +9,7 @@ import { observer } from "mobx-react-lite"
 import React, { useState } from "react"
 import { Alert, View } from "react-native"
 import { Popover } from "tamagui"
+import { LoadingScreen } from "../LoadingScreen"
 
 interface WorkoutSummaryMenuProps {
   workoutSource: WorkoutSource
@@ -22,7 +23,7 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
   const { feedStore, themeStore } = useStores()
   const mainNavigation = useMainNavigation()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [workoutTitle, setWorkoutTitle] = useState("")
+  const [workoutTitle, setWorkoutTitle] = useState<string>()
   const [workoutTitleError, setWorkoutTitleError] = useState(false)
   const [showEditTitleModal, setShowEditTitleModal] = useState(false)
 
@@ -55,6 +56,8 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
   }
 
   const handleShowEditTitleModal = () => {
+    if (!workout) return
+
     setWorkoutTitle(workout.workoutTitle)
     setMenuOpen(false)
     setShowEditTitleModal(true)
@@ -91,6 +94,8 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
       </>
     )
   }
+
+  if (!workout) return <LoadingScreen />
 
   return (
     <>

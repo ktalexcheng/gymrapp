@@ -302,9 +302,9 @@ const $tabBarLabel: TextStyle = {
   flex: 1,
 }
 
-const $modalButton: ViewStyle = {
-  margin: spacing.extraSmall,
-  borderRadius: 20,
-  padding: spacing.extraLarge,
-  alignItems: "center",
-}
+// const $modalButton: ViewStyle = {
+//   margin: spacing.extraSmall,
+//   borderRadius: 20,
+//   padding: spacing.extraLarge,
+//   alignItems: "center",
+// }

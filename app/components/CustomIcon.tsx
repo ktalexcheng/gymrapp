@@ -1,12 +1,10 @@
 import * as React from "react"
-import { ComponentType } from "react"
 import {
   Image,
   ImageStyle,
   StyleProp,
   TouchableOpacity,
   TouchableOpacityProps,
-  View,
   ViewStyle,
 } from "react-native"
 
@@ -61,12 +59,13 @@ export function CustomIcon(props: CustomIconProps) {
   } = props
 
   const isPressable = !!WrapperProps.onPress
-  const Wrapper: ComponentType<TouchableOpacityProps> = WrapperProps?.onPress
-    ? TouchableOpacity
-    : View
+  // const Wrapper: ComponentType<TouchableOpacityProps> = WrapperProps?.onPress
+  //   ? TouchableOpacity
+  //   : View
 
   return (
-    <Wrapper
+    <TouchableOpacity
+      disabled={!isPressable}
       accessibilityRole={isPressable ? "imagebutton" : undefined}
       {...WrapperProps}
       style={$containerStyleOverride}
@@ -74,13 +73,13 @@ export function CustomIcon(props: CustomIconProps) {
       <Image
         style={[
           $imageStyle,
-          color && { tintColor: color },
-          size && { width: size, height: size },
+          !!color && { tintColor: color },
+          !!size && { width: size, height: size },
           $imageStyleOverride,
         ]}
         source={customIconRegistry[icon]}
       />
-    </Wrapper>
+    </TouchableOpacity>
   )
 }
 

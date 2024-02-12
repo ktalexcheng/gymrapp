@@ -1,5 +1,5 @@
 import { Button, Icon, RowView, Search, Spacer, Text } from "app/components"
-import { GymSearchResult } from "app/data/model"
+import { GymSearchResult } from "app/data/types"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { api } from "app/services/api"
 import { spacing, styles } from "app/theme"
@@ -50,7 +50,7 @@ const GymSearchFooterComponent: FC = () => {
         tx="gymSearch.createNewGymButtonLabel"
         preset="text"
         style={styles.alignCenter}
-        onPress={() => mainNavigator.navigate("CreateNewGym")}
+        onPress={() => mainNavigator.navigate("CreateNewGym", {})}
       />
       <Spacer type="vertical" size="extraLarge" />
     </>

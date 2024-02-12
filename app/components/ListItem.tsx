@@ -150,25 +150,29 @@ export const ListItem = observer((props: ListItemProps) => {
   return (
     <View style={$containerStyles}>
       <TouchableOpacity {...TouchableOpacityProps} style={$touchableStyles}>
-        <ListItemAction
-          side="left"
-          size={height}
-          icon={leftIcon}
-          iconColor={leftIconColor}
-          Component={LeftComponent}
-        />
+        {leftIcon && (
+          <ListItemAction
+            side="left"
+            size={height}
+            icon={leftIcon}
+            iconColor={leftIconColor}
+            Component={LeftComponent}
+          />
+        )}
 
         <Text {...TextProps} tx={tx} text={text} txOptions={txOptions} style={$textStyles}>
           {children}
         </Text>
 
-        <ListItemAction
-          side="right"
-          size={height}
-          icon={rightIcon}
-          iconColor={rightIconColor}
-          Component={RightComponent}
-        />
+        {rightIcon && (
+          <ListItemAction
+            side="right"
+            size={height}
+            icon={rightIcon}
+            iconColor={rightIconColor}
+            Component={RightComponent}
+          />
+        )}
       </TouchableOpacity>
     </View>
   )

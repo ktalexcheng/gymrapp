@@ -6,24 +6,13 @@ import Constants from "expo-constants"
 import * as Crypto from "expo-crypto"
 import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
 import { AuthErrorType } from "../data/constants"
-import { User } from "../data/model"
-import { createCustomType } from "./helpers/createCustomType"
+import { User } from "../data/types"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
-function isFirebaseUserCredential(value: any): value is FirebaseAuthTypes.UserCredential {
-  if (typeof value !== "object") return false
-  return (value as any).user !== undefined
-}
-
-const FirebaseUserCredentialType = createCustomType<FirebaseAuthTypes.UserCredential>(
-  "FirebaseUserCredential",
-  isFirebaseUserCredential,
-)
-
 // See why: https://rnfirebase.io/auth/social-auth#google
 GoogleSignin.configure({
-  webClientId: Constants.expoConfig.extra.googleOauthClientId,
+  webClientId: Constants.expoConfig?.extra?.googleOauthClientId,
 })
 
 function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.UserCredential): User {
@@ -45,7 +34,19 @@ export const AuthenticationStoreModel = types
   .model("AuthenticationStore")
   .props({
     isAuthenticating: false,
-    firebaseUserCredential: types.maybe(FirebaseUserCredentialType),
+    // This is a partial implementation of FirebaseAuthTypes.UserCredential, only what we need
+    firebaseUserCredential: types.maybe(
+      types.model("FirebaseUserCredentialModel", {
+        user: types.model("FirebaseUserModel", {
+          uid: types.string,
+          displayName: types.maybeNull(types.string),
+          email: types.maybeNull(types.string),
+          emailVerified: false,
+          photoURL: types.maybeNull(types.string),
+          providerId: types.string,
+        }),
+      }),
+    ),
     authToken: types.maybe(types.string),
     isEmailVerified: false,
   })
@@ -64,22 +65,22 @@ export const AuthenticationStoreModel = types
       return !!self.authToken && !self.isEmailVerified
     },
     get userId() {
-      return self.firebaseUserCredential?.user.uid ?? null
+      return self.firebaseUserCredential?.user?.uid ?? null
     },
     get firstName() {
-      return self.firebaseUserCredential.user.displayName?.split(" ")[0] ?? ""
+      return self.firebaseUserCredential?.user?.displayName?.split(" ")[0] ?? ""
     },
     get lastName() {
-      return self.firebaseUserCredential.user.displayName?.split(" ")[1] ?? ""
+      return self.firebaseUserCredential?.user?.displayName?.split(" ")[1] ?? ""
     },
     get avatarUrl() {
-      return self.firebaseUserCredential.user.photoURL ?? ""
+      return self.firebaseUserCredential?.user?.photoURL ?? ""
     },
     get email() {
-      return self.firebaseUserCredential.user.email ?? ""
+      return self.firebaseUserCredential?.user?.email ?? ""
     },
     get providerId() {
-      return self.firebaseUserCredential.user.providerId ?? ""
+      return self.firebaseUserCredential?.user?.providerId ?? ""
     },
   }))
   .actions(withSetPropAction)
@@ -165,7 +166,7 @@ export const AuthenticationStoreModel = types
     }
 
     function resetAuthError() {
-      self.authError = undefined
+      self.authError = ""
     }
 
     const invalidateSession = flow(function* () {
@@ -181,11 +182,12 @@ export const AuthenticationStoreModel = types
       self.authToken = undefined
     })
 
+    // @ts-ignore
     const refreshAuthToken = flow(function* () {
       self.isAuthenticating = true
       try {
         let token
-        if (auth().currentUser) token = yield auth().currentUser.getIdToken(true)
+        if (auth().currentUser) token = yield auth().currentUser?.getIdToken(true)
 
         if (token) {
           self.authToken = token
@@ -204,11 +206,12 @@ export const AuthenticationStoreModel = types
       }
     })
 
+    // @ts-ignore
     const checkEmailVerified = flow(function* () {
       self.isAuthenticating = true
       try {
-        yield auth().currentUser.reload()
-        self.isEmailVerified = auth().currentUser.emailVerified
+        yield auth().currentUser?.reload()
+        self.isEmailVerified = auth().currentUser?.emailVerified ?? false
         yield refreshAuthToken()
       } catch (e) {
         console.error("AuthenticationStore.checkEmailVerified error:", e)
@@ -225,8 +228,14 @@ export const AuthenticationStoreModel = types
         throw new Error("AuthenticationStore.setFirebaseUser error: invalid firebaseUser")
       }
       self.firebaseUserCredential = {
-        ...self.firebaseUserCredential,
-        user: firebaseUser,
+        user: {
+          uid: firebaseUser.uid,
+          displayName: firebaseUser.displayName,
+          email: firebaseUser.email,
+          emailVerified: firebaseUser.emailVerified,
+          photoURL: firebaseUser.photoURL,
+          providerId: firebaseUser.providerId,
+        },
       }
       console.debug("AuthenticationStore.setFirebaseUser firebaseUser:", firebaseUser)
       console.debug(
@@ -249,7 +258,17 @@ export const AuthenticationStoreModel = types
         "AuthenticationStore.setFirebaseUserCredential firebaseUserCredential:",
         firebaseUserCredential,
       )
-      self.firebaseUserCredential = firebaseUserCredential
+
+      self.firebaseUserCredential = {
+        user: {
+          uid: firebaseUserCredential.user.uid,
+          displayName: firebaseUserCredential.user.displayName,
+          email: firebaseUserCredential.user.email,
+          emailVerified: firebaseUserCredential.user.emailVerified,
+          photoURL: firebaseUserCredential.user.photoURL,
+          providerId: firebaseUserCredential.user.providerId,
+        },
+      }
       self.isEmailVerified = firebaseUserCredential.user.emailVerified
       refreshAuthToken()
       self.isAuthenticating = false
@@ -261,12 +280,15 @@ export const AuthenticationStoreModel = types
       self.isAuthenticating = false
     })
 
+    // @ts-ignore
     const deleteAccount = flow(function* () {
+      if (!self.userId) return
+
       resetAuthError()
       self.isAuthenticating = true
       try {
         yield getEnv<RootStoreDependencies>(self).userRepository.delete(self.userId)
-        yield auth().currentUser.delete() // Also signs user out
+        yield auth().currentUser?.delete() // Also signs user out
         yield invalidateSession()
       } catch (error) {
         catchAuthError("deleteAccount", error)
@@ -299,6 +321,7 @@ export const AuthenticationStoreModel = types
       }
     })
 
+    // @ts-ignore
     const signUpWithEmail = flow(function* () {
       resetAuthError()
       if (emailIsInvalid(self.loginEmail) || passwordIsWeak(self.loginPassword)) return
@@ -311,7 +334,7 @@ export const AuthenticationStoreModel = types
         // IMPORTANT: Firebase Dynamic Links had to be set up for this to work on iOS (it works without Dynamic Links on Android)
         // but Dynamic Links are deprecated by Firebase and will be removed by August 25, 2025
         // https://gymrapp.page.link/email-verified is a Firebase Dynamic Link that redirects to https://gymrapp.com/auth/email-verified
-        yield auth().currentUser.sendEmailVerification({
+        yield auth().currentUser?.sendEmailVerification({
           url: `${process.env.EXPO_PUBLIC_GYMRAPP_BASE_URL}/auth/email-verified`,
         })
       } catch (e) {

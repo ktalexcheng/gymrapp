@@ -1,4 +1,8 @@
-export function roundToString(input: number, decimals: number, showTrailingZero = true): string {
+export function roundToString(
+  input: number,
+  decimals: number,
+  showTrailingZero = true,
+): string | null {
   if (!Number.isFinite(input)) return null
 
   const roundingBase = 10 ** decimals

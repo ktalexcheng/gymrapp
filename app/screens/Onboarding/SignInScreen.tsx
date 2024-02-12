@@ -24,20 +24,20 @@ const googleGLogo = require("../../../assets/images/google-g-logo.png")
 
 interface SignInScreenProps extends AuthStackScreenProps<"SignIn"> {}
 
-export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScreen(_props) {
+export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScreen() {
   const authNavigation = useAuthNavigation()
   const { authenticationStore: authStore, themeStore } = useStores()
   const [isAuthPasswordHidden, setIsAuthPasswordHidden] = useState(true)
   const [attemptsCount, setAttemptsCount] = useState(0)
   const [loginEmail, setLoginEmail] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
-  const [authError, setAuthError] = useState(null)
-  const loginPasswordRef = useRef<TextInput>()
+  const [authError, setAuthError] = useState<string>()
+  const loginPasswordRef = useRef<TextInput>(null)
 
   useFocusEffect(
     useCallback(() => {
       authStore.resetAuthError()
-      setAuthError(null)
+      setAuthError(undefined)
     }, []),
   )
 
@@ -60,7 +60,7 @@ export const SignInScreen: FC<SignInScreenProps> = observer(function SignInScree
       setAuthError(translate("signInScreen.error.invalidCredentials"))
       isValid = false
     } else {
-      setAuthError(null)
+      setAuthError(undefined)
     }
 
     return isValid

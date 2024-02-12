@@ -2,13 +2,12 @@ import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firest
 import storage, { FirebaseStorageTypes } from "@react-native-firebase/storage"
 import { api } from "app/services/api"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
-import { getNestedField } from "app/utils/getNestedField"
 import { UserErrorType } from "../constants"
-import { FollowRequest, Gym, GymDetails, User, UserId } from "../model"
+import { FollowRequest, Gym, GymDetails, User, UserId } from "../types"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class UserRepository extends BaseRepository<User, UserId> {
-  #userId: string
+  #userId?: string
   #userFollowsCollectionName = "userFollows"
   #userFollowingCollectionName = "following"
   #userFollowersCollectionName = "followers"
@@ -26,10 +25,16 @@ export class UserRepository extends BaseRepository<User, UserId> {
    * @param propPath Dot-notation path to the property, e.g. "preferences.restTime"
    * @returns Value of the property, or undefined if the property does not exist
    */
-  async getUserProp(propPath: string): Promise<any> {
-    const user = await this.get(this.#userId, false)
-    return getNestedField(user, propPath)
-  }
+  // TODO: This is easy to create inconsistency between Firestore and MST
+  // Replace every call to this method with a parameter that takes the User object from MST instead
+  // async getUserProp(propPath: string): Promise<any> {
+  //   this.checkRepositoryInitialized()
+
+  //   const user = await this.get(this.#userId!, false)
+  //   if (!user) return undefined
+
+  //   return getNestedField(user, propPath)
+  // }
 
   setUserId(userId: string): void {
     this.#userId = userId
@@ -42,13 +47,19 @@ export class UserRepository extends BaseRepository<User, UserId> {
     }
   }
 
-  async update(id: UserId, data: Partial<User>, useSetMerge = false): Promise<User> {
+  async get(id: UserId | null, refresh = true): Promise<User | undefined> {
+    return await super.get(id ?? this.#userId!, refresh)
+  }
+
+  async update(id: UserId | null, data: Partial<User>, useSetMerge = false): Promise<User> {
+    this.checkRepositoryInitialized()
+
     // Create a copy of data for manipulation
     const _data = { ...data }
 
     // If data contains userHandle or _userHandleLower, remove it from the update
     // and update the userHandle separately to ensure no duplicates
-    if (_data.userHandle || _data._userHandleLower) {
+    if (_data.userHandle) {
       console.debug("UserRepository.update updating user handle")
       try {
         // Only server side code can perform a query in transaction, which we need to check for duplicates
@@ -64,14 +75,14 @@ export class UserRepository extends BaseRepository<User, UserId> {
       }
     }
 
-    return await super.update(id ?? this.#userId, _data, useSetMerge)
+    return await super.update(id ?? this.#userId!, _data, useSetMerge)
   }
 
   async uploadAvatar(imagePath: string): Promise<string> {
     this.checkRepositoryInitialized()
 
     // If imagePath is already a hyperlink, download and reupload to storage
-    let imageBlob: Blob
+    let imageBlob: Blob | undefined
     if (imagePath.startsWith("http")) {
       try {
         const response = await fetch(imagePath)
@@ -106,10 +117,9 @@ export class UserRepository extends BaseRepository<User, UserId> {
       },
     )
 
-    let imageUrl: string
-    await uploadTask.then(async () => {
+    const imageUrl = await uploadTask.then(async () => {
       console.debug("UserRepository.uploadAvatar upload done")
-      imageUrl = await avatarRef.getDownloadURL()
+      return await avatarRef.getDownloadURL()
     })
 
     return imageUrl
@@ -253,13 +263,15 @@ export class UserRepository extends BaseRepository<User, UserId> {
   }
 
   async addToMyGyms(gym: GymDetails) {
+    this.checkRepositoryInitialized()
+
     const userUpdate = {
       myGyms: firestore.FieldValue.arrayUnion({ gymId: gym.gymId, gymName: gym.gymName }),
     }
 
     try {
       await this.firestoreClient.runTransaction(async (tx) => {
-        tx.update(this.firestoreCollection.doc(this.#userId), userUpdate)
+        tx.update(this.firestoreCollection!.doc(this.#userId), userUpdate)
 
         // const gymMembersCollection = this.firestoreClient
         //   .collection("gyms")
@@ -276,20 +288,22 @@ export class UserRepository extends BaseRepository<User, UserId> {
 
     // Do not include the final read operation in the transaction
     // See: https://firebase.google.com/docs/firestore/manage-data/transactions#transactions
-    const updatedUser = await this.get(this.#userId, true)
+    const updatedUser = await this.get(this.#userId!, true)
     console.debug("addToMyGyms updatedUser:", updatedUser)
-    console.debug("addToMyGyms new cached data:", this.getCacheData(this.#userId))
+    console.debug("addToMyGyms new cached data:", this.getCacheData(this.#userId!))
     return updatedUser
   }
 
   async removeFromMyGyms(gym: Gym | GymDetails) {
+    this.checkRepositoryInitialized()
+
     const userUpdate = {
       myGyms: firestore.FieldValue.arrayRemove({ gymId: gym.gymId, gymName: gym.gymName }),
     }
 
     try {
       await this.firestoreClient.runTransaction(async (tx) => {
-        tx.update(this.firestoreCollection.doc(this.#userId), userUpdate)
+        tx.update(this.firestoreCollection!.doc(this.#userId), userUpdate)
 
         // const gymMembersCollection = this.firestoreClient
         //   .collection("gyms")
@@ -303,9 +317,9 @@ export class UserRepository extends BaseRepository<User, UserId> {
 
     // Do not include the final read operation in the transaction
     // See: https://firebase.google.com/docs/firestore/manage-data/transactions#transactions
-    const updatedUser = await this.get(this.#userId, true)
+    const updatedUser = await this.get(this.#userId!, true)
     console.debug("removeFromMyGyms updatedUser:", updatedUser)
-    console.debug("removeFromMyGyms new cached data:", this.getCacheData(this.#userId))
+    console.debug("removeFromMyGyms new cached data:", this.getCacheData(this.#userId!))
     return updatedUser
   }
 }

@@ -1,7 +1,7 @@
 import Constants from "expo-constants"
 
 function getGoogleClientId() {
-  const GOOGLE_CLIENT_ID = Constants.expoConfig.extra.googleClientId
+  const GOOGLE_CLIENT_ID = Constants.expoConfig?.extra?.googleClientId
 
   if (!GOOGLE_CLIENT_ID) {
     throw new Error("GOOGLE CLIENT ID is missing.")

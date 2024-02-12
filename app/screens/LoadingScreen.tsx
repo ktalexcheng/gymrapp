@@ -53,7 +53,8 @@ export const LoadingScreen = observer(() => {
         ),
       }
     }
-    return undefined
+
+    return {}
   })
 
   return (

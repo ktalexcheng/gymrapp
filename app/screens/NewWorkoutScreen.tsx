@@ -1,9 +1,8 @@
-import { Activity } from "app/data/model/activityModel"
 import { MainStackScreenProps } from "app/navigators"
 import React, { FC, useState } from "react"
 import { StyleProp, TextStyle, TouchableOpacity, ViewStyle } from "react-native"
 import { Button, Card, Modal, RowView, Screen, Spacer, Text } from "../components"
-import { useStores } from "../stores"
+import { IActivityModel, useStores } from "../stores"
 import { spacing } from "../theme"
 
 type ResetWorkoutDialogProps = {
@@ -39,12 +38,12 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
 }) {
   const { workoutStore, activityStore, themeStore } = useStores()
   const [showResetWorkoutDialog, setShowResetWorkoutDialog] = useState(false)
-  const [selectedActivityId, setSelectedActivityId] = useState(null)
+  const [selectedActivityId, setSelectedActivityId] = useState<string>()
   const [noActivitySelectedError, setNoActivitySelectedError] = useState(false)
 
   function toggleSelectedActivity(id: string) {
     if (id === selectedActivityId) {
-      setSelectedActivityId(null)
+      setSelectedActivityId(undefined)
     } else {
       setSelectedActivityId(id)
     }
@@ -78,8 +77,8 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
   const $activitySelector: StyleProp<ViewStyle> = [
     $activitySelectorBase,
     {
-      borderWidth: noActivitySelectedError ? 1 : null,
-      borderColor: noActivitySelectedError ? themeStore.colors("error") : null,
+      borderWidth: noActivitySelectedError ? 1 : undefined,
+      borderColor: noActivitySelectedError ? themeStore.colors("error") : undefined,
     },
   ]
 
@@ -102,7 +101,7 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
 
       <RowView scrollable={true} style={$activitySelector}>
         {Array.from(activityStore.allActivities.entries()).map(
-          ([id, activity]: [string, Activity]) => {
+          ([id, activity]: [string, IActivityModel]) => {
             return (
               <Card
                 key={id}
@@ -168,7 +167,7 @@ const $activitySelectorBase: ViewStyle = {
 }
 
 const $activityCard: ViewStyle = {
-  elevation: null,
+  elevation: undefined,
 }
 
 const $programCard: ViewStyle = {

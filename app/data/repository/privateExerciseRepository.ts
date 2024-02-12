@@ -1,4 +1,4 @@
-import { Exercise, ExerciseId } from "../model"
+import { Exercise, ExerciseId } from "../types"
 import { BaseRepository } from "./baseRepository"
 
 export class PrivateExerciseRepository extends BaseRepository<Exercise, ExerciseId> {

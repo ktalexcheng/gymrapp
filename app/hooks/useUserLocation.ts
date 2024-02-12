@@ -1,4 +1,4 @@
-import { LatLongCoords } from "app/data/model"
+import { LatLongCoords } from "app/data/types"
 import { translate } from "app/i18n"
 import * as Location from "expo-location"
 import { useEffect, useState } from "react"
@@ -9,12 +9,12 @@ import { Alert, Linking } from "react-native"
  * not sure why this is necessary but the location will never update otherwise
  */
 export const useUserLocation = (): {
-  userLocation: LatLongCoords
+  userLocation: LatLongCoords | null
   isLocationPermissionGranted: boolean
   isGettingUserLocation: boolean
   refreshUserLocation: () => void
 } => {
-  const [userLocation, setUserLocation] = useState<LatLongCoords>(null)
+  const [userLocation, setUserLocation] = useState<LatLongCoords | null>(null)
   const [isLocationPermissionGranted, setIsLocationPermissionGranted] = useState(false)
   const [isGettingUserLocation, setIsGettingUserLocation] = useState(true)
   const [getUserLocationRefreshKey, setGetUserLocationRefreshKey] = useState(0)

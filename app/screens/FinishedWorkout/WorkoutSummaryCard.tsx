@@ -1,10 +1,9 @@
 import { Avatar, RowView, Spacer, Text } from "app/components"
 import { ExerciseVolumeType, WeightUnit, WorkoutSource } from "app/data/constants"
-import { ExercisePerformed, User, Workout } from "app/data/model"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
-import { useStores } from "app/stores"
+import { IExerciseSummaryModel, IUserModel, IWorkoutSummaryModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { formatDate } from "app/utils/formatDate"
 import { formatSecondsAsTime } from "app/utils/formatTime"
@@ -17,26 +16,29 @@ import { WorkoutSocialButtonGroup } from "./WorkoutSocialButtonGroup"
 export interface WorkoutSummaryCardProps {
   workoutSource: WorkoutSource
   workoutId: string
-  workout: Workout
-  byUser: User
+  workout: IWorkoutSummaryModel
+  byUser: IUserModel
   highlightExerciseId?: string
 }
 
 export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
   (props: WorkoutSummaryCardProps) => {
     const { workoutSource, workoutId, workout, byUser, highlightExerciseId } = props
+    console.debug("WorkoutSummaryCard", {
+      exercises: workout.exercises,
+    })
     const { exerciseStore, userStore, themeStore } = useStores()
     const mainNavigation = useMainNavigation()
     const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
     const weightUnitTx = useWeightUnitTx()
 
-    const renderBestSet = (e: ExercisePerformed, i: number) => {
+    const renderBestSet = (e: IExerciseSummaryModel, i: number) => {
       const $highlightExercise: TextStyle =
         highlightExerciseId && highlightExerciseId === e.exerciseId
           ? {
               color: themeStore.colors("tint"),
             }
-          : undefined
+          : {}
       const $highlightExerciseTextPreset =
         highlightExerciseId && highlightExerciseId === e.exerciseId ? "bold" : "default"
 
@@ -45,7 +47,7 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
       switch (bestSet.volumeType) {
         case ExerciseVolumeType.Reps:
           bestSetString += `${new Weight(
-            bestSet.weight,
+            bestSet.weight ?? 0,
             WeightUnit.kg,
             userWeightUnit,
           ).formattedDisplayWeight(1)} x ${bestSet.reps}`
@@ -55,7 +57,8 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
           break
 
         case ExerciseVolumeType.Time:
-          bestSetString += formatSecondsAsTime(bestSet.time)
+          if (bestSet.time) bestSetString += formatSecondsAsTime(bestSet.time)
+          else bestSetString += "-"
           break
       }
 
@@ -77,7 +80,7 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
           mainNavigation.navigate("WorkoutSummary", {
             workoutSource,
             workoutId,
-            workout,
+            workoutByUserId: workout.byUserId,
             jumpToComments: false,
           })
         }
@@ -102,7 +105,7 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
               mainNavigation.navigate("WorkoutSummary", {
                 workoutSource,
                 workoutId,
-                workout,
+                workoutByUserId: workout.byUserId,
                 jumpToComments: true,
               })
             }
@@ -113,7 +116,7 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
               {translate("common.bestSet") + ` (${translate(weightUnitTx)})`}
             </Text>
           </RowView>
-          {workout.exercises.map((e, i) => renderBestSet(e, i))}
+          {workout?.exercises?.map((e, i) => renderBestSet(e, i))}
         </View>
       </TouchableOpacity>
     )

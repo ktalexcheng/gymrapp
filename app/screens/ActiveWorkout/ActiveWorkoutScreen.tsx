@@ -1,5 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native"
-import { Gym } from "app/data/model"
+import { Gym } from "app/data/types"
 import { useUserLocation } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackScreenProps } from "app/navigators"
@@ -131,7 +131,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
       console.debug("ActiveWorkoutScreen.useEffect getClosestGym called")
       if (isLocationPermissionGranted && !isGettingUserLocation) {
         const userMyGyms = userStore.getProp<Gym[]>("user.myGyms")
-        if (userMyGyms && userMyGyms.length > 0) {
+        if (userMyGyms && userMyGyms.length > 0 && userLocation) {
           gymStore
             .getClosestGym(
               userLocation,

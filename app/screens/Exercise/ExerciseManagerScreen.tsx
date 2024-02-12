@@ -1,6 +1,5 @@
-import { Exercise } from "app/data/model"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
-import { useStores } from "app/stores"
+import { IExerciseModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
@@ -17,7 +16,7 @@ export const ExerciseManagerScreen: FC<ExerciseManagerScreenProps> = observer(()
   const mainNavigation = useMainNavigation()
   const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? [] : ["top"]
 
-  function handleSelectExercise(exercise: Exercise) {
+  function handleSelectExercise(exercise: IExerciseModel) {
     mainNavigation.navigate("ExerciseDetails", { exerciseId: exercise.exerciseId })
   }
 

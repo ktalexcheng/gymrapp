@@ -1,4 +1,4 @@
-import { ExerciseSetType, ExerciseVolumeType } from "app/data/constants"
+import { ExerciseVolumeType } from "app/data/constants"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
@@ -18,18 +18,17 @@ export type ExerciseEntryProps = {
 }
 
 export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEntryProps) => {
+  const { exerciseOrder, exerciseId } = props
   const { workoutStore, exerciseStore, themeStore } = useStores()
   const mainNavigation = useMainNavigation()
-  const thisExercise = workoutStore.exercises.at(props.exerciseOrder)
-  const setsPerformed = thisExercise.setsPerformed
-  const exerciseName = exerciseStore.getExerciseName(props.exerciseId)
-  const volumeType = exerciseStore.getExerciseVolumeType(props.exerciseId)
-  const weightUnitTx = useWeightUnitTx(props.exerciseId)
+  const thisExercise = workoutStore.exercises.at(exerciseOrder)
+  const setsPerformed = thisExercise?.setsPerformed ?? []
+  const exerciseName = exerciseStore.getExerciseName(exerciseId)
+  const volumeType = exerciseStore.getExerciseVolumeType(exerciseId)
+  const weightUnitTx = useWeightUnitTx(exerciseId)
 
   function addSet() {
-    workoutStore.addSet(props.exerciseOrder, {
-      setType: ExerciseSetType.Normal,
-    })
+    workoutStore.addSet(exerciseOrder)
   }
 
   function renderSets() {
@@ -37,8 +36,8 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
       <SetEntry
         key={i}
         setOrder={i}
-        exerciseOrder={props.exerciseOrder}
-        exerciseId={props.exerciseId}
+        exerciseOrder={exerciseOrder}
+        exerciseId={exerciseId}
         volumeType={volumeType}
         {...set}
       />
@@ -46,7 +45,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
   }
 
   function renderVolumeTypeSpecificHeaders() {
-    switch (thisExercise.volumeType) {
+    switch (thisExercise?.volumeType) {
       case ExerciseVolumeType.Reps:
         return (
           <>
@@ -70,12 +69,14 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
             <Text tx="activeWorkoutScreen.timeColumnHeader" textAlign="center" />
           </View>
         )
+      default:
+        return null
     }
   }
 
   function navigateToExerciseDetails() {
     mainNavigation.navigate("ExerciseDetails", {
-      exerciseId: props.exerciseId,
+      exerciseId,
     })
   }
 
@@ -83,9 +84,9 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
     <View style={$exercise}>
       <RowView style={styles.justifyBetween}>
         <TouchableOpacity onPress={navigateToExerciseDetails}>
-          <Text preset="bold">{"#" + (props.exerciseOrder + 1) + " " + exerciseName}</Text>
+          <Text preset="bold">{"#" + (exerciseOrder + 1) + " " + exerciseName}</Text>
         </TouchableOpacity>
-        <ExerciseSettingsMenu exerciseOrder={props.exerciseOrder} exerciseId={props.exerciseId} />
+        <ExerciseSettingsMenu exerciseOrder={exerciseOrder} exerciseId={exerciseId} />
       </RowView>
 
       <TextField
@@ -93,8 +94,8 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
         inputWrapperStyle={$exerciseNotesInputWrapper}
         style={$exerciseNotesInputStyle}
         multiline={true}
-        value={thisExercise.exerciseNotes}
-        onChangeText={(text) => thisExercise.setProp("exerciseNotes", text)}
+        value={thisExercise?.exerciseNotes ?? undefined}
+        onChangeText={(text) => thisExercise?.setProp("exerciseNotes", text)}
         placeholderTx="activeWorkoutScreen.addNotesPlaceholder"
       />
 

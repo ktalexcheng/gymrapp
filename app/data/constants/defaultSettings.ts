@@ -1,4 +1,4 @@
-import { UserPreferences } from "../model"
+import { UserPreferences } from "../types"
 import { AppColorScheme } from "./appColorScheme"
 import { AppLocale } from "./locale"
 import { WeightUnit } from "./weight"

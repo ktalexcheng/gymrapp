@@ -1,5 +1,5 @@
 import { GYM_PROXIMITY_THRESHOLD_METERS } from "app/data/constants"
-import { Gym } from "app/data/model"
+import { Gym } from "app/data/types"
 import { useUserLocation } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
@@ -16,7 +16,7 @@ export const WorkoutGymPickerScreen: FC = observer(() => {
   const { workoutStore, gymStore } = useStores()
   const mainNavigation = useMainNavigation()
   const { userLocation, isGettingUserLocation, refreshUserLocation } = useUserLocation()
-  const [userSelectedGym, setUserSelectedGym] = useState<Gym>(undefined)
+  const [userSelectedGym, setUserSelectedGym] = useState<Gym>()
 
   useEffect(() => {
     const confirmGymSelectionIfClose = async (gym: Gym) => {

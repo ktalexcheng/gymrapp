@@ -1,20 +1,17 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Screen, Spacer, Text } from "app/components"
 import { WorkoutSource } from "app/data/constants"
-import { Workout } from "app/data/model"
-import { TabScreenProps } from "app/navigators"
-import { useStores } from "app/stores"
+import { IWorkoutSummaryModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
 import { observer } from "mobx-react-lite"
-import React, { FC, useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { ActivityIndicator, FlatList, RefreshControl, View, ViewStyle } from "react-native"
 import { WorkoutSummaryCard, WorkoutSummaryCardProps } from "../FinishedWorkout"
 import { LoadingScreen } from "../LoadingScreen"
 
-interface FeedScreenProps extends NativeStackScreenProps<TabScreenProps<"Profile">> {}
+// interface FeedScreenProps extends TabScreenProps<"Profile"> {}
 
-export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
+export const FeedScreen = observer(function FeedScreen() {
   const { feedStore, userStore, workoutStore, themeStore } = useStores()
   const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? [] : ["top"]
   const [feedData, setFeedData] = useState<WorkoutSummaryCardProps[]>([])
@@ -29,32 +26,38 @@ export const FeedScreen: FC<FeedScreenProps> = observer(function FeedScreen() {
     // This is only used to display the initial list of feed items,
     // for subsequent feed items loaded on request, we will append to the feedData array
     if (feedData.length === 0) {
-      const feedWorkouts = []
-      feedStore.feedWorkouts.forEach((workout) => feedWorkouts.push(workout.workout))
+      const feedWorkouts: IWorkoutSummaryModel[] = []
+      feedStore.feedWorkouts.forEach((workout) => feedWorkouts.push(workout))
       setFeedData(makeFeedData(feedWorkouts))
     }
 
     setIsLoading(false)
   }, [userStore.isLoadingProfile, feedStore.isLoadingFeed])
 
-  const makeFeedData = (feedWorkouts: Workout[]) => {
-    return feedWorkouts.map((workout) => ({
-      workoutSource: WorkoutSource.Feed,
-      workoutId: workout.workoutId,
-      workout,
-      byUser: feedStore.feedUsers.get(workout.byUserId)?.user,
-    }))
+  const makeFeedData = (feedWorkouts: IWorkoutSummaryModel[]) => {
+    return feedWorkouts.map(
+      (workout) =>
+        ({
+          workoutSource: WorkoutSource.Feed,
+          workoutId: workout.workoutId,
+          workout,
+          byUser: feedStore.feedUsers.get(workout.byUserId),
+        } as WorkoutSummaryCardProps),
+    )
   }
 
-  const getMoreFeedItems = async () => {
+  const getMoreFeedItems = () => {
     if (isLoading) return
     if (feedStore.noMoreFeedItems) return
 
     setIsLoading(true)
-    const newFeedItems = await feedStore.loadMoreFeedItems()
-    const newFeedData = makeFeedData(newFeedItems)
-    setFeedData((prev) => prev.concat(newFeedData))
-    setIsLoading(false)
+    feedStore
+      .loadMoreFeedItems()
+      .then((newFeedItems) => {
+        const newFeedData = makeFeedData(newFeedItems)
+        setFeedData((prev) => prev.concat(newFeedData))
+      })
+      .finally(() => setIsLoading(false))
   }
 
   const renderFeedWorkoutItem = ({ item }) => {

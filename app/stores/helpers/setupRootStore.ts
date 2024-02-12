@@ -29,7 +29,7 @@ export async function setupRootStore(rootStore: RootStore) {
     // load the last known state from AsyncStorage
     restoredState = (await storage.load(ROOT_STATE_STORAGE_KEY)) as RootStoreSnapshot | null
     applySnapshot(rootStore, restoredState)
-  } catch (e) {
+  } catch (e: any) {
     // if there's any problems loading, then inform the dev what happened
     if (__DEV__) {
       console.error("setupRootStore error:", e.message)
@@ -45,7 +45,7 @@ export async function setupRootStore(rootStore: RootStore) {
 
   const unsubscribe = () => {
     _disposer()
-    _disposer = undefined
+    // _disposer = undefined
   }
 
   return { rootStore, restoredState, unsubscribe }

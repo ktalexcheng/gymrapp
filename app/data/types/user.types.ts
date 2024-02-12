@@ -1,8 +1,8 @@
 import { AppColorScheme, AppLocale, WeightUnit } from "../constants"
-import { baseMetadata } from "./baseModel"
-import { ExerciseId, ExerciseRecord, ExerciseSettings } from "./exerciseModel"
-import { Gym } from "./gymModel"
-import { WorkoutId } from "./workoutModel"
+import { ExerciseId, ExerciseRecord, ExerciseSettings } from "./exercise.types"
+import { Gym } from "./gym.types"
+import { baseMetadata } from "./metadata.types"
+import { WorkoutId } from "./workout.types"
 
 export interface UserPreferences {
   appLocale: AppLocale
@@ -53,9 +53,4 @@ export interface UserSearchResult {
   firstName: string
   lastName: string
   avatarUrl?: string
-}
-
-export function isUser(value: any): value is User {
-  if (typeof value !== "object") return false
-  return (value as User).userId !== undefined
 }

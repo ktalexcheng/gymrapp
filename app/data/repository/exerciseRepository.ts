@@ -1,4 +1,4 @@
-import { Exercise, ExerciseId } from "../model"
+import { Exercise, ExerciseId } from "../types"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class ExerciseRepository extends BaseRepository<Exercise, ExerciseId> {

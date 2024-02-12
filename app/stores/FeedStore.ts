@@ -1,45 +1,91 @@
 import firestore from "@react-native-firebase/firestore"
-import { WorkoutSource } from "app/data/constants"
-import {
-  ExerciseId,
-  User,
-  UserId,
-  Workout,
-  WorkoutComment,
-  WorkoutId,
-  WorkoutInteraction,
-  isWorkout,
-} from "app/data/model"
+import { ExerciseSource, ExerciseVolumeType, WorkoutSource } from "app/data/constants"
+import { ExerciseId, UserId, Workout, WorkoutComment, WorkoutId } from "app/data/types"
 import { api } from "app/services/api"
 import { getNestedField } from "app/utils/getNestedField"
 import { getTime, startOfWeek } from "date-fns"
 import { randomUUID } from "expo-crypto"
-import { flow, getEnv, types } from "mobx-state-tree"
-import { createCustomType } from "./helpers/createCustomType"
+import { Instance, SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
+import { UserModel } from "./UserStore"
+import { convertUserToMSTModel } from "./helpers/convertUserToMSTModel"
 import { RootStoreDependencies } from "./helpers/useStores"
+import { MetadataModel, PersonalRecordModel, SetPerformedModel } from "./models"
 
-const WorkoutType = createCustomType<Workout>("Workout", isWorkout)
-const WorkoutModel = types.map(
+const BaseExerciseSummaryModel = types.model("BaseExerciseSummaryModel", {
+  exerciseId: types.string,
+  exerciseSource: types.enumeration("ExerciseSource", Object.values(ExerciseSource)),
+  exerciseName: types.string,
+  exerciseOrder: types.number,
+  setsPerformed: types.array(SetPerformedModel),
+  datePerformed: types.Date,
+  bestSet: SetPerformedModel,
+  newRecords: types.map(PersonalRecordModel),
+  exerciseNotes: types.maybeNull(types.string),
+})
+
+const RepsExerciseSummaryModel = types.compose(
+  "RepsExerciseSummaryModel",
+  BaseExerciseSummaryModel,
   types.model({
-    workoutId: types.identifier,
-    workout: WorkoutType,
+    volumeType: types.literal(ExerciseVolumeType.Reps),
+    totalVolume: types.number,
+    totalReps: types.number,
   }),
 )
-const WorkoutInteractionsModel = types.map(
+
+const TimeExerciseSummaryModel = types.compose(
+  "TimeExerciseSummaryModel",
+  BaseExerciseSummaryModel,
   types.model({
-    workoutId: types.identifier,
-    workoutByUserId: types.string,
-    likedByUserIds: types.array(types.string),
-    comments: types.array(
-      types.model({
-        commentId: types.identifier,
-        byUserId: types.string,
-        comment: types.string,
-        _createdAt: types.Date,
-      }),
-    ),
+    volumeType: types.literal(ExerciseVolumeType.Time),
+    totalTime: types.number,
   }),
 )
+
+export const ExerciseSummaryModel = types.union(
+  { eager: true },
+  RepsExerciseSummaryModel,
+  TimeExerciseSummaryModel,
+)
+
+export const WorkoutSummaryModel = types.compose(
+  "WorkoutSummaryModel",
+  MetadataModel,
+  types.model({
+    workoutId: types.identifier,
+    byUserId: types.string,
+    userIsPrivate: types.boolean,
+    isHidden: types.boolean,
+    startTime: types.Date,
+    endTime: types.Date,
+    exercises: types.array(ExerciseSummaryModel),
+    workoutTitle: types.string,
+    activityId: types.string,
+    performedAtGymId: types.maybeNull(types.string),
+    performedAtGymName: types.maybeNull(types.string),
+  }),
+)
+
+const WorkoutCommentModel = types.model("WorkoutCommentModel", {
+  _createdAt: types.Date,
+  commentId: types.identifier,
+  byUserId: types.string,
+  comment: types.string,
+})
+
+const WorkoutInteractionModel = types.model("WorkoutInteractionModel", {
+  workoutId: types.identifier,
+  workoutByUserId: types.string,
+  likedByUserIds: types.array(types.string),
+  comments: types.array(WorkoutCommentModel),
+})
+
+export type IRepsExerciseSummaryModel = SnapshotOrInstance<typeof RepsExerciseSummaryModel>
+export type ITimeExerciseSummaryModel = SnapshotOrInstance<typeof TimeExerciseSummaryModel>
+export type IExerciseSummaryModel = IRepsExerciseSummaryModel | ITimeExerciseSummaryModel
+export type IWorkoutSummaryModel = SnapshotOrInstance<typeof WorkoutSummaryModel>
+export type IWorkoutCommentModel = SnapshotOrInstance<typeof WorkoutCommentModel>
+export type IWorkoutInteractionModel = SnapshotOrInstance<typeof WorkoutInteractionModel>
 
 /**
  * To distinguish user's own workouts and feed workouts, we use two separate fields
@@ -53,40 +99,68 @@ export const FeedStoreModel = types
     isLoadingFeed: true,
     isLoadingUserWorkouts: true,
     lastFeedRefresh: types.maybe(types.Date),
-    userId: types.maybe(types.string),
+    userId: types.maybeNull(types.string),
     oldestFeedItemId: types.maybe(types.string),
     noMoreFeedItems: false,
-    workoutInteractions: WorkoutInteractionsModel,
-    userWorkouts: WorkoutModel,
-    feedWorkouts: WorkoutModel,
-    feedUsers: types.map(
-      types.model({
-        userId: types.identifier,
-        user: types.frozen<User>(),
+    workoutInteractions: types.map(WorkoutInteractionModel),
+    userWorkouts: types.map(WorkoutSummaryModel),
+    feedWorkouts: types.map(WorkoutSummaryModel),
+    feedUsers: types.map(UserModel),
+  })
+  .props({
+    isLoadingOtherUserWorkouts: false,
+    otherUserWorkouts: types.map(
+      types.model("OtherUserWorkoutsModel", {
+        byUserId: types.identifier,
+        lastWorkoutId: types.string,
+        noMoreItems: types.boolean,
+        workouts: types.map(WorkoutSummaryModel),
+      }),
+    ),
+    otherUserWorkoutInteractions: types.map(
+      types.model("OtherUserWorkoutInteractionsModel", {
+        byUserId: types.identifier,
+        workouts: types.map(WorkoutInteractionModel),
       }),
     ),
   })
   .views((self) => ({
     get weeklyWorkoutsCount() {
       const workouts = Array.from(self.userWorkouts.values())
-      const weeklyWorkoutsCount = new Map<number, number>()
+      const _weeklyWorkoutsCount = new Map<number, number>()
       workouts.forEach((w) => {
         // Find start of week (Monday)
-        const weekStart = startOfWeek(w.workout.startTime, {
+        const weekStart = startOfWeek(w.startTime, {
           weekStartsOn: 1,
         })
         const weekStartTime = getTime(weekStart)
 
-        if (!weeklyWorkoutsCount.has(weekStartTime)) {
-          weeklyWorkoutsCount.set(weekStartTime, 0)
+        if (!_weeklyWorkoutsCount.has(weekStartTime)) {
+          _weeklyWorkoutsCount.set(weekStartTime, 0)
         }
 
-        weeklyWorkoutsCount.set(weekStartTime, weeklyWorkoutsCount.get(weekStartTime) + 1)
+        _weeklyWorkoutsCount.set(weekStartTime, (_weeklyWorkoutsCount.get(weekStartTime) ?? 0) + 1)
       })
 
-      return weeklyWorkoutsCount
+      return _weeklyWorkoutsCount
     },
-    getWorkout(workoutSource: WorkoutSource, workoutId: string) {
+    getWorkout(workoutSource: WorkoutSource, workoutId: string, byUserId?: string) {
+      if (workoutSource === WorkoutSource.OtherUser) {
+        if (!byUserId) {
+          console.error(
+            "FeedStore.getWorkout workoutSource is OtherUser but byUserId is not defined",
+          )
+          return undefined
+        }
+
+        if (self.isLoadingOtherUserWorkouts) {
+          console.debug("FeedStore.getWorkout loading workouts")
+          return undefined
+        }
+
+        return self.otherUserWorkouts.get(byUserId)?.workouts.get(workoutId)
+      }
+
       if (
         (workoutSource === WorkoutSource.User && self.isLoadingUserWorkouts) ||
         (workoutSource === WorkoutSource.Feed && self.isLoadingFeed)
@@ -95,24 +169,16 @@ export const FeedStoreModel = types
         return undefined
       }
 
-      const workout =
-        self.userWorkouts.get(workoutId)?.workout ||
-        self.feedWorkouts.get(workoutId)?.workout ||
-        undefined
-      if (!workout) {
-        // This should not be possible
-        console.debug("FeedStore.getWorkout no workout found for workoutId:", workoutId)
-      }
-      return workout
+      return self.userWorkouts.get(workoutId) || self.feedWorkouts.get(workoutId)
     },
     getSetFromWorkout(workoutId: WorkoutId, exerciseId: ExerciseId, setOrder: number) {
       console.debug("FeedStore.getSetFromWorkout workoutId:", workoutId)
       const latestWorkout = self.userWorkouts.get(workoutId)
-      console.debug("FeedStore.userWorkouts:", self.userWorkouts)
+      if (!latestWorkout) return null
+
       console.debug("FeedStore.latestWorkout:", latestWorkout)
-      const lastPerformedSet = latestWorkout.workout.exercises.filter(
-        (e) => e.exerciseId === exerciseId,
-      )[0].setsPerformed?.[setOrder]
+      const lastPerformedSet = latestWorkout.exercises.filter((e) => e.exerciseId === exerciseId)[0]
+        .setsPerformed?.[setOrder]
       if (!lastPerformedSet) return null
 
       return lastPerformedSet
@@ -147,14 +213,15 @@ export const FeedStoreModel = types
     }
 
     function setUserId(userId: UserId) {
-      const { feedRepository } = getEnv<RootStoreDependencies>(self)
+      const { feedRepository, userRepository } = getEnv<RootStoreDependencies>(self)
       console.debug("FeedStore.setUserId userId:", userId)
       self.userId = userId
       feedRepository.setUserId(userId)
+      userRepository.setUserId(userId)
     }
 
     function resetFeed() {
-      self.userId = undefined
+      self.userId = null
       self.isLoadingFeed = true
       self.isLoadingUserWorkouts = true
       self.lastFeedRefresh = undefined
@@ -165,9 +232,13 @@ export const FeedStoreModel = types
       self.feedUsers.clear()
     }
 
+    function addUserWorkout(workout: Instance<typeof WorkoutSummaryModel>) {
+      self.userWorkouts.put(workout)
+    }
+
     const loadUserWorkouts = flow(function* () {
       console.debug("FeedStore.loadUserWorkouts called")
-      if (!checkInitialized()) return undefined
+      if (!checkInitialized() || !self.userId) return undefined
 
       try {
         self.isLoadingUserWorkouts = true
@@ -186,7 +257,7 @@ export const FeedStoreModel = types
         const { workoutRepository, workoutInteractionRepository } =
           getEnv<RootStoreDependencies>(self)
         const workoutIds = Object.keys(workoutMetas)
-        const workouts: Workout[] = yield workoutRepository.getMany(workoutIds)
+        const workouts: IWorkoutSummaryModel[] = yield workoutRepository.getMany(workoutIds)
 
         if (!workouts) {
           console.debug("FeedStore.loadUserWorkouts no workouts found")
@@ -195,10 +266,7 @@ export const FeedStoreModel = types
         }
 
         workouts.forEach((w) => {
-          self.userWorkouts.put({
-            workoutId: w.workoutId,
-            workout: w,
-          })
+          self.userWorkouts.put(w)
         })
 
         const workoutInteractions = yield workoutInteractionRepository.getMany(workoutIds)
@@ -225,8 +293,8 @@ export const FeedStoreModel = types
       const updatedWorkout = { ...workout, ...data }
 
       try {
-        yield workoutRepository.update(workoutId, updatedWorkout)
-        self.userWorkouts.put({ workoutId, workout: updatedWorkout })
+        yield workoutRepository.update(workoutId, updatedWorkout as any) // TODO: Figure out why this is not working, cast as any for now
+        self.userWorkouts.put({ workoutId, ...(updatedWorkout as any) }) // TODO: Figure out why this is not working, cast as any for now
       } catch (e) {
         console.error("FeedStore.updateWorkout error:", e)
       }
@@ -243,7 +311,7 @@ export const FeedStoreModel = types
       }
     })
 
-    function updateWorkoutInteractions(workoutInteractions: WorkoutInteraction) {
+    function updateWorkoutInteractions(workoutInteractions: IWorkoutInteractionModel) {
       self.workoutInteractions.put(workoutInteractions)
     }
 
@@ -252,7 +320,7 @@ export const FeedStoreModel = types
       if (!self.feedUsers.has(userId)) {
         try {
           const user = yield userRepository.get(userId)
-          self.feedUsers.put({ userId, user })
+          self.feedUsers.put(convertUserToMSTModel(user))
         } catch (e) {
           console.error("FeedStore.fetchUserProfileToStore error:", e)
         }
@@ -273,9 +341,9 @@ export const FeedStoreModel = types
         )
         self.oldestFeedItemId = lastFeedItemId === null ? undefined : lastFeedItemId
         self.noMoreFeedItems = noMoreItems
-        const workoutIds = []
+        const workoutIds: string[] = []
         for (const workout of workouts) {
-          self.feedWorkouts.put({ workoutId: workout.workoutId, workout })
+          self.feedWorkouts.put(workout)
           workoutIds.push(workout.workoutId)
         }
         const workoutInteractions = yield workoutInteractionRepository.getMany(workoutIds)
@@ -321,7 +389,7 @@ export const FeedStoreModel = types
           workoutId,
           {
             comments: firestore.FieldValue.arrayUnion(newComment),
-          } as unknown,
+          },
           false,
         )
       } else {
@@ -337,7 +405,7 @@ export const FeedStoreModel = types
 
     const removeCommentFromWorkout = flow(function* (
       workoutId: WorkoutId,
-      workoutComment: WorkoutComment,
+      workoutComment: IWorkoutCommentModel,
     ) {
       const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
       const updatedInteractions = yield workoutInteractionRepository
@@ -345,7 +413,7 @@ export const FeedStoreModel = types
           workoutId,
           {
             comments: firestore.FieldValue.arrayRemove(workoutComment),
-          } as unknown,
+          },
           false,
         )
         .catch((e) => {
@@ -368,7 +436,7 @@ export const FeedStoreModel = types
             workoutId,
             {
               likedByUserIds: firestore.FieldValue.arrayUnion(likedByUserId),
-            } as unknown,
+            },
             false,
           )
         } else {
@@ -390,7 +458,7 @@ export const FeedStoreModel = types
           workoutId,
           {
             likedByUserIds: firestore.FieldValue.arrayRemove(byUserId),
-          } as unknown,
+          },
           false,
         )
         .catch((e) => {
@@ -407,9 +475,58 @@ export const FeedStoreModel = types
       self.lastFeedRefresh = new Date()
     })
 
+    const loadMoreOtherUserWorkouts = flow(function* (otherUserId: UserId) {
+      const otherUserWorkouts = self.otherUserWorkouts.get(otherUserId)
+      const lastFeedItemId = otherUserWorkouts
+        ? self.otherUserWorkouts.get(otherUserId)?.lastWorkoutId
+        : undefined
+      const noMoreItems = otherUserWorkouts
+        ? self.otherUserWorkouts.get(otherUserId)?.noMoreItems
+        : false
+
+      if (noMoreItems) return undefined
+
+      try {
+        self.isLoadingOtherUserWorkouts = true
+
+        const {
+          lastWorkoutId: newLastWorkoutId,
+          noMoreItems: newNoMoreItems,
+          workouts: newWorkouts,
+        } = yield api.getOtherUserWorkouts(otherUserId, lastFeedItemId)
+
+        const newWorkoutsMap = newWorkouts.reduce(
+          (acc, workout) => ({ ...acc, [workout.workoutId]: workout }),
+          {},
+        )
+        if (otherUserWorkouts) {
+          otherUserWorkouts.lastWorkoutId = newLastWorkoutId
+          otherUserWorkouts.noMoreItems = newNoMoreItems
+          otherUserWorkouts.workouts.put(newWorkoutsMap)
+        } else {
+          self.otherUserWorkouts.put({
+            byUserId: otherUserId,
+            lastWorkoutId: newLastWorkoutId,
+            noMoreItems: newNoMoreItems,
+            workouts: newWorkoutsMap,
+          })
+        }
+      } catch (e) {
+        console.error("FeedStore.loadMoreOtherUserWorkouts error:", e)
+      } finally {
+        self.isLoadingOtherUserWorkouts = false
+      }
+    })
+
+    const refreshOtherUserWorkouts = flow(function* (otherUserId: UserId) {
+      self.otherUserWorkouts.delete(otherUserId)
+      yield loadMoreOtherUserWorkouts(otherUserId)
+    })
+
     return {
       setUserId,
       resetFeed,
+      addUserWorkout,
       loadUserWorkouts,
       updateWorkout,
       deleteWorkout,
@@ -420,5 +537,7 @@ export const FeedStoreModel = types
       likeWorkout,
       unlikeWorkout,
       refreshFeedItems,
+      loadMoreOtherUserWorkouts,
+      refreshOtherUserWorkouts,
     }
   })

@@ -61,7 +61,7 @@ export class ErrorBoundary extends Component<Props, State> {
       <ErrorDetailsScreen
         onReset={this.resetError}
         error={this.state.error}
-        errorInfo={this.state.errorInfo}
+        errorInfo={this.state.errorInfo!}
       />
     ) : (
       this.props.children

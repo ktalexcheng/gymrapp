@@ -12,7 +12,7 @@ export class Storage {
         await AsyncStorage.setItem(key, value)
       }
     } catch (e) {
-      throw new Error(e)
+      throw new Error("Error storing data: " + e)
     }
   }
 
@@ -21,7 +21,7 @@ export class Storage {
       const value = await AsyncStorage.getItem(key)
       return value
     } catch (e) {
-      throw new Error(e)
+      throw new Error("Error getting data: " + e)
     }
   }
 
@@ -33,11 +33,11 @@ export class Storage {
     }
   }
 
-  getAppLastUpdated = async (): Promise<number> => {
+  getAppLastUpdated = async (): Promise<number | null> => {
     try {
       const value = await this.#getData(APP_LAST_UPDATED_KEY)
-      const timestamp = value && parseInt(value)
-      return timestamp
+      if (!value) return null
+      return parseInt(value)
     } catch (e) {
       throw new Error("Error getting app last updated time: " + e)
     }

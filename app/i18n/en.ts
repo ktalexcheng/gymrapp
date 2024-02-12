@@ -248,6 +248,7 @@ const en = {
     headerTitle: "Workout summary",
     commentInputPlaceholder: "Leave a comment...",
     noCommentsMessage: "Start the conversation!",
+    workoutUnavailableMessage: "This workout is unavailable",
   },
   workoutSummaryMenu: {
     editTitleLabel: "Edit title",

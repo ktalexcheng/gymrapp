@@ -17,7 +17,8 @@ import {
   UserSearchResult,
   Workout,
   WorkoutId,
-} from "app/data/model"
+} from "app/data/types"
+import { IWorkoutSummaryModel } from "app/stores"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import * as Application from "expo-application"
 import { getDistance } from "geolib"
@@ -200,7 +201,7 @@ export class Api {
   async getGymWorkouts(
     gymId: GymId,
     lastWorkoutId?: WorkoutId,
-  ): Promise<{ lastWorkoutId: WorkoutId; noMoreItems: boolean; workouts: Workout[] }> {
+  ): Promise<{ lastWorkoutId: WorkoutId; noMoreItems: boolean; workouts: IWorkoutSummaryModel[] }> {
     try {
       const response = await this.firebaseFunctionsClient.httpsCallable("workoutGetGymWorkouts")({
         gymId,

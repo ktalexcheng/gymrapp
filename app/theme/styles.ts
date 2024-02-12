@@ -30,7 +30,7 @@ export const styles = StyleSheet.create({
   },
   // eslint-disable-next-line react-native/no-color-literals
   transparentBackground: {
-    backgroundColor: null,
+    backgroundColor: undefined,
   },
   flex1: {
     flex: 1,

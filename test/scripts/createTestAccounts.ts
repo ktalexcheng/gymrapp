@@ -1,4 +1,3 @@
-import { User } from "app/data/model"
 import * as admin from "firebase-admin"
 import { AppLocale, WeightUnit } from "../../app/data/constants"
 import { UserRepository } from "../../app/data/repository"
@@ -46,7 +45,7 @@ describe("create test accounts", () => {
           autoRestTimerEnabled: true,
           restTime: 60,
         },
-      } as User)
+      })
 
       count++
     }

@@ -1,8 +1,6 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Avatar, Icon, RowView, Screen, Spacer, TabBar, Text } from "app/components"
 import { WorkoutSource } from "app/data/constants"
 import { translate } from "app/i18n"
-import { TabScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
@@ -28,13 +26,14 @@ import {
   VictoryZoomContainer,
 } from "victory-native"
 import { WorkoutSummaryCard } from "../FinishedWorkout"
+import { LoadingScreen } from "../LoadingScreen"
 import { UserProfileStatsBar } from "./UserProfileStatsBar"
 
 const UserActivitiesTabScene: FC = observer(() => {
   const { userStore, feedStore } = useStores()
 
   function getWorkoutData() {
-    const workouts = Array.from(feedStore.userWorkouts.values()).map(({ workout }) => workout)
+    const workouts = Array.from(feedStore.userWorkouts.values())
     workouts.sort((a, b) => (a.startTime > b.startTime ? -1 : 1))
 
     return workouts.map((workout) => {
@@ -134,7 +133,9 @@ const WeeklyWorkoutChart: FC<WeeklyWorkoutChartProps> = observer(({ data }) => {
   }
 
   const getYTickValues = () => {
-    const tickValuesY = []
+    const tickValuesY: number[] = []
+    if (!zoomedDomain?.y?.[1]) return tickValuesY
+
     for (let i = 0; i <= (zoomedDomain.y[1] as number); i++) {
       tickValuesY.push(i)
     }
@@ -203,9 +204,9 @@ const DashboardTabScene: FC = observer(() => {
   )
 })
 
-interface ProfileScreenProps extends NativeStackScreenProps<TabScreenProps<"Profile">> {}
+// interface ProfileScreenProps extends NativeStackScreenProps<TabScreenProps<"Profile">> {}
 
-export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileScreen() {
+export const ProfileScreen = observer(function ProfileScreen() {
   const mainNavigation = useMainNavigation()
   const { userStore, workoutStore, themeStore } = useStores()
   const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? [] : ["top"]
@@ -262,7 +263,7 @@ export const ProfileScreen: FC<ProfileScreenProps> = observer(function ProfileSc
     lineHeight: 18,
   }
 
-  if (!userStore.userProfileExists) return null
+  if (!userStore.user) return <LoadingScreen />
 
   return (
     <Screen

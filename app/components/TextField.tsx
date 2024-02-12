@@ -17,11 +17,11 @@ import { Text, TextProps } from "./Text"
 export interface TextFieldAccessoryProps {
   style: StyleProp<any>
   status: TextFieldProps["status"]
-  multiline: boolean
-  editable: boolean
 }
 
 export interface TextFieldProps extends Omit<TextInputProps, "ref"> {
+  multiline?: boolean
+  editable?: boolean
   /**
    * A style modifier for different input states.
    */
@@ -105,7 +105,7 @@ export interface TextFieldProps extends Omit<TextInputProps, "ref"> {
  * - [Documentation and Examples](https://github.com/infinitered/ignite/blob/master/docs/Components-TextField.md)
  */
 export const TextField = observer(
-  forwardRef(function TextField(props: TextFieldProps, ref: Ref<TextInput>) {
+  forwardRef(function TextField(props: TextFieldProps, ref: Ref<TextInput | null>) {
     const {
       labelTx,
       label,
@@ -126,7 +126,7 @@ export const TextField = observer(
       inputWrapperStyle: $inputWrapperStyleOverride,
       ...TextInputProps
     } = props
-    const input = useRef<TextInput>()
+    const input = useRef<TextInput>(null)
 
     const { themeStore } = useStores()
 
@@ -154,11 +154,11 @@ export const TextField = observer(
       status === "error"
         ? { borderColor: themeStore.colors("error") }
         : status === "disabled"
-        ? { borderColor: null, borderWidth: 0 }
-        : null,
+        ? { borderColor: undefined, borderWidth: 0 }
+        : undefined,
       // TextInputProps.multiline && { minHeight: "112" },
-      LeftAccessory && { paddingStart: 0 },
-      RightAccessory && { paddingEnd: 0 },
+      // LeftAccessory && { paddingStart: 0 },
+      // RightAccessory && { paddingEnd: 0 },
       $inputWrapperStyleOverride,
     ]
 
@@ -221,8 +221,8 @@ export const TextField = observer(
             <LeftAccessory
               style={$leftAccessoryStyle}
               status={status}
-              editable={!disabled}
-              multiline={TextInputProps.multiline}
+              // editable={!disabled}
+              // multiline={TextInputProps.multiline}
             />
           )}
 
@@ -241,8 +241,8 @@ export const TextField = observer(
             <RightAccessory
               style={$rightAccessoryStyle}
               status={status}
-              editable={!disabled}
-              multiline={TextInputProps.multiline}
+              // editable={!disabled}
+              // multiline={TextInputProps.multiline}
             />
           )}
         </View>

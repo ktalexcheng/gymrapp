@@ -1,5 +1,5 @@
-import { User } from "app/data/model"
-import { useStores } from "app/stores"
+import { UserSearchResult } from "app/data/types"
+import { IUserModel, useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React from "react"
 import { Image, ImageStyle, TextStyle, View, ViewProps, ViewStyle } from "react-native"
@@ -13,7 +13,7 @@ export interface AvatarProps extends ViewProps {
   /**
    * User for this avatar, from which the property avatarUrl will be as source of image. If source is provided, this will be ignored.
    */
-  user?: User
+  user?: IUserModel | UserSearchResult
   /**
    * Size of the avatar. Defaults to 32.
    */
@@ -35,7 +35,7 @@ export interface AvatarProps extends ViewProps {
 export const Avatar = observer((props: AvatarProps) => {
   const { themeStore } = useStores()
   const {
-    imageUrl: source,
+    imageUrl,
     user,
     size = "md",
     backgroundColor = themeStore.colors("contentBackground"),
@@ -60,7 +60,7 @@ export const Avatar = observer((props: AvatarProps) => {
   }
 
   const renderAvatarImage = () => {
-    if (!source && !user?.avatarUrl && user) {
+    if (!imageUrl && !user?.avatarUrl && user) {
       let userInitialsText: string
       if (/^[\u4E00-\u9FA5]+$/.test(user.lastName + user.firstName)) {
         userInitialsText = `${user.lastName}${user.firstName}`.slice(-2)
@@ -74,7 +74,7 @@ export const Avatar = observer((props: AvatarProps) => {
       return <Text text={userInitialsText} style={$text} />
     }
 
-    const imageUri = source || user?.avatarUrl
+    const imageUri = imageUrl || user?.avatarUrl
     const imageSource = imageUri ? { uri: imageUri } : undefined
 
     if (!imageSource) return null

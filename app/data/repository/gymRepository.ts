@@ -1,5 +1,5 @@
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
-import { GymDetails, GymId, GymMember } from "../model"
+import { GymDetails, GymId, GymMember } from "../types"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class GymRepository extends BaseRepository<GymDetails, GymId> {
@@ -18,12 +18,13 @@ export class GymRepository extends BaseRepository<GymDetails, GymId> {
     lastMemberId?: string,
     limit = 20,
   ): Promise<{
-    lastMemberId: string
+    lastMemberId: string | null
     noMoreItems: boolean
     gymMembers: Array<GymMember>
   }> {
-    let gymMembersQuery = this.firestoreCollection
-      .doc(gymId)
+    this.checkRepositoryInitialized()
+
+    let gymMembersQuery = this.firestoreCollection!.doc(gymId)
       .collection(this.#gymMembersCollectionName)
       .orderBy("workoutsCount", "desc")
       .orderBy("dateAdded", "desc")
@@ -59,9 +60,10 @@ export class GymRepository extends BaseRepository<GymDetails, GymId> {
   }
 
   async getGymMember(gymId: GymId, userId: string): Promise<GymMember> {
+    this.checkRepositoryInitialized()
+
     try {
-      const gymMemberDoc = await this.firestoreCollection
-        .doc(gymId)
+      const gymMemberDoc = await this.firestoreCollection!.doc(gymId)
         .collection(this.#gymMembersCollectionName)
         .doc(userId)
         .get()

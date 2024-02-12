@@ -150,7 +150,7 @@ export const Button = observer((props: ButtonProps) => {
     menuItem: { color: themeStore.colors("textDim"), opacity: 0.9 },
   }
 
-  const preset: Presets = $viewPresets[props.preset] ? props.preset : "default"
+  const preset: Presets = props.preset && $viewPresets[props.preset] ? props.preset : "default"
   function $viewStyle({ pressed }) {
     return [
       $viewPresets[preset],

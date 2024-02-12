@@ -1,7 +1,7 @@
 import firestore from "@react-native-firebase/firestore"
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { WorkoutSource } from "app/data/constants"
-import { FollowRequest, Notification, User, Workout } from "app/data/model"
+import { FollowRequest, User } from "app/data/types"
 import { translate } from "app/i18n"
 import {
   ActiveWorkoutScreen,
@@ -20,7 +20,7 @@ import {
   WorkoutGymPickerScreen,
   WorkoutSummaryScreen,
 } from "app/screens"
-import { useStores } from "app/stores"
+import { INotificationModel, useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
 import { HomeTabNavigator } from "./HomeTabNavigator"
@@ -44,12 +44,12 @@ export type MainStackParamList = {
   WorkoutSummary: {
     workoutSource: WorkoutSource
     workoutId: string
-    workout: Workout
+    workoutByUserId: string
     jumpToComments: boolean
   }
   OnboardingNavigator: undefined
   AddToMyGyms: undefined
-  CreateNewGym: { searchString: string }
+  CreateNewGym: { searchString?: string }
   GymDetails: { gymId: string }
   ProfileVisitorView: { userId: string }
 }
@@ -73,6 +73,8 @@ export const MainNavigator = observer(function MainNavigator() {
   const [isInitialized, setIsInitialized] = useState(false)
 
   const listenToSnapshots = () => {
+    if (!authStore.userId) return
+
     // Listen to database update
     const userSubscriber = firestore()
       .collection("users")
@@ -95,13 +97,13 @@ export const MainNavigator = observer(function MainNavigator() {
       .onSnapshot((snapshot) => {
         console.debug("MainNavigator.notificationsSubscriber.onSnapshot called")
         if (snapshot?.empty) {
-          userStore.setNotifications(undefined)
+          userStore.setNotifications([])
         }
 
         const notifications = snapshot.docs.map((doc) => {
           return { notificationId: doc.id, ...doc.data() }
         })
-        userStore.setNotifications(notifications as Notification[])
+        userStore.setNotifications(notifications as INotificationModel[])
       })
 
     const followRequestsSubscriber = firestore()
@@ -134,7 +136,7 @@ export const MainNavigator = observer(function MainNavigator() {
     const navigationState = mainNavigation.getState()
     const mainNavigatorState = navigationState.routes[0].state // Undefined if MainNavigator not yet initialized
     const currentScreenName =
-      mainNavigatorState && mainNavigatorState.routes[mainNavigatorState.index].name
+      mainNavigatorState?.index && mainNavigatorState.routes[mainNavigatorState.index].name
     const isOnboarding = currentScreenName === "OnboardingNavigator"
     const isOnLoading = currentScreenName === "Loading"
     console.debug("MainNavigator navigateToHome: checking if we need to exit onboarding", {
@@ -158,6 +160,11 @@ export const MainNavigator = observer(function MainNavigator() {
 
   // Handle forced navigation to onboarding procedure if profile is incomplete
   useEffect(() => {
+    // console.debug("MainNavigator.useEffect called", {
+    //   isAuthenticated: authStore.isAuthenticated,
+    //   profileIncomplete: userStore.profileIncomplete,
+    //   isInitialized,
+    // })
     if (!authStore.isAuthenticated) {
       console.debug("MainNavigator.useEffect: User is not authenticated, nothing is done")
       return undefined
@@ -176,8 +183,10 @@ export const MainNavigator = observer(function MainNavigator() {
 
     // If user is authenticated and profile is complete, then we can initialize the app
     // but this should only be done once
-    if (!isInitialized) {
-      exerciseStore.getAllExercises()
+    if (!isInitialized && authStore.userId) {
+      exerciseStore.getAllExercises().then(() => {
+        if (userStore.user) exerciseStore.applyUserSettings(userStore.user)
+      })
       activityStore.getAllActivities()
       feedStore.setUserId(authStore.userId)
       feedStore.refreshFeedItems()

@@ -18,7 +18,7 @@ import {
   UserErrorType,
   WeightUnit,
 } from "app/data/constants"
-import { Gym, User } from "app/data/model"
+import { Gym, User } from "app/data/types"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
@@ -51,12 +51,12 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   const { authenticationStore: authStore, userStore, themeStore } = useStores()
 
   // Form input values
-  const firstNameInputRef = useRef<TextInput>()
-  const lastNameInputRef = useRef<TextInput>()
+  const firstNameInputRef = useRef<TextInput>(null)
+  const lastNameInputRef = useRef<TextInput>(null)
   const [userHandle, setUserHandle] = useState("")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
-  const [imagePath, setImagePath] = useState("")
+  const [imagePath, setImagePath] = useState<string>()
   const [weightUnit, setWeightUnit] = useState(WeightUnit.kg)
   const [privateAccount, setPrivateAccount] = useState(false)
   const [appColorScheme, setAppColorScheme] = useState(AppColorScheme.Dark)
@@ -67,10 +67,10 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   const [myGyms, setMyGyms] = useState<Gym[]>([])
 
   // Form state
-  const [userHandleHelper, setUserHandleHelper] = useState(null)
-  const [userHandleError, setUserHandleError] = useState<string>(null)
-  const [firstNameError, setFirstNameError] = useState<string>(null)
-  const [lastNameError, setLastNameError] = useState<string>(null)
+  const [userHandleHelper, setUserHandleHelper] = useState<string>()
+  const [userHandleError, setUserHandleError] = useState<string>()
+  const [firstNameError, setFirstNameError] = useState<string>()
+  const [lastNameError, setLastNameError] = useState<string>()
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isAutofilled, setIsAutofilled] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
@@ -148,8 +148,8 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   }, [userStore.user])
 
   useEffect(() => {
-    setUserHandleError(null)
-    setUserHandleHelper(null)
+    setUserHandleError(undefined)
+    setUserHandleHelper(undefined)
     if (!userHandle || userHandle === userStore.getProp("user.userHandle")) return undefined
 
     // Check if userHandle is valid
@@ -246,7 +246,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   }
 
   const saveProfile = async () => {
-    if (isInvalidForm()) return
+    if (isInvalidForm() || !authStore.userId) return
 
     onBusyChange && onBusyChange(true)
 
@@ -271,7 +271,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
         user.avatarUrl = avatarUrl
       }
 
-      if (userStore.userProfileExists) {
+      if (userStore.user) {
         await userStore.updateProfile(user).then(
           () => {
             setHasUnsavedChanges(false)
@@ -304,7 +304,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   }
 
   const removeAvatar = () => {
-    setImagePath(null)
+    setImagePath(undefined)
   }
 
   const renderMyGymsItem = () => {
@@ -399,11 +399,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
               size={30}
             />
             <TouchableOpacity onPress={pickImage}>
-              {imagePath ? (
-                <Avatar imageUrl={imagePath} size="xxl" />
-              ) : (
-                <Avatar user={userStore.user} size="xxl" />
-              )}
+              <Avatar imageUrl={imagePath} user={userStore.user} size="xxl" />
             </TouchableOpacity>
           </View>
         </View>

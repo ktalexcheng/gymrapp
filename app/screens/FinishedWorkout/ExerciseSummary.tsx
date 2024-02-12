@@ -1,9 +1,13 @@
 import { RowView, Spacer, Text } from "app/components"
 import { ExerciseSetType, ExerciseVolumeType, WeightUnit } from "app/data/constants"
-import { ExercisePerformed, ExerciseSet } from "app/data/model"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
-import { useStores } from "app/stores"
+import {
+  IExercisePerformedModel,
+  IExerciseSummaryModel,
+  ISetPerformedModel,
+  useStores,
+} from "app/stores"
 import { spacing } from "app/theme"
 import { formatSecondsAsTime } from "app/utils/formatTime"
 import { Weight } from "app/utils/weight"
@@ -11,7 +15,7 @@ import React from "react"
 import { View, ViewStyle } from "react-native"
 
 export type ExerciseSummaryProps = {
-  exercise: Partial<ExercisePerformed>
+  exercise: IExercisePerformedModel | IExerciseSummaryModel
 }
 
 export const ExerciseSummary = (props: ExerciseSummaryProps) => {
@@ -26,12 +30,12 @@ export const ExerciseSummary = (props: ExerciseSummaryProps) => {
     marginTop: spacing.small,
   }
 
-  function renderSetSummary(set: ExerciseSet, setOrder: number) {
+  function renderSetSummary(set: ISetPerformedModel, setOrder: number) {
     let summaryText = ""
     switch (set.volumeType) {
       case ExerciseVolumeType.Reps:
         summaryText += `${new Weight(
-          set.weight,
+          set.weight ?? 0,
           WeightUnit.kg,
           userWeightUnit,
         ).formattedDisplayWeight(1)} ${translate(weightUnitTx)} x ${set.reps}`
@@ -39,7 +43,7 @@ export const ExerciseSummary = (props: ExerciseSummaryProps) => {
         break
 
       case ExerciseVolumeType.Time:
-        summaryText += formatSecondsAsTime(set.time)
+        if (set.time) summaryText += formatSecondsAsTime(set.time)
         break
     }
 
@@ -64,7 +68,7 @@ export const ExerciseSummary = (props: ExerciseSummaryProps) => {
           <Spacer type="vertical" size="small" />
         </>
       )}
-      {exercise.setsPerformed.map((s, i) => renderSetSummary(s, i))}
+      {exercise?.setsPerformed?.map((s, i) => renderSetSummary(s, i))}
     </View>
   )
 }

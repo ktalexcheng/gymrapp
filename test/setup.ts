@@ -64,6 +64,8 @@ if (process.env.EXPO_PUBLIC_USE_EMULATOR === "0") {
 // Set environment variable GOOGLE_APPLICATION_CREDENTIALS to path of the service account key
 // See: https://firebase.google.com/docs/admin/setup#initialize_the_sdk_in_non-google_environments
 admin.initializeApp()
+if (!process.env.FIREBASE_WEB_CONFIG)
+  throw new Error("Environment variable FIREBASE_WEB_CONFIG not set")
 const firebaseApp = initializeApp(require(process.env.FIREBASE_WEB_CONFIG))
 const firebaseFunctionsClient = getFunctions(firebaseApp)
 

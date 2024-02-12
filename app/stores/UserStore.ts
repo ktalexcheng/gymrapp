@@ -1,26 +1,94 @@
-import { DefaultUserPreferences, UserErrorType } from "app/data/constants"
 import {
-  FollowRequest,
-  Gym,
-  GymDetails,
-  GymId,
-  Notification,
-  NotificationType,
-} from "app/data/model"
+  AppColorScheme,
+  AppLocale,
+  DefaultUserPreferences,
+  UserErrorType,
+  WeightUnit,
+} from "app/data/constants"
+import { FollowRequest, Gym, GymDetails, GymId, NotificationType, UserId } from "app/data/types"
 import { translate } from "app/i18n"
 import { api } from "app/services/api"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { formatName } from "app/utils/formatName"
 import { getNestedField } from "app/utils/getNestedField"
-import { flow, getEnv, types } from "mobx-state-tree"
+import { SnapshotOrInstance, flow, getEnv, getSnapshot, types } from "mobx-state-tree"
 import Toast from "react-native-root-toast"
-import { ExerciseId, User, UserPreferences, isUser } from "../../app/data/model"
-import { createCustomType } from "./helpers/createCustomType"
+import { ExerciseId, User, UserPreferences } from "../data/types"
+import { convertUserToMSTModel } from "./helpers/convertUserToMSTModel"
 import { RootStoreDependencies } from "./helpers/useStores"
+import { withSetPropAction } from "./helpers/withSetPropAction"
+import { MetadataModel, PersonalRecordModel } from "./models"
 
-const UserType = createCustomType<User>("User", isUser)
-// const WorkoutType = createCustomType<Workout>("Workout", isWorkout)
-const NotificationModel = types.model({
+const GymModel = types.compose(
+  "GymModel",
+  MetadataModel,
+  types.model({
+    gymId: types.identifier,
+    gymName: types.string,
+  }),
+)
+
+export const ExerciseSettingsModel = types
+  .model("ExerciseSettingsModel", {
+    exerciseId: types.identifier,
+    weightUnit: types.maybeNull(types.enumeration("WeightUnit", Object.values(WeightUnit))),
+    autoRestTimerEnabled: types.maybeNull(types.boolean),
+    restTime: types.maybeNull(types.number),
+  })
+  .actions(withSetPropAction)
+
+const UserPreferencesModel = types.model("UserPreferencesModel", {
+  appLocale: types.enumeration("AppLocale", Object.values(AppLocale)),
+  weightUnit: types.enumeration("WeightUnit", Object.values(WeightUnit)),
+  autoRestTimerEnabled: types.boolean,
+  restTime: types.maybeNull(types.number),
+  exerciseSpecificSettings: types.map(ExerciseSettingsModel),
+  appColorScheme: types.enumeration("AppColorScheme", Object.values(AppColorScheme)),
+})
+
+const WorkoutMetaModel = types.model("WorkoutMetaModel", {
+  workoutId: types.identifier,
+  startTime: types.Date,
+})
+
+const PersonalRecordsModel = types.map(
+  types.model({
+    reps: types.identifierNumber,
+    // TODO: This is different to the schema in Firebase and will require conversion
+    // Firebase schema is [reps]: record[], but this is not possible with MST
+    records: types.array(PersonalRecordModel),
+  }),
+)
+
+const ExerciseHistoryModel = types.model("ExerciseHistoryModel", {
+  exerciseId: types.identifier,
+  performedWorkoutIds: types.array(types.string),
+  personalRecords: PersonalRecordsModel,
+})
+
+export const UserModel = types.compose(
+  "UserModel",
+  MetadataModel,
+  types.model({
+    userId: types.identifier,
+    userHandle: types.string,
+    _userHandleLower: types.string,
+    email: types.string,
+    firstName: types.string,
+    lastName: types.string,
+    privateAccount: types.boolean,
+    providerId: types.string,
+    myGyms: types.array(GymModel),
+    preferences: UserPreferencesModel,
+    avatarUrl: types.maybeNull(types.string),
+    workoutMetas: types.map(WorkoutMetaModel),
+    exerciseHistory: types.map(ExerciseHistoryModel),
+    followersCount: types.maybeNull(types.number),
+    followingCount: types.maybeNull(types.number),
+  }),
+)
+
+const NotificationModel = types.model("NotificationModel", {
   notificationId: types.identifier,
   notificationDate: types.Date,
   isRead: types.boolean,
@@ -28,13 +96,24 @@ const NotificationModel = types.model({
   notificationType: types.enumeration(Object.values(NotificationType)),
   workoutId: types.maybe(types.string),
 })
-const FollowRequestsModel = types.model({
+
+const FollowRequestsModel = types.model("FollowRequestsModel", {
   requestId: types.identifier,
   requestedByUserId: types.string,
   requestDate: types.Date,
   isAccepted: types.boolean,
   isDeclined: types.boolean,
 })
+
+export type IGymModel = SnapshotOrInstance<typeof GymModel>
+export type IExerciseSettingsModel = SnapshotOrInstance<typeof ExerciseSettingsModel>
+export type IUserPreferencesModel = SnapshotOrInstance<typeof UserPreferencesModel>
+export type IWorkoutMetaModel = SnapshotOrInstance<typeof WorkoutMetaModel>
+export type IExerciseHistoryModel = SnapshotOrInstance<typeof ExerciseHistoryModel>
+export type IPersonalRecordsModel = SnapshotOrInstance<typeof PersonalRecordsModel>
+export type IUserModel = SnapshotOrInstance<typeof UserModel>
+export type INotificationModel = SnapshotOrInstance<typeof NotificationModel>
+export type IFollowRequestsModel = SnapshotOrInstance<typeof FollowRequestsModel>
 
 function isEmptyField(value: any) {
   if (value === undefined || value === null || value === "") {
@@ -48,7 +127,7 @@ export const UserStoreModel = types
   .model("UserStoreModel")
   .props({
     userId: types.maybeNull(types.string),
-    user: UserType,
+    user: types.maybe(UserModel),
     isLoadingProfile: true,
     notifications: types.maybe(types.array(NotificationModel)),
     followRequests: types.maybe(types.array(FollowRequestsModel)),
@@ -56,8 +135,8 @@ export const UserStoreModel = types
   .views((self) => ({
     get profileIncomplete() {
       if (
-        self.user === null ||
-        self.user === undefined ||
+        !self.userId ||
+        !self.user ||
         isEmptyField(self.user?.firstName) ||
         isEmptyField(self.user?.lastName) ||
         isEmptyField(self.user?.userHandle) ||
@@ -70,11 +149,6 @@ export const UserStoreModel = types
       console.debug("UserStore.profileIncomplete return false")
       return false
     },
-    get userProfileExists() {
-      if (!self.user) return false
-
-      return true
-    },
     get displayName() {
       if (!self.user) {
         console.warn("UserStore.displayName: User profile not available")
@@ -84,6 +158,8 @@ export const UserStoreModel = types
       return formatName(self.user.firstName, self.user.lastName)
     },
     getExerciseLastWorkoutId(exerciseId: ExerciseId) {
+      if (!self.user) return null
+
       const exerciseHistory = getNestedField(
         self.user,
         "exerciseHistory",
@@ -94,12 +170,13 @@ export const UserStoreModel = types
       if (!exerciseHistoryItem) return null
 
       const workoutsCount = exerciseHistoryItem.performedWorkoutIds.length
-      const lastWorkoutId = exerciseHistoryItem.performedWorkoutIds[workoutsCount - 1]
+      if (workoutsCount === 0) return null
 
+      const lastWorkoutId = exerciseHistoryItem.performedWorkoutIds[workoutsCount - 1]
       return lastWorkoutId
     },
     getProp<T>(propPath: string): T {
-      const value = getNestedField(self, propPath) as T
+      const value = getNestedField(getSnapshot(self), propPath) as T
 
       // Array and Map (object) must not be mutated, so we need to return a copy
       if (Array.isArray(value)) {
@@ -114,8 +191,9 @@ export const UserStoreModel = types
     },
     getUserPreference<T>(pref: keyof UserPreferences): T {
       const prefPath = `preferences.${pref}`
-      const prefValue = getNestedField(self.user, prefPath)
-      if (prefValue === undefined) {
+      const prefValue = self.user && getNestedField(self.user, prefPath)
+      // console.debug("UserStore.getUserPreference:", { pref, prefValue })
+      if (!prefValue) {
         return DefaultUserPreferences[pref] as T
       }
       return prefValue as T
@@ -148,7 +226,7 @@ export const UserStoreModel = types
   }))
   .actions((self) => {
     function invalidateSession() {
-      self.userId = undefined
+      self.userId = null
       self.user = undefined
       // self.workouts.clear()
       self.isLoadingProfile = true
@@ -252,11 +330,6 @@ export const UserStoreModel = types
       }
     })
 
-    // const getUserLocation = flow(function* () {
-    //   const { userRepository } = getEnv<RootStoreDependencies>(self)
-    //   return yield userRepository.getUserLocation()
-    // }) as () => Promise<LocationObject>
-
     const fetchUserProfile = flow(function* () {
       if (!self.userId) {
         console.error("UserStore.fetchUserProfile: No userId set")
@@ -269,9 +342,7 @@ export const UserStoreModel = types
         const user = yield userRepository.get(self.userId, true)
 
         if (user) {
-          // console.debug("UserStore.loadUserWIthId user:", user)
-          self.user = user
-          // yield self.getWorkouts()
+          setUser(user)
         }
       } catch (e) {
         console.error("UserStore.fetchUserProfile error:", e)
@@ -280,55 +351,60 @@ export const UserStoreModel = types
       }
     })
 
-    const loadUserWithId = flow(function* (userId: string) {
-      console.debug("UserStore.loadUserWIthId called:", userId)
+    const setRepositoryUserId = (userId: UserId) => {
+      const { userRepository, privateExerciseRepository, feedRepository, notificationRepository } =
+        getEnv<RootStoreDependencies>(self)
+      feedRepository.setUserId(userId)
+      userRepository.setUserId(userId)
+      privateExerciseRepository.setUserId(userId)
+      notificationRepository.setUserId(userId)
+    }
+
+    const loadUserWithId = flow(function* (userId: UserId) {
+      self.isLoadingProfile = true
+
       try {
-        const {
-          userRepository,
-          privateExerciseRepository,
-          feedRepository,
-          notificationRepository,
-        } = getEnv<RootStoreDependencies>(self)
-        feedRepository.setUserId(userId)
-        userRepository.setUserId(userId)
-        privateExerciseRepository.setUserId(userId)
-        notificationRepository.setUserId(userId)
         self.userId = userId
+        setRepositoryUserId(userId)
         yield fetchUserProfile()
+        console.debug("UserStore.loadUserWIthId done")
       } catch (e) {
         console.error("UserStore.loadUserWIthId error:", e)
+      } finally {
+        self.isLoadingProfile = false
       }
-      console.debug("UserStore.loadUserWIthId done")
     })
 
     function setUser(user: User) {
       self.isLoadingProfile = true
-      console.debug("UserStore.setUser user:", user)
-      self.user = convertFirestoreTimestampToDate(user)
-      // self.getWorkouts()
+
+      self.userId = user.userId
+      self.user = convertUserToMSTModel(convertFirestoreTimestampToDate(user))
+      setRepositoryUserId(user.userId)
+
       self.isLoadingProfile = false
     }
 
     const updateProfile = flow(function* (userUpdate: Partial<User>) {
+      if (!self.userId) return
+
       console.debug("UserStore.updateProfile called")
       self.isLoadingProfile = true
 
       try {
-        let userHandleTakenError: Error
-        const updatedUser = yield getEnv<RootStoreDependencies>(self)
-          .userRepository.update(null, userUpdate, true)
-          .then(undefined, (e: Error) => {
-            if (e.cause === UserErrorType.UserHandleAlreadyTakenError) userHandleTakenError = e
-            else throw e
-          })
+        const updatedUser = yield getEnv<RootStoreDependencies>(self).userRepository.update(
+          self.userId,
+          userUpdate,
+          true,
+        )
 
-        if (userHandleTakenError) {
-          return Promise.reject(userHandleTakenError)
-        } else {
-          console.debug("UserStore.updateProfile new user:", updatedUser)
-          self.user = updatedUser
+        console.debug("UserStore.updateProfile new user:", updatedUser)
+        setUser(updatedUser)
+      } catch (e: any) {
+        if (e?.cause === UserErrorType.UserHandleAlreadyTakenError) {
+          self.isLoadingProfile = false
+          return Promise.reject(e)
         }
-      } catch (e) {
         console.error("UserStore.updateProfile error:", e)
       } finally {
         self.isLoadingProfile = false
@@ -339,6 +415,8 @@ export const UserStoreModel = types
     })
 
     const deleteProfile = flow(function* () {
+      if (!self.userId) return
+
       const { userRepository } = getEnv<RootStoreDependencies>(self)
       try {
         yield userRepository.delete(self.userId)
@@ -364,7 +442,7 @@ export const UserStoreModel = types
 
       const { userRepository } = getEnv<RootStoreDependencies>(self)
       const updatedUser = yield userRepository.addToMyGyms(gym)
-      self.user = updatedUser
+      setUser(updatedUser)
     })
 
     const removeFromMyGyms = flow(function* (gym: Gym | GymDetails) {
@@ -378,18 +456,19 @@ export const UserStoreModel = types
 
       const { userRepository } = getEnv<RootStoreDependencies>(self)
       const updatedUser = yield userRepository.removeFromMyGyms(gym)
-      self.user = updatedUser
+      setUser(updatedUser)
     })
 
-    const setNotifications = (notifications: Notification[]) => {
+    const setNotifications = (notifications: INotificationModel[]) => {
       self.notifications = convertFirestoreTimestampToDate(notifications)
       // const sorted = convertFirestoreTimestampToDate(notifications)
       // sorted.sort((a, b) => b.notificationDate.getTime() - a.notificationDate.getTime())
       // self.notifications = sorted
     }
 
-    const setFollowRequests = (followRequests: FollowRequest[]) => {
-      self.followRequests = convertFirestoreTimestampToDate(followRequests)
+    const setFollowRequests = (followRequests: FollowRequest[] | undefined) => {
+      if (!followRequests) self.followRequests = undefined
+      else self.followRequests = convertFirestoreTimestampToDate(followRequests)
       // const sorted = convertFirestoreTimestampToDate(followRequests)
       // sorted.sort((a, b) => b.requestDate.getTime() - a.requestDate.getTime())
       // self.followRequests = sorted
@@ -432,7 +511,6 @@ export const UserStoreModel = types
       deleteProfile,
       createNewProfile,
       uploadUserAvatar,
-      // getUserLocation,
       getOtherUser,
       followUser,
       unfollowUser,

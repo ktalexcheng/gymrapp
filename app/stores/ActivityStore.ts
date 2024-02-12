@@ -1,5 +1,5 @@
-import { Activity } from "app/data/model/activityModel"
-import { flow, getEnv, types } from "mobx-state-tree"
+import { Activity } from "app/data/types/activity.types"
+import { SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
@@ -10,6 +10,8 @@ const ActivityModel = types
     description: types.string,
   })
   .actions(withSetPropAction)
+
+export type IActivityModel = SnapshotOrInstance<typeof ActivityModel>
 
 const ActivityStoreModel = types
   .model("ActivityStore")

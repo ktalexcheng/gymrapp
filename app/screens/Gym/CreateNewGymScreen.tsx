@@ -1,27 +1,26 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Button, Icon, Screen, Spacer, Text, TextField } from "app/components"
 import { AppLocale } from "app/data/constants"
 import { useUserLocation } from "app/hooks"
-import { MainStackParamList } from "app/navigators"
+import { MainStackScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { GoogleMapsPlacePrediction, api } from "app/services/api"
 import { useStores } from "app/stores"
 import { styles } from "app/theme"
-import React, { FC, useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { LoadingScreen } from "../LoadingScreen"
 
-type CreateNewGymScreenProps = NativeStackScreenProps<MainStackParamList, "CreateNewGym">
+interface CreateNewGymScreenProps extends MainStackScreenProps<"CreateNewGym"> {}
 
-export const CreateNewGymScreen: FC = ({ route }: CreateNewGymScreenProps) => {
+export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
   const { gymStore, userStore } = useStores()
   const mainNavigator = useMainNavigation()
   const { userLocation, isGettingUserLocation, refreshUserLocation } = useUserLocation()
   const [gymName, setGymName] = useState("")
   const [gymAddress, setGymAddress] = useState("")
-  const [gymPlaceId, setGymPlaceId] = useState(null)
+  const [gymPlaceId, setGymPlaceId] = useState<string>()
   const [isAutofilled, setIsAutofilled] = useState(false)
   const [isPredicting, setIsPredicting] = useState(false)
-  const [predictedPlaces, setPredictedPlaces] = useState<GoogleMapsPlacePrediction[]>(null)
+  const [predictedPlaces, setPredictedPlaces] = useState<GoogleMapsPlacePrediction[]>()
   const [isCreatingGym, setIsCreatingGym] = useState(false)
   const userAppLocale = userStore.getUserPreference<AppLocale>("appLocale")
 
@@ -40,10 +39,10 @@ export const CreateNewGymScreen: FC = ({ route }: CreateNewGymScreenProps) => {
     if (isAutofilled) return undefined
 
     // Reset state as soon as the user starts typing again (gymName changes)
-    // setPredictedPlaces(null) is the initial state, if the predicted result is empty
+    // setPredictedPlaces(undefined) is the initial state, if the predicted result is empty
     // it will be set to an empty array instead
     setIsPredicting(false)
-    setPredictedPlaces(null)
+    setPredictedPlaces(undefined)
 
     // Abort if gym name is empty
     if (!gymName) return undefined

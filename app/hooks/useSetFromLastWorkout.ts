@@ -1,14 +1,14 @@
-import { ExerciseId, WorkoutId } from "app/data/model"
+import { ExerciseId, WorkoutId } from "app/data/types"
 import { useStores } from "app/stores"
 import { useEffect, useState } from "react"
 
 export const useSetFromLastWorkout = <T>(
   exerciseId: ExerciseId,
   setOrder: number,
-): [setFromLastWorkout: T, lastWorkoutId: WorkoutId] => {
+): [setFromLastWorkout: T | null, lastWorkoutId: WorkoutId | null] => {
   const { userStore, feedStore } = useStores()
-  const [lastWorkoutId, setLastWorkoutId] = useState<string | undefined>(undefined)
-  const [setFromLastWorkout, setSetFromLastWorkout] = useState<T | undefined>(undefined)
+  const [lastWorkoutId, setLastWorkoutId] = useState<string | null>(null)
+  const [setFromLastWorkout, setSetFromLastWorkout] = useState<T | null>(null)
 
   useEffect(() => {
     if (feedStore.isLoadingUserWorkouts) return
@@ -17,8 +17,11 @@ export const useSetFromLastWorkout = <T>(
     const _lastWorkoutId = userStore.getExerciseLastWorkoutId(exerciseId)
     const _setFromLastWorkout =
       _lastWorkoutId && (feedStore.getSetFromWorkout(_lastWorkoutId, exerciseId, setOrder) as T)
-    setLastWorkoutId(_lastWorkoutId)
-    setSetFromLastWorkout(_setFromLastWorkout)
+
+    if (_lastWorkoutId && _setFromLastWorkout) {
+      setLastWorkoutId(_lastWorkoutId)
+      setSetFromLastWorkout(_setFromLastWorkout)
+    }
   }, [feedStore.isLoadingUserWorkouts])
 
   return [setFromLastWorkout, lastWorkoutId]

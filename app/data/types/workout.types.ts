@@ -1,7 +1,7 @@
-import { ActivityId } from "./activityModel"
-import { baseMetadata } from "./baseModel"
-import { ExercisePerformed } from "./exerciseModel"
-import { UserId } from "./userModel"
+import { ActivityId } from "./activity.types"
+import { ExercisePerformed } from "./exercise.types"
+import { baseMetadata } from "./metadata.types"
+import { UserId } from "./user.types"
 
 export type CommentId = string
 
@@ -37,8 +37,4 @@ export interface WorkoutInteraction extends baseMetadata {
   workoutByUserId: UserId
   comments?: WorkoutComment[]
   likedByUserIds?: UserId[]
-}
-
-export function isWorkout(value: unknown): value is Workout {
-  return value && typeof value === "object" && (value as Workout).workoutId !== undefined
 }

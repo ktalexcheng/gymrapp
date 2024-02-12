@@ -1,5 +1,5 @@
-import { UserId } from "./userModel"
-import { WorkoutId } from "./workoutModel"
+import { UserId } from "./user.types"
+import { WorkoutId } from "./workout.types"
 
 export enum NotificationType {
   Comment = "comment",

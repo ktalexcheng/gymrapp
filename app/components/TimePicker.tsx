@@ -39,8 +39,8 @@ const ExoticTimePicker = forwardRef<TimePickerRef, TimePickerProps>(function Exo
     scrollToTime: (timeAsSeconds: number) => {
       const minutes = Math.floor(timeAsSeconds / 60)
       const seconds = timeAsSeconds % 60
-      timerMinutesRef.current.scrollToIndex(minutes)
-      timerSecondsRef.current.scrollToIndex(seconds)
+      timerMinutesRef.current?.scrollToIndex(minutes)
+      timerSecondsRef.current?.scrollToIndex(seconds)
     },
   }))
 

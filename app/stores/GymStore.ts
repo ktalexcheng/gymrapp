@@ -1,8 +1,9 @@
 import firestore from "@react-native-firebase/firestore"
 import { GYM_PROXIMITY_THRESHOLD_METERS } from "app/data/constants"
-import { GymDetails, GymId, GymLeaderboard, GymMember, LatLongCoords, User } from "app/data/model"
+import { GymDetails, GymId, GymLeaderboard, GymMember, LatLongCoords } from "app/data/types"
 import { PlaceId, api } from "app/services/api"
 import { flow, getEnv, types } from "mobx-state-tree"
+import { IUserModel } from "./UserStore"
 import { RootStoreDependencies } from "./helpers/useStores"
 
 export const GymStoreModel = types
@@ -36,8 +37,11 @@ export const GymStoreModel = types
     ) {
       const gyms = yield getGymByIds(userFavoriteGymIds)
 
-      let closestGym = {
-        gym: undefined as GymDetails,
+      let closestGym: {
+        gym?: GymDetails
+        distance: number
+      } = {
+        gym: undefined,
         distance: Number.MAX_SAFE_INTEGER,
       }
       for (const gym of gyms) {
@@ -94,7 +98,7 @@ export const GymStoreModel = types
       {
         lastMemberId: string
         noMoreItems: boolean
-        gymMemberProfiles: Array<GymMember & User>
+        gymMemberProfiles: Array<GymMember & IUserModel>
       },
       [gymId: GymId, lastMemberId?: string, limit?: number]
     >(function* (gymId: GymId, lastMemberId?: string, limit?: number) {
