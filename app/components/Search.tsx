@@ -7,15 +7,16 @@ import { Text } from "./Text"
 import { TextField } from "./TextField"
 
 export interface SearchProps extends ViewProps {
+  searchCallback: (searchText: string) => Promise<any[]>
+  renderSearchResultItem: ListRenderItem<any>
+  searchResultItemKeyField: string
   searchBarPlaceholderTx?: TxKeyPath
   isSearchingMessageTx?: TxKeyPath
   emptyResultsMessageTx?: TxKeyPath
   searchTextTooShortMessageTx?: TxKeyPath
   endOfListMessageTx?: TxKeyPath
   minimumSearchTextLength?: number
-  searchCallback: (searchText: string) => Promise<any[]>
-  renderSearchResultItem: ListRenderItem<any>
-  searchResultItemKeyField: string
+  showInitialSuggestions?: boolean
   searchPromptComponent?: React.ComponentType<any> | React.ReactElement | null | undefined
   emptyResultsComponent?: React.ComponentType<any> | React.ReactElement | null | undefined
   footerComponent?: React.ComponentType<any> | React.ReactElement | null | undefined
@@ -40,15 +41,16 @@ const handleComponent: (
 }
 
 export const Search: FC<SearchProps> = ({
+  searchCallback,
+  renderSearchResultItem,
+  searchResultItemKeyField,
   searchBarPlaceholderTx = "common.search.inputPlaceholder",
   isSearchingMessageTx = "common.search.isSearchingMessage",
   emptyResultsMessageTx = "common.search.noResultsFoundMessage",
   searchTextTooShortMessageTx = "common.search.moreCharactersRequiredMessage",
   endOfListMessageTx = "common.search.notWhatYouAreLookingForMessage",
   minimumSearchTextLength = 3,
-  searchCallback,
-  renderSearchResultItem,
-  searchResultItemKeyField,
+  showInitialSuggestions = true,
   searchPromptComponent,
   emptyResultsComponent,
   footerComponent,
@@ -56,6 +58,7 @@ export const Search: FC<SearchProps> = ({
   const [searchText, setSearchText] = useState("")
   const [isSearching, setIsSearching] = useState(false)
   const [searchResult, setSearchResult] = useState<any[]>([])
+  const skipSearchTextCheck = showInitialSuggestions && !searchText
 
   const isInvalidSearchText = () => {
     if (!searchText) return true
@@ -74,18 +77,18 @@ export const Search: FC<SearchProps> = ({
   }, [searchCallback, renderSearchResultItem, searchResultItemKeyField])
 
   useEffect(() => {
-    if (isInvalidSearchText()) return undefined
+    if (!skipSearchTextCheck && isInvalidSearchText()) return undefined
 
     setIsSearching(true)
     const searchTimeout = setTimeout(() => {
-      console.debug("Search.useEffect searchCallback called with:", searchText)
-      searchCallback(searchText)
+      console.debug("Search.useEffect() [searchText] searchCallback called with:", searchText)
+      searchCallback(searchText || "*")
         .then((results) => {
           setSearchResult(results)
           setIsSearching(false)
         })
         .catch((e) => {
-          console.error("Search.useEffect searchCallback error:", e)
+          console.error("Search.useEffect() [searchText] searchCallback error:", e)
         })
     }, 500)
 
@@ -93,22 +96,26 @@ export const Search: FC<SearchProps> = ({
   }, [searchText])
 
   const renderSearchResults = () => {
-    if (!searchText) return handleComponent(searchPromptComponent)
+    // If showInitialSuggestions is true, display initial result when searchText is empty
+    console.debug("Search.renderSearchResults():", { showInitialSuggestions, searchText })
+    if (!skipSearchTextCheck) {
+      if (!searchText) return handleComponent(searchPromptComponent)
 
-    if (isInvalidSearchText()) {
-      return <Text tx={searchTextTooShortMessageTx} style={styles.textAlignCenter} />
-    }
-    if (isSearching) {
-      return <Text tx={isSearchingMessageTx} style={styles.textAlignCenter} />
-    }
-    if (!searchResult.length) {
-      return (
-        <>
-          <Text tx={emptyResultsMessageTx} style={styles.textAlignCenter} />
-          {handleComponent(emptyResultsComponent)}
-          {handleComponent(footerComponent)}
-        </>
-      )
+      if (isInvalidSearchText()) {
+        return <Text tx={searchTextTooShortMessageTx} style={styles.textAlignCenter} />
+      }
+      if (isSearching) {
+        return <Text tx={isSearchingMessageTx} style={styles.textAlignCenter} />
+      }
+      if (!searchResult.length) {
+        return (
+          <>
+            <Text tx={emptyResultsMessageTx} style={styles.textAlignCenter} />
+            {handleComponent(emptyResultsComponent)}
+            {handleComponent(footerComponent)}
+          </>
+        )
+      }
     }
 
     return (
@@ -120,7 +127,9 @@ export const Search: FC<SearchProps> = ({
           ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
           ListFooterComponent={() => (
             <>
-              <Text tx={endOfListMessageTx} style={styles.textAlignCenter} />
+              {searchResult.length > 0 && (
+                <Text tx={endOfListMessageTx} style={styles.textAlignCenter} />
+              )}
               {handleComponent(footerComponent)}
             </>
           )}

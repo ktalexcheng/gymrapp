@@ -78,7 +78,7 @@ const AppStack = observer(() => {
   const { authenticationStore: authStore, userStore, feedStore, exerciseStore } = useStores()
   const [forceUpdate, setForceUpdate] = useState(false)
   const [checkUpdateError, setCheckUpdateError] = useState(false)
-  // const [initializing, setInitializing] = useState(true) // Set an initializing state whilst Firebase connects
+  const [isInitializing, setIsInitializing] = useState(true) // To prevent initial route flicker
 
   // Handle user state changes
   async function onAuthStateChanged(user: FirebaseAuthTypes.User | null) {
@@ -98,6 +98,8 @@ const AppStack = observer(() => {
       userStore.invalidateSession()
       feedStore.resetFeed()
     }
+
+    setIsInitializing(false)
   }
 
   useEffect(() => {
@@ -211,14 +213,14 @@ const AppStack = observer(() => {
   }, [forceUpdate, checkUpdateError, authStore.isAuthenticated])
 
   const setStackScreen = useCallback(() => {
-    return forceUpdate || checkUpdateError ? (
+    return forceUpdate || checkUpdateError || isInitializing ? (
       <Stack.Screen name="AppDisabled" component={LoadingScreen} />
     ) : authStore.isAuthenticated ? (
       <Stack.Screen name="MainNavigator" component={MainNavigator} />
     ) : (
       <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
     )
-  }, [forceUpdate, checkUpdateError, authStore.isAuthenticated])
+  }, [forceUpdate, checkUpdateError, isInitializing, authStore.isAuthenticated])
 
   return (
     <Stack.Navigator
