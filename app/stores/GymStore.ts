@@ -3,8 +3,8 @@ import { GYM_PROXIMITY_THRESHOLD_METERS } from "app/data/constants"
 import { GymDetails, GymId, GymLeaderboard, GymMember, LatLongCoords } from "app/data/types"
 import { PlaceId, api } from "app/services/api"
 import { flow, getEnv, types } from "mobx-state-tree"
-import { IUserModel } from "./UserStore"
 import { RootStoreDependencies } from "./helpers/useStores"
+import { IUserModel } from "./models"
 
 export const GymStoreModel = types
   .model("GymStoreModel")

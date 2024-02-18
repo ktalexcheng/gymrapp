@@ -384,14 +384,38 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     renamedData._createdAt = firestore.FieldValue.serverTimestamp()
     renamedData._modifiedAt = firestore.FieldValue.serverTimestamp()
     try {
+      // Get a new document reference if no document ID is provided
       let newDocRef: FirebaseFirestoreTypes.DocumentReference
       if (docId) {
         newDocRef = this.#firestoreCollection!.doc(docId)
-        await newDocRef.set(renamedData)
       } else {
         newDocRef = this.#firestoreCollection!.doc()
         docId = newDocRef.id
+      }
+
+      // Firestore rules may prohibit get() on a document that doesn't exist
+      // e.g. `allow read: if request.auth.uid == resource.data.byUserId;`
+      // If get() fails, we can only assume the document doesn't exist
+      // and rely on allow create rules to prevent overwriting existing documents
+      // belonging to other users
+      try {
+        const newDoc = await newDocRef.get()
+        if (newDoc.exists) {
+          throw new RepositoryError(
+            this.#repositoryId,
+            `Document with ID ${docId} already exists, cannot create new document with same ID`,
+          )
+        }
+      } catch {}
+
+      try {
+        // Create the document
         await newDocRef.set({ [this.#documentIdField]: docId, ...renamedData })
+      } catch (e) {
+        throw new RepositoryError(
+          this.#repositoryId,
+          `User does not have permission to create document with ID ${docId}: ${e}`,
+        )
       }
 
       // This extra read is required so we can get the document with server-side information

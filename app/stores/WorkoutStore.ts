@@ -10,16 +10,17 @@ import { Gym, NewWorkout } from "../data/types"
 import { formatSecondsAsTime } from "../utils/formatTime"
 import { IExerciseModel } from "./ExerciseStore"
 import { IExerciseSummaryModel } from "./FeedStore"
-import { UserModel } from "./UserStore"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 import {
   IRepsPersonalRecordModel,
   IRepsSetPerformedModel,
+  ISetPerformedModel,
   ITimePersonalRecordModel,
   ITimeSetPerformedModel,
   RepsSetPerformedModel,
   TimeSetPerformedModel,
+  UserModel,
 } from "./models"
 
 const BaseExercisePerformedModel = types
@@ -29,8 +30,6 @@ const BaseExercisePerformedModel = types
     exerciseSource: types.enumeration("ExerciseSource", Object.values(ExerciseSource)),
     exerciseName: types.string,
     exerciseNotes: types.maybeNull(types.string),
-    // volumeType: types.enumeration("ExerciseVolumeType", Object.values(ExerciseVolumeType)),
-    // setsPerformed: types.optional(types.array(SetPerformedModel), []),
   })
   .actions(withSetPropAction)
 
@@ -58,18 +57,6 @@ const ExercisePerformedModel = types.union(
   TimeExercisePerformedModel,
 )
 
-// const SingleExercise = types
-//   .model({
-//     exerciseOrder: types.number,
-//     exerciseId: types.string,
-//     exerciseSource: types.enumeration(Object.values(ExerciseSource)),
-//     exerciseName: types.string,
-//     volumeType: types.enumeration(Object.values(ExerciseVolumeType)),
-//     exerciseNotes: types.maybeNull(types.string),
-//     setsPerformed: types.optional(types.array(SetPerformedModel), []),
-//   })
-//   .actions(withSetPropAction)
-
 const Exercises = types.array(ExercisePerformedModel)
 
 export type IExercisePerformedModel = SnapshotOrInstance<typeof ExercisePerformedModel>
@@ -82,7 +69,6 @@ export const WorkoutStoreModel = types
     exercises: types.optional(Exercises, []),
     inProgress: false,
     restTime: 0,
-    // restTimeRemaining: 0,
     restTimeStartedAt: types.maybe(types.Date),
     restTimeElapsed: 0,
     restTimeRunning: false,
@@ -340,6 +326,12 @@ export const WorkoutStoreModel = types
 
       return self.restTime - actualTimeElapsed
     },
+    getExerciseLastSet(exerciseOrder: number) {
+      const exercise = self.exercises[exerciseOrder]
+      if (!exercise) return undefined
+
+      return exercise.setsPerformed[exercise.setsPerformed.length - 1]
+    },
   }))
   .actions((self) => {
     function resetWorkout() {
@@ -544,34 +536,7 @@ export const WorkoutStoreModel = types
           newWorkout,
         )
 
-        // IMPORTANT: Moved these side effects to server side
-
-        // Update user workout metadata (keep track of workouts performed by user)
-        // yield getEnv<RootStoreDependencies>(self).userRepository.update(
-        //   null,
-        //   {
-        //     workoutMetas: {
-        //       [workoutId]: {
-        //         startTime: self.startTime,
-        //       },
-        //     },
-        //   },
-        //   true,
-        // )
-
-        // Update user exercise history
-        // const userUpdate = {} as Partial<User>
-        // allExerciseSummary.forEach((e) => {
-        //   userUpdate[`exerciseHistory.${e.exerciseId}.performedWorkoutIds`] =
-        //     firestore.FieldValue.arrayUnion(workoutId)
-        //   if (Object.keys(e.newRecords).length > 0) {
-        //     Object.entries(e.newRecords).forEach(([rep, record]) => {
-        //       const newRecord = firestore.FieldValue.arrayUnion(record)
-        //       userUpdate[`exerciseHistory.${e.exerciseId}.personalRecords.${rep}`] = newRecord
-        //     })
-        //   }
-        // })
-        // yield getEnv<RootStoreDependencies>(self).userRepository.update(null, userUpdate, false)
+        // IMPORTANT: Moved side effects to server side (updating user workout metadata and exercise history)
 
         return workout
       } catch (error) {
@@ -600,7 +565,7 @@ export const WorkoutStoreModel = types
       })
     }
 
-    function addSet(targetExerciseOrder: number) {
+    function addSet(targetExerciseOrder: number, initialSetValues?: Partial<ISetPerformedModel>) {
       const exercise = self.exercises.at(targetExerciseOrder)
       if (!exercise) {
         console.error("WorkoutStore.addSet: exercise not found")
@@ -612,6 +577,7 @@ export const WorkoutStoreModel = types
         case ExerciseVolumeType.Reps:
           exercise.setsPerformed.push(
             RepsSetPerformedModel.create({
+              ...initialSetValues,
               setOrder: newSetOrder,
               volumeType: exercise.volumeType,
               setType: ExerciseSetType.Normal,
@@ -622,6 +588,7 @@ export const WorkoutStoreModel = types
         case ExerciseVolumeType.Time:
           exercise.setsPerformed.push(
             TimeSetPerformedModel.create({
+              ...initialSetValues,
               setOrder: newSetOrder,
               volumeType: exercise.volumeType,
               setType: ExerciseSetType.Normal,

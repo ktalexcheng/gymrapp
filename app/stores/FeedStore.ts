@@ -5,11 +5,11 @@ import { api } from "app/services/api"
 import { getNestedField } from "app/utils/getNestedField"
 import { getTime, startOfWeek } from "date-fns"
 import { randomUUID } from "expo-crypto"
-import { Instance, SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
-import { UserModel } from "./UserStore"
-import { convertUserToMSTModel } from "./helpers/convertUserToMSTModel"
+import { Instance, SnapshotOrInstance, flow, getEnv, getSnapshot, types } from "mobx-state-tree"
+import { convertUserToMSTSnapshot } from "./helpers/convertUserToMSTSnapshot"
+import { convertWorkoutToMSTSnapshot } from "./helpers/convertWorkoutToMSTSnapshot"
 import { RootStoreDependencies } from "./helpers/useStores"
-import { MetadataModel, PersonalRecordModel, SetPerformedModel } from "./models"
+import { MetadataModel, PersonalRecordModel, SetPerformedModel, UserModel } from "./models"
 
 const BaseExerciseSummaryModel = types.model("BaseExerciseSummaryModel", {
   exerciseId: types.string,
@@ -48,22 +48,38 @@ export const ExerciseSummaryModel = types.union(
   TimeExerciseSummaryModel,
 )
 
-export const WorkoutSummaryModel = types.compose(
-  "WorkoutSummaryModel",
-  MetadataModel,
-  types.model({
-    workoutId: types.identifier,
-    byUserId: types.string,
-    userIsPrivate: types.boolean,
-    isHidden: types.boolean,
-    startTime: types.Date,
-    endTime: types.Date,
-    exercises: types.array(ExerciseSummaryModel),
-    workoutTitle: types.string,
-    activityId: types.string,
-    performedAtGymId: types.maybeNull(types.string),
-    performedAtGymName: types.maybeNull(types.string),
-  }),
+export const WorkoutSummaryModel = types.snapshotProcessor(
+  types.compose(
+    "WorkoutSummaryModel",
+    MetadataModel,
+    types.model({
+      workoutId: types.identifier,
+      byUserId: types.string,
+      userIsPrivate: types.boolean,
+      isHidden: types.boolean,
+      startTime: types.Date,
+      endTime: types.Date,
+      exercises: types.array(ExerciseSummaryModel),
+      workoutTitle: types.string,
+      activityId: types.string,
+      performedAtGymId: types.maybeNull(types.string),
+      performedAtGymName: types.maybeNull(types.string),
+    }),
+  ),
+  {
+    preProcessor: (snapshot: any) => {
+      if (snapshot.isMSTInterface) return snapshot
+
+      try {
+        return convertWorkoutToMSTSnapshot(snapshot)
+      } catch {
+        return snapshot
+      }
+    },
+    postProcessor: (snapshot) => {
+      return { ...snapshot, isMSTInterface: true }
+    },
+  },
 )
 
 const WorkoutCommentModel = types.model("WorkoutCommentModel", {
@@ -158,7 +174,8 @@ export const FeedStoreModel = types
           return undefined
         }
 
-        return self.otherUserWorkouts.get(byUserId)?.workouts.get(workoutId)
+        const workout = self.otherUserWorkouts.get(byUserId)?.workouts.get(workoutId)
+        return workout && getSnapshot(workout)
       }
 
       if (
@@ -169,18 +186,20 @@ export const FeedStoreModel = types
         return undefined
       }
 
-      return self.userWorkouts.get(workoutId) || self.feedWorkouts.get(workoutId)
+      const workout = self.userWorkouts.get(workoutId) || self.feedWorkouts.get(workoutId)
+      return workout && getSnapshot(workout)
     },
     getSetFromWorkout(workoutId: WorkoutId, exerciseId: ExerciseId, setOrder: number) {
-      console.debug("FeedStore.getSetFromWorkout workoutId:", workoutId)
+      console.debug("FeedStore.getSetFromWorkout() workoutId:", workoutId)
       const latestWorkout = self.userWorkouts.get(workoutId)
       if (!latestWorkout) return null
 
-      console.debug("FeedStore.latestWorkout:", latestWorkout)
+      console.debug("FeedStore.getSetFromWorkout() latestWorkout:", latestWorkout)
       const lastPerformedSet = latestWorkout.exercises.filter((e) => e.exerciseId === exerciseId)[0]
         .setsPerformed?.[setOrder]
       if (!lastPerformedSet) return null
 
+      console.debug("FeedStore.getSetFromWorkout() lastPerformedSet:", lastPerformedSet)
       return lastPerformedSet
     },
     getInteractionsForWorkout(workoutSource: WorkoutSource, workoutId: string) {
@@ -188,18 +207,18 @@ export const FeedStoreModel = types
         (workoutSource === WorkoutSource.User && self.isLoadingUserWorkouts) ||
         (workoutSource === WorkoutSource.Feed && self.isLoadingFeed)
       ) {
-        console.debug("FeedStore.getInteractionsForWorkout loading workouts")
+        // console.debug("FeedStore.getInteractionsForWorkout loading workouts")
         return undefined
       }
 
       const interactions = self.workoutInteractions.get(workoutId) || undefined
-      if (!interactions) {
-        // This is possible if no user has interacted with the workout yet
-        console.debug(
-          "FeedStore.getInteractionsForWorkout no interactions found for workoutId:",
-          workoutId,
-        )
-      }
+      // if (!interactions) {
+      //   // This is possible if no user has interacted with the workout yet
+      //   console.debug(
+      //     "FeedStore.getInteractionsForWorkout no interactions found for workoutId:",
+      //     workoutId,
+      //   )
+      // }
       return interactions
     },
   }))
@@ -320,7 +339,7 @@ export const FeedStoreModel = types
       if (!self.feedUsers.has(userId)) {
         try {
           const user = yield userRepository.get(userId)
-          self.feedUsers.put(convertUserToMSTModel(user))
+          self.feedUsers.put(convertUserToMSTSnapshot(user))
         } catch (e) {
           console.error("FeedStore.fetchUserProfileToStore error:", e)
         }

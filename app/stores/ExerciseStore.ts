@@ -1,9 +1,9 @@
 import { ExerciseSource, ExerciseVolumeType } from "app/data/constants"
 import { Exercise, ExerciseSettings, NewExercise, User } from "app/data/types"
 import { SnapshotOrInstance, flow, getEnv, getSnapshot, types } from "mobx-state-tree"
-import { ExerciseSettingsModel, IUserModel } from "./UserStore"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
+import { ExerciseSettingsModel, IUserModel } from "./models"
 
 // const ExerciseSettingsModel = types
 //   .model({

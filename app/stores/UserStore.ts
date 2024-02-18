@@ -1,119 +1,23 @@
+import { DefaultUserPreferences, UserErrorType } from "app/data/constants"
 import {
-  AppColorScheme,
-  AppLocale,
-  DefaultUserPreferences,
-  UserErrorType,
-  WeightUnit,
-} from "app/data/constants"
-import { FollowRequest, Gym, GymDetails, GymId, NotificationType, UserId } from "app/data/types"
+  ExerciseId,
+  FollowRequest,
+  Gym,
+  GymDetails,
+  GymId,
+  User,
+  UserId,
+  UserPreferences,
+} from "app/data/types"
 import { translate } from "app/i18n"
 import { api } from "app/services/api"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { formatName } from "app/utils/formatName"
 import { getNestedField } from "app/utils/getNestedField"
-import { SnapshotOrInstance, flow, getEnv, getSnapshot, types } from "mobx-state-tree"
+import { flow, getEnv, getSnapshot, types } from "mobx-state-tree"
 import Toast from "react-native-root-toast"
-import { ExerciseId, User, UserPreferences } from "../data/types"
-import { convertUserToMSTModel } from "./helpers/convertUserToMSTModel"
 import { RootStoreDependencies } from "./helpers/useStores"
-import { withSetPropAction } from "./helpers/withSetPropAction"
-import { MetadataModel, PersonalRecordModel } from "./models"
-
-const GymModel = types.compose(
-  "GymModel",
-  MetadataModel,
-  types.model({
-    gymId: types.identifier,
-    gymName: types.string,
-  }),
-)
-
-export const ExerciseSettingsModel = types
-  .model("ExerciseSettingsModel", {
-    exerciseId: types.identifier,
-    weightUnit: types.maybeNull(types.enumeration("WeightUnit", Object.values(WeightUnit))),
-    autoRestTimerEnabled: types.maybeNull(types.boolean),
-    restTime: types.maybeNull(types.number),
-  })
-  .actions(withSetPropAction)
-
-const UserPreferencesModel = types.model("UserPreferencesModel", {
-  appLocale: types.enumeration("AppLocale", Object.values(AppLocale)),
-  weightUnit: types.enumeration("WeightUnit", Object.values(WeightUnit)),
-  autoRestTimerEnabled: types.boolean,
-  restTime: types.maybeNull(types.number),
-  exerciseSpecificSettings: types.map(ExerciseSettingsModel),
-  appColorScheme: types.enumeration("AppColorScheme", Object.values(AppColorScheme)),
-})
-
-const WorkoutMetaModel = types.model("WorkoutMetaModel", {
-  workoutId: types.identifier,
-  startTime: types.Date,
-})
-
-const PersonalRecordsModel = types.map(
-  types.model({
-    reps: types.identifierNumber,
-    // TODO: This is different to the schema in Firebase and will require conversion
-    // Firebase schema is [reps]: record[], but this is not possible with MST
-    records: types.array(PersonalRecordModel),
-  }),
-)
-
-const ExerciseHistoryModel = types.model("ExerciseHistoryModel", {
-  exerciseId: types.identifier,
-  performedWorkoutIds: types.array(types.string),
-  personalRecords: PersonalRecordsModel,
-})
-
-export const UserModel = types.compose(
-  "UserModel",
-  MetadataModel,
-  types.model({
-    userId: types.identifier,
-    userHandle: types.string,
-    _userHandleLower: types.string,
-    email: types.string,
-    firstName: types.string,
-    lastName: types.string,
-    privateAccount: types.boolean,
-    providerId: types.string,
-    myGyms: types.array(GymModel),
-    preferences: UserPreferencesModel,
-    avatarUrl: types.maybeNull(types.string),
-    workoutMetas: types.map(WorkoutMetaModel),
-    exerciseHistory: types.map(ExerciseHistoryModel),
-    followersCount: types.maybeNull(types.number),
-    followingCount: types.maybeNull(types.number),
-  }),
-)
-
-const NotificationModel = types.model("NotificationModel", {
-  notificationId: types.identifier,
-  notificationDate: types.Date,
-  isRead: types.boolean,
-  senderUserId: types.string,
-  notificationType: types.enumeration(Object.values(NotificationType)),
-  workoutId: types.maybe(types.string),
-})
-
-const FollowRequestsModel = types.model("FollowRequestsModel", {
-  requestId: types.identifier,
-  requestedByUserId: types.string,
-  requestDate: types.Date,
-  isAccepted: types.boolean,
-  isDeclined: types.boolean,
-})
-
-export type IGymModel = SnapshotOrInstance<typeof GymModel>
-export type IExerciseSettingsModel = SnapshotOrInstance<typeof ExerciseSettingsModel>
-export type IUserPreferencesModel = SnapshotOrInstance<typeof UserPreferencesModel>
-export type IWorkoutMetaModel = SnapshotOrInstance<typeof WorkoutMetaModel>
-export type IExerciseHistoryModel = SnapshotOrInstance<typeof ExerciseHistoryModel>
-export type IPersonalRecordsModel = SnapshotOrInstance<typeof PersonalRecordsModel>
-export type IUserModel = SnapshotOrInstance<typeof UserModel>
-export type INotificationModel = SnapshotOrInstance<typeof NotificationModel>
-export type IFollowRequestsModel = SnapshotOrInstance<typeof FollowRequestsModel>
+import { FollowRequestsModel, INotificationModel, NotificationModel, UserModel } from "./models"
 
 function isEmptyField(value: any) {
   if (value === undefined || value === null || value === "") {
@@ -160,13 +64,7 @@ export const UserStoreModel = types
     getExerciseLastWorkoutId(exerciseId: ExerciseId) {
       if (!self.user) return null
 
-      const exerciseHistory = getNestedField(
-        self.user,
-        "exerciseHistory",
-      ) as User["exerciseHistory"]
-      if (!exerciseHistory) return null
-
-      const exerciseHistoryItem = exerciseHistory?.[exerciseId]
+      const exerciseHistoryItem = self.user.exerciseHistory?.get(exerciseId)
       if (!exerciseHistoryItem) return null
 
       const workoutsCount = exerciseHistoryItem.performedWorkoutIds.length
@@ -342,7 +240,7 @@ export const UserStoreModel = types
         const user = yield userRepository.get(self.userId, true)
 
         if (user) {
-          setUser(user)
+          setUserFromFirebase(user)
         }
       } catch (e) {
         console.error("UserStore.fetchUserProfile error:", e)
@@ -375,11 +273,13 @@ export const UserStoreModel = types
       }
     })
 
-    function setUser(user: User) {
+    function setUserFromFirebase(user: User) {
       self.isLoadingProfile = true
 
       self.userId = user.userId
-      self.user = convertUserToMSTModel(convertFirestoreTimestampToDate(user))
+      // self.user = convertUserToMSTModel(convertFirestoreTimestampToDate(user))
+      self.user = UserModel.create(user as any) // UserModel's preprocessor will convert the user to MST model
+
       setRepositoryUserId(user.userId)
 
       self.isLoadingProfile = false
@@ -399,7 +299,7 @@ export const UserStoreModel = types
         )
 
         console.debug("UserStore.updateProfile new user:", updatedUser)
-        setUser(updatedUser)
+        setUserFromFirebase(updatedUser)
       } catch (e: any) {
         if (e?.cause === UserErrorType.UserHandleAlreadyTakenError) {
           self.isLoadingProfile = false
@@ -442,7 +342,7 @@ export const UserStoreModel = types
 
       const { userRepository } = getEnv<RootStoreDependencies>(self)
       const updatedUser = yield userRepository.addToMyGyms(gym)
-      setUser(updatedUser)
+      setUserFromFirebase(updatedUser)
     })
 
     const removeFromMyGyms = flow(function* (gym: Gym | GymDetails) {
@@ -456,7 +356,7 @@ export const UserStoreModel = types
 
       const { userRepository } = getEnv<RootStoreDependencies>(self)
       const updatedUser = yield userRepository.removeFromMyGyms(gym)
-      setUser(updatedUser)
+      setUserFromFirebase(updatedUser)
     })
 
     const setNotifications = (notifications: INotificationModel[]) => {
@@ -506,7 +406,7 @@ export const UserStoreModel = types
       invalidateSession,
       fetchUserProfile,
       loadUserWithId,
-      setUser,
+      setUserFromFirebase,
       updateProfile,
       deleteProfile,
       createNewProfile,

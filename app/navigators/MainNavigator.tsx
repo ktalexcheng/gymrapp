@@ -84,7 +84,7 @@ export const MainNavigator = observer(function MainNavigator() {
           console.debug("MainNavigator.userSubscriber.onSnapshot called")
           if (!snapshot.exists) return
 
-          userStore.setUser(snapshot.data() as User)
+          userStore.setUserFromFirebase(snapshot.data() as User)
           feedStore.loadUserWorkouts()
         },
         (e) => console.error("MainNavigator.userSubscriber.onSnapshot error:", e),

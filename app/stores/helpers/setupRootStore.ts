@@ -9,6 +9,7 @@
  *
  * @refresh reset
  */
+import * as Application from "expo-application"
 import { IDisposer, applySnapshot, onSnapshot } from "mobx-state-tree"
 import * as storage from "../../utils/storage"
 import { RootStore, RootStoreSnapshot } from "../RootStore"
@@ -16,6 +17,7 @@ import { RootStore, RootStoreSnapshot } from "../RootStore"
 /**
  * The key we'll be saving our state as within async storage.
  */
+const BUILD_VERSION_STORAGE_KEY = "build-version"
 const ROOT_STATE_STORAGE_KEY = "root-v1"
 
 /**
@@ -23,12 +25,27 @@ const ROOT_STATE_STORAGE_KEY = "root-v1"
  */
 let _disposer: IDisposer
 export async function setupRootStore(rootStore: RootStore) {
-  let restoredState: RootStoreSnapshot | undefined | null
+  let restoredState: RootStoreSnapshot | undefined
+  const thisBuildVersion = Application.nativeBuildVersion
 
   try {
-    // load the last known state from AsyncStorage
-    restoredState = (await storage.load(ROOT_STATE_STORAGE_KEY)) as RootStoreSnapshot | null
-    applySnapshot(rootStore, restoredState)
+    // Anytime a new build is detected, we'll want to clear out the old state
+    const lastKnownBuildVersion = await storage.load(BUILD_VERSION_STORAGE_KEY)
+    console.debug("setupRootStore: Checking build version", {
+      lastKnownBuildVersion,
+      thisBuildVersion,
+    })
+    if (lastKnownBuildVersion !== thisBuildVersion) {
+      console.debug("setupRootStore: Build version changed, clearing state")
+      await storage.remove(ROOT_STATE_STORAGE_KEY)
+    } else {
+      // load the last known state from AsyncStorage
+      console.debug("setupRootStore: Loading root store snapshot from AsyncStorage")
+      restoredState = (await storage.load(ROOT_STATE_STORAGE_KEY)) as RootStoreSnapshot
+      applySnapshot(rootStore, restoredState)
+    }
+
+    await storage.save(BUILD_VERSION_STORAGE_KEY, thisBuildVersion)
   } catch (e: any) {
     // if there's any problems loading, then inform the dev what happened
     if (__DEV__) {

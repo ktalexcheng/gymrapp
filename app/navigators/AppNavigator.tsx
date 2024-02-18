@@ -15,10 +15,12 @@ import { LoadingScreen } from "app/screens"
 import { api, storage } from "app/services/api"
 import { spacing } from "app/theme"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
+import Constants from "expo-constants"
 import * as NavigationBar from "expo-navigation-bar"
 import { setStatusBarStyle } from "expo-status-bar"
 import { observer } from "mobx-react-lite"
 import React, { useCallback, useEffect, useState } from "react"
+
 import {
   Alert,
   AlertButton,
@@ -82,10 +84,11 @@ const AppStack = observer(() => {
   async function onAuthStateChanged(user: FirebaseAuthTypes.User | null) {
     // Update authentication and user data
     if (user) {
-      console.debug("onAuthStateChanged received valid user")
+      console.debug("onAuthStateChanged received valid user", { user })
       authStore.setFirebaseUser(user)
       // Don't load user data if email is not verified
       if (user.emailVerified) {
+        console.debug("onAuthStateChanged user is email verified")
         userStore.loadUserWithId(user.uid)
         feedStore.setUserId(user.uid)
       }
@@ -264,6 +267,8 @@ export const AppNavigator = observer((props: NavigationProps) => {
     }
   }, [])
 
+  const envMode = Constants.expoConfig?.extra?.gymrappEnvironment
+
   const darkTheme = {
     ...DarkTheme,
     colors: {
@@ -309,7 +314,10 @@ export const AppNavigator = observer((props: NavigationProps) => {
     left: 0,
     right: 0,
     height: spacing.screenPadding,
-    backgroundColor: themeStore.colors("contentBackground"),
+    backgroundColor:
+      envMode === "production"
+        ? themeStore.colors("danger")
+        : themeStore.colors("contentBackground"),
     alignItems: "center",
     justifyContent: "center",
   }
@@ -329,7 +337,9 @@ export const AppNavigator = observer((props: NavigationProps) => {
           <Text
             text={
               "DEV mode! " +
-              (process.env.EXPO_PUBLIC_USE_EMULATOR === "0"
+              (envMode === "production"
+                ? "WARNING! Connected to Firebase PROD!!!"
+                : process.env.EXPO_PUBLIC_USE_EMULATOR === "0"
                 ? "Connected to Firebase test"
                 : "Connected to emulator")
             }

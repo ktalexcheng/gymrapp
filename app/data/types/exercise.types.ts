@@ -25,10 +25,10 @@ export type Reps = number
 interface BasePersonalRecord {
   workoutId: WorkoutId
   datePerformed: Date
+  reps: Reps
 }
 export interface RepsPersonalRecord extends BasePersonalRecord {
   volumeType: ExerciseVolumeType.Reps
-  reps: Reps
   weight: Weight
 }
 export interface TimePersonalRecord extends BasePersonalRecord {
@@ -38,9 +38,9 @@ export interface TimePersonalRecord extends BasePersonalRecord {
 export type PersonalRecord = RepsPersonalRecord | TimePersonalRecord
 
 // ExerciseRecord stores user's personal records for each rep range
-export type ExerciseRecord = Map<Reps, PersonalRecord[]>
+export type ExerciseRecord = Record<Reps, PersonalRecord[]>
 // NewExerciseRecord stores a new record achieved in a workout
-export type NewExerciseRecord = Map<Reps, PersonalRecord>
+export type NewExerciseRecord = Record<Reps, PersonalRecord>
 
 // Exercise types specific to each ExerciseVolumeType
 export type ExerciseId = string

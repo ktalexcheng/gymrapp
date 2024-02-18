@@ -28,7 +28,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
   const weightUnitTx = useWeightUnitTx(exerciseId)
 
   function addSet() {
-    workoutStore.addSet(exerciseOrder)
+    workoutStore.addSet(exerciseOrder, workoutStore.getExerciseLastSet(exerciseOrder))
   }
 
   function renderSets() {

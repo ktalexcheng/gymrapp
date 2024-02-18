@@ -294,7 +294,6 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const [weightUnitSetting] = useExerciseSetting<WeightUnit>(exerciseId, "weightUnit")
 
   // States
-  // const [isNullWeight, setIsNullWeight] = useState(false)
   const [isNullReps, setIsNullReps] = useState(false)
   // Weight is always converted and stored in kg,
   // but depending on user preference will display as kg or lbs (using displayWeight).
@@ -305,9 +304,11 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   )
   const [reps, setReps] = useState(exerciseSetStore.reps)
   const [rpe, setRpe] = useState(exerciseSetStore.rpe)
-  const [weightInput, setWeightInput] = useState<string>()
-  const [repsInput, setRepsInput] = useState<string>()
-  const [rpeInput, setRpeInput] = useState<string>()
+  const [weightInput, setWeightInput] = useState(
+    displayWeight ? roundToString(displayWeight, 2, false) : undefined,
+  )
+  const [repsInput, setRepsInput] = useState(reps?.toString())
+  const [rpeInput, setRpeInput] = useState(rpe?.toString())
 
   useEffect(() => {
     setDisplayUnit(weightUnitSetting)
@@ -315,9 +316,6 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 
   useEffect(() => {
     updateSetStore()
-    // !!displayWeight && setWeightInput(roundToString(displayWeight, 2, false) ?? undefined)
-    // setRepsInput(reps?.toString())
-    // setRpeInput(rpe?.toString())
   }, [displayWeight, reps, rpe])
 
   function updateSetStore() {
@@ -413,7 +411,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     // If weight was null in the previous set, ignore it as well
     if (setFromLastWorkout.weight) {
       const prevWeight = new Weight(setFromLastWorkout.weight, WeightUnit.kg, weightUnitSetting)
-      handleWeightChangeText(prevWeight.formattedDisplayWeight(1))
+      handleWeightChangeText(prevWeight.formattedDisplayWeight(2, false))
     }
     handleRepsChangeText(roundToString(setFromLastWorkout.reps, 0, false))
   }

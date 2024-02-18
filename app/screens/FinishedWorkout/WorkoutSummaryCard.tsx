@@ -24,9 +24,6 @@ export interface WorkoutSummaryCardProps {
 export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
   (props: WorkoutSummaryCardProps) => {
     const { workoutSource, workoutId, workout, byUser, highlightExerciseId } = props
-    console.debug("WorkoutSummaryCard", {
-      exercises: workout.exercises,
-    })
     const { exerciseStore, userStore, themeStore } = useStores()
     const mainNavigation = useMainNavigation()
     const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")

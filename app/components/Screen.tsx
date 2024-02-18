@@ -5,6 +5,7 @@ import { observer } from "mobx-react-lite"
 import React, { useRef, useState } from "react"
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   KeyboardAvoidingViewProps,
   LayoutChangeEvent,
@@ -12,6 +13,7 @@ import {
   ScrollView,
   ScrollViewProps,
   StyleProp,
+  TouchableWithoutFeedback,
   View,
   ViewStyle,
 } from "react-native"
@@ -249,28 +251,30 @@ export const Screen = observer((props: ScreenProps) => {
   }
 
   return (
-    <View style={[$containerStyle, $containerInsets]}>
-      {overrideStatusBar && <StatusBar style={statusBarStyle} {...StatusBarProps} />}
+    <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+      <View style={[$containerStyle, $containerInsets]}>
+        {overrideStatusBar && <StatusBar style={statusBarStyle} {...StatusBarProps} />}
 
-      {isBusy && (
-        <View style={$busyIndicator}>
-          <ActivityIndicator size="large" color={themeStore.colors("logo")} />
-        </View>
-      )}
-
-      <KeyboardAvoidingView
-        behavior={isIos ? "padding" : undefined}
-        keyboardVerticalOffset={navigationHeaderHeight + keyboardOffset}
-        {...KeyboardAvoidingViewProps}
-        style={[$keyboardAvoidingViewStyle, KeyboardAvoidingViewProps?.style]}
-      >
-        {isNonScrolling(props.preset) ? (
-          <ScreenWithoutScrolling {...props} />
-        ) : (
-          <ScreenWithScrolling {...props} />
+        {isBusy && (
+          <View style={$busyIndicator}>
+            <ActivityIndicator size="large" color={themeStore.colors("logo")} />
+          </View>
         )}
-      </KeyboardAvoidingView>
-    </View>
+
+        <KeyboardAvoidingView
+          behavior={isIos ? "padding" : undefined}
+          keyboardVerticalOffset={navigationHeaderHeight + keyboardOffset}
+          {...KeyboardAvoidingViewProps}
+          style={[$keyboardAvoidingViewStyle, KeyboardAvoidingViewProps?.style]}
+        >
+          {isNonScrolling(props.preset) ? (
+            <ScreenWithoutScrolling {...props} />
+          ) : (
+            <ScreenWithScrolling {...props} />
+          )}
+        </KeyboardAvoidingView>
+      </View>
+    </TouchableWithoutFeedback>
   )
 })
 

@@ -52,28 +52,37 @@ export const SaveWorkoutScreen: FC = observer(() => {
     }
 
     setIsSaving(true)
-    const workout = await workoutStore.saveWorkout(isHidden, userStore.user)
-    console.debug("SaveWorkoutScreen workout", { workout })
-    feedStore.addUserWorkout(workout) // Manually add the workout so it is available in WorkoutSummary
-    workoutStore.resetWorkout()
-    await exerciseStore.uploadExerciseSettings()
-    setIsSaving(false)
+    try {
+      const workout = await workoutStore.saveWorkout(isHidden, userStore.user)
+      console.debug("SaveWorkoutScreen workout", { workout })
 
-    mainNavigation.reset({
-      index: 1,
-      routes: [
-        { name: "HomeTabNavigator" },
-        {
-          name: "WorkoutSummary",
-          params: {
-            workoutId: workout.workoutId,
-            workoutByUserId: workout.byUserId,
-            workoutSource: WorkoutSource.User,
-            jumpToComments: false,
+      if (!workout) throw new Error("SaveWorkoutScreen.saveWorkout: workout is undefined")
+
+      feedStore.addUserWorkout(workout) // Manually add the workout so it is available in WorkoutSummary
+      workoutStore.resetWorkout()
+      await exerciseStore.uploadExerciseSettings()
+      setIsSaving(false)
+
+      mainNavigation.reset({
+        index: 1,
+        routes: [
+          { name: "HomeTabNavigator" },
+          {
+            name: "WorkoutSummary",
+            params: {
+              workoutId: workout.workoutId,
+              workoutByUserId: workout.byUserId,
+              workoutSource: WorkoutSource.User,
+              jumpToComments: false,
+            },
           },
-        },
-      ],
-    })
+        ],
+      })
+    } catch (e) {
+      setIsSaving(false)
+      console.error("SaveWorkoutScreen.saveWorkout error:", e)
+      Toast.show(translate("common.error.unknownErrorMessage"))
+    }
   }
 
   const handleShowEditTitleModal = () => {

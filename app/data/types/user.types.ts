@@ -10,7 +10,7 @@ export interface UserPreferences {
   autoRestTimerEnabled: boolean
   restTime: number
   exerciseSpecificSettings?: { [exerciseId: ExerciseId]: ExerciseSettings }
-  appColorScheme?: AppColorScheme
+  appColorScheme: AppColorScheme
 }
 
 export interface WorkoutMeta {

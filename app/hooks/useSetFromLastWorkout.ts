@@ -15,6 +15,7 @@ export const useSetFromLastWorkout = <T>(
 
     // Set from previous workout
     const _lastWorkoutId = userStore.getExerciseLastWorkoutId(exerciseId)
+    console.debug("useSetFromLastWorkout", { _lastWorkoutId })
     const _setFromLastWorkout =
       _lastWorkoutId && (feedStore.getSetFromWorkout(_lastWorkoutId, exerciseId, setOrder) as T)
 

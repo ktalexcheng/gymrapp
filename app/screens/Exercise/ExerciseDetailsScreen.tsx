@@ -5,7 +5,7 @@ import { RepsPersonalRecord, WorkoutId } from "app/data/types"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
-import { IPersonalRecordsModel, useStores } from "app/stores"
+import { IPersonalRecordsMapModel, useStores } from "app/stores"
 import { spacing } from "app/theme"
 import { formatDate } from "app/utils/formatDate"
 import { formatSecondsAsTime } from "app/utils/formatTime"
@@ -62,12 +62,12 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
     const { userStore, exerciseStore } = useStores()
     const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
     const weightUnitTx = useWeightUnitTx()
-    const personalRecords = userStore.getProp<IPersonalRecordsModel>(
+    const personalRecords = userStore.getProp<IPersonalRecordsMapModel>(
       `user.exerciseHistory.${exerciseId}.personalRecords`,
     )
     const volumeType = exerciseStore.getExerciseVolumeType(exerciseId)
 
-    const renderTimePersonalRecords = (personalRecords: IPersonalRecordsModel) => {
+    const renderTimePersonalRecords = (personalRecords: IPersonalRecordsMapModel) => {
       if (!personalRecords?.[0]) return null
 
       const sortedTimeRecords = personalRecords[0].records.sort((a, b) => b.time - a.time)
@@ -84,7 +84,7 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
       })
     }
 
-    const renderRepsPersonalRecords = (personalRecords: IPersonalRecordsModel) => {
+    const renderRepsPersonalRecords = (personalRecords: IPersonalRecordsMapModel) => {
       if (!personalRecords) return null
 
       return Object.entries(personalRecords).map(([reps, recordModel]) => {
