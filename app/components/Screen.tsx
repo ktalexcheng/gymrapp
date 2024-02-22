@@ -4,8 +4,6 @@ import { StatusBar, StatusBarProps } from "expo-status-bar"
 import { observer } from "mobx-react-lite"
 import React, { useRef, useState } from "react"
 import {
-  ActivityIndicator,
-  Keyboard,
   KeyboardAvoidingView,
   KeyboardAvoidingViewProps,
   LayoutChangeEvent,
@@ -13,11 +11,11 @@ import {
   ScrollView,
   ScrollViewProps,
   StyleProp,
-  TouchableWithoutFeedback,
   View,
   ViewStyle,
 } from "react-native"
 import { ExtendedEdge, useSafeAreaInsetsStyle } from "../utils/useSafeAreaInsetsStyle"
+import { LoadingIndicator } from "./LoadingIndicator"
 
 interface BaseScreenProps {
   /**
@@ -251,30 +249,30 @@ export const Screen = observer((props: ScreenProps) => {
   }
 
   return (
-    <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-      <View style={[$containerStyle, $containerInsets]}>
-        {overrideStatusBar && <StatusBar style={statusBarStyle} {...StatusBarProps} />}
+    // <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+    <View style={[$containerStyle, $containerInsets]}>
+      {overrideStatusBar && <StatusBar style={statusBarStyle} {...StatusBarProps} />}
 
-        {isBusy && (
-          <View style={$busyIndicator}>
-            <ActivityIndicator size="large" color={themeStore.colors("logo")} />
-          </View>
+      {isBusy && (
+        <View style={$busyIndicator}>
+          <LoadingIndicator type="spinner" size="large" />
+        </View>
+      )}
+
+      <KeyboardAvoidingView
+        behavior={isIos ? "padding" : undefined}
+        keyboardVerticalOffset={navigationHeaderHeight + keyboardOffset}
+        {...KeyboardAvoidingViewProps}
+        style={[$keyboardAvoidingViewStyle, KeyboardAvoidingViewProps?.style]}
+      >
+        {isNonScrolling(props.preset) ? (
+          <ScreenWithoutScrolling {...props} />
+        ) : (
+          <ScreenWithScrolling {...props} />
         )}
-
-        <KeyboardAvoidingView
-          behavior={isIos ? "padding" : undefined}
-          keyboardVerticalOffset={navigationHeaderHeight + keyboardOffset}
-          {...KeyboardAvoidingViewProps}
-          style={[$keyboardAvoidingViewStyle, KeyboardAvoidingViewProps?.style]}
-        >
-          {isNonScrolling(props.preset) ? (
-            <ScreenWithoutScrolling {...props} />
-          ) : (
-            <ScreenWithScrolling {...props} />
-          )}
-        </KeyboardAvoidingView>
-      </View>
-    </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </View>
+    // </TouchableWithoutFeedback>
   )
 })
 

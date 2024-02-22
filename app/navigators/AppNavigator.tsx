@@ -89,12 +89,11 @@ const AppStack = observer(() => {
       // Don't load user data if email is not verified
       if (user.emailVerified) {
         console.debug("onAuthStateChanged user is email verified")
-        userStore.loadUserWithId(user.uid)
-        feedStore.setUserId(user.uid)
+        await userStore.loadUserWithId(user.uid)
       }
     } else {
       console.debug("onAuthStateChanged received invalid user, invalidating session")
-      authStore.invalidateSession()
+      await authStore.invalidateSession()
       userStore.invalidateSession()
       feedStore.resetFeed()
     }
@@ -169,7 +168,8 @@ const AppStack = observer(() => {
     checkForUpdates()
 
     // Refresh authentication status by freshing token
-    authStore.refreshAuthToken()
+    // Not sure if this is necessary
+    // authStore.refreshAuthToken()
 
     // onAuthStateChanged is fired upon app initialization as well
     const unsubscribeAuthChange = auth().onAuthStateChanged(onAuthStateChanged)

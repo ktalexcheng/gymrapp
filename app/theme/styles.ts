@@ -47,14 +47,19 @@ export const styles = StyleSheet.create({
   flex5: {
     flex: 5,
   },
+  flexGrow: {
+    flexGrow: 1,
+  },
+  fillAndCenter: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   alignCenter: {
     alignItems: "center",
   },
   textAlignCenter: {
     textAlign: "center",
-  },
-  justifyStart: {
-    justifyContent: "flex-start",
   },
   justifyCenter: {
     justifyContent: "center",

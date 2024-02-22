@@ -101,9 +101,14 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     }
   }
 
-  setCollectionPath(collectionPath: string) {
-    this.#firestoreCollection = this.#firestoreClient.collection(collectionPath)
-    this.#repositoryInitialized = true
+  setCollectionPath(collectionPath?: string) {
+    if (!collectionPath) {
+      this.#firestoreCollection = undefined
+      this.#repositoryInitialized = false
+    } else {
+      this.#firestoreCollection = this.#firestoreClient.collection(collectionPath)
+      this.#repositoryInitialized = true
+    }
   }
 
   _renameFields(data: any, map: { [key: string]: string }): any {

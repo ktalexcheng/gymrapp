@@ -1,13 +1,13 @@
 import { Screen, Spacer, Text } from "app/components"
+import { LoadingIndicator } from "app/components/LoadingIndicator"
 import { WorkoutSource } from "app/data/constants"
 import { IWorkoutSummaryModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
-import { ActivityIndicator, FlatList, RefreshControl, View, ViewStyle } from "react-native"
+import { FlatList, View, ViewStyle } from "react-native"
 import { WorkoutSummaryCard, WorkoutSummaryCardProps } from "../FinishedWorkout"
-import { LoadingScreen } from "../LoadingScreen"
 
 // interface FeedScreenProps extends TabScreenProps<"Profile"> {}
 
@@ -66,10 +66,10 @@ export const FeedScreen = observer(function FeedScreen() {
 
   const renderFeedFooterItem = () => {
     if (isLoading) {
-      return <ActivityIndicator />
+      return null
     }
 
-    if (feedStore.noMoreFeedItems) {
+    if (feedData.length > 0 && feedStore.noMoreFeedItems) {
       return (
         <View style={styles.alignCenter}>
           <Spacer type="vertical" size="medium" />
@@ -81,40 +81,28 @@ export const FeedScreen = observer(function FeedScreen() {
     return null
   }
 
-  const FeedRefreshControl = (
-    <RefreshControl
-      refreshing={feedStore.isLoadingFeed}
-      onRefresh={() => feedStore.refreshFeedItems()}
-    />
-  )
+  // const isEmptyFeed = () => {
+  //   return (
+  //     userStore.isLoadingProfile ||
+  //     !userStore.user ||
+  //     userStore.user.followingCount === 0 ||
+  //     feedStore.feedWorkouts.size === 0
+  //   )
+  // }
 
   const renderFeed = () => {
     if (userStore.isLoadingProfile || !userStore.user) {
-      return <LoadingScreen />
-    }
-
-    if (userStore.user.followingCount === 0) {
-      return (
-        <View style={[styles.flex1, styles.centeredContainer]}>
-          <Text tx="feedScreen.notFollowingAnyone" />
-        </View>
-      )
-    }
-
-    if (feedStore.feedWorkouts.size === 0) {
-      return (
-        <View style={[styles.flex1, styles.centeredContainer]}>
-          <Text tx="feedScreen.noFeedItems" />
-        </View>
-      )
+      return <LoadingIndicator />
     }
 
     return (
       <View style={styles.flex1}>
         <FlatList
-          refreshControl={FeedRefreshControl}
+          refreshing={feedStore.isLoadingFeed}
+          onRefresh={feedStore.refreshFeedItems}
           data={feedData}
           renderItem={renderFeedWorkoutItem}
+          contentContainerStyle={styles.flexGrow}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
           ListFooterComponent={() => (
@@ -125,27 +113,28 @@ export const FeedScreen = observer(function FeedScreen() {
           )}
           onEndReachedThreshold={0.5}
           onEndReached={getMoreFeedItems}
+          ListEmptyComponent={() => {
+            if (!userStore.user?.followingCount) {
+              return (
+                <View style={styles.fillAndCenter}>
+                  <Text tx="feedScreen.notFollowingAnyone" />
+                </View>
+              )
+            }
+
+            return (
+              <View style={styles.fillAndCenter}>
+                <Text tx="feedScreen.noFeedItems" />
+              </View>
+            )
+          }}
         />
       </View>
     )
   }
 
-  const isEmptyFeed = () => {
-    return (
-      userStore.isLoadingProfile ||
-      !userStore.user ||
-      userStore.user.followingCount === 0 ||
-      feedStore.feedWorkouts.size === 0
-    )
-  }
-
   return (
-    <Screen
-      safeAreaEdges={safeAreaEdges}
-      contentContainerStyle={styles.screenContainer}
-      preset={isEmptyFeed() ? "scroll" : "fixed"}
-      ScrollViewProps={{ refreshControl: isEmptyFeed() ? FeedRefreshControl : undefined }}
-    >
+    <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={styles.screenContainer}>
       <View style={$headingContainer}>
         <Text tx="common.appTitle" preset="screenTitle" textColor={themeStore.colors("logo")} />
       </View>

@@ -1,4 +1,7 @@
+import crashlytics from "@react-native-firebase/crashlytics"
+import { ROOT_STATE_STORAGE_KEY } from "app/stores"
 import React, { Component, ErrorInfo, ReactNode } from "react"
+import * as storage from "../../utils/storage"
 import { ErrorDetailsScreen } from "./ErrorDetailsScreen"
 
 interface Props {
@@ -33,11 +36,15 @@ export class ErrorBoundary extends Component<Props, State> {
 
     // You can also log error messages to an error reporting service here
     // This is a great place to put BugSnag, Sentry, crashlytics, etc:
-    // reportCrash(error)
+    storage.load(ROOT_STATE_STORAGE_KEY).then((snapshot) => {
+      crashlytics().log(`This is the root store state when the error occurred: ${snapshot}`)
+      crashlytics().recordError(error)
+    })
   }
 
   // Reset the error back to null
   resetError = () => {
+    storage.clear() // Clear the storage to reset the app
     this.setState({ error: null, errorInfo: null })
   }
 

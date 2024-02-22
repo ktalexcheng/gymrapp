@@ -1,4 +1,5 @@
 import { Avatar, Icon, RowView, Screen, Spacer, TabBar, Text } from "app/components"
+import { LoadingIndicator } from "app/components/LoadingIndicator"
 import { WorkoutSource } from "app/data/constants"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
@@ -8,14 +9,7 @@ import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
 import { format, milliseconds } from "date-fns"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
-import {
-  ActivityIndicator,
-  FlatList,
-  TextStyle,
-  TouchableOpacity,
-  View,
-  ViewStyle,
-} from "react-native"
+import { FlatList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { SceneMap, TabView } from "react-native-tab-view"
 import { DomainPropType, DomainTuple } from "victory-core"
 import {
@@ -50,7 +44,7 @@ const UserActivitiesTabScene: FC = observer(() => {
     return <WorkoutSummaryCard {...item} />
   }
 
-  if (feedStore.isLoadingUserWorkouts) return <ActivityIndicator />
+  if (feedStore.isLoadingUserWorkouts) return <LoadingIndicator />
   if (feedStore.userWorkouts.size === 0) return <Text tx="profileScreen.noActivityhistory" />
 
   return (
@@ -193,7 +187,7 @@ const WeeklyWorkoutChart: FC<WeeklyWorkoutChartProps> = observer(({ data }) => {
 const DashboardTabScene: FC = observer(() => {
   const { feedStore } = useStores()
 
-  if (feedStore.isLoadingUserWorkouts) return <ActivityIndicator />
+  if (feedStore.isLoadingUserWorkouts) return <LoadingIndicator />
   if (feedStore.userWorkouts.size === 0) return <Text tx="profileScreen.noActivityhistory" />
 
   return (

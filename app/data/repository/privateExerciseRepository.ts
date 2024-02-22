@@ -6,7 +6,7 @@ export class PrivateExerciseRepository extends BaseRepository<Exercise, Exercise
     super("PrivateExerciseRepository", firebaseClient, null, "exerciseId")
   }
 
-  setUserId(userId: string): void {
-    super.setCollectionPath(`users/${userId}/exercises`)
+  setUserId(userId?: string): void {
+    super.setCollectionPath(userId ? `users/${userId}/exercises` : undefined)
   }
 }

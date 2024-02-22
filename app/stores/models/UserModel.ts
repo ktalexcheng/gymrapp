@@ -68,8 +68,8 @@ export const UserModel = types.snapshotProcessor(
     MetadataModel,
     types.model({
       userId: types.identifier,
-      userHandle: types.string,
-      _userHandleLower: types.string,
+      userHandle: types.maybe(types.string),
+      _userHandleLower: types.maybe(types.string),
       email: types.string,
       firstName: types.string,
       lastName: types.string,

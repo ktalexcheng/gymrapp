@@ -1,3 +1,4 @@
+import crashlytics from "@react-native-firebase/crashlytics"
 import { DefaultUserPreferences, UserErrorType } from "app/data/constants"
 import {
   ExerciseId,
@@ -17,6 +18,7 @@ import { getNestedField } from "app/utils/getNestedField"
 import { flow, getEnv, getSnapshot, types } from "mobx-state-tree"
 import Toast from "react-native-root-toast"
 import { RootStoreDependencies } from "./helpers/useStores"
+import { withSetPropAction } from "./helpers/withSetPropAction"
 import { FollowRequestsModel, INotificationModel, NotificationModel, UserModel } from "./models"
 
 function isEmptyField(value: any) {
@@ -36,8 +38,11 @@ export const UserStoreModel = types
     notifications: types.maybe(types.array(NotificationModel)),
     followRequests: types.maybe(types.array(FollowRequestsModel)),
   })
+  .actions(withSetPropAction)
   .views((self) => ({
     get profileIncomplete() {
+      if (self.isLoadingProfile) return false
+
       if (
         !self.userId ||
         !self.user ||
@@ -126,9 +131,13 @@ export const UserStoreModel = types
     function invalidateSession() {
       self.userId = null
       self.user = undefined
-      // self.workouts.clear()
-      self.isLoadingProfile = true
-      // self.isLoadingWorkouts = true
+
+      const { userRepository, privateExerciseRepository, feedRepository, notificationRepository } =
+        getEnv<RootStoreDependencies>(self)
+      feedRepository.setUserId(undefined)
+      userRepository.setUserId(undefined)
+      privateExerciseRepository.setUserId(undefined)
+      notificationRepository.setUserId(undefined)
     }
 
     const uploadUserAvatar = flow<string, [imagePath: string]>(function* (imagePath: string) {
@@ -157,10 +166,10 @@ export const UserStoreModel = types
         userRepository.setUserId(newUser.userId)
         yield userRepository.create(newUser)
         yield loadUserWithId(newUser.userId)
-
-        self.isLoadingProfile = false
       } catch (e) {
         console.error("UserStore.createNewProfile error:", e)
+      } finally {
+        self.isLoadingProfile = false
       }
     })
 
@@ -259,6 +268,7 @@ export const UserStoreModel = types
     }
 
     const loadUserWithId = flow(function* (userId: UserId) {
+      console.debug("UserStore.loadUserWIthId called")
       self.isLoadingProfile = true
 
       try {
@@ -276,13 +286,21 @@ export const UserStoreModel = types
     function setUserFromFirebase(user: User) {
       self.isLoadingProfile = true
 
-      self.userId = user.userId
-      // self.user = convertUserToMSTModel(convertFirestoreTimestampToDate(user))
-      self.user = UserModel.create(user as any) // UserModel's preprocessor will convert the user to MST model
-
-      setRepositoryUserId(user.userId)
-
-      self.isLoadingProfile = false
+      try {
+        if (!user) {
+          console.warn("UserStore.setUserFromFirebase: Empty user received")
+          invalidateSession()
+        } else {
+          self.userId = user.userId
+          self.user = UserModel.create(user as any) // UserModel's preprocessor will convert the user to MST model
+          setRepositoryUserId(user.userId)
+        }
+      } catch (e) {
+        crashlytics().recordError(e as any)
+        console.error("UserStore.setUserFromFirebase error:", e)
+      } finally {
+        self.isLoadingProfile = false
+      }
     }
 
     const updateProfile = flow(function* (userUpdate: Partial<User>) {

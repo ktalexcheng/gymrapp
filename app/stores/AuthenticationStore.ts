@@ -1,4 +1,5 @@
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
+import crashlytics from "@react-native-firebase/crashlytics"
 import { GoogleSignin } from "@react-native-google-signin/google-signin"
 import { defaultAppLocale } from "app/utils/appLocale"
 import * as AppleAuthentication from "expo-apple-authentication"
@@ -196,8 +197,8 @@ export const AuthenticationStoreModel = types
           yield invalidateSession()
         }
       } catch (e) {
-        yield invalidateSession()
-        console.error(
+        if (e) yield invalidateSession()
+        console.debug(
           "AuthenticationStore.refreshAuthToken failed to refresh token, invaliding session:",
           e,
         )
@@ -244,6 +245,7 @@ export const AuthenticationStoreModel = types
       )
       self.isEmailVerified = firebaseUser.emailVerified
       refreshAuthToken()
+      crashlytics().setUserId(firebaseUser.uid)
       self.isAuthenticating = false
     }
 
@@ -377,7 +379,9 @@ export const AuthenticationStoreModel = types
 
         if (userCred.additionalUserInfo.isNewUser) {
           const user = createUserFromFirebaseUserCred(userCred)
-          getEnv<RootStoreDependencies>(self).userRepository.create(user)
+          getEnv<RootStoreDependencies>(self).userRepository.setUserId(user.userId)
+          yield getEnv<RootStoreDependencies>(self).userRepository.create(user)
+          console.debug("AuthenticationStore.signInWithGoogle created new user:", user)
         }
       } catch (error) {
         catchAuthError("signInWithGoogle", error)
@@ -431,6 +435,7 @@ export const AuthenticationStoreModel = types
 
         if (userCred.additionalUserInfo.isNewUser) {
           const user = createUserFromFirebaseUserCred(userCred)
+          getEnv<RootStoreDependencies>(self).userRepository.setUserId(user.userId)
           getEnv<RootStoreDependencies>(self).userRepository.create(user)
         }
       } catch (e) {

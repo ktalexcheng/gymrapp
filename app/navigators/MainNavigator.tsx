@@ -20,7 +20,7 @@ import {
   WorkoutGymPickerScreen,
   WorkoutSummaryScreen,
 } from "app/screens"
-import { INotificationModel, useStores } from "app/stores"
+import { INotificationModel, IWorkoutSummaryModel, useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
 import { HomeTabNavigator } from "./HomeTabNavigator"
@@ -46,6 +46,7 @@ export type MainStackParamList = {
     workoutId: string
     workoutByUserId: string
     jumpToComments: boolean
+    workout?: IWorkoutSummaryModel // For when the workout is not found in the FeedStore
   }
   OnboardingNavigator: undefined
   AddToMyGyms: undefined
@@ -82,10 +83,13 @@ export const MainNavigator = observer(function MainNavigator() {
       .onSnapshot(
         (snapshot) => {
           console.debug("MainNavigator.userSubscriber.onSnapshot called")
-          if (!snapshot.exists) return
-
-          userStore.setUserFromFirebase(snapshot.data() as User)
-          feedStore.loadUserWorkouts()
+          if (!snapshot.exists) {
+            userStore.invalidateSession()
+          } else {
+            userStore.setUserFromFirebase(snapshot.data() as User)
+          }
+          // Once we start listening to the user document, we can stop showing the loading screen
+          userStore.setProp("isLoadingProfile", false)
         },
         (e) => console.error("MainNavigator.userSubscriber.onSnapshot error:", e),
       )
@@ -165,9 +169,19 @@ export const MainNavigator = observer(function MainNavigator() {
     //   profileIncomplete: userStore.profileIncomplete,
     //   isInitialized,
     // })
+    let cleanUpSubscriptions
+
+    // As long as the user is authenticated, we can start listening to snapshots
     if (!authStore.isAuthenticated) {
       console.debug("MainNavigator.useEffect: User is not authenticated, nothing is done")
       return undefined
+    } else {
+      cleanUpSubscriptions = listenToSnapshots()
+    }
+
+    if (userStore.isLoadingProfile) {
+      console.debug("MainNavigator.useEffect: User profile is being loaded")
+      return cleanUpSubscriptions
     }
 
     // If something goes wrong or we add a new field to the user profile, we can force the user to complete the profile again
@@ -178,7 +192,7 @@ export const MainNavigator = observer(function MainNavigator() {
         index: 0,
         routes: [{ name: "OnboardingNavigator" }],
       })
-      return undefined
+      return cleanUpSubscriptions
     }
 
     // If user is authenticated and profile is complete, then we can initialize the app
@@ -198,9 +212,8 @@ export const MainNavigator = observer(function MainNavigator() {
       setIsInitialized(true)
     }
 
-    const unsubscribe = listenToSnapshots()
-    return unsubscribe
-  }, [mainNavigation, authStore.isAuthenticated, userStore.profileIncomplete])
+    return cleanUpSubscriptions
+  }, [mainNavigation, authStore.isAuthenticated, userStore.isLoadingProfile, userStore.profileIncomplete])
 
   return (
     <MainStack.Navigator screenOptions={{ headerShown: false }} initialRouteName={"Loading"}>

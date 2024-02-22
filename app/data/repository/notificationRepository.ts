@@ -6,7 +6,7 @@ export class NotificationRepository extends BaseRepository<Notification, Notific
     super("NotificationRepository", firestoreClient, null, "notificationId")
   }
 
-  setUserId(userId: string): void {
-    super.setCollectionPath(`notifications/${userId}/inbox`)
+  setUserId(userId?: string): void {
+    super.setCollectionPath(userId ? `notifications/${userId}/inbox` : undefined)
   }
 }

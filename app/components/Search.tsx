@@ -2,6 +2,7 @@ import { TxKeyPath } from "app/i18n"
 import { styles } from "app/theme"
 import React, { FC, useEffect, useState } from "react"
 import { FlatList, ListRenderItem, ViewProps } from "react-native"
+import { LoadingIndicator } from "./LoadingIndicator"
 import { Spacer } from "./Spacer"
 import { Text } from "./Text"
 import { TextField } from "./TextField"
@@ -14,6 +15,7 @@ export interface SearchProps extends ViewProps {
   isSearchingMessageTx?: TxKeyPath
   emptyResultsMessageTx?: TxKeyPath
   searchTextTooShortMessageTx?: TxKeyPath
+  showEndOfListMessage?: boolean
   endOfListMessageTx?: TxKeyPath
   minimumSearchTextLength?: number
   showInitialSuggestions?: boolean
@@ -48,6 +50,7 @@ export const Search: FC<SearchProps> = ({
   isSearchingMessageTx = "common.search.isSearchingMessage",
   emptyResultsMessageTx = "common.search.noResultsFoundMessage",
   searchTextTooShortMessageTx = "common.search.moreCharactersRequiredMessage",
+  showEndOfListMessage = true,
   endOfListMessageTx = "common.search.notWhatYouAreLookingForMessage",
   minimumSearchTextLength = 3,
   showInitialSuggestions = true,
@@ -58,7 +61,7 @@ export const Search: FC<SearchProps> = ({
   const [searchText, setSearchText] = useState("")
   const [isSearching, setIsSearching] = useState(false)
   const [searchResult, setSearchResult] = useState<any[]>([])
-  const skipSearchTextCheck = showInitialSuggestions && !searchText
+  const isSearchInitialSuggestions = showInitialSuggestions && !searchText
 
   const isInvalidSearchText = () => {
     if (!searchText) return true
@@ -77,7 +80,7 @@ export const Search: FC<SearchProps> = ({
   }, [searchCallback, renderSearchResultItem, searchResultItemKeyField])
 
   useEffect(() => {
-    if (!skipSearchTextCheck && isInvalidSearchText()) return undefined
+    if (!isSearchInitialSuggestions && isInvalidSearchText()) return undefined
 
     setIsSearching(true)
     const searchTimeout = setTimeout(() => {
@@ -96,9 +99,8 @@ export const Search: FC<SearchProps> = ({
   }, [searchText])
 
   const renderSearchResults = () => {
-    // If showInitialSuggestions is true, display initial result when searchText is empty
-    console.debug("Search.renderSearchResults():", { showInitialSuggestions, searchText })
-    if (!skipSearchTextCheck) {
+    // If isSearchInitialSuggestions is true, display initial result when searchText is empty
+    if (!isSearchInitialSuggestions) {
       if (!searchText) return handleComponent(searchPromptComponent)
 
       if (isInvalidSearchText()) {
@@ -107,15 +109,6 @@ export const Search: FC<SearchProps> = ({
       if (isSearching) {
         return <Text tx={isSearchingMessageTx} style={styles.textAlignCenter} />
       }
-      if (!searchResult.length) {
-        return (
-          <>
-            <Text tx={emptyResultsMessageTx} style={styles.textAlignCenter} />
-            {handleComponent(emptyResultsComponent)}
-            {handleComponent(footerComponent)}
-          </>
-        )
-      }
     }
 
     return (
@@ -123,16 +116,28 @@ export const Search: FC<SearchProps> = ({
         <FlatList
           data={searchResult}
           renderItem={renderSearchResultItem}
+          contentContainerStyle={styles.flexGrow}
           keyExtractor={(item) => item[searchResultItemKeyField]}
           ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
-          ListFooterComponent={() => (
+          ListFooterComponent={
             <>
-              {searchResult.length > 0 && (
+              {searchResult.length > 0 && showEndOfListMessage && (
                 <Text tx={endOfListMessageTx} style={styles.textAlignCenter} />
               )}
-              {handleComponent(footerComponent)}
+              {!isSearching && handleComponent(footerComponent)}
             </>
-          )}
+          }
+          ListEmptyComponent={() => {
+            if (isSearching) return <LoadingIndicator />
+
+            return (
+              <>
+                <Text tx={emptyResultsMessageTx} style={styles.textAlignCenter} />
+                {handleComponent(emptyResultsComponent)}
+                {handleComponent(footerComponent)}
+              </>
+            )
+          }}
         />
       </>
     )

@@ -94,7 +94,7 @@ export const GymStoreModel = types
       )
     })
 
-    const getGymMemberProfiles = flow<
+    const getWorkoutsLeaderboard = flow<
       {
         lastMemberId: string
         noMoreItems: boolean
@@ -107,9 +107,11 @@ export const GymStoreModel = types
         lastMemberId: newLastMemberId,
         noMoreItems,
         gymMembers,
-      } = yield gymRepository.getGymMembers(gymId, lastMemberId, limit).catch((e) => {
-        console.error("GymStore.getGymMemberProfiles getGymMembers error:", e)
-      })
+      } = yield gymRepository
+        .getGymMembersByWorkoutsCount(gymId, lastMemberId, limit)
+        .catch((e) => {
+          console.error("GymStore.getGymMemberProfiles getGymMembers error:", e)
+        })
       if (gymMembers.length === 0) {
         return {
           lastMemberId: null,
@@ -137,6 +139,7 @@ export const GymStoreModel = types
 
     const getGymMember = flow(function* (gymId: GymId, userId: string) {
       const { gymRepository } = getEnv<RootStoreDependencies>(self)
+
       return yield gymRepository.getGymMember(gymId, userId).catch((e) => {
         console.error("GymStore.getGymMember error:", e)
       })
@@ -150,7 +153,7 @@ export const GymStoreModel = types
       getClosestGym,
       createNewGym,
       getDistanceToGym,
-      getGymMemberProfiles,
+      getWorkoutsLeaderboard,
       getGymMember,
     }
   })

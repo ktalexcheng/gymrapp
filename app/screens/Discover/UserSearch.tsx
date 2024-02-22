@@ -71,6 +71,7 @@ export const UserSearch: FC = () => {
       searchCallback={searchCallback}
       renderSearchResultItem={renderSearchResultItem}
       searchResultItemKeyField="userId"
+      showEndOfListMessage={false}
       // footerComponent={UserSearchFooterComponent}
     />
   )

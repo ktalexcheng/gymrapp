@@ -36,7 +36,7 @@ export class UserRepository extends BaseRepository<User, UserId> {
   //   return getNestedField(user, propPath)
   // }
 
-  setUserId(userId: string): void {
+  setUserId(userId?: string): void {
     this.#userId = userId
   }
 
@@ -128,7 +128,7 @@ export class UserRepository extends BaseRepository<User, UserId> {
   // This check is done once when the user enters a new user handle (to inform availability)
   // and it is done again in a transaction when the user submits the new user handle (to avoid duplicate)
   async userHandleIsAvailable(userHandle: string): Promise<boolean> {
-    console.debug("UserRepository.userHandleAvailable called")
+    console.debug("UserRepository.userHandleIsAvailable called")
 
     const userHandleDocRef = this.firestoreClient
       .collection("users")
@@ -137,18 +137,17 @@ export class UserRepository extends BaseRepository<User, UserId> {
 
     try {
       const userHandleDoc = await userHandleDocRef.get()
-      console.debug("UserRepository.userHandleAvailable userHandleDoc.empty", userHandleDoc.empty)
+      console.debug("UserRepository.userHandleIsAvailable userHandleDoc.empty", userHandleDoc.empty)
       return userHandleDoc.empty
     } catch (e) {
-      throw new RepositoryError(this.repositoryId, `userHandleAvailable error: ${e}`)
+      throw new RepositoryError(this.repositoryId, `userHandleIsAvailable error: ${e}`)
     }
   }
 
   async isFollowingUser(followeeUserId: UserId): Promise<boolean> {
-    console.debug("UserRepository.isFollowingUser called")
     this.checkRepositoryInitialized()
 
-    console.debug("UserRepository.isFollowingUse:", { userId: this.#userId, followeeUserId })
+    console.debug("UserRepository.isFollowingUser:", { userId: this.#userId, followeeUserId })
     const userFollowingDocRef = this.#userFollowsCollection
       .doc(this.#userId)
       .collection(this.#userFollowingCollectionName)

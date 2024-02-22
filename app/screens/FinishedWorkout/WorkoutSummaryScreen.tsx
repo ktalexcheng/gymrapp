@@ -20,8 +20,14 @@ import { WorkoutSummaryMenu } from "./WorkoutSummaryMenu"
 interface WorkoutSummaryScreenProps
   extends NativeStackScreenProps<MainStackParamList, "WorkoutSummary"> {}
 
-export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenProps) => {
-  const { workoutSource, workoutId, workoutByUserId, jumpToComments } = route.params
+export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) => {
+  const {
+    workoutSource,
+    workoutId,
+    workoutByUserId,
+    jumpToComments,
+    workout: workoutInput,
+  } = props.route.params
 
   const mainNavigation = useMainNavigation()
   const { feedStore, userStore } = useStores()
@@ -41,10 +47,15 @@ export const WorkoutSummaryScreen = observer(({ route }: WorkoutSummaryScreenPro
       const _workout = feedStore.getWorkout(workoutSource, workoutId, workoutByUserId)
       if (_workout) {
         setWorkout(_workout)
-        userStore.getOtherUser(_workout.byUserId).then((user) => {
-          if (user) setWorkoutByUser(user)
-        })
+      } else {
+        console.debug(
+          "WorkoutSummaryScreen.getWorkoutAndUser: workout not found in FeedStore, falling back to param input",
+        )
+        setWorkout(workoutInput)
       }
+      userStore.getOtherUser(workoutByUserId).then((user) => {
+        if (user) setWorkoutByUser(user)
+      })
     } catch (e) {
       console.error("WorkoutSummaryScreen.useEffect error:", e)
     } finally {

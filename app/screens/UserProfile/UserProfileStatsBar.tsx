@@ -26,24 +26,27 @@ export const UserProfileStatsBar: FC<UserProfileStatsBarProps> = ({
 }: UserProfileStatsBarProps) => {
   const $containerStyle = [$userStatsRow, $containerStyleOverride]
 
-  const activitiesCount = (user?.workoutMetas?.size as number) ?? 0
+  // user.workoutMetas could be a MST model or a plain object
+  // the isMapType() method from mobx-state-tree does not work properly
+  // so we have to use a try/catch block to handle both cases
+  let activitiesCount = 0
+  if (user?.workoutMetas) {
+    try {
+      activitiesCount = Array.from(user.workoutMetas.values()).length
+    } catch {
+      activitiesCount = Object.keys(user.workoutMetas).length
+    }
+  }
   const followersCount = user?.followersCount ?? 0
   const followingCount = user?.followingCount ?? 0
 
+  console.debug("UserProfileStatsBar", { activitiesCount, followersCount, followingCount })
+
   return (
     <RowView style={$containerStyle}>
-      <UserProfileStatTile
-        labelTx="common.activities"
-        value={simplifyNumber(activitiesCount) ?? "-"}
-      />
-      <UserProfileStatTile
-        labelTx="common.followers"
-        value={simplifyNumber(followersCount) ?? "-"}
-      />
-      <UserProfileStatTile
-        labelTx="common.following"
-        value={simplifyNumber(followingCount) ?? "-"}
-      />
+      <UserProfileStatTile labelTx="common.activities" value={simplifyNumber(activitiesCount)!} />
+      <UserProfileStatTile labelTx="common.followers" value={simplifyNumber(followersCount)!} />
+      <UserProfileStatTile labelTx="common.following" value={simplifyNumber(followingCount)!} />
     </RowView>
   )
 }

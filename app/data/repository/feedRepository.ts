@@ -10,9 +10,9 @@ export class FeedRepository extends BaseRepository<UserFeedItem, FeedItemId> {
     super("FeedRepository", firestoreClient, null, "feedItemId")
   }
 
-  setUserId(userId: string): void {
+  setUserId(userId?: string): void {
     this.#userId = userId
-    super.setCollectionPath(`feeds/${userId}/feedItems`)
+    super.setCollectionPath(userId ? `feeds/${userId}/feedItems` : undefined)
   }
 
   create(): never {

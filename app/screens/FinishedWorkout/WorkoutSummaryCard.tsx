@@ -29,6 +29,8 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
     const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
     const weightUnitTx = useWeightUnitTx()
 
+    const displayName = `${byUser.firstName} ${byUser.lastName}`
+
     const renderBestSet = (e: IExerciseSummaryModel, i: number) => {
       const $highlightExercise: TextStyle =
         highlightExerciseId && highlightExerciseId === e.exerciseId
@@ -84,11 +86,13 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
       >
         <View style={themeStore.styles("listItemContainer")}>
           {byUser && (
-            <RowView style={$byUserHeader}>
-              <RowView style={styles.alignCenter}>
+            <RowView style={$cardHeaderContainer}>
+              <RowView style={$cardHeaderAvatarAndName}>
                 <Avatar user={byUser} size="sm" />
                 <Spacer type="horizontal" size="small" />
-                <Text preset="bold">{`${byUser.firstName} ${byUser.lastName}`}</Text>
+                <Text preset="bold" numberOfLines={1} style={styles.flex1}>
+                  {displayName}
+                </Text>
               </RowView>
               <Text>{formatDate(workout.startTime)}</Text>
             </RowView>
@@ -124,8 +128,15 @@ const $workoutItemHeader: ViewStyle = {
   justifyContent: "space-between",
 }
 
-const $byUserHeader: ViewStyle = {
+const $cardHeaderContainer: ViewStyle = {
   alignItems: "center",
   marginBottom: spacing.small,
   justifyContent: "space-between",
+}
+
+const $cardHeaderAvatarAndName: ViewStyle = {
+  alignItems: "center",
+  flex: 1,
+  overflow: "hidden",
+  marginRight: spacing.small,
 }

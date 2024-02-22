@@ -1,3 +1,4 @@
+import crashlytics from "@react-native-firebase/crashlytics"
 import firestore from "@react-native-firebase/firestore"
 import { ExerciseSource, ExerciseVolumeType, WorkoutSource } from "app/data/constants"
 import { ExerciseId, UserId, Workout, WorkoutComment, WorkoutId } from "app/data/types"
@@ -128,7 +129,7 @@ export const FeedStoreModel = types
     otherUserWorkouts: types.map(
       types.model("OtherUserWorkoutsModel", {
         byUserId: types.identifier,
-        lastWorkoutId: types.string,
+        lastWorkoutId: types.maybeNull(types.string),
         noMoreItems: types.boolean,
         workouts: types.map(WorkoutSummaryModel),
       }),
@@ -232,11 +233,7 @@ export const FeedStoreModel = types
     }
 
     function setUserId(userId: UserId) {
-      const { feedRepository, userRepository } = getEnv<RootStoreDependencies>(self)
-      console.debug("FeedStore.setUserId userId:", userId)
       self.userId = userId
-      feedRepository.setUserId(userId)
-      userRepository.setUserId(userId)
     }
 
     function resetFeed() {
@@ -341,6 +338,7 @@ export const FeedStoreModel = types
           const user = yield userRepository.get(userId)
           self.feedUsers.put(convertUserToMSTSnapshot(user))
         } catch (e) {
+          crashlytics().recordError(e as any)
           console.error("FeedStore.fetchUserProfileToStore error:", e)
         }
       }
@@ -377,6 +375,7 @@ export const FeedStoreModel = types
 
         return workouts
       } catch (e) {
+        crashlytics().recordError(e as any)
         console.error("FeedStore.loadMoreFeedItems error:", e)
       } finally {
         self.isLoadingFeed = false
@@ -495,6 +494,8 @@ export const FeedStoreModel = types
     })
 
     const loadMoreOtherUserWorkouts = flow(function* (otherUserId: UserId) {
+      if (self.isLoadingOtherUserWorkouts) return undefined
+
       const otherUserWorkouts = self.otherUserWorkouts.get(otherUserId)
       const lastFeedItemId = otherUserWorkouts
         ? self.otherUserWorkouts.get(otherUserId)?.lastWorkoutId
@@ -506,13 +507,14 @@ export const FeedStoreModel = types
       if (noMoreItems) return undefined
 
       try {
+        console.debug("FeedStore.loadMoreOtherUserWorkouts running")
         self.isLoadingOtherUserWorkouts = true
 
         const {
           lastWorkoutId: newLastWorkoutId,
           noMoreItems: newNoMoreItems,
           workouts: newWorkouts,
-        } = yield api.getOtherUserWorkouts(otherUserId, lastFeedItemId)
+        } = yield api.getOtherUserWorkouts(otherUserId, lastFeedItemId ?? undefined)
 
         const newWorkoutsMap = newWorkouts.reduce(
           (acc, workout) => ({ ...acc, [workout.workoutId]: workout }),
@@ -521,7 +523,9 @@ export const FeedStoreModel = types
         if (otherUserWorkouts) {
           otherUserWorkouts.lastWorkoutId = newLastWorkoutId
           otherUserWorkouts.noMoreItems = newNoMoreItems
-          otherUserWorkouts.workouts.put(newWorkoutsMap)
+          Object.values(newWorkoutsMap).forEach((w) => {
+            otherUserWorkouts.workouts.put(w)
+          })
         } else {
           self.otherUserWorkouts.put({
             byUserId: otherUserId,
@@ -538,6 +542,7 @@ export const FeedStoreModel = types
     })
 
     const refreshOtherUserWorkouts = flow(function* (otherUserId: UserId) {
+      console.debug("FeedStore.refreshOtherUserWorkouts called")
       self.otherUserWorkouts.delete(otherUserId)
       yield loadMoreOtherUserWorkouts(otherUserId)
     })

@@ -72,7 +72,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   const [firstNameError, setFirstNameError] = useState<string>()
   const [lastNameError, setLastNameError] = useState<string>()
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [isAutofilled, setIsAutofilled] = useState(false)
+  // const [isAutofilled, setIsAutofilled] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
 
   // The listener seems to only work with Android's native-stack, but not on iOS
@@ -128,21 +128,20 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
 
   useEffect(() => {
     // Populate form with user profile data
-    if (!userStore.isLoadingProfile && !isAutofilled) {
-      console.debug("EditProfileForm autofilling form with current user profile data")
-      setUserHandle(userStore.getProp("user.userHandle"))
-      setFirstName(userStore.getProp("user.firstName"))
-      setLastName(userStore.getProp("user.lastName"))
-      setImagePath(userStore.getProp("user.avatarUrl"))
-      setWeightUnit(userStore.getUserPreference<WeightUnit>("weightUnit"))
-      setAppLocale(userStore.getUserPreference<AppLocale>("appLocale"))
-      setAppColorScheme(userStore.getUserPreference<AppColorScheme>("appColorScheme"))
-      setPrivateAccount(userStore.getProp("user.privateAccount") ?? false)
-      setAutoRestTimerEnabled(userStore.getUserPreference<boolean>("autoRestTimerEnabled"))
-      setRestTime(userStore.getUserPreference<number>("restTime"))
-      setIsAutofilled(true)
-    }
+    if (userStore.isLoadingProfile) return
 
+    // if (!userStore.isLoadingProfile && !isAutofilled) {
+    console.debug("EditProfileForm autofilling form with current user profile data")
+    setUserHandle(userStore.getProp("user.userHandle"))
+    setFirstName(userStore.getProp("user.firstName"))
+    setLastName(userStore.getProp("user.lastName"))
+    setImagePath(userStore.getProp("user.avatarUrl"))
+    setWeightUnit(userStore.getUserPreference<WeightUnit>("weightUnit"))
+    setAppLocale(userStore.getUserPreference<AppLocale>("appLocale"))
+    setAppColorScheme(userStore.getUserPreference<AppColorScheme>("appColorScheme"))
+    setPrivateAccount(userStore.getProp("user.privateAccount") ?? false)
+    setAutoRestTimerEnabled(userStore.getUserPreference<boolean>("autoRestTimerEnabled"))
+    setRestTime(userStore.getUserPreference<number>("restTime"))
     // My gyms are managed in a separate flow to the user profile, so always update it
     setMyGyms(userStore.getProp("user.myGyms"))
   }, [userStore.user])

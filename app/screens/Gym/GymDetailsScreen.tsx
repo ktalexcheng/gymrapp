@@ -1,5 +1,6 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Button, Icon, RowView, Screen, Spacer, TabBar, Text } from "app/components"
+import { LoadingIndicator } from "app/components/LoadingIndicator"
 import { WorkoutSource } from "app/data/constants"
 import { GymDetails, GymMember, UserId, WorkoutId } from "app/data/types"
 import { translate } from "app/i18n"
@@ -10,38 +11,91 @@ import { spacing, styles } from "app/theme"
 import { simplifyNumber } from "app/utils/formatNumber"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
-import { ActivityIndicator, FlatList, TouchableOpacity, View, ViewStyle } from "react-native"
+import { FlatList, TouchableOpacity, View, ViewStyle } from "react-native"
 import { SceneMap, TabView } from "react-native-tab-view"
 import { WorkoutSummaryCard } from "../FinishedWorkout"
 
 interface GymWorkoutsTabSceneProps {
-  workouts: IWorkoutSummaryModel[]
-  byUsers: { [userId: string]: IUserModel }
-  onEndReached: () => void
-  noMoreWorkouts: boolean
+  gymId: string
 }
 
 const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
   (props: GymWorkoutsTabSceneProps) => {
-    const { workouts, byUsers, onEndReached, noMoreWorkouts } = props
+    const { gymId } = props
+    const { gymStore, userStore } = useStores()
+    const [gymWorkouts, setGymWorkouts] = useState<IWorkoutSummaryModel[]>([])
+    const [lastWorkoutId, setLastWorkoutId] = useState<WorkoutId>()
+    const [noMoreWorkouts, setNoMoreWorkouts] = useState(false)
+    const [loadingWorkouts, setLoadingWorkouts] = useState(false)
+    const [gymMemberProfiles, setGymMemberProfiles] = useState<{
+      [userId: string]: GymMember & IUserModel
+    }>({})
+
+    const loadMoreGymWorkouts = async () => {
+      if (loadingWorkouts || noMoreWorkouts) return
+      console.debug("GymWorkoutsTabScene.loadMoreGymWorkouts running", {
+        noMoreWorkouts,
+        lastWorkoutId,
+      })
+      setLoadingWorkouts(true)
+
+      const {
+        lastWorkoutId: newLastWorkoutId,
+        noMoreItems,
+        workouts,
+      } = await api.getGymWorkouts(gymId, lastWorkoutId)
+      console.debug("GymWorkoutsTabScene.loadMoreGymWorkouts getGymWorkouts response", {
+        gymId,
+        noMoreItems,
+        newLastWorkoutId,
+      })
+      setLastWorkoutId(newLastWorkoutId)
+      setNoMoreWorkouts(noMoreItems)
+      setGymWorkouts((prev) => prev.concat(workouts))
+
+      const byUserIds = workouts.map((workout) => workout.byUserId)
+
+      for (const byUserId of byUserIds) {
+        if (!gymMemberProfiles[byUserId]) {
+          const gymMember = await gymStore.getGymMember(gymId, byUserId)
+          const user = await userStore.getOtherUser(byUserId)
+
+          setGymMemberProfiles((prev) => ({
+            ...prev,
+            [byUserId]: {
+              ...gymMember,
+              ...user,
+            },
+          }))
+        }
+      }
+
+      setLoadingWorkouts(false)
+    }
 
     return (
       <FlatList
-        data={workouts}
-        renderItem={({ item }) => (
-          <WorkoutSummaryCard
-            workout={item}
-            workoutSource={WorkoutSource.Feed}
-            workoutId={item.workoutId}
-            byUser={byUsers[item.byUserId]}
-          />
-        )}
+        data={gymWorkouts}
+        renderItem={({ item }) => {
+          if (!gymMemberProfiles[item.byUserId]) return null
+
+          return (
+            <WorkoutSummaryCard
+              workout={item}
+              workoutSource={WorkoutSource.OtherUser}
+              workoutId={item.workoutId}
+              byUser={gymMemberProfiles[item.byUserId]}
+            />
+          )
+        }}
         ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
         keyExtractor={(item) => item.workoutId}
         onEndReachedThreshold={0.5}
-        onEndReached={() => !noMoreWorkouts && onEndReached()}
+        onEndReached={loadMoreGymWorkouts}
         ListFooterComponent={() => {
-          if (workouts.length === 0) {
+          if (loadingWorkouts) return <LoadingIndicator />
+
+          if (gymWorkouts.length === 0) {
             return (
               <View style={styles.alignCenter}>
                 <Spacer type="vertical" size="medium" />
@@ -59,7 +113,7 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
             )
           }
 
-          return <ActivityIndicator />
+          return null
         }}
       />
     )
@@ -67,18 +121,47 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
 )
 
 interface GymMembersTabSceneProps {
-  gymMembers: { [userId: string]: GymMember & IUserModel }
-  onEndReached: () => void
-  noMoreMembers: boolean
+  gymId: string
 }
 
 const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
   (props: GymMembersTabSceneProps) => {
-    const { gymMembers, onEndReached, noMoreMembers } = props
-    const { themeStore } = useStores()
-    const sortedGymMembers = Object.values(gymMembers).sort(
-      (a, b) => b.workoutsCount ?? 0 - a.workoutsCount ?? 0,
+    const { gymId } = props
+    const { themeStore, gymStore } = useStores()
+    const [gymMemberProfiles, setGymMemberProfiles] = useState<{
+      [userId: string]: GymMember & IUserModel
+    }>({})
+    const [lastMemberId, setLastMemberId] = useState<UserId>()
+    const [noMoreMembers, setNoMoreMembers] = useState(false)
+    const [loadingMembers, setLoadingMembers] = useState(false)
+
+    const sortedGymMembers = Object.values(gymMemberProfiles).sort(
+      (a, b) => (b.workoutsCount ?? 0) - (a.workoutsCount ?? 0),
     )
+
+    const loadMoreGymMembers = async () => {
+      if (loadingMembers || noMoreMembers) return
+      console.debug("GymDetailsScreen.loadMoreGymMembers running")
+      setLoadingMembers(true)
+
+      const {
+        lastMemberId: newLastMemberId,
+        noMoreItems,
+        gymMemberProfiles,
+      } = await gymStore.getWorkoutsLeaderboard(gymId, lastMemberId)
+      console.debug("GymDetailsScreen.loadMoreGymMembers after response", {
+        noMoreItems,
+        newLastMemberId,
+      })
+      setLastMemberId(newLastMemberId)
+      setNoMoreMembers(noMoreItems)
+
+      for (const gymMemberProfile of gymMemberProfiles) {
+        setGymMemberProfiles((prev) => ({ ...prev, [gymMemberProfile.userId]: gymMemberProfile }))
+      }
+
+      setLoadingMembers(false)
+    }
 
     const $tileHeader: ViewStyle = {
       justifyContent: "space-between",
@@ -86,7 +169,6 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
     }
 
     const $tileContainer: ViewStyle = {
-      // ...styles.listItemContainer,
       marginVertical: spacing.tiny,
       borderRadius: 10,
       paddingVertical: spacing.extraSmall,
@@ -115,7 +197,7 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
           renderItem={({ item }) => <GymMemberTile {...item} />}
           keyExtractor={(item) => item.userId}
           onEndReachedThreshold={0.5}
-          onEndReached={() => !noMoreMembers && onEndReached()}
+          onEndReached={() => !noMoreMembers && loadMoreGymMembers()}
           ListFooterComponent={() => {
             if (sortedGymMembers.length === 0) {
               return (
@@ -135,7 +217,7 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
               )
             }
 
-            return <ActivityIndicator />
+            return <LoadingIndicator />
           }}
         />
       </>
@@ -150,19 +232,9 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
   const { gymStore, userStore } = useStores()
   const [gymDetails, setGymDetails] = useState<GymDetails>()
   const [showEntireName, setShowEntireName] = useState(false)
-  const [gymWorkouts, setGymWorkouts] = useState<IWorkoutSummaryModel[]>([])
-  const [lastWorkoutId, setLastWorkoutId] = useState<WorkoutId>()
-  const [noMoreWorkouts, setNoMoreWorkouts] = useState(false)
-  const [loadingWorkouts, setLoadingWorkouts] = useState(false)
-  const [gymMemberProfiles, setGymMemberProfiles] = useState<{
-    [userId: string]: GymMember & IUserModel
-  }>({})
-  const [lastMemberId, setLastMemberId] = useState<UserId>()
-  const [noMoreMembers, setNoMoreMembers] = useState(false)
-  const [loadingMembers, setLoadingMembers] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [refreshGymDetailsKey, setRefreshGymDetailsKey] = useState(0)
   const [tabIndex, setTabIndex] = useState(0)
+
   const routes = [
     {
       key: "gymWorkouts",
@@ -174,83 +246,9 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
     },
   ]
 
-  const loadMoreGymWorkouts = async () => {
-    console.debug("GymDetailsScreen.loadMoreGymWorkouts called", { noMoreWorkouts, lastWorkoutId })
-    if (loadingWorkouts || noMoreWorkouts) return
-    setLoadingWorkouts(true)
-
-    const {
-      lastWorkoutId: newLastWorkoutId,
-      noMoreItems,
-      workouts,
-    } = await api.getGymWorkouts(gymId, lastWorkoutId)
-    console.debug("GymDetailsScreen.loadMoreGymWorkouts after response", {
-      noMoreItems,
-      newLastWorkoutId,
-    })
-    setLastWorkoutId(newLastWorkoutId)
-    setNoMoreWorkouts(noMoreItems)
-    setGymWorkouts((prev) => prev.concat(workouts))
-
-    for (const workout of workouts) {
-      const byUserId = workout.byUserId
-      if (!gymMemberProfiles[byUserId]) {
-        const gymMember = await gymStore.getGymMember(gymId, byUserId)
-        const user = await userStore.getOtherUser(byUserId)
-
-        setGymMemberProfiles((prev) => ({
-          ...prev,
-          [byUserId]: {
-            ...gymMember,
-            ...user,
-          },
-        }))
-      }
-    }
-
-    setLoadingWorkouts(false)
-  }
-
-  const loadMoreGymMembers = async () => {
-    console.debug("GymDetailsScreen.loadMoreGymMembers called", { noMoreMembers, lastMemberId })
-    if (loadingMembers || noMoreMembers) return
-    setLoadingMembers(true)
-
-    const {
-      lastMemberId: newLastMemberId,
-      noMoreItems,
-      gymMemberProfiles,
-    } = await gymStore.getGymMemberProfiles(gymId, lastMemberId)
-    console.debug("GymDetailsScreen.loadMoreGymMembers after response", {
-      noMoreItems,
-      newLastMemberId,
-    })
-    setLastMemberId(newLastMemberId)
-    setNoMoreMembers(noMoreItems)
-
-    for (const gymMemberProfile of gymMemberProfiles) {
-      setGymMemberProfiles((prev) => ({ ...prev, [gymMemberProfile.userId]: gymMemberProfile }))
-    }
-
-    setLoadingMembers(false)
-  }
-
   const renderScene = SceneMap({
-    gymWorkouts: () => (
-      <GymWorkoutsTabScene
-        workouts={gymWorkouts}
-        byUsers={gymMemberProfiles}
-        onEndReached={loadMoreGymWorkouts}
-        noMoreWorkouts={noMoreWorkouts}
-      />
-    ),
-    gymMembers: () => (
-      <GymMembersTabScene
-        gymMembers={gymMemberProfiles}
-        onEndReached={loadMoreGymMembers}
-        noMoreMembers={noMoreMembers}
-      />
-    ),
+    gymWorkouts: () => <GymWorkoutsTabScene gymId={gymId} />,
+    gymMembers: () => <GymMembersTabScene gymId={gymId} />,
   })
 
   const renderTabBar = (props) => {
@@ -265,43 +263,21 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
     )
   }
 
-  // useEffect(() => {
-  //   const loadInitialGymWorkouts = async () => {
-  //     // Get workouts
-  //     setLastWorkoutId(undefined)
-  //     setNoMoreWorkouts(false)
-  //     setGymWorkouts([])
-  //     await loadMoreGymWorkouts()
-
-  //     // Get members
-  //     setLastMemberId(undefined)
-  //     setNoMoreMembers(false)
-  //     setGymMemberProfiles({})
-  //     await loadMoreGymMembers()
-  //   }
-
-  //   loadInitialGymWorkouts()
-  // }, [])
-
   useEffect(() => {
-    const refreshGymDetails = async () => {
-      setIsRefreshing(true)
-      await gymStore
-        .getGymById(gymId)
-        .then((gym) => {
-          setGymDetails(gym)
-        })
-        .catch((e) => {
-          console.error("GymDetailsScreen.useEffect getGymById error:", e)
-        })
-        .finally(() => setIsRefreshing(false))
-    }
-
     refreshGymDetails()
-  }, [refreshGymDetailsKey])
+  }, [])
 
-  const refreshGymDetails = () => {
-    setRefreshGymDetailsKey((prev) => prev + 1)
+  const refreshGymDetails = async () => {
+    setIsRefreshing(true)
+    await gymStore
+      .getGymById(gymId)
+      .then((gym) => {
+        setGymDetails(gym)
+      })
+      .catch((e) => {
+        console.error("GymDetailsScreen.useEffect getGymById error:", e)
+      })
+      .finally(() => setIsRefreshing(false))
   }
 
   const handleAddToMyGyms = () => {
@@ -346,46 +322,47 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
     )
   }
 
-  if (!gymDetails) return null
-
   return (
-    <Screen safeAreaEdges={["bottom"]} contentContainerStyle={$container} isBusy={isRefreshing}>
-      <TouchableOpacity onPress={() => setShowEntireName(!showEntireName)}>
-        <Text
-          text={gymDetails.gymName}
-          preset="heading"
-          numberOfLines={showEntireName ? undefined : 2}
-        />
-      </TouchableOpacity>
-      <Spacer type="vertical" size="tiny" />
-      <Text text={gymDetails.googleMapsPlaceDetails?.formatted_address} />
-      <Spacer type="vertical" size="tiny" />
-      <RowView style={$gymStatusBar}>
-        <RowView style={styles.alignCenter}>
-          <Icon name="barbell-outline" size={16} />
-          <Spacer type="horizontal" size="micro" />
-          <Text>{simplifyNumber(gymDetails.gymWorkoutsCount) ?? "-"}</Text>
-          <Spacer type="horizontal" size="medium" />
-          <Icon name="people" size={16} />
-          <Spacer type="horizontal" size="micro" />
-          <Text>{simplifyNumber(gymDetails.gymMembersCount) ?? "-"}</Text>
-        </RowView>
-        {renderAddRemoveButton()}
-      </RowView>
-      <TabView
-        navigationState={{ index: tabIndex, routes }}
-        renderScene={renderScene}
-        renderTabBar={renderTabBar}
-        onIndexChange={setTabIndex}
-      />
+    <Screen
+      safeAreaEdges={["bottom"]}
+      contentContainerStyle={styles.screenContainer}
+      isBusy={isRefreshing}
+    >
+      {gymDetails && (
+        <>
+          <TouchableOpacity onPress={() => setShowEntireName(!showEntireName)}>
+            <Text
+              text={gymDetails.gymName}
+              preset="heading"
+              numberOfLines={showEntireName ? undefined : 2}
+            />
+          </TouchableOpacity>
+          <Spacer type="vertical" size="tiny" />
+          <Text text={gymDetails.googleMapsPlaceDetails?.formatted_address} />
+          <Spacer type="vertical" size="tiny" />
+          <RowView style={$gymStatusBar}>
+            <RowView style={styles.alignCenter}>
+              <Icon name="barbell-outline" size={16} />
+              <Spacer type="horizontal" size="micro" />
+              <Text>{simplifyNumber(gymDetails.gymWorkoutsCount) ?? "-"}</Text>
+              <Spacer type="horizontal" size="medium" />
+              <Icon name="people" size={16} />
+              <Spacer type="horizontal" size="micro" />
+              <Text>{simplifyNumber(gymDetails.gymMembersCount) ?? "-"}</Text>
+            </RowView>
+            {renderAddRemoveButton()}
+          </RowView>
+          <TabView
+            navigationState={{ index: tabIndex, routes }}
+            renderScene={renderScene}
+            renderTabBar={renderTabBar}
+            onIndexChange={setTabIndex}
+          />
+        </>
+      )}
     </Screen>
   )
 })
-
-const $container: ViewStyle = {
-  flex: 1,
-  padding: spacing.screenPadding,
-}
 
 const $gymStatusBar: ViewStyle = {
   justifyContent: "space-between",

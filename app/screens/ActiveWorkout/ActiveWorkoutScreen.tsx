@@ -268,6 +268,10 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
       textAlign: "center",
     }
 
+    const $gymTextButton: ViewStyle = {
+      justifyContent: "flex-start",
+    }
+
     return (
       <Screen safeAreaEdges={["top", "bottom"]} preset="scroll" contentContainerStyle={$container}>
         {/* Save workout confirmation dialog */}
@@ -321,7 +325,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
               numberOfLines={1}
               onPress={() => mainNavigation.navigate("WorkoutGymPicker")}
               text={gym ? gym.gymName : translate("activeWorkoutScreen.setCurrentGymLabel")}
-              style={styles.justifyStart}
+              style={$gymTextButton}
             />
           </View>
         </RowView>

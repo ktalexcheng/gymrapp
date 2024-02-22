@@ -13,7 +13,7 @@ export class GymRepository extends BaseRepository<GymDetails, GymId> {
     throw new RepositoryError(this.constructor.name, "Method not allowed.")
   }
 
-  async getGymMembers(
+  async getGymMembersByWorkoutsCount(
     gymId: GymId,
     lastMemberId?: string,
     limit = 20,
@@ -30,7 +30,7 @@ export class GymRepository extends BaseRepository<GymDetails, GymId> {
       .orderBy("dateAdded", "desc")
       .orderBy("userId")
     if (lastMemberId) {
-      gymMembersQuery = gymMembersQuery.startAfter(lastMemberId)
+      gymMembersQuery = gymMembersQuery.startAfter(null, null, lastMemberId)
     }
     if (limit) {
       gymMembersQuery = gymMembersQuery.limit(limit)
