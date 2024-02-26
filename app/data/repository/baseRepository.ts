@@ -277,7 +277,10 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     // Always default to a limit of 10 to prevent accidental large queries
     let query = this.#firestoreCollection!.limit(limit)
     if (orderByField) {
-      query = query.orderBy(orderByField, orderDirection ?? "asc")
+      const direction = orderDirection ?? "asc"
+      query = query
+        .orderBy(orderByField, direction)
+        .orderBy(firestore.FieldPath.documentId(), direction)
     }
     if (afterFieldValue) {
       query = query.startAfter(afterFieldValue)

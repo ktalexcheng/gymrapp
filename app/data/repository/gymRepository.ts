@@ -1,3 +1,4 @@
+import firestore from "@react-native-firebase/firestore"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { GymDetails, GymId, GymMember } from "../types"
 import { BaseRepository, RepositoryError } from "./baseRepository"
@@ -28,7 +29,7 @@ export class GymRepository extends BaseRepository<GymDetails, GymId> {
       .collection(this.#gymMembersCollectionName)
       .orderBy("workoutsCount", "desc")
       .orderBy("dateAdded", "desc")
-      .orderBy("userId")
+      .orderBy(firestore.FieldPath.documentId(), "desc")
     if (lastMemberId) {
       gymMembersQuery = gymMembersQuery.startAfter(null, null, lastMemberId)
     }

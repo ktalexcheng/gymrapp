@@ -535,6 +535,7 @@ export const FeedStoreModel = types
           })
         }
       } catch (e) {
+        crashlytics().recordError(e as any)
         console.error("FeedStore.loadMoreOtherUserWorkouts error:", e)
       } finally {
         self.isLoadingOtherUserWorkouts = false
