@@ -9,12 +9,12 @@ interface BaseExerciseSet {
 export interface RepsExerciseSet extends BaseExerciseSet {
   volumeType: ExerciseVolumeType.Reps
   weight?: number
-  reps: number
+  reps?: number
   rpe?: number
 }
 export interface TimeExerciseSet extends BaseExerciseSet {
   volumeType: ExerciseVolumeType.Time
-  time: number
+  time?: number
 }
 export type ExerciseSet = RepsExerciseSet | TimeExerciseSet
 

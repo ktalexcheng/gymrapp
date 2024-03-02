@@ -46,7 +46,7 @@ export type MainStackParamList = {
     workoutId: string
     workoutByUserId: string
     jumpToComments: boolean
-    workout?: IWorkoutSummaryModel // For when the workout is not found in the FeedStore
+    workout?: IWorkoutSummaryModel // For when the workout is not found in the FeedStore, for now it's not used
   }
   OnboardingNavigator: undefined
   AddToMyGyms: undefined
@@ -115,7 +115,7 @@ export const MainNavigator = observer(function MainNavigator() {
       .onSnapshot((snapshot) => {
         console.debug("MainNavigator.followRequestsSubscriber.onSnapshot called")
         if (snapshot?.empty) {
-          userStore.setFollowRequests(undefined)
+          userStore.setFollowRequests([])
         }
 
         const followRequests = snapshot.docs.map((doc) => {

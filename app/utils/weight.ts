@@ -7,8 +7,8 @@ export class Weight {
   #weightUnit: WeightUnit
   #displayUnit: WeightUnit
 
-  constructor(weight: number | null, weightUnit: WeightUnit, displayUnit: WeightUnit) {
-    this.#weight = weight
+  constructor(weight: number | undefined | null, weightUnit: WeightUnit, displayUnit: WeightUnit) {
+    this.#weight = weight ?? null
     this.#weightUnit = weightUnit
     this.#displayUnit = displayUnit
   }
@@ -65,24 +65,24 @@ export class Weight {
     }
   }
 
-  get weight(): number | null {
+  get weight() {
     return this.#weight
   }
 
-  get displayWeight(): number | null {
-    if (this.#weight === null) return null
+  get displayWeight() {
+    if (!this.#weight) return null
     return Weight.convertWeight(this.#weight, this.#weightUnit, this.#displayUnit)
   }
 
-  get asKg(): number | null {
-    if (this.#weight === null) return null
+  get asKg() {
+    if (!this.#weight) return null
     if (this.#weightUnit === WeightUnit.kg) return this.#weight
 
     return this.#weight / Weight.LBS_IN_KG
   }
 
-  get asLbs(): number | null {
-    if (this.#weight === null) return null
+  get asLbs() {
+    if (!this.#weight) return null
     if (this.#weightUnit === WeightUnit.lbs) return this.#weight
 
     return this.#weight * Weight.LBS_IN_KG

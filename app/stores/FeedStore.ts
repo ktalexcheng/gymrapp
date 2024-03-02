@@ -6,7 +6,8 @@ import { api } from "app/services/api"
 import { getNestedField } from "app/utils/getNestedField"
 import { getTime, startOfWeek } from "date-fns"
 import { randomUUID } from "expo-crypto"
-import { Instance, SnapshotOrInstance, flow, getEnv, getSnapshot, types } from "mobx-state-tree"
+import { toJS } from "mobx"
+import { Instance, SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
 import { convertUserToMSTSnapshot } from "./helpers/convertUserToMSTSnapshot"
 import { convertWorkoutToMSTSnapshot } from "./helpers/convertWorkoutToMSTSnapshot"
 import { RootStoreDependencies } from "./helpers/useStores"
@@ -176,7 +177,7 @@ export const FeedStoreModel = types
         }
 
         const workout = self.otherUserWorkouts.get(byUserId)?.workouts.get(workoutId)
-        return workout && getSnapshot(workout)
+        return workout
       }
 
       if (
@@ -188,7 +189,7 @@ export const FeedStoreModel = types
       }
 
       const workout = self.userWorkouts.get(workoutId) || self.feedWorkouts.get(workoutId)
-      return workout && getSnapshot(workout)
+      return workout
     },
     getSetFromWorkout(workoutId: WorkoutId, exerciseId: ExerciseId, setOrder: number) {
       console.debug("FeedStore.getSetFromWorkout() workoutId:", workoutId)
@@ -282,7 +283,12 @@ export const FeedStoreModel = types
         }
 
         workouts.forEach((w) => {
-          self.userWorkouts.put(w)
+          try {
+            self.userWorkouts.put(w)
+          } catch (e) {
+            crashlytics().recordError(e as any)
+            console.error("FeedStore.loadUserWorkouts invalid workout snapshot:", e)
+          }
         })
 
         const workoutInteractions = yield workoutInteractionRepository.getMany(workoutIds)
@@ -309,8 +315,8 @@ export const FeedStoreModel = types
       const updatedWorkout = { ...workout, ...data }
 
       try {
-        yield workoutRepository.update(workoutId, updatedWorkout as any) // TODO: Figure out why this is not working, cast as any for now
-        self.userWorkouts.put({ workoutId, ...(updatedWorkout as any) }) // TODO: Figure out why this is not working, cast as any for now
+        yield workoutRepository.update(workoutId, toJS(updatedWorkout) as Workout)
+        self.userWorkouts.put({ workoutId, ...updatedWorkout })
       } catch (e) {
         console.error("FeedStore.updateWorkout error:", e)
       }

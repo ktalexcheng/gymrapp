@@ -173,7 +173,7 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const [restTimeSetting] = useExerciseSetting<number>(exerciseId, "restTime")
 
   // States
-  const [time, setTime] = useState<number | null>(exerciseSetStore?.time)
+  const [time, setTime] = useState(exerciseSetStore?.time)
   const [timeInput, setTimeInput] = useState(exerciseSetStore?.time)
   const [isNullTime, setIsNullTime] = useState(false)
   const [showTimeInput, setShowTimeInput] = useState(false)
@@ -185,14 +185,14 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   }, [time])
 
   const renderPreviousSetText = () => {
-    if (!setFromLastWorkout) return "-"
+    if (!setFromLastWorkout || !setFromLastWorkout.time) return "-"
     return formatSecondsAsTime(setFromLastWorkout.time)
   }
 
   const copyPreviousSet = () => {
     if (!setFromLastWorkout) return
 
-    setTime(setFromLastWorkout.time)
+    setTime(setFromLastWorkout.time ?? null)
   }
 
   const updateTime = () => {
@@ -206,15 +206,15 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       return
     }
 
-    if (!time) {
+    if (!time || time === 0) {
       setIsNullTime(true)
       return
     }
 
     // Make sure to mark complete before restarting the rest timer
     // so that the last completed set can be identified and used for notification
-    exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
     setIsNullTime(false)
+    exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
 
     if (autoRestTimerEnabled) {
       workoutStore.restartRestTimer(restTimeSetting)
@@ -331,21 +331,20 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       return
     }
 
-    if (reps) {
-      // setIsNullWeight(false)
-      setIsNullReps(false)
-      updateSetStore()
+    if (!reps || reps === 0) {
+      setIsNullReps(true)
+      return
+    }
 
-      // Make sure to mark complete before restarting the rest timer
-      // so that the last completed set can be identified and used for notification
-      exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
+    setIsNullReps(false)
+    updateSetStore()
 
-      if (autoRestTimerEnabled) {
-        workoutStore.restartRestTimer(restTimeSetting)
-      }
-    } else {
-      // setIsNullWeight(!displayWeight)
-      setIsNullReps(!reps)
+    // Make sure to mark complete before restarting the rest timer
+    // so that the last completed set can be identified and used for notification
+    exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
+
+    if (autoRestTimerEnabled) {
+      workoutStore.restartRestTimer(restTimeSetting)
     }
   }
 
@@ -413,7 +412,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       const prevWeight = new Weight(setFromLastWorkout.weight, WeightUnit.kg, weightUnitSetting)
       handleWeightChangeText(prevWeight.formattedDisplayWeight(2, false))
     }
-    handleRepsChangeText(roundToString(setFromLastWorkout.reps, 0, false))
+    handleRepsChangeText(roundToString(setFromLastWorkout.reps ?? 0, 0, false))
   }
 
   return (

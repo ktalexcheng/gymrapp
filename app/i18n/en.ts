@@ -382,6 +382,7 @@ const en = {
     likeNotificationMessage: "liked your workout",
     followRequestNotificationMessage: "requested to follow you",
     followAcceptedNotificationMessage: "accepted your follow request",
+    markAllAsReadButtonLabel: "Mark all as read",
   },
 }
 

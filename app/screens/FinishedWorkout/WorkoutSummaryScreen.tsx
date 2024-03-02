@@ -11,7 +11,7 @@ import { formatDate } from "app/utils/formatDate"
 import { formatName } from "app/utils/formatName"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
-import { RefreshControl, TouchableOpacity, View, ViewStyle } from "react-native"
+import { FlatList, TouchableOpacity, View, ViewStyle } from "react-native"
 import { ExerciseSummary } from "./ExerciseSummary"
 import { WorkoutCommentsPanel } from "./WorkoutCommentsPanel"
 import { WorkoutSocialButtonGroup } from "./WorkoutSocialButtonGroup"
@@ -33,13 +33,14 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
   const { feedStore, userStore } = useStores()
   const [workout, setWorkout] = useState<IWorkoutSummaryModel>()
   const [workoutByUser, setWorkoutByUser] = useState<IUserModel>()
+  const [isInitialized, setIsInitialized] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showCommentsPanel, setShowCommentsPanel] = useState(jumpToComments)
-  const [refreshKey, setRefreshKey] = useState(0)
 
   const workoutLoaded = !isLoading && workout && workoutByUser
 
   const getWorkoutAndUser = async () => {
+    console.debug("WorkoutSummaryScreen.getWorkoutAndUser called", { isLoading })
     if (isLoading) return
 
     setIsLoading(true)
@@ -53,9 +54,13 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
         )
         setWorkout(workoutInput)
       }
-      userStore.getOtherUser(workoutByUserId).then((user) => {
-        if (user) setWorkoutByUser(user)
-      })
+      if (workoutSource === WorkoutSource.User) {
+        setWorkoutByUser(userStore.user)
+      } else {
+        userStore.getOtherUser(workoutByUserId).then((user) => {
+          if (user) setWorkoutByUser(user)
+        })
+      }
     } catch (e) {
       console.error("WorkoutSummaryScreen.useEffect error:", e)
     } finally {
@@ -64,7 +69,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
   }
 
   useEffect(() => {
-    getWorkoutAndUser()
+    getWorkoutAndUser().then(() => setIsInitialized(true))
 
     const unsubscribeWorkoutInteractions = firebase
       .firestore()
@@ -85,7 +90,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
     return () => {
       unsubscribeWorkoutInteractions()
     }
-  }, [refreshKey])
+  }, [])
 
   const toggleShowCommentsPanel = () => {
     setShowCommentsPanel(!showCommentsPanel)
@@ -93,94 +98,97 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
 
   const onWorkoutUpdated = () => {
     setIsLoading(true)
-    // User should only be able to access menu of their own workouts
-    const updatedWorkout = feedStore.getWorkout(WorkoutSource.User, workoutId)
-    if (updatedWorkout) {
-      setWorkout(updatedWorkout)
+    try {
+      // User should only be able to access menu of their own workouts
+      const updatedWorkout = feedStore.getWorkout(WorkoutSource.User, workoutId)
+      if (updatedWorkout) {
+        setWorkout(updatedWorkout)
+      }
+    } catch (e) {
+      console.error("WorkoutSummaryScreen.onWorkoutUpdated error:", e)
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }
 
   const renderScreen = () => {
-    if (isLoading) return <Text tx="common.loading" />
+    if (!isInitialized) return null
 
     if (!workoutLoaded) {
       return <Text tx="workoutSummaryScreen.workoutUnavailableMessage" />
     }
 
     return (
-      <>
-        <RowView style={styles.justifyBetween}>
-          <View>
-            <Text preset="heading">{workout.workoutTitle}</Text>
-            <Text preset="subheading">{formatDate(workout.startTime)}</Text>
-          </View>
-          {workout.byUserId === userStore.userId && (
-            <View style={$menuButton}>
-              <WorkoutSummaryMenu
-                workoutSource={workoutSource}
-                workoutId={workoutId}
-                onBusyChange={(isBusy) => setIsLoading(isBusy)}
-                onWorkoutUpdated={onWorkoutUpdated}
-              />
-            </View>
-          )}
-        </RowView>
-
-        {workoutByUser && (
+      <FlatList
+        ListHeaderComponent={
           <>
-            <Spacer type="vertical" size="small" />
-            <TouchableOpacity
-              disabled={userStore.userId === workoutByUser.userId}
-              onPress={() => {
-                mainNavigation.navigate("ProfileVisitorView", { userId: workoutByUser.userId })
-              }}
-            >
-              <RowView alignItems="center">
-                <Avatar user={workoutByUser} size="xs" />
-                <Spacer type="horizontal" size="tiny" />
-                <Text
-                  weight="light"
-                  text={formatName(workoutByUser.firstName, workoutByUser.lastName)}
-                />
-              </RowView>
-            </TouchableOpacity>
-          </>
-        )}
+            <RowView style={styles.justifyBetween}>
+              <View>
+                <Text preset="heading">{workout.workoutTitle}</Text>
+                <Text preset="subheading">{formatDate(workout.startTime)}</Text>
+              </View>
+              {workout.byUserId === userStore.userId && (
+                <View style={$menuButton}>
+                  <WorkoutSummaryMenu
+                    workoutSource={workoutSource}
+                    workoutId={workoutId}
+                    onBusyChange={(isBusy) => setIsLoading(isBusy)}
+                    onWorkoutUpdated={onWorkoutUpdated}
+                  />
+                </View>
+              )}
+            </RowView>
 
-        {workout.performedAtGymName && workout.performedAtGymId && (
-          <>
-            <Spacer type="vertical" size="small" />
-            <TouchableOpacity
-              onPress={() =>
-                // @ts-ignore
-                mainNavigation.navigate("GymDetails", { gymId: workout.performedAtGymId })
-              }
-            >
-              <Text weight="bold" numberOfLines={2}>
-                {workout.performedAtGymName}
-              </Text>
-            </TouchableOpacity>
+            {workoutByUser && (
+              <>
+                <Spacer type="vertical" size="small" />
+                <TouchableOpacity
+                  disabled={userStore.userId === workoutByUser.userId}
+                  onPress={() => {
+                    mainNavigation.navigate("ProfileVisitorView", {
+                      userId: workoutByUser.userId,
+                    })
+                  }}
+                >
+                  <RowView alignItems="center">
+                    <Avatar user={workoutByUser} size="xs" />
+                    <Spacer type="horizontal" size="tiny" />
+                    <Text
+                      weight="light"
+                      text={formatName(workoutByUser.firstName, workoutByUser.lastName)}
+                    />
+                  </RowView>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {workout.performedAtGymName && workout.performedAtGymId && (
+              <>
+                <Spacer type="vertical" size="small" />
+                <TouchableOpacity
+                  onPress={() =>
+                    // @ts-ignore
+                    mainNavigation.navigate("GymDetails", { gymId: workout.performedAtGymId })
+                  }
+                >
+                  <Text weight="bold" numberOfLines={2}>
+                    {workout.performedAtGymName}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <WorkoutSocialButtonGroup
+              workoutSource={workoutSource}
+              workoutId={workoutId}
+              workoutByUserId={workout.byUserId}
+              onPressComments={toggleShowCommentsPanel}
+            />
           </>
-        )}
-        <WorkoutSocialButtonGroup
-          workoutSource={workoutSource}
-          workoutId={workoutId}
-          workoutByUserId={workout.byUserId}
-          onPressComments={toggleShowCommentsPanel}
-        />
-        {workout.exercises!.map((e, _) => {
-          return <ExerciseSummary key={e.exerciseId} exercise={e} />
-        })}
-        {showCommentsPanel && (
-          <WorkoutCommentsPanel
-            workoutSource={workoutSource}
-            workoutId={workoutId}
-            workoutByUserId={workout.byUserId}
-            toggleShowCommentsPanel={toggleShowCommentsPanel}
-          />
-        )}
-      </>
+        }
+        data={workout.exercises}
+        renderItem={({ item }) => <ExerciseSummary key={item.exerciseId} exercise={item} />}
+      />
     )
   }
 
@@ -189,14 +197,17 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
       safeAreaEdges={["bottom"]}
       contentContainerStyle={$screenContentContainer}
       isBusy={isLoading}
-      preset="scroll"
-      ScrollViewProps={{
-        refreshControl: (
-          <RefreshControl refreshing={isLoading} onRefresh={() => setRefreshKey(refreshKey + 1)} />
-        ),
-      }}
+      preset="fixed" // Important because WorkoutCommentsPanel contains a FlatList, we do not want to nest FlatList in plain ScrollViews
     >
       {renderScreen()}
+      {showCommentsPanel && (
+        <WorkoutCommentsPanel
+          workoutSource={workoutSource}
+          workoutId={workoutId}
+          workoutByUserId={workout.byUserId}
+          toggleShowCommentsPanel={toggleShowCommentsPanel}
+        />
+      )}
     </Screen>
   )
 })

@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin"
-import { AppLocale, WeightUnit } from "../../app/data/constants"
+import { AppColorScheme, AppLocale, WeightUnit } from "../../app/data/constants"
 import { UserRepository } from "../../app/data/repository"
 import { readCSV } from "../utils/readCSV"
 
@@ -41,6 +41,7 @@ describe("create test accounts", () => {
         myGyms: [],
         preferences: {
           appLocale: AppLocale.en_US,
+          appColorScheme: AppColorScheme.Auto,
           weightUnit: WeightUnit.kg,
           autoRestTimerEnabled: true,
           restTime: 60,

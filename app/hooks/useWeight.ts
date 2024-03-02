@@ -3,7 +3,7 @@ import { Weight } from "app/utils/weight"
 import { useState } from "react"
 
 export const useWeight = (
-  initWeightkg: number | null,
+  initWeightkg: number | undefined | null,
   initDisplayUnit: WeightUnit,
 ): [number | null, number | null, (value: number) => void, (value: WeightUnit) => void] => {
   const weightUtil = new Weight(initWeightkg, WeightUnit.kg, initDisplayUnit)

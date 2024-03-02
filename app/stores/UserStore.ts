@@ -15,7 +15,8 @@ import { api } from "app/services/api"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { formatName } from "app/utils/formatName"
 import { getNestedField } from "app/utils/getNestedField"
-import { flow, getEnv, getSnapshot, types } from "mobx-state-tree"
+import { toJS } from "mobx"
+import { flow, getEnv, types } from "mobx-state-tree"
 import Toast from "react-native-root-toast"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
@@ -35,8 +36,8 @@ export const UserStoreModel = types
     userId: types.maybeNull(types.string),
     user: types.maybe(UserModel),
     isLoadingProfile: true,
-    notifications: types.maybe(types.array(NotificationModel)),
-    followRequests: types.maybe(types.array(FollowRequestsModel)),
+    notifications: types.array(NotificationModel),
+    followRequests: types.array(FollowRequestsModel),
   })
   .actions(withSetPropAction)
   .views((self) => ({
@@ -79,7 +80,7 @@ export const UserStoreModel = types
       return lastWorkoutId
     },
     getProp<T>(propPath: string): T {
-      const value = getNestedField(getSnapshot(self), propPath) as T
+      const value = getNestedField(toJS(self), propPath) as T
 
       // Array and Map (object) must not be mutated, so we need to return a copy
       if (Array.isArray(value)) {
@@ -125,6 +126,12 @@ export const UserStoreModel = types
         (newNotifications?.length ?? 0) + (pendingFollowRequests?.length ?? 0)
       console.debug("UserStore.newNotificationsCount:", newNotificationsCount)
       return newNotificationsCount
+    },
+    get unreadNotificationsCount() {
+      const unreadNotifications = self.notifications?.filter((notification) => !notification.isRead)
+      const unreadNotificationsCount = unreadNotifications?.length ?? 0
+      console.debug("UserStore.unreadNotificationsCount:", unreadNotificationsCount)
+      return unreadNotificationsCount
     },
   }))
   .actions((self) => {
@@ -378,18 +385,13 @@ export const UserStoreModel = types
     })
 
     const setNotifications = (notifications: INotificationModel[]) => {
+      if (!notifications || !notifications.length) self.notifications.clear()
       self.notifications = convertFirestoreTimestampToDate(notifications)
-      // const sorted = convertFirestoreTimestampToDate(notifications)
-      // sorted.sort((a, b) => b.notificationDate.getTime() - a.notificationDate.getTime())
-      // self.notifications = sorted
     }
 
-    const setFollowRequests = (followRequests: FollowRequest[] | undefined) => {
-      if (!followRequests) self.followRequests = undefined
+    const setFollowRequests = (followRequests: FollowRequest[]) => {
+      if (!followRequests || !followRequests.length) self.followRequests.clear()
       else self.followRequests = convertFirestoreTimestampToDate(followRequests)
-      // const sorted = convertFirestoreTimestampToDate(followRequests)
-      // sorted.sort((a, b) => b.requestDate.getTime() - a.requestDate.getTime())
-      // self.followRequests = sorted
     }
 
     const loadNotifications = flow(function* () {
@@ -407,6 +409,16 @@ export const UserStoreModel = types
         yield notificationRepository.update(notificationId, { isRead: true })
       } catch (e) {
         console.error("UserStore.readNotification error:", e)
+      }
+    })
+
+    const markAllNotificationsAsRead = flow(function* () {
+      if (!self.notifications) return
+
+      for (const notification of self.notifications) {
+        if (!notification.isRead) {
+          yield markNotificationAsRead(notification.notificationId)
+        }
       }
     })
 
@@ -441,6 +453,7 @@ export const UserStoreModel = types
       setFollowRequests,
       loadNotifications,
       markNotificationAsRead,
+      markAllNotificationsAsRead,
       isInMyGyms,
       addToMyGyms,
       removeFromMyGyms,

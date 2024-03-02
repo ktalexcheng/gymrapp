@@ -2,7 +2,7 @@ import { ExerciseVolumeType } from "app/data/constants"
 import { SnapshotOrInstance, types } from "mobx-state-tree"
 
 const BasePersonalRecordModel = types.model("BasePersonalRecordModel", {
-  workoutId: types.maybe(types.string),
+  workoutId: types.maybeNull(types.string),
   datePerformed: types.Date,
   reps: types.identifierNumber, // This is 0 for time based exercises
 })
@@ -13,8 +13,7 @@ const RepsPersonalRecordModel = types.compose(
   "RepsPersonalRecordModel",
   BasePersonalRecordModel,
   types.model({
-    volumeType: types.maybe(types.literal(ExerciseVolumeType.Reps)), // For backwards compatibility, this was added later and is not present in all documents
-    // reps: types.number,
+    volumeType: types.maybeNull(types.literal(ExerciseVolumeType.Reps)), // For backwards compatibility, this was added later and is not present in all documents
     weight: types.maybeNull(types.number),
   }),
 )
@@ -23,7 +22,7 @@ const TimePersonalRecordModel = types.compose(
   "TimePersonalRecordModel",
   BasePersonalRecordModel,
   types.model({
-    volumeType: types.maybe(types.literal(ExerciseVolumeType.Time)), // For backwards compatibility, this was added later and is not present in all documents
+    volumeType: types.maybeNull(types.literal(ExerciseVolumeType.Time)), // For backwards compatibility, this was added later and is not present in all documents
     time: types.number,
   }),
 )

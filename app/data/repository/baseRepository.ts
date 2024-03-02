@@ -450,7 +450,7 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
 
   async update(
     id: D,
-    data: Partial<T> | { [key: string]: FirebaseFirestoreTypes.FieldValue },
+    data: { [P in keyof T]?: T[P] | FirebaseFirestoreTypes.FieldValue | null },
     useSetMerge = false,
   ): Promise<T> {
     this.checkRepositoryInitialized()
@@ -489,7 +489,10 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     }
   }
 
-  async upsert(id: D, data: Partial<T>): Promise<T> {
+  async upsert(
+    id: D,
+    data: { [P in keyof T]?: T[P] | FirebaseFirestoreTypes.FieldValue | null },
+  ): Promise<T> {
     const docExists = this.checkDocumentExists(id)
 
     // Using FieldValue will fail for create() methods

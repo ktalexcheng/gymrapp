@@ -1,17 +1,10 @@
 import { ExerciseSource, ExerciseVolumeType } from "app/data/constants"
 import { Exercise, ExerciseSettings, NewExercise, User } from "app/data/types"
-import { SnapshotOrInstance, flow, getEnv, getSnapshot, types } from "mobx-state-tree"
+import { toJS } from "mobx"
+import { SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 import { ExerciseSettingsModel, IUserModel } from "./models"
-
-// const ExerciseSettingsModel = types
-//   .model({
-//     autoRestTimerEnabled: types.maybe(types.boolean),
-//     restTime: types.maybe(types.number),
-//     weightUnit: types.maybe(types.enumeration(Object.values(WeightUnit))),
-//   })
-//   .actions(withSetPropAction)
 
 export const ExerciseModel = types
   .model({
@@ -61,7 +54,7 @@ export const ExerciseStoreModel = types
     const applyUserSettings = flow(function* (user: IUserModel) {
       self.isLoading = true
 
-      const exerciseSettings = user.preferences?.exerciseSpecificSettings
+      const exerciseSettings = user.preferences?.exerciseSpecificSettings as ExerciseSettings
 
       // Update exercises with user settings
       if (exerciseSettings) {
@@ -139,8 +132,7 @@ export const ExerciseStoreModel = types
 
       try {
         const exerciseSpecificSettings = Array.from(self.allExercises.values()).reduce((acc, e) => {
-          if (e.exerciseSettings !== undefined)
-            acc[e.exerciseId] = { ...getSnapshot(e.exerciseSettings) } // getSnapshot returns as serialized JS object
+          if (e.exerciseSettings !== undefined) acc[e.exerciseId] = { ...toJS(e.exerciseSettings) }
           return acc
         }, {})
 
@@ -170,7 +162,7 @@ export const ExerciseStoreModel = types
           hasLeaderboard: false,
           exerciseSource: ExerciseSource.Private,
         }
-        const createdExercise = yield privateExerciseRepository.create(_newExercise)
+        const createdExercise = yield privateExerciseRepository.create(toJS(_newExercise))
         self.allExercises.put({
           ..._newExercise,
           exerciseId: createdExercise.exerciseId,

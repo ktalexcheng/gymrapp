@@ -100,14 +100,37 @@ export const UserModel = types.snapshotProcessor(
   },
 )
 
-export const NotificationModel = types.model("NotificationModel", {
+export const BaseNotificationModel = types.model("BaseNotificationModel", {
   notificationId: types.identifier,
   notificationDate: types.Date,
   isRead: types.boolean,
   senderUserId: types.string,
-  notificationType: types.enumeration(Object.values(NotificationType)),
-  workoutId: types.maybe(types.string),
 })
+
+export const WorkoutNotificationModel = types.compose(
+  "WorkoutNotificationModel",
+  BaseNotificationModel,
+  types.model({
+    notificationType: types.union(
+      types.literal(NotificationType.Comment),
+      types.literal(NotificationType.Like),
+    ),
+    workoutId: types.string,
+  }),
+)
+
+export const FollowNotificationModel = types.compose(
+  "FollowNotificationModel",
+  BaseNotificationModel,
+  types.model({
+    notificationType: types.union(
+      types.literal(NotificationType.FollowAccepted),
+      types.literal(NotificationType.FollowRequest),
+    ),
+  }),
+)
+
+export const NotificationModel = types.union(WorkoutNotificationModel, FollowNotificationModel)
 
 export const FollowRequestsModel = types.model("FollowRequestsModel", {
   requestId: types.identifier,

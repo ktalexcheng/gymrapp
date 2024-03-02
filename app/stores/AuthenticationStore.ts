@@ -5,6 +5,7 @@ import { defaultAppLocale } from "app/utils/appLocale"
 import * as AppleAuthentication from "expo-apple-authentication"
 import Constants from "expo-constants"
 import * as Crypto from "expo-crypto"
+import { toJS } from "mobx"
 import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
 import { AuthErrorType } from "../data/constants"
 import { User } from "../data/types"
@@ -380,7 +381,7 @@ export const AuthenticationStoreModel = types
         if (userCred.additionalUserInfo.isNewUser) {
           const user = createUserFromFirebaseUserCred(userCred)
           getEnv<RootStoreDependencies>(self).userRepository.setUserId(user.userId)
-          yield getEnv<RootStoreDependencies>(self).userRepository.create(user)
+          yield getEnv<RootStoreDependencies>(self).userRepository.create(toJS(user))
           console.debug("AuthenticationStore.signInWithGoogle created new user:", user)
         }
       } catch (error) {
@@ -436,7 +437,7 @@ export const AuthenticationStoreModel = types
         if (userCred.additionalUserInfo.isNewUser) {
           const user = createUserFromFirebaseUserCred(userCred)
           getEnv<RootStoreDependencies>(self).userRepository.setUserId(user.userId)
-          getEnv<RootStoreDependencies>(self).userRepository.create(user)
+          getEnv<RootStoreDependencies>(self).userRepository.create(toJS(user))
         }
       } catch (e) {
         // console.error("AuthenticationStore.signInWithApple error:", e)

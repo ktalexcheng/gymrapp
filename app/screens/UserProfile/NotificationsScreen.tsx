@@ -1,4 +1,5 @@
-import { Avatar, Divider, Icon, RowView, Screen, Text } from "app/components"
+import { Avatar, Button, Divider, Icon, RowView, Screen, Text } from "app/components"
+import { WorkoutSource } from "app/data/constants"
 import { NotificationType, User } from "app/data/types"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
@@ -57,6 +58,7 @@ const FollowRequestTile = ({ followRequest }: { followRequest: IFollowRequestsMo
 }
 
 const NotificationTile = ({ notification }: { notification: INotificationModel }) => {
+  const mainNavigation = useMainNavigation()
   const [isInitialized, setIsInitialized] = useState(false)
   const { userStore } = useStores()
   const [senderUser, setSenderUser] = useState<User>()
@@ -90,35 +92,37 @@ const NotificationTile = ({ notification }: { notification: INotificationModel }
   }, [isInitialized])
 
   const handleOnPress = () => {
-    // switch (notification.notificationType) {
-    //   case NotificationType.Comment:
-    //     mainNavigation.navigate("WorkoutSummary", {
-    //       workoutSource: WorkoutSource.User,
-    //       workoutId: notification.workoutId,
-    //       jumpToComments: true,
-    //     })
-    //     break
-    //   case NotificationType.Like:
-    //     mainNavigation.navigate("WorkoutSummary", {
-    //       workoutSource: WorkoutSource.User,
-    //       workoutId: notification.workoutId,
-    //       jumpToComments: false,
-    //     })
-    //     break
-    //   case NotificationType.FollowRequest:
-    //     mainNavigation.navigate("ProfileVisitorView", {
-    //       userId: notification.senderUserId,
-    //     })
-    //     break
-    //   case NotificationType.FollowAccepted:
-    //     mainNavigation.navigate("ProfileVisitorView", {
-    //       userId: notification.senderUserId,
-    //     })
-    //     break
-    // }
-
     if (!notification.isRead) {
       userStore.markNotificationAsRead(notification.notificationId)
+    }
+
+    switch (notification.notificationType) {
+      case NotificationType.Comment:
+        mainNavigation.navigate("WorkoutSummary", {
+          workoutSource: WorkoutSource.User,
+          workoutId: notification.workoutId,
+          workoutByUserId: userStore.userId!,
+          jumpToComments: true,
+        })
+        break
+      case NotificationType.Like:
+        mainNavigation.navigate("WorkoutSummary", {
+          workoutSource: WorkoutSource.User,
+          workoutId: notification.workoutId,
+          workoutByUserId: userStore.userId!,
+          jumpToComments: false,
+        })
+        break
+      case NotificationType.FollowRequest:
+        mainNavigation.navigate("ProfileVisitorView", {
+          userId: notification.senderUserId,
+        })
+        break
+      case NotificationType.FollowAccepted:
+        mainNavigation.navigate("ProfileVisitorView", {
+          userId: notification.senderUserId,
+        })
+        break
     }
   }
 
@@ -225,7 +229,20 @@ export const NotificationsScreen = observer(() => {
         )}
         renderItem={({ item }) => <NotificationTile notification={item} />}
         renderSectionHeader={({ section: { title, data } }) =>
-          data.length > 0 ? <Text style={$sectionHeader} preset="subheading" text={title} /> : null
+          data.length > 0 ? (
+            <RowView style={[styles.alignCenter, styles.justifyBetween]}>
+              <Text style={$sectionHeader} preset="subheading" text={title} />
+              {title === translate("notificationsScreen.newNotificationsTitle") &&
+                userStore.unreadNotificationsCount > 0 && (
+                  <Button
+                    preset="text"
+                    style={$markAllAsReadButtonContainer}
+                    tx="notificationsScreen.markAllAsReadButtonLabel"
+                    onPress={userStore.markAllNotificationsAsRead}
+                  />
+                )}
+            </RowView>
+          ) : null
         }
         keyExtractor={(item) => item.notificationId}
         ItemSeparatorComponent={() => <Divider orientation="horizontal" />}
@@ -259,4 +276,9 @@ const $notificationTileContainer: ViewStyle = {
 const $notificationText: TextStyle = {
   flex: 1,
   flexWrap: "wrap",
+}
+
+const $markAllAsReadButtonContainer: ViewStyle = {
+  minHeight: undefined,
+  justifyContent: "flex-end",
 }

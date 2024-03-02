@@ -134,7 +134,6 @@ export const Search: FC<SearchProps> = ({
               <>
                 <Text tx={emptyResultsMessageTx} style={styles.textAlignCenter} />
                 {handleComponent(emptyResultsComponent)}
-                {handleComponent(footerComponent)}
               </>
             )
           }}
