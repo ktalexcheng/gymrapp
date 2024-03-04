@@ -1,11 +1,10 @@
 import { useNavigation } from "@react-navigation/native"
 import { Exercise, NewExercise } from "app/data/types"
-import { translate } from "app/i18n"
+import { useToast } from "app/hooks"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
 import React, { FC, useEffect, useState } from "react"
 import { ViewStyle } from "react-native"
-import Toast from "react-native-root-toast"
 import { Button, Picker, Screen, Spacer, Text, TextField } from "../../components"
 import { MainStackScreenProps } from "../../navigators"
 
@@ -19,6 +18,7 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
   const [exerciseName, setExerciseName] = useState("")
   const { exerciseStore } = useStores()
   const navigation = useNavigation()
+  const [showTx] = useToast()
 
   async function addExercise() {
     console.debug("CreateExerciseScreen.addExercise:", {
@@ -28,7 +28,7 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
       exerciseName,
     })
     if (!activityName || !exerciseCat1 || !volumeType || !exerciseName) {
-      Toast.show(translate("createExerciseScreen.requiredFieldsMissingMessage", { duration: 500 }))
+      showTx("createExerciseScreen.requiredFieldsMissingMessage")
       return
     }
 

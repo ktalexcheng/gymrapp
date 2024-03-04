@@ -1,6 +1,6 @@
 import { WorkoutSource } from "app/data/constants"
 import { User, UserId, WorkoutId } from "app/data/types"
-import { translate } from "app/i18n"
+import { useToast } from "app/hooks"
 import { IWorkoutCommentModel, IWorkoutInteractionModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { formatDate } from "app/utils/formatDate"
@@ -25,7 +25,6 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated"
-import Toast from "react-native-root-toast"
 import { Avatar, Button, Icon, RowView, Spacer, Text, TextField } from "../../components"
 
 const WorkoutCommentTile = (props: {
@@ -102,6 +101,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [selectedComment, setSelectedComment] = useState<IWorkoutCommentModel>()
   const [isCommentDeleteConfirmation, setIsCommentDeleteConfirmation] = useState(false)
+  const [showTx] = useToast()
 
   useEffect(() => {
     commentInputRef.current?.focus()
@@ -236,7 +236,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
             if (!selectedComment) return
 
             Clipboard.setStringAsync(selectedComment.comment).then(() => {
-              Toast.show(translate("common.copiedToClipboard"), { duration: Toast.durations.SHORT })
+              showTx("common.copiedToClipboard")
             })
           }}
         />

@@ -3,6 +3,7 @@ import { Button, Icon, RowView, Screen, Spacer, TabBar, Text } from "app/compone
 import { LoadingIndicator } from "app/components/LoadingIndicator"
 import { WorkoutSource } from "app/data/constants"
 import { GymDetails, GymMember, UserId, WorkoutId } from "app/data/types"
+import { useToast } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
 import { api } from "app/services/api"
@@ -230,6 +231,7 @@ type GymDetailsScreenProps = NativeStackScreenProps<MainStackParamList, "GymDeta
 export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
   const gymId = route.params.gymId
   const { gymStore, userStore } = useStores()
+  const [showTx] = useToast()
   const [gymDetails, setGymDetails] = useState<GymDetails>()
   const [showEntireName, setShowEntireName] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -282,6 +284,10 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
 
   const handleAddToMyGyms = () => {
     if (!gymDetails) return
+    if (userStore.isInMyGyms(gymId)) {
+      showTx("gymDetailsScreen.alreadyAddedToMyGymsLabel")
+      return
+    }
 
     setIsRefreshing(true)
     userStore
@@ -295,6 +301,10 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
 
   const handleRemoveFromMyGyms = () => {
     if (!gymDetails) return
+    if (!userStore.isInMyGyms(gymId)) {
+      showTx("gymDetailsScreen.alreadyRemovedFromMyGymsLabel")
+      return
+    }
 
     setIsRefreshing(true)
     userStore

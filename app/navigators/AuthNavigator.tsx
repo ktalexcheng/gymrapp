@@ -1,6 +1,6 @@
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { AuthErrorTxKey } from "app/data/constants"
-import { translate } from "app/i18n"
+import { useToast } from "app/hooks"
 import {
   EmailVerificationScreen,
   EmailVerifiedScreen,
@@ -11,7 +11,6 @@ import {
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React, { useEffect } from "react"
-import Toast from "react-native-root-toast"
 import { useAuthNavigation } from "./navigationUtilities"
 
 export type AuthStackParamList = {
@@ -32,6 +31,7 @@ const Stack = createNativeStackNavigator<AuthStackParamList>()
 export const AuthNavigator = observer(() => {
   const authNavigation = useAuthNavigation()
   const { authenticationStore: authStore } = useStores()
+  const [showTx] = useToast()
 
   useEffect(() => {
     console.debug("AuthNavigator: Checking if pending verification")
@@ -48,7 +48,7 @@ export const AuthNavigator = observer(() => {
 
   useEffect(() => {
     if (authStore.authError) {
-      Toast.show(translate(AuthErrorTxKey[authStore.authError]))
+      showTx(AuthErrorTxKey[authStore.authError])
     }
   }, [authStore.authError])
 

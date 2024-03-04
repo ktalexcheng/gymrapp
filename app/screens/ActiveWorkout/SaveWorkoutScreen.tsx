@@ -10,6 +10,7 @@ import {
   TextField,
 } from "app/components"
 import { WorkoutSource } from "app/data/constants"
+import { useToast } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
@@ -17,7 +18,6 @@ import { spacing } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
 import { TouchableOpacity, ViewStyle } from "react-native"
-import Toast from "react-native-root-toast"
 import { ExerciseSummary } from "../FinishedWorkout"
 
 const workoutIsHiddenOptions = [
@@ -38,6 +38,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
   const [workoutTitle, setWorkoutTitle] = useState(workoutStore.workoutTitle)
   const [isHidden, setIsHidden] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showTx] = useToast()
 
   function discardWorkout() {
     workoutStore.endWorkout()
@@ -47,7 +48,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
   async function saveWorkout() {
     if (!userStore.user) {
       // This is highly unlikely to happen, but just in case
-      Toast.show(translate("common.error.unknownErrorMessage"))
+      showTx("common.error.unknownErrorMessage")
       return
     }
 
@@ -81,7 +82,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
     } catch (e) {
       setIsSaving(false)
       console.error("SaveWorkoutScreen.saveWorkout error:", e)
-      Toast.show(translate("common.error.unknownErrorMessage"))
+      showTx("common.error.unknownErrorMessage")
     }
   }
 

@@ -19,6 +19,7 @@ import {
   WeightUnit,
 } from "app/data/constants"
 import { Gym, User } from "app/data/types"
+import { useToast } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
@@ -37,7 +38,6 @@ import {
   View,
   ViewStyle,
 } from "react-native"
-import Toast from "react-native-root-toast"
 import { SwitchSettingTile } from "./UserSettingTile"
 
 type EditProfileFormProps = {
@@ -49,6 +49,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   const { saveProfileCompletedCallback, onBusyChange } = props
   const mainNavigator = useMainNavigation()
   const { authenticationStore: authStore, userStore, themeStore } = useStores()
+  const [showTx] = useToast()
 
   // Form input values
   const firstNameInputRef = useRef<TextInput>(null)
@@ -85,7 +86,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
     if (Device.osName === "ios") return undefined
 
     const backPressListener = BackHandler.addEventListener("hardwareBackPress", () => {
-      Toast.show(translate("editProfileForm.backButtonDisabledMessage"))
+      showTx("editProfileForm.backButtonDisabledMessage")
       return true
     })
 

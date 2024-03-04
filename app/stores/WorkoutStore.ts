@@ -157,6 +157,7 @@ export const WorkoutStoreModel = types
      * Function to be called when rest timer is completed.
      */
     const handleEndOfTimer = () => {
+      console.debug("WorkoutStore.handleEndOfTimer called")
       if (intervalId) {
         clearInterval(intervalId)
       }
@@ -185,16 +186,24 @@ export const WorkoutStoreModel = types
     const startRestTimer = () => {
       const now = new Date()
       self.lastSetCompletedTime = now
-      // The sole purpose for this is to trigger an observable change
-      // in the view restTimeRemaining.
+      self.restTimeStartedAt = now
+      self.restTimeRunning = true
+
       intervalId = setInterval(() => {
-        self.setProp("restTimeElapsed", self.restTimeElapsed + 1)
-        if (self.restTimeElapsed === self.restTime) {
+        // We need to calculate elapsed time instead of relying on a counter
+        // just in case app went to background
+        let actualTimeElapsed = 0
+        if (self.restTimeStartedAt) {
+          actualTimeElapsed = differenceInSeconds(new Date(), self.restTimeStartedAt)
+        }
+        self.setProp("restTimeElapsed", actualTimeElapsed)
+
+        // If the app was in background when rest time elapsed, actualTimeElapsed could be greater than restTime
+        // when the app comes back to foreground.
+        if (actualTimeElapsed >= self.restTime) {
           handleEndOfTimer()
         }
       }, 1000)
-      self.restTimeStartedAt = now
-      self.restTimeRunning = true
 
       scheduleRestNotifications()
     }
@@ -239,16 +248,15 @@ export const WorkoutStoreModel = types
 
       let notificationMessage
       if (lastCompletedExercise && lastCompletedSet) {
-        let setDescription
+        let setDescription = `${lastCompletedExercise.exerciseName}`
         switch (lastCompletedSet.volumeType) {
           case ExerciseVolumeType.Reps:
-            setDescription = `${lastCompletedExercise.exerciseName} ${lastCompletedSet.weight} kg x ${lastCompletedSet.reps}`
+            setDescription += ` ${lastCompletedSet.weight ?? 0} kg`
+            setDescription += ` x ${lastCompletedSet.reps}`
             if (lastCompletedSet.rpe) setDescription += ` @ RPE ${lastCompletedSet.rpe}`
             break
           case ExerciseVolumeType.Time:
-            setDescription = `${lastCompletedExercise.exerciseName} ${formatSecondsAsTime(
-              lastCompletedSet.time ?? 0,
-            )}`
+            setDescription += ` ${formatSecondsAsTime(lastCompletedSet.time ?? 0)}`
             break
         }
 
@@ -264,6 +272,7 @@ export const WorkoutStoreModel = types
 
       notificationId = await Notifications.scheduleNotificationAsync({
         content: {
+          priority: Notifications.AndroidNotificationPriority.HIGH,
           title: translate("notification.restTime.restTimeCompletedTitle"),
           body: notificationMessage,
           data: {
@@ -285,10 +294,6 @@ export const WorkoutStoreModel = types
       }
     }
 
-    /**
-     * Just in case the scheduled notification is not presented yet,
-     * we also cancel the scheduled notification.
-     */
     const dismissRestNotifications = async () => {
       if (notificationId) {
         await Notifications.dismissNotificationAsync(notificationId)
@@ -311,20 +316,7 @@ export const WorkoutStoreModel = types
   .views((self) => ({
     get restTimeRemaining() {
       if (!self.restTimeStartedAt || !self.restTimeRunning) return 0
-
-      // We need to recalculate elapsed time just in case app went to background
-      const actualTimeElapsed = differenceInSeconds(new Date(), self.restTimeStartedAt)
-      // Timer has finished
-      if (actualTimeElapsed >= self.restTime) {
-        return 0
-      }
-
-      // Timer still running but self.restTimeElapsed is not updated when app is in background
-      if (actualTimeElapsed > self.restTimeElapsed) {
-        self.setProp("restTimeElapsed", actualTimeElapsed)
-      }
-
-      return self.restTime - actualTimeElapsed
+      return self.restTime - self.restTimeElapsed
     },
     getExerciseLastSet(exerciseOrder: number) {
       const exercise = self.exercises[exerciseOrder]

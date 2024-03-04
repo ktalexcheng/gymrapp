@@ -10,14 +10,12 @@ import {
   UserId,
   UserPreferences,
 } from "app/data/types"
-import { translate } from "app/i18n"
 import { api } from "app/services/api"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { formatName } from "app/utils/formatName"
 import { getNestedField } from "app/utils/getNestedField"
 import { toJS } from "mobx"
 import { flow, getEnv, types } from "mobx-state-tree"
-import Toast from "react-native-root-toast"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 import { FollowRequestsModel, INotificationModel, NotificationModel, UserModel } from "./models"
@@ -359,9 +357,6 @@ export const UserStoreModel = types
     const addToMyGyms = flow(function* (gym: GymDetails) {
       console.debug("UserStore.addToMyGyms called user:", self.user)
       if (isInMyGyms(gym.gymId)) {
-        Toast.show(translate("gymDetailsScreen.alreadyAddedToMyGymsLabel"), {
-          duration: Toast.durations.SHORT,
-        })
         return
       }
 
@@ -373,9 +368,6 @@ export const UserStoreModel = types
     const removeFromMyGyms = flow(function* (gym: Gym | GymDetails) {
       console.debug("UserStore.removeFromMyGyms called user:", self.user)
       if (!isInMyGyms(gym.gymId)) {
-        Toast.show(translate("gymDetailsScreen.alreadyRemovedFromMyGymsLabel"), {
-          duration: Toast.durations.SHORT,
-        })
         return
       }
 

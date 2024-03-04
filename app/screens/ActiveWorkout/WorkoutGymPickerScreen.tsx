@@ -1,14 +1,12 @@
 import { GYM_PROXIMITY_THRESHOLD_METERS } from "app/data/constants"
 import { Gym } from "app/data/types"
-import { useUserLocation } from "app/hooks"
-import { translate } from "app/i18n"
+import { useToast, useUserLocation } from "app/hooks"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
 import { ViewStyle } from "react-native"
-import Toast from "react-native-root-toast"
 import { Screen, Text } from "../../components"
 import { GymPicker } from "../Gym"
 
@@ -17,13 +15,12 @@ export const WorkoutGymPickerScreen: FC = observer(() => {
   const mainNavigation = useMainNavigation()
   const { userLocation, isGettingUserLocation, refreshUserLocation } = useUserLocation()
   const [userSelectedGym, setUserSelectedGym] = useState<Gym>()
+  const [showTx] = useToast()
 
   useEffect(() => {
     const confirmGymSelectionIfClose = async (gym: Gym) => {
       if (isGettingUserLocation) {
-        Toast.show(translate("gymPickerScreen.gettingUserLocationLabel"), {
-          duration: Toast.durations.SHORT,
-        })
+        showTx("gymPickerScreen.gettingUserLocationLabel")
         return
       }
 
@@ -32,9 +29,7 @@ export const WorkoutGymPickerScreen: FC = observer(() => {
           .getDistanceToGym(gym.gymId, userLocation)
           .then((distanceToGym) => {
             if (distanceToGym > GYM_PROXIMITY_THRESHOLD_METERS) {
-              Toast.show(translate("gymPickerScreen.locationTooFarMessage"), {
-                duration: Toast.durations.SHORT,
-              })
+              showTx("gymPickerScreen.locationTooFarMessage")
             } else {
               workoutStore.setGym(gym)
               mainNavigation.goBack()

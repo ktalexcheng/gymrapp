@@ -1,5 +1,5 @@
 {
-  "name": "gym-rapp",
+  "name": "gymrapp",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -128,7 +128,6 @@
     "jest-expo": "~49.0.0",
     "metro-react-native-babel-preset": "^0.77.0",
     "metro-source-map": "^0.80.2",
-    "mocha": "6",
     "patch-package": "6.4.7",
     "postinstall-prepare": "1.0.1",
     "prettier": "2.6.2",

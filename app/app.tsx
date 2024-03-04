@@ -70,7 +70,7 @@ const linking = {
       return url
     }
 
-    // Handle URL from expo push notifications
+    // Handle URL from notifications
     const response = await Notifications.getLastNotificationResponseAsync()
 
     return response?.notification.request.content?.data?.url
@@ -97,6 +97,32 @@ const linking = {
     }
   },
 }
+
+// See: https://docs.expo.dev/versions/latest/sdk/notifications/#handle-incoming-notifications-when-the-app-is
+// This handles notifications received when app is in the foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => {
+    console.debug("Received a notification while app is in the foreground!")
+    return {
+      priority: Notifications.AndroidNotificationPriority.HIGH,
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }
+  },
+  handleSuccess: (notificationId) => {
+    console.debug("Notification handled successfully:", notificationId)
+  },
+})
+
+// // See: https://docs.expo.dev/versions/latest/sdk/notifications/#handle-incoming-notifications-when-the-app-is-1
+// // This handles notifications received when app is in the background
+// TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK_NAME, ({ data, error, executionInfo }) => {
+//   console.debug("Received a notification in the background!", { data, error, executionInfo })
+//   // Do something with the notification data
+// })
+
+// Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK_NAME)
 
 // Firebase emulator setup
 if (__DEV__) {
