@@ -74,12 +74,6 @@ export const Search: FC<SearchProps> = ({
   }
 
   useEffect(() => {
-    setSearchText("")
-    setIsSearching(false)
-    setSearchResult([])
-  }, [searchCallback, renderSearchResultItem, searchResultItemKeyField])
-
-  useEffect(() => {
     if (!isSearchInitialSuggestions && isInvalidSearchText()) return undefined
 
     setIsSearching(true)

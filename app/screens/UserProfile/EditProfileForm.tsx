@@ -49,7 +49,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   const { saveProfileCompletedCallback, onBusyChange } = props
   const mainNavigator = useMainNavigation()
   const { authenticationStore: authStore, userStore, themeStore } = useStores()
-  const [showTx] = useToast()
+  const [toastShowTx] = useToast()
 
   // Form input values
   const firstNameInputRef = useRef<TextInput>(null)
@@ -86,7 +86,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
     if (Device.osName === "ios") return undefined
 
     const backPressListener = BackHandler.addEventListener("hardwareBackPress", () => {
-      showTx("editProfileForm.backButtonDisabledMessage")
+      toastShowTx("editProfileForm.backButtonDisabledMessage")
       return true
     })
 

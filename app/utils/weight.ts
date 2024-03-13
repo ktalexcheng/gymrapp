@@ -3,7 +3,7 @@ import { roundToString } from "app/utils/formatNumber"
 
 export class Weight {
   static LBS_IN_KG = 2.205
-  #weight: number | null
+  #weight: number | null // direct null comparison is critical, !this.#weight will not work because 0 is a valid weight
   #weightUnit: WeightUnit
   #displayUnit: WeightUnit
 
@@ -70,19 +70,19 @@ export class Weight {
   }
 
   get displayWeight() {
-    if (!this.#weight) return null
+    if (this.#weight === null) return null
     return Weight.convertWeight(this.#weight, this.#weightUnit, this.#displayUnit)
   }
 
   get asKg() {
-    if (!this.#weight) return null
+    if (this.#weight === null) return null
     if (this.#weightUnit === WeightUnit.kg) return this.#weight
 
     return this.#weight / Weight.LBS_IN_KG
   }
 
   get asLbs() {
-    if (!this.#weight) return null
+    if (this.#weight === null) return null
     if (this.#weightUnit === WeightUnit.lbs) return this.#weight
 
     return this.#weight * Weight.LBS_IN_KG

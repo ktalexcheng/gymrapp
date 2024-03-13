@@ -220,7 +220,10 @@ const en = {
     addNotesPlaceholder: "Add notes...",
     addSetAction: "Add set",
     addExerciseAction: "Add exercise",
+    noExercisesMessage: "No exercises added yet",
     dialogRemoveIncompletedSets: "Incompleted sets will be removed, are you sure?",
+    noExercisesAddedMessage:
+      "At least one exercise set must be completed for a workout, complete a set to continue or discard the workout.",
     confirmRemoveIncompletedSets: "Yes, remove incompleted sets",
     rejectRemoveIncompletedSets: "Go back",
     dialogSaveWorkout: "Do you want to save this workout?",
@@ -233,10 +236,17 @@ const en = {
     rpeNullLabel: "None",
     ongoingWorkoutLabel: "Ongoing workout",
     gymPickerScreenTitle: "Select gym",
+    emptyFavoriteGymsMessage:
+      "You do not have any favorite gyms yet, favorite a gym to automatically set your workout location.",
+    noFavoriteGymFoundMessage: "Seems like you are not near any of your favorite gyms!",
+    favoriteGymFoundMessage: "Setting workout location to {{gymName}}",
   },
   saveWorkoutScreen: {
     workoutTitleLabel: "Workout title",
     workoutTitlePlaceholder: "New workout",
+    resumeWorkoutButtonLabel: "Resume",
+    discardWorkoutAlertTitle: "Discard workout",
+    discardWorkoutAlertMessage: "Are you sure you want to discard this workout?",
   },
   workoutSettings: {
     setWorkoutVisibilityLabel: "Set workout visibility",
@@ -324,6 +334,7 @@ const en = {
     locationPermissionRequiredMessage:
       "Location permission is required to verify gym location. Please enable location permission in your device settings if you wish to use this feature.",
     goToAppSettingsButtonLabel: "App settings",
+    unableToAcquireLocationMessage: "Unable to acquire current location",
   },
   gymPickerScreen: {
     selectFromMyGymsLabel: "Your favorite gyms",

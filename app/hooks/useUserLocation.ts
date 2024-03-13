@@ -3,33 +3,29 @@ import { translate } from "app/i18n"
 import * as Location from "expo-location"
 import { useEffect, useState } from "react"
 import { Alert, Linking } from "react-native"
+import { useToast } from "./useToast"
 
 /**
  * IMPORTANT: If testing on Android emulator, open Google Maps in order to capture GPS location
  * not sure why this is necessary but the location will never update otherwise
  */
 export const useUserLocation = (): {
-  userLocation: LatLongCoords | null
+  userLocation: LatLongCoords | undefined
   isLocationPermissionGranted: boolean
   isGettingUserLocation: boolean
   refreshUserLocation: () => void
 } => {
-  const [userLocation, setUserLocation] = useState<LatLongCoords | null>(null)
+  const [userLocation, setUserLocation] = useState<LatLongCoords>()
   const [isLocationPermissionGranted, setIsLocationPermissionGranted] = useState(false)
-  const [isGettingUserLocation, setIsGettingUserLocation] = useState(true)
+  const [isGettingUserLocation, setIsGettingUserLocation] = useState(false)
   const [getUserLocationRefreshKey, setGetUserLocationRefreshKey] = useState(0)
-  const [permissionAlertRefreshKey, setPermissionAlertRefreshKey] = useState(0)
+  const [toastShowTx] = useToast()
 
   const refreshUserLocation = () => {
     setGetUserLocationRefreshKey((prev) => prev + 1)
   }
 
   const showPermissionAlert = () => {
-    setPermissionAlertRefreshKey((prev) => prev + 1)
-  }
-
-  useEffect(() => {
-    if (permissionAlertRefreshKey === 0) return
     Alert.alert(
       translate("userLocation.locationPermissionRequiredTitle"),
       translate("userLocation.locationPermissionRequiredMessage"),
@@ -51,27 +47,32 @@ export const useUserLocation = (): {
         },
       ],
     )
-  }, [permissionAlertRefreshKey])
+  }
 
   useEffect(() => {
     const getUserLocation = async () => {
-      setIsGettingUserLocation(true)
+      if (isGettingUserLocation) {
+        return
+      }
 
+      setIsGettingUserLocation(true)
       try {
         const { status } = await Location.requestForegroundPermissionsAsync()
         if (status !== Location.PermissionStatus.GRANTED) {
-          console.debug("useUserLocation [getUserLocationRefreshKey] status !== granted")
           setIsLocationPermissionGranted(false)
-          setUserLocation(null)
+          setUserLocation(undefined)
           showPermissionAlert()
           return
+        } else {
+          setIsLocationPermissionGranted(true)
         }
 
-        const location = await Location.getCurrentPositionAsync({})
-        console.debug("useUserLocation [getUserLocationRefreshKey] location:", location)
+        toastShowTx("userLocation.gettingUserLocationLabel")
+        const location = await Location.getCurrentPositionAsync()
         setUserLocation({ lat: location.coords.latitude, lng: location.coords.longitude })
       } catch (e) {
-        console.error("useUserLocation [getUserLocationRefreshKey] error:", e)
+        console.error("useUserLocation.useEffect [getUserLocationRefreshKey] error:", e)
+        toastShowTx("userLocation.unableToAcquireLocationMessage")
       } finally {
         setIsGettingUserLocation(false)
       }

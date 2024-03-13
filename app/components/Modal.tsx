@@ -2,15 +2,15 @@ import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import {
-  Modal as RCModal,
-  ModalProps as RCModalProps,
+  Modal as RNModal,
+  ModalProps as RNModalProps,
   StyleProp,
   TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native"
 
-interface ModalProps extends RCModalProps {
+interface ModalProps extends RNModalProps {
   style?: StyleProp<ViewStyle>
   contentContainerStyle?: StyleProp<ViewStyle>
 }
@@ -30,11 +30,13 @@ export const Modal: FC<ModalProps> = observer((props: ModalProps) => {
   const $contentContainer = [themeStore.styles("modalContent"), $contentContainerStyleOverride]
 
   return (
-    <RCModal {...rest} onRequestClose={onRequestClose}>
-      <TouchableOpacity style={$container} onPress={onRequestClose}>
-        <View style={$contentContainer}>{children}</View>
+    <RNModal {...rest} onRequestClose={onRequestClose}>
+      <TouchableOpacity style={$container} activeOpacity={1} onPress={onRequestClose}>
+        <TouchableOpacity activeOpacity={1}>
+          <View style={$contentContainer}>{children}</View>
+        </TouchableOpacity>
       </TouchableOpacity>
-    </RCModal>
+    </RNModal>
   )
 })
 

@@ -31,7 +31,7 @@ const Stack = createNativeStackNavigator<AuthStackParamList>()
 export const AuthNavigator = observer(() => {
   const authNavigation = useAuthNavigation()
   const { authenticationStore: authStore } = useStores()
-  const [showTx] = useToast()
+  const [toastShowTx] = useToast()
 
   useEffect(() => {
     console.debug("AuthNavigator: Checking if pending verification")
@@ -48,7 +48,7 @@ export const AuthNavigator = observer(() => {
 
   useEffect(() => {
     if (authStore.authError) {
-      showTx(AuthErrorTxKey[authStore.authError])
+      toastShowTx(AuthErrorTxKey[authStore.authError])
     }
   }, [authStore.authError])
 

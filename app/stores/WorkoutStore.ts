@@ -83,30 +83,26 @@ export const WorkoutStoreModel = types
     get isAllSetsCompleted() {
       if (!self.exercises.length) return false
 
-      let allSetsCompleted = true
       for (const e of self.exercises.values()) {
+        if (!e.setsPerformed.length) return false
+
         for (const s of e.setsPerformed) {
           if (!s.isCompleted) {
-            allSetsCompleted = false
-            break
+            return false
           }
         }
-        if (!allSetsCompleted) break
       }
 
-      return allSetsCompleted
+      return true
     },
     get isEmptyWorkout() {
       // If there is at least one completed set, then the workout is not empty
-      for (const e of self.exercises.values()) {
-        for (const s of e.setsPerformed) {
-          if (s.isCompleted) {
-            return true
-          }
-        }
-      }
+      return !self.exercises.some((e) => e.setsPerformed.some((s) => s.isCompleted))
+    },
+    get timeElapsed() {
+      if (!self.startTime) return -1
 
-      return false
+      return differenceInSeconds(new Date(), self.startTime)
     },
     get timeElapsedFormatted() {
       if (!self.startTime) return "00:00"
@@ -347,7 +343,13 @@ export const WorkoutStoreModel = types
       })
     }
 
-    function setGym(gym: Gym) {
+    function setGym(gym?: Gym) {
+      if (!gym) {
+        self.performedAtGymId = undefined
+        self.performedAtGymName = undefined
+        return
+      }
+
       self.performedAtGymId = gym.gymId
       self.performedAtGymName = gym.gymName
     }
@@ -421,7 +423,7 @@ export const WorkoutStoreModel = types
             ...e,
             volumeType: ExerciseVolumeType.Reps,
             bestSet,
-            datePerformed: self.startTime! ?? new Date(),
+            datePerformed: self.startTime ?? new Date(),
             totalReps,
             totalVolume,
             newRecords,
@@ -490,6 +492,7 @@ export const WorkoutStoreModel = types
 
     function resumeWorkout() {
       self.endTime = undefined
+      self.inProgress = true
     }
 
     function endWorkout() {

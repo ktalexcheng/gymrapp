@@ -13,7 +13,14 @@ import {
 import { spacing, typography } from "../theme"
 import { Text, TextProps } from "./Text"
 
-type Presets = "default" | "filled" | "reversed" | "text" | "menuItem"
+type Presets =
+  | "default"
+  | "filled"
+  | "reversed"
+  | "text"
+  | "menuItem"
+  | "dangerOutline"
+  | "dangerText" // TODO: default, filled, reversed don't have clear distinction
 
 export interface ButtonAccessoryProps {
   style: StyleProp<any>
@@ -98,7 +105,7 @@ export const Button = observer((props: ButtonProps) => {
 
   const { themeStore } = useStores()
 
-  const $viewPresets = {
+  const $viewPresets: Record<Presets, StyleProp<ViewStyle>> = {
     default: [
       $baseViewStyle,
       {
@@ -124,6 +131,18 @@ export const Button = observer((props: ButtonProps) => {
       $baseViewStyle,
       { backgroundColor: null, justifyContent: "flex-start" },
     ] as StyleProp<ViewStyle>,
+
+    // outline: [
+    //   $baseViewStyle,
+    //   { borderWidth: 1, borderColor: themeStore.colors("actionable") },
+    // ] as StyleProp<ViewStyle>,
+
+    dangerOutline: [
+      $baseViewStyle,
+      { borderWidth: 1, borderColor: themeStore.colors("danger") },
+    ] as StyleProp<ViewStyle>,
+
+    dangerText: [$baseViewStyle, { backgroundColor: null }] as StyleProp<ViewStyle>,
   }
 
   const $textPresets: Record<Presets, StyleProp<TextStyle>> = {
@@ -132,6 +151,9 @@ export const Button = observer((props: ButtonProps) => {
     reversed: [$baseTextStyle, { color: themeStore.palette("neutral100") }],
     text: [$baseTextStyle, { color: themeStore.colors("actionable") }],
     menuItem: [$baseTextStyle, { color: themeStore.colors("text"), textAlign: "left" }],
+    // outline: [$baseTextStyle, { color: themeStore.colors("actionable") }],
+    dangerOutline: [$baseTextStyle, { color: themeStore.colors("danger") }],
+    dangerText: [$baseTextStyle, { color: themeStore.colors("danger") }],
   }
 
   const $pressedViewPresets: Record<Presets, StyleProp<ViewStyle>> = {
@@ -140,14 +162,20 @@ export const Button = observer((props: ButtonProps) => {
     reversed: { backgroundColor: themeStore.palette("neutral700") },
     text: {},
     menuItem: {},
+    // outline: {},
+    dangerOutline: {},
+    dangerText: {},
   }
 
   const $pressedTextPresets: Record<Presets, StyleProp<TextStyle>> = {
     default: { opacity: 0.9 },
     filled: { opacity: 0.9 },
     reversed: { opacity: 0.9 },
-    text: { color: themeStore.colors("actionablePressed"), opacity: 0.9 },
-    menuItem: { color: themeStore.colors("textDim"), opacity: 0.9 },
+    text: { color: themeStore.colors("actionablePressed"), opacity: 0.8 },
+    menuItem: { color: themeStore.colors("textDim"), opacity: 0.8 },
+    // outline: { color: themeStore.colors("actionablePressed"), opacity: 0.8 },
+    dangerOutline: { color: themeStore.colors("danger"), opacity: 0.8 },
+    dangerText: { color: themeStore.colors("danger"), opacity: 0.8 },
   }
 
   const preset: Presets = props.preset && $viewPresets[props.preset] ? props.preset : "default"

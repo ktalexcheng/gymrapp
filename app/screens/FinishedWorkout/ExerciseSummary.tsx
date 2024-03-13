@@ -1,4 +1,4 @@
-import { RowView, Spacer, Text } from "app/components"
+import { Icon, RowView, Spacer, Text } from "app/components"
 import { ExerciseSetType, ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
@@ -31,30 +31,37 @@ export const ExerciseSummary = (props: ExerciseSummaryProps) => {
   }
 
   function renderSetSummary(set: ISetPerformedModel, setOrder: number) {
-    let summaryText = ""
+    let summaryText = "-"
     switch (set.volumeType) {
       case ExerciseVolumeType.Reps:
-        summaryText += `${new Weight(
+        summaryText = `${new Weight(
           set.weight ?? 0,
           WeightUnit.kg,
           userWeightUnit,
-        ).formattedDisplayWeight(1)} ${translate(weightUnitTx)} x ${set.reps}`
+        ).formattedDisplayWeight(1)} ${translate(weightUnitTx)}  x ${set.reps ?? 0}`
         if (set.rpe) summaryText += ` @ ${set.rpe}`
         break
 
       case ExerciseVolumeType.Time:
-        if (set.time) summaryText += formatSecondsAsTime(set.time)
+        if (set.time) summaryText = formatSecondsAsTime(set.time)
         break
     }
 
+    const $setSummaryText: ViewStyle = {
+      alignItems: "center",
+      justifyContent: "space-between",
+      opacity: set.isCompleted ? 1 : 0.5,
+    }
+
     return (
-      <RowView key={setOrder}>
+      <RowView key={setOrder} style={$setSummaryText}>
         <RowView>
           <Text style={{ width: spacing.extraLarge }}>
             {set.setType === ExerciseSetType.Normal ? setOrder + 1 : set.setType}
           </Text>
           <Text>{summaryText}</Text>
         </RowView>
+        <Icon name={set.isCompleted ? "checkmark" : "close"} size={16} />
       </RowView>
     )
   }

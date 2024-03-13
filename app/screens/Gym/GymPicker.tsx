@@ -75,7 +75,11 @@ export const GymPicker: FC<GymPickerProps> = observer((props: GymPickerProps) =>
             )}
           </Accordion.Trigger>
           <Accordion.Content unstyled style={$gymSearchContainer}>
-            <GymSearch />
+            <GymSearch
+              onPressGymResultOverride={(gym) => {
+                onGymSelected(gym)
+              }}
+            />
           </Accordion.Content>
         </Accordion.Item>
       </Accordion>

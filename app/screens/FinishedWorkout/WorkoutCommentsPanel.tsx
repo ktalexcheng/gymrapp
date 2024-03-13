@@ -101,7 +101,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [selectedComment, setSelectedComment] = useState<IWorkoutCommentModel>()
   const [isCommentDeleteConfirmation, setIsCommentDeleteConfirmation] = useState(false)
-  const [showTx] = useToast()
+  const [toastShowTx] = useToast()
 
   useEffect(() => {
     commentInputRef.current?.focus()
@@ -236,7 +236,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
             if (!selectedComment) return
 
             Clipboard.setStringAsync(selectedComment.comment).then(() => {
-              showTx("common.copiedToClipboard")
+              toastShowTx("common.copiedToClipboard")
             })
           }}
         />

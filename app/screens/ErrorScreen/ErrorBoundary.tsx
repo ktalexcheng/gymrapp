@@ -36,7 +36,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
     // You can also log error messages to an error reporting service here
     // This is a great place to put BugSnag, Sentry, crashlytics, etc:
-    storage.load(ROOT_STATE_STORAGE_KEY).then((snapshot) => {
+    storage.loadString(ROOT_STATE_STORAGE_KEY).then((snapshot) => {
       crashlytics().log(`This is the root store state when the error occurred: ${snapshot}`)
       crashlytics().recordError(error)
     })

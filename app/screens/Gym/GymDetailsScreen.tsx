@@ -231,7 +231,7 @@ type GymDetailsScreenProps = NativeStackScreenProps<MainStackParamList, "GymDeta
 export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
   const gymId = route.params.gymId
   const { gymStore, userStore } = useStores()
-  const [showTx] = useToast()
+  const [toastShowTx] = useToast()
   const [gymDetails, setGymDetails] = useState<GymDetails>()
   const [showEntireName, setShowEntireName] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -285,7 +285,7 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
   const handleAddToMyGyms = () => {
     if (!gymDetails) return
     if (userStore.isInMyGyms(gymId)) {
-      showTx("gymDetailsScreen.alreadyAddedToMyGymsLabel")
+      toastShowTx("gymDetailsScreen.alreadyAddedToMyGymsLabel")
       return
     }
 
@@ -302,7 +302,7 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
   const handleRemoveFromMyGyms = () => {
     if (!gymDetails) return
     if (!userStore.isInMyGyms(gymId)) {
-      showTx("gymDetailsScreen.alreadyRemovedFromMyGymsLabel")
+      toastShowTx("gymDetailsScreen.alreadyRemovedFromMyGymsLabel")
       return
     }
 

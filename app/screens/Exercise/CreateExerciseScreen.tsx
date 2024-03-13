@@ -18,7 +18,7 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
   const [exerciseName, setExerciseName] = useState("")
   const { exerciseStore } = useStores()
   const navigation = useNavigation()
-  const [showTx] = useToast()
+  const [toastShowTx] = useToast()
 
   async function addExercise() {
     console.debug("CreateExerciseScreen.addExercise:", {
@@ -28,7 +28,7 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
       exerciseName,
     })
     if (!activityName || !exerciseCat1 || !volumeType || !exerciseName) {
-      showTx("createExerciseScreen.requiredFieldsMissingMessage")
+      toastShowTx("createExerciseScreen.requiredFieldsMissingMessage")
       return
     }
 

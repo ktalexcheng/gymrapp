@@ -1,11 +1,12 @@
 import { GYM_PROXIMITY_THRESHOLD_METERS } from "app/data/constants"
 import { Gym } from "app/data/types"
-import { useToast, useUserLocation } from "app/hooks"
+import { useToast } from "app/hooks"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
+import { getUserLocation } from "app/utils/getUserLocation"
 import { observer } from "mobx-react-lite"
-import React, { FC, useEffect, useState } from "react"
+import React, { FC, useState } from "react"
 import { ViewStyle } from "react-native"
 import { Screen, Text } from "../../components"
 import { GymPicker } from "../Gym"
@@ -13,47 +14,46 @@ import { GymPicker } from "../Gym"
 export const WorkoutGymPickerScreen: FC = observer(() => {
   const { workoutStore, gymStore } = useStores()
   const mainNavigation = useMainNavigation()
-  const { userLocation, isGettingUserLocation, refreshUserLocation } = useUserLocation()
-  const [userSelectedGym, setUserSelectedGym] = useState<Gym>()
-  const [showTx] = useToast()
+  const [toastShowTx] = useToast()
+  const [isBusy, setIsBusy] = useState(false)
 
-  useEffect(() => {
-    const confirmGymSelectionIfClose = async (gym: Gym) => {
-      if (isGettingUserLocation) {
-        showTx("gymPickerScreen.gettingUserLocationLabel")
+  async function checkProximityAndSetGym(gym: Gym) {
+    setIsBusy(true)
+
+    try {
+      const userLocation = await getUserLocation()
+      console.debug("checkProximityAndSetGym", { userLocation })
+      if (!userLocation || !userLocation.location) {
+        toastShowTx("userLocation.unableToAcquireLocationMessage")
         return
       }
 
-      if (userLocation) {
-        gymStore
-          .getDistanceToGym(gym.gymId, userLocation)
-          .then((distanceToGym) => {
-            if (distanceToGym > GYM_PROXIMITY_THRESHOLD_METERS) {
-              showTx("gymPickerScreen.locationTooFarMessage")
-            } else {
-              workoutStore.setGym(gym)
-              mainNavigation.goBack()
-            }
-          })
-          .catch((e) => {
-            console.error("GymPickerScreen.isNearGym error:", e)
-          })
+      const distanceToGym = await gymStore.getDistanceToGym(gym.gymId, userLocation.location)
+      console.debug("checkProximityAndSetGym", { distanceToGym })
+      if (distanceToGym > GYM_PROXIMITY_THRESHOLD_METERS) {
+        toastShowTx("gymPickerScreen.locationTooFarMessage")
       } else {
-        console.debug("GymPickerScreen.setWorkoutGym: user location is unavailable, refreshing")
-        refreshUserLocation()
+        workoutStore.setGym(gym)
+        mainNavigation.goBack()
       }
+    } catch (e) {
+      console.error("ActiveWorkoutScreen.checkProximityAndSetGym error:", e)
+    } finally {
+      setIsBusy(false)
     }
-
-    if (userSelectedGym) confirmGymSelectionIfClose(userSelectedGym)
-  }, [userLocation, isGettingUserLocation, userSelectedGym])
+  }
 
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} preset="fixed" contentContainerStyle={$container}>
+    <Screen
+      safeAreaEdges={["top", "bottom"]}
+      preset="fixed"
+      contentContainerStyle={$container}
+      isBusy={isBusy}
+    >
       <Text tx="activeWorkoutScreen.gymPickerScreenTitle" preset="heading" />
       <GymPicker
         onGymSelected={(gym) => {
-          refreshUserLocation()
-          setUserSelectedGym(gym)
+          checkProximityAndSetGym(gym)
         }}
       />
     </Screen>

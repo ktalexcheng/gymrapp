@@ -1,10 +1,11 @@
 import { useFocusEffect } from "@react-navigation/native"
 import { Gym } from "app/data/types"
-import { useUserLocation } from "app/hooks"
+import { useToast } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { formatSecondsAsTime } from "app/utils/formatTime"
+import { getUserLocation } from "app/utils/getUserLocation"
 import { observer } from "mobx-react-lite"
 import React, { FC, useCallback, useEffect, useState } from "react"
 import { AppState, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
@@ -13,58 +14,52 @@ import { useStores } from "../../stores"
 import { fontSize, spacing, styles } from "../../theme"
 import { ExerciseEntry } from "./ExerciseEntry"
 
-type SaveWorkoutDialogProps = {
+type RemoveIncompleteSetsModalProps = {
   visible: boolean
-  onSave: () => void
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+const RemoveIncompleteSetsModal: FC<RemoveIncompleteSetsModalProps> = observer(
+  function RemoveIncompleteSetsModal(props: RemoveIncompleteSetsModalProps) {
+    const { visible, onConfirm, onCancel } = props
+
+    return (
+      <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onCancel}>
+        <Text tx="activeWorkoutScreen.dialogRemoveIncompletedSets" />
+        <Spacer type="vertical" size="medium" />
+        <Button
+          preset="text"
+          tx="activeWorkoutScreen.confirmRemoveIncompletedSets"
+          onPress={onConfirm}
+        />
+        <Button
+          preset="text"
+          tx="activeWorkoutScreen.rejectRemoveIncompletedSets"
+          onPress={onCancel}
+        />
+      </Modal>
+    )
+  },
+)
+
+type EmptyWorkoutModalProps = {
+  visible: boolean
   onDiscard: () => void
   onCancel: () => void
 }
 
-const SaveWorkoutDialog: FC<SaveWorkoutDialogProps> = observer(function SaveWorkoutDialog(
-  props: SaveWorkoutDialogProps,
+const EmptyWorkoutModal: FC<EmptyWorkoutModalProps> = observer(function EmptyWorkoutModal(
+  props: EmptyWorkoutModalProps,
 ) {
-  const { visible, onSave, onDiscard, onCancel } = props
-  const { workoutStore } = useStores()
-  const [allSetsCompleted, setAllSetsCompleted] = useState(workoutStore.isAllSetsCompleted)
-
-  useEffect(() => {
-    setAllSetsCompleted(workoutStore.isAllSetsCompleted)
-  }, [workoutStore.isAllSetsCompleted])
-
-  const renderModalContent = () => {
-    if (allSetsCompleted) {
-      return (
-        <>
-          <Text tx="activeWorkoutScreen.dialogSaveWorkout" />
-          <Spacer type="vertical" size="medium" />
-          <Button preset="text" tx="activeWorkoutScreen.saveWorkout" onPress={onSave} />
-          <Button preset="text" tx="activeWorkoutScreen.discardWorkout" onPress={onDiscard} />
-          <Button preset="text" tx="activeWorkoutScreen.cancelAction" onPress={onCancel} />
-        </>
-      )
-    } else {
-      return (
-        <>
-          <Text tx="activeWorkoutScreen.dialogRemoveIncompletedSets" />
-          <Spacer type="vertical" size="medium" />
-          <Button
-            preset="text"
-            tx="activeWorkoutScreen.confirmRemoveIncompletedSets"
-            onPress={() => setAllSetsCompleted(true)}
-          />
-          <Button
-            preset="text"
-            tx="activeWorkoutScreen.rejectRemoveIncompletedSets"
-            onPress={onCancel}
-          />
-        </>
-      )
-    }
-  }
+  const { visible, onDiscard, onCancel } = props
 
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onCancel}>
-      {renderModalContent()}
+      <Text tx="activeWorkoutScreen.noExercisesAddedMessage" />
+      <Spacer type="vertical" size="medium" />
+      <Button preset="text" tx="common.ok" onPress={onCancel} />
+      <Button preset="dangerText" tx="activeWorkoutScreen.discardWorkout" onPress={onDiscard} />
     </Modal>
   )
 })
@@ -119,42 +114,59 @@ interface ActiveWorkoutScreenProps extends MainStackScreenProps<"ActiveWorkout">
 export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
   function ActiveWorkoutScreen({ navigation }) {
     const { userStore, workoutStore, gymStore, themeStore } = useStores()
-    const [showSaveDialog, setShowSaveDialog] = useState(false)
+    const [showEmptyWorkoutModal, setShowEmptyWorkoutModal] = useState(false)
+    const [showRemoveIncompleteSetsModal, setShowRemoveIncompleteSetsModal] = useState(false)
     const [workoutTitle, setWorkoutTitle] = useState(workoutStore.workoutTitle)
     const [timeElapsed, setTimeElapsed] = useState("00:00:00")
     const [timeSinceLastSet, setTimeSinceLastSet] = useState("00:00")
     const mainNavigation = useMainNavigation()
-    const { userLocation, isLocationPermissionGranted, isGettingUserLocation } = useUserLocation()
-    const [gym, setGym] = useState<Gym>()
+    const [toastShowTx] = useToast()
 
     useEffect(() => {
-      console.debug("ActiveWorkoutScreen.useEffect getClosestGym called")
-      if (isLocationPermissionGranted && !isGettingUserLocation) {
+      const checkNearestFavoriteGym = async () => {
+        const userLocation = await getUserLocation()
+        if (!userLocation || !userLocation.location) {
+          toastShowTx("userLocation.unableToAcquireLocationMessage")
+          return
+        }
+
         const userMyGyms = userStore.getProp<Gym[]>("user.myGyms")
-        if (userMyGyms && userMyGyms.length > 0 && userLocation) {
+        if (userMyGyms && userMyGyms.length > 0) {
           gymStore
             .getClosestGym(
-              userLocation,
+              userLocation.location,
               userMyGyms.map((gym) => gym.gymId),
             )
             .then((closestGym) => {
               if (closestGym.gym) {
-                setGym(closestGym.gym)
+                toastShowTx("activeWorkoutScreen.favoriteGymFoundMessage", {
+                  txOptions: { gymName: closestGym.gym.gymName },
+                })
+                // setGym(closestGym.gym)
                 workoutStore.setGym(closestGym.gym)
+              } else {
+                toastShowTx("activeWorkoutScreen.noFavoriteGymFoundMessage")
               }
             })
             .catch((e) => {
               console.error("ActiveWorkoutScreen.useEffect getClosestGym error:", e)
             })
+        } else {
+          toastShowTx("activeWorkoutScreen.emptyFavoriteGymsMessage")
         }
       }
-    }, [isLocationPermissionGranted, isGettingUserLocation])
 
-    useEffect(() => {
-      if (workoutStore.performedAtGymId && workoutStore.performedAtGymName) {
-        setGym({ gymId: workoutStore.performedAtGymId, gymName: workoutStore.performedAtGymName })
+      // To prevent overriding the gym set by the user and because the screen can be unmounted and mounted multiple times,
+      // we only try this within the first 3 seconds of the start of the workout
+      console.debug("ActiveWorkoutScreen.useEffect called", {
+        performedAtGymId: workoutStore.performedAtGymId,
+        timeElapsed: workoutStore.timeElapsed,
+      })
+      if (!workoutStore.performedAtGymId && workoutStore.timeElapsed < 3) {
+        console.debug("ActiveWorkoutScreen.useEffect getting closest gym")
+        checkNearestFavoriteGym()
       }
-    }, [workoutStore.performedAtGymId, workoutStore.performedAtGymName])
+    }, [])
 
     // @ts-ignore
     useEffect(() => {
@@ -206,26 +218,41 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
       workoutStore.setProp("workoutTitle", value)
     }
 
-    function finishWorkout() {
-      workoutStore.pauseWorkout()
-      setShowSaveDialog(true)
+    function hideAllModals() {
+      setShowEmptyWorkoutModal(false)
+      setShowRemoveIncompleteSetsModal(false)
     }
 
-    async function saveWorkout() {
-      setShowSaveDialog(false)
+    function finishWorkout() {
+      if (workoutStore.isEmptyWorkout) {
+        setShowEmptyWorkoutModal(true)
+        return
+      }
+
+      workoutStore.pauseWorkout()
+      if (!workoutStore.isAllSetsCompleted) {
+        setShowRemoveIncompleteSetsModal(true)
+      } else {
+        workoutStore.endWorkout()
+        mainNavigation.navigate("SaveWorkout")
+      }
+    }
+
+    function onConfirmRemoveIncompleteSets() {
       workoutStore.endWorkout()
+      hideAllModals()
       mainNavigation.navigate("SaveWorkout")
     }
 
     function discardWorkout() {
       workoutStore.endWorkout()
-      setShowSaveDialog(false)
+      hideAllModals()
       mainNavigation.navigate("HomeTabNavigator")
     }
 
-    function cancelEndWorkout() {
+    function cancelFinishWorkout() {
       workoutStore.resumeWorkout()
-      setShowSaveDialog(false)
+      hideAllModals()
     }
 
     function addExercise() {
@@ -274,12 +301,16 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
 
     return (
       <Screen safeAreaEdges={["top", "bottom"]} preset="scroll" contentContainerStyle={$container}>
-        {/* Save workout confirmation dialog */}
-        <SaveWorkoutDialog
-          visible={showSaveDialog}
-          onSave={saveWorkout}
+        <EmptyWorkoutModal
+          visible={showEmptyWorkoutModal}
           onDiscard={discardWorkout}
-          onCancel={cancelEndWorkout}
+          onCancel={cancelFinishWorkout}
+        />
+
+        <RemoveIncompleteSetsModal
+          visible={showRemoveIncompleteSetsModal}
+          onConfirm={onConfirmRemoveIncompleteSets}
+          onCancel={cancelFinishWorkout}
         />
 
         <RowView style={$workoutHeaderRow}>
@@ -318,16 +349,25 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
         </RowView>
 
         <RowView style={styles.alignCenter}>
-          <Icon name="location-sharp" color={themeStore.colors("foreground")} size={30} />
           <View style={styles.flex1}>
             <Button
               preset="text"
               numberOfLines={1}
               onPress={() => mainNavigation.navigate("WorkoutGymPicker")}
-              text={gym ? gym.gymName : translate("activeWorkoutScreen.setCurrentGymLabel")}
+              text={
+                workoutStore.performedAtGymName
+                  ? workoutStore.performedAtGymName
+                  : translate("activeWorkoutScreen.setCurrentGymLabel")
+              }
               style={$gymTextButton}
+              LeftAccessory={() => (
+                <Icon name="location-sharp" color={themeStore.colors("foreground")} size={30} />
+              )}
             />
           </View>
+          {workoutStore.performedAtGymId && (
+            <Icon name="close-outline" onPress={() => workoutStore.setGym(undefined)} size={30} />
+          )}
         </RowView>
 
         <RowView style={$metricsRow}>

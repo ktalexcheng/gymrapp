@@ -17,7 +17,7 @@ import { useStores } from "app/stores"
 import { spacing } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
-import { TouchableOpacity, ViewStyle } from "react-native"
+import { Alert, TouchableOpacity, ViewStyle } from "react-native"
 import { ExerciseSummary } from "../FinishedWorkout"
 
 const workoutIsHiddenOptions = [
@@ -33,22 +33,42 @@ const workoutIsHiddenOptions = [
 
 export const SaveWorkoutScreen: FC = observer(() => {
   const mainNavigation = useMainNavigation()
-  const { workoutStore, exerciseStore, feedStore, userStore } = useStores()
+  const { workoutStore, exerciseStore, feedStore, userStore, themeStore } = useStores()
   const [showEditTitleModal, setShowEditTitleModal] = useState(false)
   const [workoutTitle, setWorkoutTitle] = useState(workoutStore.workoutTitle)
   const [isHidden, setIsHidden] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [showTx] = useToast()
+  const [toastShowTx] = useToast()
+
+  function resumeWorkout() {
+    workoutStore.resumeWorkout()
+    mainNavigation.goBack()
+  }
 
   function discardWorkout() {
-    workoutStore.endWorkout()
-    mainNavigation.navigate("HomeTabNavigator")
+    Alert.alert(
+      translate("saveWorkoutScreen.discardWorkoutAlertTitle"),
+      translate("saveWorkoutScreen.discardWorkoutAlertMessage"),
+      [
+        {
+          text: translate("common.cancel"),
+          style: "cancel",
+        },
+        {
+          text: translate("common.discard"),
+          onPress: () => {
+            workoutStore.endWorkout()
+            mainNavigation.navigate("HomeTabNavigator")
+          },
+        },
+      ],
+    )
   }
 
   async function saveWorkout() {
     if (!userStore.user) {
       // This is highly unlikely to happen, but just in case
-      showTx("common.error.unknownErrorMessage")
+      toastShowTx("common.error.unknownErrorMessage")
       return
     }
 
@@ -82,7 +102,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
     } catch (e) {
       setIsSaving(false)
       console.error("SaveWorkoutScreen.saveWorkout error:", e)
-      showTx("common.error.unknownErrorMessage")
+      toastShowTx("common.error.unknownErrorMessage")
     }
   }
 
@@ -126,7 +146,15 @@ export const SaveWorkoutScreen: FC = observer(() => {
       </Modal>
 
       <RowView style={$saveButtonContainer}>
-        <Button preset="text" onPress={discardWorkout} tx="common.discard" />
+        <Button
+          preset="text"
+          onPress={resumeWorkout}
+          tx="saveWorkoutScreen.resumeWorkoutButtonLabel"
+          style={$resumeButtonContianer}
+          LeftAccessory={() => (
+            <Icon name="chevron-back" size={30} color={themeStore.colors("actionable")} />
+          )}
+        />
         <Button preset="text" onPress={saveWorkout} tx="common.save" />
       </RowView>
       <TouchableOpacity onPress={handleShowEditTitleModal}>
@@ -148,6 +176,8 @@ export const SaveWorkoutScreen: FC = observer(() => {
       {workoutStore.exercises.map((e, _) => {
         return <ExerciseSummary key={e.exerciseId} exercise={e} />
       })}
+      <Spacer type="vertical" size="medium" />
+      <Button preset="dangerOutline" onPress={discardWorkout} tx="common.discard" />
     </Screen>
   )
 })
@@ -158,4 +188,8 @@ const $container: ViewStyle = {
 
 const $saveButtonContainer: ViewStyle = {
   justifyContent: "space-between",
+}
+
+const $resumeButtonContianer: ViewStyle = {
+  padding: 0,
 }

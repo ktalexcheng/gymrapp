@@ -10,23 +10,29 @@ import { TouchableOpacity } from "react-native-gesture-handler"
 
 interface GymSearchResultItemProps {
   gym: GymSearchResult
+  onPressGymResultOverride?: (gym: GymSearchResult) => void
 }
 
-const GymSearchResultItem: FC<GymSearchResultItemProps> = ({ gym }: GymSearchResultItemProps) => {
+const GymSearchResultItem: FC<GymSearchResultItemProps> = (props: GymSearchResultItemProps) => {
+  const { gym, onPressGymResultOverride } = props
   const mainNavigator = useMainNavigation()
+
+  const handlePress = () => {
+    if (onPressGymResultOverride) {
+      onPressGymResultOverride(gym)
+    } else {
+      mainNavigator.navigate("GymDetails", { gymId: gym.gymId })
+    }
+  }
 
   console.debug("GymSearchResultItem gym:", gym)
   return (
-    <TouchableOpacity onPress={() => mainNavigator.navigate("GymDetails", { gymId: gym.gymId })}>
+    <TouchableOpacity onPress={handlePress}>
       <RowView style={$gymResultItemContainer}>
         <View style={styles.alignCenter}>
           <Icon name="business" size={36} />
           <Spacer type="vertical" size="tiny" />
           <RowView style={[styles.alignCenter, styles.justifyCenter]}>
-            {/* <Icon name="barbell" size={16} />
-            <Spacer type="horizontal" size="tiny" />
-            <Text size="xxs">{simplifyNumber(gym.gymWorkoutsCount ?? 0)}</Text>
-            <Spacer type="horizontal" size="tiny" /> */}
             <Icon name="people" size={16} />
             <Spacer type="horizontal" size="tiny" />
             <Text size="xxs">{simplifyNumber(gym.gymMembersCount ?? 0)}</Text>
@@ -65,13 +71,18 @@ const GymSearchPromptComponent = () => {
   )
 }
 
-export const GymSearch: FC = () => {
+interface GymSearchProps {
+  onPressGymResultOverride?: (gym: GymSearchResult) => void
+}
+
+export const GymSearch: FC<GymSearchProps> = (props: GymSearchProps) => {
+  const { onPressGymResultOverride } = props
   const searchCallback = (searchText: string) => {
     return api.searchGyms(searchText)
   }
 
   const renderGymResultItem = ({ item }: { item: GymSearchResult }) => (
-    <GymSearchResultItem gym={item} />
+    <GymSearchResultItem gym={item} onPressGymResultOverride={onPressGymResultOverride} />
   )
 
   return (

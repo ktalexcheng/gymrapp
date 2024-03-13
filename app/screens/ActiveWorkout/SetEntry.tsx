@@ -481,6 +481,15 @@ export type SetEntryProps = {
 }
 
 export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
+  // When we remove incomplete sets before submitting the workout,
+  // it is possible that the exerciseOrder + setOrder combination was incomplete and destroyed.
+  // The SetEntry component will yet to be removed from the UI,
+  // and will throw an error when trying to access the destroyed set,
+  // so we need to check if the set still exists before rendering.
+  const { workoutStore } = useStores()
+  const thisSet = workoutStore.exercises.at(props.exerciseOrder)?.setsPerformed?.[props.setOrder]
+  if (!thisSet) return null
+
   switch (props.volumeType) {
     case ExerciseVolumeType.Reps:
       return <RepsSetEntry {...props} />
