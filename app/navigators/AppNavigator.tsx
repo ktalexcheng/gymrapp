@@ -12,7 +12,7 @@ import { Icon, RowView, Spacer, Text } from "app/components"
 import { AppColorScheme } from "app/data/constants"
 import { translate } from "app/i18n"
 import { LoadingScreen } from "app/screens"
-import { api, storage } from "app/services/api"
+import { api } from "app/services/api"
 import { spacing } from "app/theme"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
 import Constants from "expo-constants"
@@ -105,12 +105,12 @@ const AppStack = observer(() => {
     // Check for updates
     const checkForUpdates = async () => {
       try {
-        const appLastUpdated = await storage.getAppLastUpdated()
-        console.debug("AppNavigator.checkForUpdates appLastUpdated:", appLastUpdated)
-        if (appLastUpdated && Date.now() - appLastUpdated < Config.checkAppUpdateInterval) {
-          console.debug("AppNavigator.checkForUpdates: app updated < 24 hours, skipping")
-          return
-        }
+        // const appLastUpdated = await storage.getAppLastUpdated()
+        // console.debug("AppNavigator.checkForUpdates appLastUpdated:", appLastUpdated)
+        // if (appLastUpdated && Date.now() - appLastUpdated < Config.checkAppUpdateInterval) {
+        //   console.debug("AppNavigator.checkForUpdates: app updated < 24 hours, skipping")
+        //   return
+        // }
 
         setCheckUpdateError(false)
 
@@ -159,7 +159,7 @@ const AppStack = observer(() => {
         // }
 
         // Set last updated timestamp only if successful
-        await storage.setAppLastUpdated()
+        // await storage.setAppLastUpdated()
       } catch (e) {
         console.warn("AppNavigator.checkForUpdates failed:", e)
         setCheckUpdateError(true)

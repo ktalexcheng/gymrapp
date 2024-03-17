@@ -49,6 +49,7 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
         gymId,
         noMoreItems,
         newLastWorkoutId,
+        workouts,
       })
       setLastWorkoutId(newLastWorkoutId)
       setNoMoreWorkouts(noMoreItems)
@@ -77,16 +78,19 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
     return (
       <FlatList
         data={gymWorkouts}
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           if (!gymMemberProfiles[item.byUserId]) return null
 
           return (
-            <WorkoutSummaryCard
-              workout={item}
-              workoutSource={WorkoutSource.OtherUser}
-              workoutId={item.workoutId}
-              byUser={gymMemberProfiles[item.byUserId]}
-            />
+            <>
+              {/* <Text>{index}</Text> */}
+              <WorkoutSummaryCard
+                workout={item}
+                workoutSource={WorkoutSource.OtherUser}
+                workoutId={item.workoutId}
+                byUser={gymMemberProfiles[item.byUserId]}
+              />
+            </>
           )
         }}
         ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}

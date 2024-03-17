@@ -35,15 +35,17 @@ export const FeedScreen = observer(function FeedScreen() {
   }, [userStore.isLoadingProfile, feedStore.isLoadingFeed])
 
   const makeFeedData = (feedWorkouts: IWorkoutSummaryModel[]) => {
-    return feedWorkouts.map(
-      (workout) =>
-        ({
-          workoutSource: WorkoutSource.Feed,
-          workoutId: workout.workoutId,
-          workout,
-          byUser: feedStore.feedUsers.get(workout.byUserId),
-        } as WorkoutSummaryCardProps),
-    )
+    return feedWorkouts
+      .map(
+        (workout) =>
+          ({
+            workoutSource: WorkoutSource.Feed,
+            workoutId: workout.workoutId,
+            workout,
+            byUser: feedStore.feedUsers.get(workout.byUserId),
+          } as WorkoutSummaryCardProps),
+      )
+      .sort((a, b) => b.workout.createdAt - a.workout.createdAt) // Sort by createdAt desc
   }
 
   const getMoreFeedItems = () => {

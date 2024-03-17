@@ -25,13 +25,19 @@ export class GymRepository extends BaseRepository<GymDetails, GymId> {
   }> {
     this.checkRepositoryInitialized()
 
-    let gymMembersQuery = this.firestoreCollection!.doc(gymId)
-      .collection(this.#gymMembersCollectionName)
+    const gymMembersColl = this.firestoreCollection!.doc(gymId).collection(
+      this.#gymMembersCollectionName,
+    )
+    let gymMembersQuery = gymMembersColl
       .orderBy("workoutsCount", "desc")
       .orderBy("dateAdded", "desc")
       .orderBy(firestore.FieldPath.documentId(), "desc")
     if (lastMemberId) {
-      gymMembersQuery = gymMembersQuery.startAfter(null, null, lastMemberId)
+      const lastMemberDoc = await gymMembersColl.doc(lastMemberId).get()
+      if (!lastMemberDoc.exists) {
+        throw new RepositoryError(this.repositoryId, `Gym member not found: ${lastMemberId}`)
+      }
+      gymMembersQuery = gymMembersQuery.startAfter(lastMemberDoc)
     }
     if (limit) {
       gymMembersQuery = gymMembersQuery.limit(limit)
