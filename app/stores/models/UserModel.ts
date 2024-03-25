@@ -112,6 +112,7 @@ export const WorkoutNotificationModel = types.compose(
   BaseNotificationModel,
   types.model({
     notificationType: types.union(
+      { eager: false },
       types.literal(NotificationType.Comment),
       types.literal(NotificationType.Like),
     ),
@@ -124,13 +125,18 @@ export const FollowNotificationModel = types.compose(
   BaseNotificationModel,
   types.model({
     notificationType: types.union(
+      { eager: false },
       types.literal(NotificationType.FollowAccepted),
       types.literal(NotificationType.FollowRequest),
     ),
   }),
 )
 
-export const NotificationModel = types.union(WorkoutNotificationModel, FollowNotificationModel)
+export const NotificationModel = types.union(
+  { eager: false },
+  WorkoutNotificationModel,
+  FollowNotificationModel,
+)
 
 export const FollowRequestsModel = types.model("FollowRequestsModel", {
   requestId: types.identifier,

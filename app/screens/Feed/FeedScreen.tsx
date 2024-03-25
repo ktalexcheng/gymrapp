@@ -45,7 +45,7 @@ export const FeedScreen = observer(function FeedScreen() {
             byUser: feedStore.feedUsers.get(workout.byUserId),
           } as WorkoutSummaryCardProps),
       )
-      .sort((a, b) => b.workout.createdAt - a.workout.createdAt) // Sort by createdAt desc
+      .sort((a, b) => b.workout.startTime - a.workout.startTime)
   }
 
   const getMoreFeedItems = () => {

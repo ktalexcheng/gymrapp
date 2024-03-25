@@ -4,8 +4,8 @@
  * Generally speaking, it will contain an auth flow (registration, login, forgot password)
  * and a "main" flow which the user will use once logged in.
  */
-import NetInfo from "@react-native-community/netinfo"
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
+import firestore from "@react-native-firebase/firestore"
 import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/native"
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { Icon, RowView, Spacer, Text } from "app/components"
@@ -21,6 +21,7 @@ import { setStatusBarStyle } from "expo-status-bar"
 import { observer } from "mobx-react-lite"
 import React, { useCallback, useEffect, useState } from "react"
 
+import { useInternetStatus, useToast } from "app/hooks"
 import {
   Alert,
   AlertButton,
@@ -205,7 +206,7 @@ const AppStack = observer(() => {
   }, [checkUpdateError])
 
   const setInitialRouteName = useCallback(() => {
-    return forceUpdate || checkUpdateError
+    return forceUpdate
       ? "AppDisabled"
       : authStore.isAuthenticated
       ? "MainNavigator"
@@ -213,7 +214,7 @@ const AppStack = observer(() => {
   }, [forceUpdate, checkUpdateError, authStore.isAuthenticated])
 
   const setStackScreen = useCallback(() => {
-    return forceUpdate || checkUpdateError || isInitializing ? (
+    return forceUpdate || isInitializing ? (
       <Stack.Screen name="AppDisabled" component={LoadingScreen} />
     ) : authStore.isAuthenticated ? (
       <Stack.Screen name="MainNavigator" component={MainNavigator} />
@@ -236,9 +237,10 @@ export interface NavigationProps
   extends Partial<React.ComponentProps<typeof NavigationContainer>> {}
 
 export const AppNavigator = observer((props: NavigationProps) => {
-  const { userStore, themeStore } = useStores()
+  const { userStore, themeStore, feedStore } = useStores()
   const systemColorScheme = useColorScheme() // Initial system color scheme
-  const [isInternetConnected, setIsInternetConnected] = useState(true)
+  const [isInternetConnected] = useInternetStatus()
+  const [showToastTx] = useToast()
 
   // Set initial theme and react to system and user preference changes
   useEffect(() => {
@@ -258,16 +260,33 @@ export const AppNavigator = observer((props: NavigationProps) => {
   }, [systemColorScheme, userStore.getUserPreference("appColorScheme")])
 
   useEffect(() => {
-    // Listen to network state change
-    const unsubscribeNetworkChange = NetInfo.addEventListener((state) => {
-      console.debug("AppNavigator.useEffect NetInfo state.isConnected", state.isConnected)
-      setIsInternetConnected(!!state.isConnected)
-    })
+    const handleNetworkChange = (newIsInternetConnected: boolean) => {
+      if (newIsInternetConnected) {
+        console.debug("AppNavigator.useEffect [isInternetConnect]: Internet connected")
+        showToastTx("common.offlineMode.firestoreNetworkEnabledMessage")
+        firestore()
+          .waitForPendingWrites()
+          .then(() => {
+            showToastTx("common.offlineMode.pendingWritesSuccessMessage")
+          })
+          .catch(() => {
+            showToastTx("common.offlineMode.pendingWritesFailedMessage")
+          })
+          .finally(() => {})
 
-    return () => {
-      unsubscribeNetworkChange()
+        feedStore.syncLocalUserWorkouts().then((receipts) => {
+          if (receipts.length > 0) {
+            showToastTx("common.offlineMode.localWorkoutsSyncedMessage")
+          }
+        })
+      } else {
+        console.debug("AppNavigator.useEffect [isInternetConnect]: Internet disconnected")
+        showToastTx("common.offlineMode.firestoreNetworkDisabledMessage")
+      }
     }
-  }, [])
+
+    handleNetworkChange(isInternetConnected)
+  }, [isInternetConnected])
 
   const envMode = Constants.expoConfig?.extra?.gymrappEnvironment
 

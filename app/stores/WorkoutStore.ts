@@ -1,15 +1,15 @@
 import { ActivityId } from "app/data/types/activity.types"
 import { differenceInSeconds } from "date-fns"
 import * as Notifications from "expo-notifications"
-import { IKeyValueMap } from "mobx"
+import { IKeyValueMap, toJS } from "mobx"
 import { Instance, SnapshotOrInstance, destroy, flow, getEnv, types } from "mobx-state-tree"
 import { ExerciseSetType, ExerciseSource, ExerciseVolumeType } from "../../app/data/constants"
 import { translate } from "../../app/i18n"
 import { REST_TIMER_CHANNEL_ID } from "../data/constants"
-import { Gym, NewWorkout } from "../data/types"
+import { ExercisePerformed, Gym, RepsExercisePerformed, TimeExercisePerformed } from "../data/types"
 import { formatSecondsAsTime } from "../utils/formatTime"
 import { IExerciseModel } from "./ExerciseStore"
-import { IExerciseSummaryModel } from "./FeedStore"
+import { IWorkoutSummaryModel } from "./FeedStore"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 import {
@@ -38,7 +38,7 @@ const RepsExercisePerformedModel = types.compose(
   BaseExercisePerformedModel,
   types.model({
     volumeType: types.literal(ExerciseVolumeType.Reps),
-    setsPerformed: types.optional(types.array(RepsSetPerformedModel), []),
+    setsPerformed: types.array(RepsSetPerformedModel), // by default optional with [] as default value
   }),
 )
 
@@ -47,12 +47,12 @@ const TimeExercisePerformedModel = types.compose(
   BaseExercisePerformedModel,
   types.model({
     volumeType: types.literal(ExerciseVolumeType.Time),
-    setsPerformed: types.optional(types.array(TimeSetPerformedModel), []),
+    setsPerformed: types.array(TimeSetPerformedModel), // by default optional with [] as default value
   }),
 )
 
 const ExercisePerformedModel = types.union(
-  { eager: true },
+  { eager: false },
   RepsExercisePerformedModel,
   TimeExercisePerformedModel,
 )
@@ -375,8 +375,11 @@ export const WorkoutStoreModel = types
       return latestRecord
     }
 
-    const getAllExerciseSummary = flow(function* (user: Instance<typeof UserModel>) {
-      const exercisesSummary: IExerciseSummaryModel[] = []
+    // IMPORTANT: Note that applying toJS() to the model instances (such as exercise and set)
+    // is necessary to avoid issues with MST when attemping to add the new workout to user's feed.
+    const getAllExerciseSummary = (user: Instance<typeof UserModel>) => {
+      const exercisesSummary: ExercisePerformed[] = []
+      const datePerformed = self.startTime ?? new Date()
 
       for (const e of self.exercises.values()) {
         if (e.volumeType === ExerciseVolumeType.Reps) {
@@ -398,7 +401,7 @@ export const WorkoutStoreModel = types
             totalVolume += (s.weight ?? 0) * s.reps
 
             if ((s.weight ?? 0) > (bestSet?.weight ?? -1)) {
-              bestSet = s
+              bestSet = toJS(s)
             }
 
             let latestRecord = getLatestExerciseRecord(user, e.exerciseId, s.reps)
@@ -410,9 +413,8 @@ export const WorkoutStoreModel = types
               if (newRecords[s.reps] && (s.weight ?? 0) < (newRecords[s.reps].weight ?? 0)) return
 
               newRecords[s.reps] = {
-                // exerciseId: e.exerciseId,
                 volumeType: ExerciseVolumeType.Reps,
-                datePerformed: self.startTime ?? new Date(),
+                datePerformed,
                 weight: s.weight,
                 reps: s.reps,
               }
@@ -420,14 +422,14 @@ export const WorkoutStoreModel = types
           })
 
           exercisesSummary.push({
-            ...e,
+            ...toJS(e),
             volumeType: ExerciseVolumeType.Reps,
             bestSet,
-            datePerformed: self.startTime ?? new Date(),
+            datePerformed,
             totalReps,
             totalVolume,
             newRecords,
-          })
+          } as RepsExercisePerformed)
         } else if (e.volumeType === ExerciseVolumeType.Time) {
           let bestSet = {} as ITimeSetPerformedModel
           const newRecords = {} as IKeyValueMap<ITimePersonalRecordModel>
@@ -445,7 +447,7 @@ export const WorkoutStoreModel = types
             totalTime += s.time
 
             if (s.time > (bestSet.time || 0)) {
-              bestSet = s
+              bestSet = toJS(s)
             }
 
             let latestRecord = getLatestExerciseRecord(user, e.exerciseId, 0)
@@ -457,28 +459,27 @@ export const WorkoutStoreModel = types
               if (newRecords[0] && s.time < newRecords[0].time) return
 
               newRecords[0] = {
-                // exerciseId: e.exerciseId,
                 reps: 0, // For time based exercises, reps is always 0
                 volumeType: ExerciseVolumeType.Time,
-                datePerformed: self.startTime ?? new Date(),
+                datePerformed,
                 time: s.time,
               }
             }
           })
 
           exercisesSummary.push({
-            ...e,
+            ...toJS(e),
             volumeType: ExerciseVolumeType.Time,
             bestSet,
-            datePerformed: self.startTime ?? new Date(),
+            datePerformed,
             totalTime,
             newRecords,
-          })
+          } as TimeExercisePerformed)
         }
       }
 
       return exercisesSummary
-    })
+    }
 
     function startNewWorkout(activityId: ActivityId) {
       resetWorkout()
@@ -501,7 +502,11 @@ export const WorkoutStoreModel = types
       self.inProgress = false
     }
 
-    const saveWorkout = flow(function* (isHidden: boolean, user: Instance<typeof UserModel>) {
+    const saveWorkout = flow(function* (
+      isHidden: boolean,
+      user: Instance<typeof UserModel>,
+      isOffline = false,
+    ) {
       try {
         if (self.inProgress) {
           console.warn("WorkoutStore.saveWorkout: Unable to save, workout still in progress")
@@ -511,10 +516,15 @@ export const WorkoutStoreModel = types
         cleanUpWorkout()
 
         // console.debug("WorkoutStore.exerciseSummary:", self.exerciseSummary)
+        const { workoutRepository } = getEnv<RootStoreDependencies>(self)
         const userId = user.userId
         const privateAccount = user.privateAccount
-        const allExerciseSummary = yield getAllExerciseSummary(user)
+        const allExerciseSummary = getAllExerciseSummary(user)
+        const workoutId = workoutRepository.newDocumentId()
         const newWorkout = {
+          workoutId,
+          _createdAt: new Date(), // Repository should handle this field, but we set it here for offline use
+          _modifiedAt: new Date(), // Repository should handle this field, but we set it here for offline use
           byUserId: userId,
           userIsPrivate: privateAccount,
           isHidden,
@@ -525,15 +535,14 @@ export const WorkoutStoreModel = types
           activityId: self.activityId,
           performedAtGymId: self.performedAtGymId ?? null,
           performedAtGymName: self.performedAtGymName ?? null,
-        } as NewWorkout
+        } as IWorkoutSummaryModel
         console.debug("WorkoutStore.saveWorkout newWorkout:", newWorkout)
-        const workout = yield getEnv<RootStoreDependencies>(self).workoutRepository.create(
-          newWorkout,
-        )
 
-        // IMPORTANT: Moved side effects to server side (updating user workout metadata and exercise history)
+        // If offline, the uploadWorkout function will save the workout locally
+        const isUploadedToDatabase = yield workoutRepository.saveWorkout(newWorkout, isOffline)
+        newWorkout.__isLocalOnly = !isUploadedToDatabase
 
-        return workout
+        return newWorkout
       } catch (error) {
         console.error("WorkoutStore.saveWorkout error:", error)
         return undefined

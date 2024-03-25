@@ -77,17 +77,18 @@ export const UserStoreModel = types
       const lastWorkoutId = exerciseHistoryItem.performedWorkoutIds[workoutsCount - 1]
       return lastWorkoutId
     },
-    getProp<T>(propPath: string): T {
+    getPropAsJS<T>(propPath: string): T {
+      // Converts and clones to a JavaScript object: https://mobx.js.org/api.html#tojs
       const value = getNestedField(toJS(self), propPath) as T
 
-      // Array and Map (object) must not be mutated, so we need to return a copy
-      if (Array.isArray(value)) {
-        console.debug("UserStore.getProp:", propPath, "value is array")
-        return [...value] as T
-      } else if (value instanceof Object) {
-        console.debug("UserStore.getProp:", propPath, "value is object")
-        return { ...value } as T
-      }
+      // // Array and Map (object) must not be mutated, so we need to return a copy
+      // if (Array.isArray(value)) {
+      //   console.debug("UserStore.getProp:", propPath, "value is array")
+      //   return [...value] as T
+      // } else if (value instanceof Object) {
+      //   console.debug("UserStore.getProp:", propPath, "value is object")
+      //   return { ...value } as T
+      // }
 
       return value
     },

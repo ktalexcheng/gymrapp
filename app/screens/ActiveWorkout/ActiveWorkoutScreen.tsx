@@ -130,7 +130,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
           return
         }
 
-        const userMyGyms = userStore.getProp<Gym[]>("user.myGyms")
+        const userMyGyms = userStore.getPropAsJS<Gym[]>("user.myGyms")
         if (userMyGyms && userMyGyms.length > 0) {
           gymStore
             .getClosestGym(

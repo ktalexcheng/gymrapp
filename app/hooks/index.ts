@@ -1,4 +1,5 @@
 export * from "./useExerciseSetting"
+export * from "./useInternetStatus"
 export * from "./useNotification"
 export * from "./useSetFromLastWorkout"
 export * from "./useToast"

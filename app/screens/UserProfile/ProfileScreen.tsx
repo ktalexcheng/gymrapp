@@ -272,7 +272,7 @@ export const ProfileScreen = observer(function ProfileScreen() {
               <RowView alignItems="center">
                 <Avatar user={userStore.user} size="sm" />
                 <View style={$userDisplayName}>
-                  <Text weight="semiBold" text={userStore.getProp("user.userHandle")} />
+                  <Text weight="semiBold" text={userStore.getPropAsJS("user.userHandle")} />
                   <Text weight="light" text={userStore.displayName} />
                 </View>
               </RowView>

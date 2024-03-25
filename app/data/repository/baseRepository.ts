@@ -14,7 +14,7 @@ export class RepositoryError extends Error {
 export interface IBaseRepository<T, D> {
   get(id: D, refresh?: boolean): Promise<T>
   getMany(ids?: D[], refresh?: boolean): Promise<T[]>
-  create(data: Partial<T>): Promise<T>
+  create(data: Partial<T>): Promise<void>
   update(id: D, data: Partial<T>, useSetMerge: boolean): Promise<T>
   delete(id: D): Promise<void>
 }
@@ -48,20 +48,22 @@ interface FilterOptions {
   orderByField?: keyof FirebaseDocumentReferenceType | FirebaseFirestoreTypes.FieldPath
   orderDirection?: "asc" | "desc"
   limit?: number
-  afterFieldValue?: string | FirebaseFirestoreTypes.FieldPath
-  beforeFieldValue?: string | FirebaseFirestoreTypes.FieldPath
+  afterValue?: string | FirebaseFirestoreTypes.FieldPath
+  beforeValue?: string | FirebaseFirestoreTypes.FieldPath
   whereConditions?: [
     keyof FirebaseDocumentReferenceType | FirebaseFirestoreTypes.FieldPath,
     FirebaseFirestoreTypes.WhereFilterOp,
     any,
   ][]
 }
+
+// Note: Removing the field rename feature for now, adds complexity and not sure if it's needed
 export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D extends string> {
   #repositoryId: string
   #firestoreClient: FirebaseFirestoreTypes.Module
   #firestoreCollection?: FirebaseCollectionType
   #documentIdField: keyof T
-  #fieldNameMap?: { [key: string]: string }
+  // #fieldNameMap?: { [key: string]: string }
   #cache: RepositoryCache<T> = new Map()
   #cacheLifespan = 1000 * 60 * 5 // 5 minutes in milliseconds
   #getAllCacheKey = "getAll"
@@ -72,16 +74,16 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     firestoreClient: FirebaseFirestoreTypes.Module,
     collectionPath: string | null,
     documentIdField: keyof T,
-    fieldNameMap?: { [key: string]: string },
+    // fieldNameMap?: { [key: string]: string },
   ) {
-    if (fieldNameMap && documentIdField in fieldNameMap) {
-      throw new RepositoryError(
-        repositoryId,
-        `Document ID field ${String(documentIdField)} cannot be renamed in fieldNameMap`,
-      )
-    }
+    // if (fieldNameMap && documentIdField in fieldNameMap) {
+    //   throw new RepositoryError(
+    //     repositoryId,
+    //     `Document ID field ${String(documentIdField)} cannot be renamed in fieldNameMap`,
+    //   )
+    // }
 
-    this.#fieldNameMap = fieldNameMap
+    // this.#fieldNameMap = fieldNameMap
     this.#repositoryId = repositoryId
     this.#firestoreClient = firestoreClient
     this.#documentIdField = documentIdField
@@ -124,23 +126,26 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     return renamedData
   }
 
-  _sourceToRepRename(data: any): any {
-    if (!this.#fieldNameMap) return data
+  // _sourceToRepRename(data: any): any {
+  //   if (!this.#fieldNameMap) return data
 
-    this._renameFields(data, this.#fieldNameMap)
-  }
+  //   const renamed = this._renameFields(data, this.#fieldNameMap)
+  //   renamed?.__isLocalOnly && delete renamed.__isLocalOnly
 
-  _repToSourceRename(data: any): any {
-    if (!this.#fieldNameMap) return data
+  //   return renamed
+  // }
 
-    const reversedFieldNameMap = Object.keys(this.#fieldNameMap).reduce((acc, key) => {
-      const value = this.#fieldNameMap?.[key]
-      if (value) acc[value] = key
-      return acc
-    }, {})
+  // _repToSourceRename(data: any): any {
+  //   if (!this.#fieldNameMap) return data
 
-    this._renameFields(data, reversedFieldNameMap)
-  }
+  //   const reversedFieldNameMap = Object.keys(this.#fieldNameMap).reduce((acc, key) => {
+  //     const value = this.#fieldNameMap?.[key]
+  //     if (value) acc[value] = key
+  //     return acc
+  //   }, {})
+
+  //   return this._renameFields(data, reversedFieldNameMap)
+  // }
 
   /**
    * Rename data fields if a fieldNameMap is provided, convert firestore Timestamp to JS Date, and include document ID in the data object
@@ -151,8 +156,8 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     const data = snapshot.data()
 
     // Rename data fields if a fieldNameMap is provided
-    const renamedData = this.#fieldNameMap ? this._sourceToRepRename(data) : data
-    const processedData = convertFirestoreTimestampToDate(renamedData)
+    // const renamedData = this.#fieldNameMap ? this._sourceToRepRename(data) : data
+    const processedData = convertFirestoreTimestampToDate(data)
 
     // Include document ID in the data object
     const processedDataWithId = { ...processedData, [this.#documentIdField]: snapshot.id }
@@ -160,17 +165,41 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     return processedDataWithId
   }
 
-  // If the data is an object, recursively convert all undefined values to null
-  _convertUndefinedToNull(data: any): any {
-    if (data === undefined) return null
+  // If the data is an object, recursively convert all undefined values to null then return a deep copy
+  _processDataForFirestore(data: any): any {
+    // Coerce undefined values to null
+    if (data === undefined || data === null) return null
 
-    if (data instanceof Object) {
-      for (const key in data) {
-        data[key] = this._convertUndefinedToNull(data[key])
-      }
+    const objProto = Object.getPrototypeOf(data)
+    // The accumulator will be used to create a copy of the data to prevent mutating the original
+    let accumulator: any
+    switch (objProto) {
+      case Object.prototype:
+        accumulator = {}
+        for (const key in data) {
+          if (key === "__isLocalOnly") continue // This is a special field for local data
+          accumulator[key] = this._processDataForFirestore(data[key])
+        }
+
+        return accumulator
+      case Map.prototype:
+        accumulator = new Map()
+        for (const [key, value] of data.entries()) {
+          if (key === "__isLocalOnly") continue // This is a special field for local data
+          accumulator.set(key, this._processDataForFirestore(value))
+        }
+
+        return accumulator
+      case Array.prototype:
+        accumulator = []
+        for (const key in data) {
+          accumulator[key] = this._processDataForFirestore(data[key])
+        }
+
+        return accumulator
+      default:
+        return data
     }
-
-    return data
   }
 
   _setCacheData(cacheKey: string, cacheData: CacheData<T>) {
@@ -225,6 +254,10 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     }
   }
 
+  newDocumentId() {
+    return this.#firestoreCollection!.doc().id
+  }
+
   async get(id: D, refresh = true): Promise<T | undefined> {
     this.checkRepositoryInitialized()
 
@@ -261,8 +294,8 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
       orderByField,
       orderDirection,
       limit = 20,
-      afterFieldValue,
-      beforeFieldValue,
+      afterValue,
+      beforeValue,
       whereConditions,
     } = options
     this.checkRepositoryInitialized()
@@ -282,11 +315,11 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
         .orderBy(orderByField, direction)
         .orderBy(firestore.FieldPath.documentId(), direction)
     }
-    if (afterFieldValue) {
-      query = query.startAfter(afterFieldValue)
+    if (afterValue) {
+      query = query.startAfter(afterValue)
     }
-    if (beforeFieldValue) {
-      query = query.endBefore(beforeFieldValue)
+    if (beforeValue) {
+      query = query.endBefore(beforeValue)
     }
     if (whereConditions) {
       for (const whereCond of whereConditions) {
@@ -308,8 +341,8 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
         orderByField,
         orderDirection,
         limit,
-        afterFieldValue,
-        beforeFieldValue,
+        afterValue,
+        beforeValue,
       })
       throw new RepositoryError(this.#repositoryId, `Error getting documents by filter: ${e}`)
     }
@@ -373,7 +406,7 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     return allData
   }
 
-  async create(data: Partial<T>): Promise<T> {
+  async create(data: Partial<T>, isOffline = false): Promise<void> {
     this.checkRepositoryInitialized()
 
     if (!data) {
@@ -386,72 +419,88 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
       docId = data[this.#documentIdField]
     }
 
-    const convertedData = this._convertUndefinedToNull(data)
-    const renamedData = this.#fieldNameMap ? this._repToSourceRename(convertedData) : convertedData
+    const convertedData = this._processDataForFirestore(data)
+    // const renamedData = this.#fieldNameMap ? this._repToSourceRename(convertedData) : convertedData
     // Stamp _createdAt and _modifiedAt to all data created
-    renamedData._createdAt = firestore.FieldValue.serverTimestamp()
-    renamedData._modifiedAt = firestore.FieldValue.serverTimestamp()
+    convertedData._createdAt = firestore.FieldValue.serverTimestamp()
+    convertedData._modifiedAt = firestore.FieldValue.serverTimestamp()
+
+    // Get a new document reference if no document ID is provided
+    let newDocRef: FirebaseFirestoreTypes.DocumentReference
+    if (docId) {
+      newDocRef = this.#firestoreCollection!.doc(docId)
+    } else {
+      newDocRef = this.#firestoreCollection!.doc()
+      docId = newDocRef.id
+    }
+
+    // Firestore rules may prohibit get() on a document that doesn't exist
+    // e.g. `allow read: if request.auth.uid == resource.data.byUserId;`
+    // If get() fails, we can only assume the document doesn't exist
+    // and rely on allow create rules to prevent overwriting existing documents
+    // belonging to other users
     try {
-      // Get a new document reference if no document ID is provided
-      let newDocRef: FirebaseFirestoreTypes.DocumentReference
-      if (docId) {
-        newDocRef = this.#firestoreCollection!.doc(docId)
-      } else {
-        newDocRef = this.#firestoreCollection!.doc()
-        docId = newDocRef.id
-      }
-
-      // Firestore rules may prohibit get() on a document that doesn't exist
-      // e.g. `allow read: if request.auth.uid == resource.data.byUserId;`
-      // If get() fails, we can only assume the document doesn't exist
-      // and rely on allow create rules to prevent overwriting existing documents
-      // belonging to other users
-      try {
-        const newDoc = await newDocRef.get()
-        if (newDoc.exists) {
-          throw new RepositoryError(
-            this.#repositoryId,
-            `Document with ID ${docId} already exists, cannot create new document with same ID`,
-          )
-        }
-      } catch {}
-
-      try {
-        // Create the document
-        await newDocRef.set({ [this.#documentIdField]: docId, ...renamedData })
-      } catch (e) {
+      const newDoc = await newDocRef.get({ source: isOffline ? "cache" : "default" })
+      if (newDoc.exists) {
         throw new RepositoryError(
           this.#repositoryId,
-          `User does not have permission to create document with ID ${docId}: ${e}`,
+          `Document with ID ${docId} already exists, cannot create new document with same ID`,
         )
       }
+    } catch {}
 
-      // This extra read is required so we can get the document with server-side information
-      // e.g. the resolved value for firestore.FieldValue.serverTimestamp()
-      const newDocSnapshot = await newDocRef.get()
-      const newDocData = this._processDocumentSnapshot(newDocSnapshot)
-
-      const cacheData = {
-        [this.#documentIdField]: docId,
-        ...newDocData,
-      } as T
-      this._setCacheData(docId, {
-        timestamp: Date.now(),
-        data: cacheData,
-        type: CacheDataType.Single,
-      })
-
-      return cacheData
+    try {
+      // Create the document, if offline, do not wait for the promise to resolve, the document
+      // will be persisted locally and synced by Firebase later
+      if (isOffline)
+        newDocRef.set({ [this.#documentIdField]: docId, ...convertedData }).then(() => {
+          console.debug(
+            `${this.#repositoryId} Repository: Document with ID ${docId} synced to Firestore`,
+          )
+        })
+      else await newDocRef.set({ [this.#documentIdField]: docId, ...convertedData })
     } catch (e) {
-      console.error("Error creating document with data:", { data, renamedData })
+      console.error("Error creating document with data:", { data, convertedData })
       throw new RepositoryError(this.#repositoryId, `Error creating document: ${e}`)
     }
+
+    // try {
+    //   // This extra read is required so we can get the document with server-side information
+    //   // e.g. the resolved value for firestore.FieldValue.serverTimestamp()
+    //   // IMPORTANT: The read from cache will error if the document has not been retrieved with a get() from the server first
+    //   // i.e. If we set() a new document and then immediately get() it, it will error
+    //   console.debug(
+    //     "firestore.FieldValue.serverTimestamp()",
+    //     firestore.FieldValue.serverTimestamp(),
+    //   )
+    //   const newDocSnapshot = await newDocRef.get({ source: offline ? "cache" : "default" })
+    //   const newDocData = this._processDocumentSnapshot(newDocSnapshot)
+
+    //   const cacheData = {
+    //     [this.#documentIdField]: docId,
+    //     ...newDocData,
+    //   } as T
+    //   this._setCacheData(docId, {
+    //     timestamp: Date.now(),
+    //     data: cacheData,
+    //     type: CacheDataType.Single,
+    //   })
+
+    //   return cacheData
+    // } catch (e) {
+    //   console.error(`Error getting the newly created document ${docId}: ${e}`)
+    //   throw new RepositoryError(
+    //     this.#repositoryId,
+    //     `Error getting the newly created document ${docId}: ${e}`,
+    //   )
+    // }
   }
 
   async update(
     id: D,
     data: { [P in keyof T]?: T[P] | FirebaseFirestoreTypes.FieldValue | null },
     useSetMerge = false,
+    isOffline = false,
   ): Promise<T> {
     this.checkRepositoryInitialized()
 
@@ -459,19 +508,23 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
       throw new RepositoryError(this.#repositoryId, "No document ID provided for update() method")
     }
 
-    const convertedData = this._convertUndefinedToNull(data)
-    const renamedData = this.#fieldNameMap ? this._repToSourceRename(convertedData) : convertedData
+    const convertedData = this._processDataForFirestore(data)
+    // const renamedData = this.#fieldNameMap ? this._repToSourceRename(convertedData) : convertedData
     // Update _modifiedAt timestamp to all data updated
-    renamedData._modifiedAt = firestore.FieldValue.serverTimestamp()
+    convertedData._modifiedAt = firestore.FieldValue.serverTimestamp()
     try {
       const docRef = this.#firestoreCollection!.doc(id as string)
 
+      // Update document, if offline, do not wait for the promise to resolve, the document
+      // will be persisted locally and synced by Firebase later
       if (useSetMerge) {
-        await docRef.set(renamedData, { merge: true })
+        if (isOffline) docRef.set(convertedData, { merge: true })
+        else await docRef.set(convertedData, { merge: true })
       } else {
         // When using update() method, if the document doesn't exist, it will throw an error
         // before sure to check if the document exists first
-        await docRef.update(renamedData)
+        if (isOffline) docRef.update(convertedData)
+        else await docRef.update(convertedData)
       }
 
       const snapshot = await docRef.get()
@@ -484,7 +537,7 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
 
       return snapshotData
     } catch (e) {
-      console.error("Error updating document with data:", { id, useSetMerge, data, renamedData })
+      console.error("Error updating document with data:", { id, useSetMerge, data, convertedData })
       throw new RepositoryError(this.#repositoryId, `Error updating document: ${e}`)
     }
   }
@@ -498,7 +551,7 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     // Using FieldValue will fail for create() methods
     // for compatibility, always create if doc does not exist then update
     if (!docExists) {
-      return await this.create({ [this.#documentIdField]: id } as Partial<T>)
+      await this.create({ [this.#documentIdField]: id } as Partial<T>)
     }
 
     return await this.update(id, data)

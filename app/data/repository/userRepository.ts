@@ -51,7 +51,12 @@ export class UserRepository extends BaseRepository<User, UserId> {
     return await super.get(id ?? this.#userId!, refresh)
   }
 
-  async update(id: UserId | null, data: Partial<User>, useSetMerge = false): Promise<User> {
+  async update(
+    id: UserId | null,
+    data: Partial<User>,
+    useSetMerge = false,
+    isOffline = false,
+  ): Promise<User> {
     this.checkRepositoryInitialized()
 
     // Create a copy of data for manipulation
@@ -75,7 +80,7 @@ export class UserRepository extends BaseRepository<User, UserId> {
       }
     }
 
-    return await super.update(id ?? this.#userId!, _data, useSetMerge)
+    return await super.update(id ?? this.#userId!, _data, useSetMerge, isOffline)
   }
 
   async uploadAvatar(imagePath: string): Promise<string> {

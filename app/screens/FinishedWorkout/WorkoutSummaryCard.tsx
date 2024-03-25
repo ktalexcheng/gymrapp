@@ -1,4 +1,4 @@
-import { Avatar, RowView, Spacer, Text } from "app/components"
+import { Avatar, Icon, RowView, Spacer, Text } from "app/components"
 import { ExerciseVolumeType, WeightUnit, WorkoutSource } from "app/data/constants"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
@@ -73,6 +73,24 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
       )
     }
 
+    const $isLocalOnlyIndicator: ViewStyle = {
+      position: "absolute",
+      zIndex: 1,
+      top: 0,
+      left: 0,
+      // borderTopLeftRadius: 10,
+      borderBottomRightRadius: 10,
+      padding: spacing.tiny,
+      backgroundColor: themeStore.colors("danger"),
+    }
+
+    const $cardHeaderContainer: ViewStyle = {
+      alignItems: "center",
+      marginBottom: spacing.small,
+      justifyContent: "space-between",
+      // paddingLeft: workout?.__isLocalOnly ? 20 : undefined,
+    }
+
     return (
       <TouchableOpacity
         onPress={() =>
@@ -85,6 +103,11 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
         }
       >
         <View style={themeStore.styles("listItemContainer")}>
+          {workout?.__isLocalOnly && (
+            <RowView style={$isLocalOnlyIndicator}>
+              <Icon name="cloud-offline-outline" size={16} />
+            </RowView>
+          )}
           {byUser && (
             <RowView style={$cardHeaderContainer}>
               <RowView style={$cardHeaderAvatarAndName}>
@@ -125,12 +148,6 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
 )
 
 const $workoutItemHeader: ViewStyle = {
-  justifyContent: "space-between",
-}
-
-const $cardHeaderContainer: ViewStyle = {
-  alignItems: "center",
-  marginBottom: spacing.small,
   justifyContent: "space-between",
 }
 

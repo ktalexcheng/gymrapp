@@ -1,11 +1,11 @@
-import { ExerciseSet } from "app/data/types"
+import { ExerciseSetPerformed } from "app/data/types"
 import { WorkoutStoreModel } from "app/stores"
 import { Instance } from "mobx-state-tree"
 
 export const addSetToExercise = (
   workoutStore: Instance<typeof WorkoutStoreModel>,
   exerciseIndex: number,
-  setPerformed: ExerciseSet,
+  setPerformed: ExerciseSetPerformed,
 ) => {
   workoutStore.addSet(exerciseIndex)
   const setIndex = workoutStore.exercises.at(exerciseIndex)!.setsPerformed.length - 1

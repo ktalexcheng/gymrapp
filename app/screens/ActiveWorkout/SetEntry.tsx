@@ -10,7 +10,11 @@ import {
   TimePicker,
 } from "app/components"
 import { ExerciseVolumeType, WeightUnit } from "app/data/constants"
-import { ExerciseSet, RepsExerciseSet, TimeExerciseSet } from "app/data/types"
+import {
+  ExerciseSetPerformed,
+  RepsExerciseSetPerformed,
+  TimeExerciseSetPerformed,
+} from "app/data/types"
 import { useExerciseSetting, useSetFromLastWorkout, useWeight } from "app/hooks"
 import { translate } from "app/i18n"
 import { RepsSetPerformedModel, TimeSetPerformedModel } from "app/stores"
@@ -72,7 +76,7 @@ interface SetSwipeableContainerProps extends ViewProps {
   exerciseOrder: number
   setOrder: number
   isCompleted: boolean
-  setFromLastWorkout?: ExerciseSet
+  setFromLastWorkout?: ExerciseSetPerformed
   renderPreviousSetText: () => string
   onPressPreviousSet: () => void
   onPressCompleteSet: () => void
@@ -166,7 +170,7 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   ] as Instance<typeof TimeSetPerformedModel>
 
   // Set from previous workout
-  const [setFromLastWorkout] = useSetFromLastWorkout<TimeExerciseSet>(exerciseId, setOrder)
+  const [setFromLastWorkout] = useSetFromLastWorkout<TimeExerciseSetPerformed>(exerciseId, setOrder)
 
   // Exercise properties and settings
   const [autoRestTimerEnabled] = useExerciseSetting<number>(exerciseId, "autoRestTimerEnabled")
@@ -286,7 +290,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   ] as Instance<typeof RepsSetPerformedModel>
 
   // Set from previous workout
-  const [setFromLastWorkout] = useSetFromLastWorkout<RepsExerciseSet>(exerciseId, setOrder)
+  const [setFromLastWorkout] = useSetFromLastWorkout<RepsExerciseSetPerformed>(exerciseId, setOrder)
 
   // Exercise properties and settings
   const [autoRestTimerEnabled] = useExerciseSetting<number>(exerciseId, "autoRestTimerEnabled")

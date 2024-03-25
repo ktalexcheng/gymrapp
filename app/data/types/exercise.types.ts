@@ -2,34 +2,34 @@ import { ExerciseSetType, ExerciseSource, ExerciseVolumeType, WeightUnit } from 
 import { WorkoutId } from "./workout.types"
 
 // ExerciseSet type specific to each ExerciseVolumeType
-interface BaseExerciseSet {
+interface BaseExerciseSetPerformed {
   setType: ExerciseSetType
   isCompleted: boolean
 }
-export interface RepsExerciseSet extends BaseExerciseSet {
+export interface RepsExerciseSetPerformed extends BaseExerciseSetPerformed {
   volumeType: ExerciseVolumeType.Reps
   weight?: number
-  reps?: number
+  reps: number
   rpe?: number
 }
-export interface TimeExerciseSet extends BaseExerciseSet {
+export interface TimeExerciseSetPerformed extends BaseExerciseSetPerformed {
   volumeType: ExerciseVolumeType.Time
-  time?: number
+  time: number
 }
-export type ExerciseSet = RepsExerciseSet | TimeExerciseSet
+export type ExerciseSetPerformed = RepsExerciseSetPerformed | TimeExerciseSetPerformed
 
 // PersonalRecord type specifici to each ExerciseVolumeType
 // Using Weight and Reps type alias for clarity
 export type Weight = number
 export type Reps = number
 interface BasePersonalRecord {
-  workoutId: WorkoutId
+  workoutId?: WorkoutId // This will not be available when the summary is generated, only after the workout is saved
   datePerformed: Date
   reps: Reps
 }
 export interface RepsPersonalRecord extends BasePersonalRecord {
   volumeType: ExerciseVolumeType.Reps
-  weight: Weight
+  weight?: Weight | null // Weight could be 0 or null
 }
 export interface TimePersonalRecord extends BasePersonalRecord {
   volumeType: ExerciseVolumeType.Time
@@ -49,11 +49,11 @@ interface BaseExercisePerformed {
   exerciseSource: ExerciseSource
   exerciseName: string // If the exercise is private from another user, it won't be in the target user's exercise list, so we need to store this to display exercise summary
   exerciseOrder: number
-  setsPerformed: ExerciseSet[]
+  setsPerformed: ExerciseSetPerformed[]
   datePerformed: Date
-  bestSet: ExerciseSet
+  bestSet: ExerciseSetPerformed
   newRecords: NewExerciseRecord
-  exerciseNotes: string
+  exerciseNotes?: string | null
 }
 export interface RepsExercisePerformed extends BaseExercisePerformed {
   volumeType: ExerciseVolumeType.Reps

@@ -43,7 +43,7 @@ export const TimeSetPerformedModel = types.compose(
 )
 
 export const SetPerformedModel = types.union(
-  { eager: true },
+  { eager: false },
   RepsSetPerformedModel,
   TimeSetPerformedModel,
 )

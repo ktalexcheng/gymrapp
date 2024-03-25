@@ -127,7 +127,7 @@ export const ExerciseStoreModel = types
       // self.allExercises.put(exercise)
     }
 
-    const uploadExerciseSettings = flow(function* () {
+    const uploadExerciseSettings = flow(function* (isOffline = false) {
       self.isLoading = true
 
       try {
@@ -143,6 +143,7 @@ export const ExerciseStoreModel = types
               preferences: { exerciseSpecificSettings },
             } as Partial<User>,
             true,
+            isOffline,
           )
         }
 

@@ -69,7 +69,8 @@ if (!process.env.FIREBASE_WEB_CONFIG)
 const firebaseApp = initializeApp(require(process.env.FIREBASE_WEB_CONFIG))
 const firebaseFunctionsClient = getFunctions(firebaseApp)
 
-jest.mock("@react-native-firebase/functions", () => {
+// jest.doMock is not hoisted, jest.mock is hoisted
+jest.doMock("@react-native-firebase/functions", () => {
   return {
     // ...jest.requireActual("@react-native-firebase/functions"),
     __esModule: true,
@@ -84,7 +85,7 @@ jest.mock("@react-native-firebase/functions", () => {
 })
 
 // @react-native-firebase relies on native modules that will not work in the jest environment
-jest.mock("@react-native-firebase/firestore", () => {
+jest.doMock("@react-native-firebase/firestore", () => {
   // Depending on the import strategy, we might need to mock the default export or the named exports
   const firestore = admin.firestore
   firestore.FieldValue = admin.firestore.FieldValue

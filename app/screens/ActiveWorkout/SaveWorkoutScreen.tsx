@@ -10,7 +10,7 @@ import {
   TextField,
 } from "app/components"
 import { WorkoutSource } from "app/data/constants"
-import { useToast } from "app/hooks"
+import { useInternetStatus, useToast } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
@@ -39,6 +39,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
   const [isHidden, setIsHidden] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [toastShowTx] = useToast()
+  const [isInternetConnected] = useInternetStatus()
 
   function resumeWorkout() {
     workoutStore.resumeWorkout()
@@ -74,14 +75,13 @@ export const SaveWorkoutScreen: FC = observer(() => {
 
     setIsSaving(true)
     try {
-      const workout = await workoutStore.saveWorkout(isHidden, userStore.user)
-      console.debug("SaveWorkoutScreen workout", { workout })
+      const workout = await workoutStore.saveWorkout(isHidden, userStore.user, !isInternetConnected)
 
       if (!workout) throw new Error("SaveWorkoutScreen.saveWorkout: workout is undefined")
 
       feedStore.addUserWorkout(workout) // Manually add the workout so it is available in WorkoutSummary
       workoutStore.resetWorkout()
-      await exerciseStore.uploadExerciseSettings()
+      await exerciseStore.uploadExerciseSettings(!isInternetConnected)
       setIsSaving(false)
 
       mainNavigation.reset({

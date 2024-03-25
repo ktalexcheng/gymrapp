@@ -7,11 +7,20 @@ import { getNestedField } from "app/utils/getNestedField"
 import { getTime, startOfWeek } from "date-fns"
 import { randomUUID } from "expo-crypto"
 import { toJS } from "mobx"
-import { Instance, SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
+import { SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
 import { convertUserToMSTSnapshot } from "./helpers/convertUserToMSTSnapshot"
 import { convertWorkoutToMSTSnapshot } from "./helpers/convertWorkoutToMSTSnapshot"
 import { RootStoreDependencies } from "./helpers/useStores"
-import { MetadataModel, PersonalRecordModel, SetPerformedModel, UserModel } from "./models"
+import {
+  MetadataModel,
+  PersonalRecordModel,
+  RepsPersonalRecordModel,
+  RepsSetPerformedModel,
+  SetPerformedModel,
+  TimePersonalRecordModel,
+  TimeSetPerformedModel,
+  UserModel,
+} from "./models"
 
 const BaseExerciseSummaryModel = types.model("BaseExerciseSummaryModel", {
   exerciseId: types.string,
@@ -32,6 +41,9 @@ const RepsExerciseSummaryModel = types.compose(
     volumeType: types.literal(ExerciseVolumeType.Reps),
     totalVolume: types.number,
     totalReps: types.number,
+    bestSet: RepsSetPerformedModel,
+    setsPerformed: types.array(RepsSetPerformedModel),
+    newRecords: types.map(RepsPersonalRecordModel),
   }),
 )
 
@@ -41,6 +53,9 @@ const TimeExerciseSummaryModel = types.compose(
   types.model({
     volumeType: types.literal(ExerciseVolumeType.Time),
     totalTime: types.number,
+    bestSet: TimeSetPerformedModel,
+    setsPerformed: types.array(TimeSetPerformedModel),
+    newRecords: types.map(TimePersonalRecordModel),
   }),
 )
 
@@ -249,7 +264,8 @@ export const FeedStoreModel = types
       self.feedUsers.clear()
     }
 
-    function addUserWorkout(workout: Instance<typeof WorkoutSummaryModel>) {
+    function addUserWorkout(workout: IWorkoutSummaryModel) {
+      console.debug("FeedStore.addUserWorkout()", { workout })
       self.userWorkouts.put(workout)
     }
 
@@ -287,7 +303,9 @@ export const FeedStoreModel = types
             self.userWorkouts.put(w)
           } catch (e) {
             crashlytics().recordError(e as any)
-            console.error("FeedStore.loadUserWorkouts invalid workout snapshot:", e)
+            console.error("FeedStore.loadUserWorkouts invalid workout snapshot:", e, {
+              workoutid: w.workoutId,
+            })
           }
         })
 
@@ -299,6 +317,13 @@ export const FeedStoreModel = types
             likedByUserIds: interaction.likedByUserIds,
             comments: interaction.comments,
           })
+        })
+
+        // Load local user workouts
+        const localWorkouts = yield workoutRepository.getAllLocalWorkouts()
+        localWorkouts.forEach((w) => {
+          console.debug("FeedStore.loadUserWorkouts local workout", w)
+          self.userWorkouts.put(w)
         })
 
         console.debug("FeedStore.loadUserWorkouts done")
@@ -554,6 +579,22 @@ export const FeedStoreModel = types
       yield loadMoreOtherUserWorkouts(otherUserId)
     })
 
+    const syncLocalUserWorkouts = flow(function* () {
+      const { workoutRepository } = getEnv<RootStoreDependencies>(self)
+      const uploadedWorkoutIds = yield workoutRepository.uploadAllLocalWorkouts()
+
+      // update __isLocalOnly to false
+      for (const workoutId of uploadedWorkoutIds) {
+        const workout = self.userWorkouts.get(workoutId)
+        if (workout) {
+          workout.__isLocalOnly = false
+          self.userWorkouts.put(workout)
+        }
+      }
+
+      return uploadedWorkoutIds
+    })
+
     return {
       setUserId,
       resetFeed,
@@ -570,5 +611,6 @@ export const FeedStoreModel = types
       refreshFeedItems,
       loadMoreOtherUserWorkouts,
       refreshOtherUserWorkouts,
+      syncLocalUserWorkouts,
     }
   })

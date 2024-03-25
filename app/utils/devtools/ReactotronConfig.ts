@@ -12,6 +12,7 @@ import { mst } from "reactotron-mst"
 import { goBack, navigate, resetRoot } from "app/navigators/navigationUtilities"
 import { clear } from "app/utils/storage"
 
+import { storage } from "app/services"
 import { Reactotron } from "./ReactotronClient"
 
 const reactotron = Reactotron.configure({
@@ -54,6 +55,16 @@ reactotron.onCustomCommand({
   handler: () => {
     Reactotron.log("Showing React Native dev menu")
     NativeModules.DevMenu.show()
+  },
+})
+
+reactotron.onCustomCommand({
+  title: "Clear Async Storage",
+  description: "Remove all data stored in Async Storage",
+  command: "resetAsyncStorage",
+  handler: () => {
+    Reactotron.log("clear all data in Async Storage")
+    storage.clearAllData()
   },
 })
 

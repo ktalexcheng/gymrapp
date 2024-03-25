@@ -32,11 +32,13 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
       isEndOfFeed = otherUserWorkouts?.noMoreItems
       otherUserFeed =
         workouts &&
-        Array.from(workouts.values()).map((workout: IWorkoutSummaryModel) => ({
-          workoutSource: WorkoutSource.OtherUser,
-          workoutId: workout.workoutId,
-          workout,
-        }))
+        Array.from(workouts.values())
+          .map((workout: IWorkoutSummaryModel) => ({
+            workoutSource: WorkoutSource.OtherUser,
+            workoutId: workout.workoutId,
+            workout,
+          }))
+          .sort((a, b) => b.workout.startTime - a.workout.startTime)
     }
 
     const isLoading = feedStore.isLoadingOtherUserWorkouts

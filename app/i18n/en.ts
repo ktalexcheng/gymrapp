@@ -34,6 +34,14 @@ const en = {
       networkErrorMessage: "Internet connection is not available",
       unknownErrorMessage: "Something went wrong",
     },
+    offlineMode: {
+      firestoreNetworkDisabledMessage:
+        "Data will be saved locally and synced when internet connection is available",
+      firestoreNetworkEnabledMessage: "You are back online!",
+      pendingWritesFailedMessage: "Failed to sync offline data with the server",
+      pendingWritesSuccessMessage: "Offline data synced with the server",
+      localWorkoutsSyncedMessage: "Your workouts have been synced with the server",
+    },
   },
   notification: {
     restTime: {
@@ -247,6 +255,8 @@ const en = {
     resumeWorkoutButtonLabel: "Resume",
     discardWorkoutAlertTitle: "Discard workout",
     discardWorkoutAlertMessage: "Are you sure you want to discard this workout?",
+    workoutSavedLocallyMessage:
+      "Internet connection unavailable, workout is saved locally and will be synced when connection is available",
   },
   workoutSettings: {
     setWorkoutVisibilityLabel: "Set workout visibility",
@@ -259,6 +269,7 @@ const en = {
     commentInputPlaceholder: "Leave a comment...",
     noCommentsMessage: "Start the conversation!",
     workoutUnavailableMessage: "This workout is unavailable",
+    workoutSavedLocallyMessage: "This workout is not synced with the server",
   },
   workoutSummaryMenu: {
     editTitleLabel: "Edit title",

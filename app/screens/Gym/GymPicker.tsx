@@ -19,7 +19,7 @@ export const GymPicker: FC<GymPickerProps> = observer((props: GymPickerProps) =>
 
   useEffect(() => {
     if (!userStore.isLoadingProfile) {
-      const _myGyms = userStore.getProp<Gym[]>("user.myGyms")
+      const _myGyms = userStore.getPropAsJS<Gym[]>("user.myGyms")
       if (_myGyms) {
         setMyGyms(_myGyms)
       }

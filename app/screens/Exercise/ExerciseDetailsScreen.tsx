@@ -19,7 +19,7 @@ import { WorkoutSummaryCard } from "../FinishedWorkout"
 const WorkoutHistoryTabScene = (exerciseId: string) =>
   observer(() => {
     const { userStore, feedStore } = useStores()
-    const exerciseHistory = userStore.getProp<WorkoutId[]>(
+    const exerciseHistory = userStore.getPropAsJS<WorkoutId[]>(
       `user.exerciseHistory.${exerciseId}.performedWorkoutIds`,
     )
 
@@ -57,14 +57,17 @@ const WorkoutHistoryTabScene = (exerciseId: string) =>
     )
   })
 
+type IPersonalRecordsMapModelAsJS = Map<number, IPersonalRecordsMapModel>
+
 const PersonalRecordsTabScene = (exerciseId: string) =>
   observer(() => {
     const { userStore, exerciseStore } = useStores()
     const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
     const weightUnitTx = useWeightUnitTx()
-    const personalRecords = userStore.getProp<IPersonalRecordsMapModel>(
+    const personalRecordsMap = userStore.getPropAsJS<IPersonalRecordsMapModelAsJS>(
       `user.exerciseHistory.${exerciseId}.personalRecords`,
     )
+    const personalRecords = Object.fromEntries(personalRecordsMap.entries()) // Quick fix to convert Map to Object
     const volumeType = exerciseStore.getExerciseVolumeType(exerciseId)
 
     const renderTimePersonalRecords = (personalRecords: IPersonalRecordsMapModel) => {
@@ -107,7 +110,7 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
 
       const sortedPersonalRecords = Object.fromEntries(
         Object.entries(personalRecords).sort((a, b) => parseInt(a[0]) - parseInt(b[0])),
-      )
+      ) as any
 
       switch (volumeType) {
         case ExerciseVolumeType.Reps:

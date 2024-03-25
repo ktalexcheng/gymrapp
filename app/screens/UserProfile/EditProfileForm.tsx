@@ -96,12 +96,12 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   useEffect(() => {
     const checkForUnsavedChanges = () => {
       console.debug("EditProfileForm.checkForUnsavedChanges: checking for changes")
-      if (userHandle?.toLowerCase() !== userStore.getProp("user._userHandleLower")) return true
-      if (firstName !== userStore.getProp("user.firstName")) return true
-      if (lastName !== userStore.getProp("user.lastName")) return true
-      if (imagePath !== userStore.getProp("user.avatarUrl")) return true
+      if (userHandle?.toLowerCase() !== userStore.getPropAsJS("user._userHandleLower")) return true
+      if (firstName !== userStore.getPropAsJS("user.firstName")) return true
+      if (lastName !== userStore.getPropAsJS("user.lastName")) return true
+      if (imagePath !== userStore.getPropAsJS("user.avatarUrl")) return true
       if (weightUnit !== userStore.getUserPreference<WeightUnit>("weightUnit")) return true
-      if (privateAccount !== userStore.getProp("user.privateAccount")) return true
+      if (privateAccount !== userStore.getPropAsJS("user.privateAccount")) return true
       if (appLocale !== userStore.getUserPreference<AppLocale>("appLocale")) return true
       if (appColorScheme !== userStore.getUserPreference<AppColorScheme>("appColorScheme"))
         return true
@@ -133,24 +133,24 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
 
     // if (!userStore.isLoadingProfile && !isAutofilled) {
     console.debug("EditProfileForm autofilling form with current user profile data")
-    setUserHandle(userStore.getProp("user.userHandle"))
-    setFirstName(userStore.getProp("user.firstName"))
-    setLastName(userStore.getProp("user.lastName"))
-    setImagePath(userStore.getProp("user.avatarUrl"))
+    setUserHandle(userStore.getPropAsJS("user.userHandle"))
+    setFirstName(userStore.getPropAsJS("user.firstName"))
+    setLastName(userStore.getPropAsJS("user.lastName"))
+    setImagePath(userStore.getPropAsJS("user.avatarUrl"))
     setWeightUnit(userStore.getUserPreference<WeightUnit>("weightUnit"))
     setAppLocale(userStore.getUserPreference<AppLocale>("appLocale"))
     setAppColorScheme(userStore.getUserPreference<AppColorScheme>("appColorScheme"))
-    setPrivateAccount(userStore.getProp("user.privateAccount") ?? false)
+    setPrivateAccount(userStore.getPropAsJS("user.privateAccount") ?? false)
     setAutoRestTimerEnabled(userStore.getUserPreference<boolean>("autoRestTimerEnabled"))
     setRestTime(userStore.getUserPreference<number>("restTime"))
     // My gyms are managed in a separate flow to the user profile, so always update it
-    setMyGyms(userStore.getProp("user.myGyms"))
+    setMyGyms(userStore.getPropAsJS("user.myGyms"))
   }, [userStore.user])
 
   useEffect(() => {
     setUserHandleError(undefined)
     setUserHandleHelper(undefined)
-    if (!userHandle || userHandle === userStore.getProp("user.userHandle")) return undefined
+    if (!userHandle || userHandle === userStore.getPropAsJS("user.userHandle")) return undefined
 
     // Check if userHandle is valid
     if (!/^[a-zA-Z0-9_.]{1,30}$/.test(userHandle)) {
@@ -266,7 +266,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
         },
       } as User
 
-      if (imagePath && imagePath !== userStore.getProp("user.avatarUrl")) {
+      if (imagePath && imagePath !== userStore.getPropAsJS("user.avatarUrl")) {
         const avatarUrl = await userStore.uploadUserAvatar(imagePath)
         user.avatarUrl = avatarUrl
       }

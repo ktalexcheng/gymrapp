@@ -1,11 +1,12 @@
-const { defaults: tsjPreset } = require("ts-jest/presets")
+// const { defaults: tsjPreset } = require("ts-jest/presets")
 
 /** @type {import('@jest/types').Config.ProjectConfig} */
 module.exports = {
-  ...tsjPreset,
+  // ...tsjPreset,
   preset: "jest-expo",
   transformIgnorePatterns: [
-    "<rootDir>/node_modules/(react-clone-referenced-element|@react-native-community|react-navigation|@react-navigation/.*|@unimodules/.*|react-native-code-push)",
+    // "<rootDir>/node_modules/(react-clone-referenced-element|@react-native-community|react-navigation|@react-navigation/.*|@unimodules/.*|react-native-code-push)",
+    "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)",
     "jest-runner",
   ],
   testPathIgnorePatterns: [
