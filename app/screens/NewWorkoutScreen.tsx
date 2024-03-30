@@ -36,7 +36,7 @@ interface NewWorkoutScreenProps extends MainStackScreenProps<"NewWorkout"> {}
 export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutScreen({
   navigation,
 }) {
-  const { workoutStore, activityStore, themeStore } = useStores()
+  const { activeWorkoutStore, activityStore, themeStore } = useStores()
   const [showResetWorkoutDialog, setShowResetWorkoutDialog] = useState(false)
   const [selectedActivityId, setSelectedActivityId] = useState<string>()
   const [noActivitySelectedError, setNoActivitySelectedError] = useState(false)
@@ -57,10 +57,10 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
       return
     }
 
-    if (workoutStore.inProgress) {
+    if (activeWorkoutStore.inProgress) {
       setShowResetWorkoutDialog(true)
     } else {
-      workoutStore.startNewWorkout(selectedActivityId)
+      activeWorkoutStore.startNewWorkout(selectedActivityId)
       navigation.navigate("ActiveWorkout")
     }
   }
@@ -70,7 +70,7 @@ export const NewWorkoutScreen: FC<NewWorkoutScreenProps> = function NewWorkoutSc
   }
 
   function resetWorkout() {
-    workoutStore.resetWorkout()
+    activeWorkoutStore.resetWorkout()
     navigation.navigate("ActiveWorkout")
   }
 

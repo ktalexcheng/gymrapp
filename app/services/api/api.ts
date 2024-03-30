@@ -156,6 +156,24 @@ export class Api {
     return getDistance(gpsLatLng1, gpsLatLng2)
   }
 
+  async getOtherUserWorkout(userId: UserId, workoutId: WorkoutId): Promise<Workout> {
+    try {
+      const response = await this.firebaseFunctionsClient.httpsCallable(
+        "workoutGetOtherUserWorkout",
+      )({
+        userId,
+        workoutId,
+      })
+
+      return {
+        ...convertFirestoreTimestampToDate(response.data),
+      }
+    } catch (e) {
+      console.error("getOtherUserWorkout error:", e)
+      throw e
+    }
+  }
+
   async getOtherUserWorkouts(
     userId: UserId,
     lastWorkoutId?: WorkoutId,

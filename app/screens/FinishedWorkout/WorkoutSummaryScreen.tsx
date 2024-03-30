@@ -1,4 +1,5 @@
 import { firebase } from "@react-native-firebase/firestore"
+import { useFocusEffect } from "@react-navigation/native"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Avatar, Icon, RowView, Screen, Spacer, Text } from "app/components"
 import { WorkoutSource } from "app/data/constants"
@@ -10,7 +11,7 @@ import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimes
 import { formatDate } from "app/utils/formatDate"
 import { formatName } from "app/utils/formatName"
 import { observer } from "mobx-react-lite"
-import React, { useEffect, useState } from "react"
+import React, { useCallback, useEffect, useState } from "react"
 import { FlatList, TouchableOpacity, View, ViewStyle } from "react-native"
 import { ExerciseSummary } from "./ExerciseSummary"
 import { WorkoutCommentsPanel } from "./WorkoutCommentsPanel"
@@ -30,7 +31,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
   } = props.route.params
 
   const mainNavigation = useMainNavigation()
-  const { feedStore, userStore } = useStores()
+  const { feedStore, userStore, themeStore } = useStores()
   const [workout, setWorkout] = useState<IWorkoutSummaryModel>()
   const [workoutByUser, setWorkoutByUser] = useState<IUserModel>()
   const [isInitialized, setIsInitialized] = useState(false)
@@ -71,9 +72,14 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
     }
   }
 
-  useEffect(() => {
-    getWorkoutAndUser().then(() => setIsInitialized(true))
+  // In case the workout is updated, we want to refresh every time the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      getWorkoutAndUser().finally(() => setIsInitialized(true))
+    }, []),
+  )
 
+  useEffect(() => {
     const unsubscribeWorkoutInteractions = firebase
       .firestore()
       .collection("workoutInteractions")
@@ -99,19 +105,39 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
     setShowCommentsPanel(!showCommentsPanel)
   }
 
-  const onWorkoutUpdated = () => {
+  // const onWorkoutUpdated = () => {
+  //   setIsLoading(true)
+  //   try {
+  //     // User should only be able to access menu of their own workouts
+  //     const updatedWorkout = feedStore.getWorkout(WorkoutSource.User, workoutId)
+  //     if (updatedWorkout) {
+  //       setWorkout(updatedWorkout)
+  //     }
+  //   } catch (e) {
+  //     console.error("WorkoutSummaryScreen.onWorkoutUpdated error:", e)
+  //   } finally {
+  //     setIsLoading(false)
+  //   }
+  // }
+
+  const refreshWorkout = async () => {
+    if (isLoading) return
+
     setIsLoading(true)
     try {
-      // User should only be able to access menu of their own workouts
-      const updatedWorkout = feedStore.getWorkout(WorkoutSource.User, workoutId)
-      if (updatedWorkout) {
-        setWorkout(updatedWorkout)
-      }
+      await feedStore.refreshWorkout(workoutSource, workoutByUserId, workoutId)
+      getWorkoutAndUser()
     } catch (e) {
-      console.error("WorkoutSummaryScreen.onWorkoutUpdated error:", e)
-    } finally {
-      setIsLoading(false)
+      console.error("WorkoutSummaryScreen.refreshWorkout error:", e)
+      setIsError(true)
     }
+  }
+
+  const $isEditedWarning: ViewStyle = {
+    alignItems: "center",
+    borderRadius: 8,
+    backgroundColor: themeStore.colors("contentBackground"),
+    padding: spacing.extraSmall,
   }
 
   const renderScreen = () => {
@@ -124,6 +150,8 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
     return (
       <>
         <FlatList
+          refreshing={isLoading}
+          onRefresh={refreshWorkout}
           ListHeaderComponent={
             <>
               {workout?.__isOnlyLocal && (
@@ -133,6 +161,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                   <Text preset="light" tx="workoutSummaryScreen.workoutSavedLocallyMessage" />
                 </RowView>
               )}
+
               <RowView style={styles.justifyBetween}>
                 <View>
                   <Text preset="heading">{workout.workoutTitle}</Text>
@@ -144,7 +173,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                       workoutSource={workoutSource}
                       workoutId={workoutId}
                       onBusyChange={(isBusy) => setIsLoading(isBusy)}
-                      onWorkoutUpdated={onWorkoutUpdated}
+                      // onWorkoutUpdated={onWorkoutUpdated}
                     />
                   </View>
                 )}
@@ -195,6 +224,16 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                 workoutByUserId={workout.byUserId}
                 onPressComments={toggleShowCommentsPanel}
               />
+
+              {workout?.isEdited && (
+                <RowView style={$isEditedWarning}>
+                  <Icon name="warning-outline" size={16} />
+                  <Spacer type="horizontal" size="tiny" />
+                  <View style={styles.flex1}>
+                    <Text preset="light" tx="workoutSummaryScreen.workoutEditedMessage" size="xs" />
+                  </View>
+                </RowView>
+              )}
             </>
           }
           data={workout.exercises}

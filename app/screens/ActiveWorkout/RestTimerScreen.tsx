@@ -15,9 +15,9 @@ import Animated, {
 import Svg, { Circle } from "react-native-svg"
 
 export const RestTimerScreen: FC = observer(() => {
-  const { workoutStore, themeStore } = useStores()
+  const { activeWorkoutStore, themeStore } = useStores()
   const timePickerRef = useRef<TimePickerRef>(null)
-  const [timePickerValue, setTimePickerValue] = useState(workoutStore.restTime)
+  const [timePickerValue, setTimePickerValue] = useState(activeWorkoutStore.restTime)
 
   // Timer figure and animation setup
   const progressCircleLength = 1000
@@ -27,8 +27,8 @@ export const RestTimerScreen: FC = observer(() => {
   const progressCircleStrokeWidthOuter = 15
   const progressCircleStrokeWidthInner = 10
   const AnimatedCircle = Animated.createAnimatedComponent(Circle)
-  const timerRemaining = useSharedValue(workoutStore.restTimeRemaining)
-  const restTime = useSharedValue(workoutStore.restTime)
+  const timerRemaining = useSharedValue(activeWorkoutStore.restTimeRemaining)
+  const restTime = useSharedValue(activeWorkoutStore.restTime)
   const timerAnimatedProps = useAnimatedProps(() => ({
     strokeDashoffset:
       (progressCircleLength * (restTime.value - timerRemaining.value)) / restTime.value,
@@ -45,28 +45,28 @@ export const RestTimerScreen: FC = observer(() => {
     // Initialize the timer picker with the current rest time
     // and update the timer when the rest time changes
     syncTimerWithStore()
-  }, [workoutStore.restTime])
+  }, [activeWorkoutStore.restTime])
 
   // Sync the timer with the store, with the store as the source of truth
   const syncTimerWithStore = () => {
-    setTimePickerValue(workoutStore.restTime)
-    timePickerRef.current?.scrollToTime(workoutStore.restTime)
+    setTimePickerValue(activeWorkoutStore.restTime)
+    timePickerRef.current?.scrollToTime(activeWorkoutStore.restTime)
 
-    timerRemaining.value = workoutStore.restTimeRemaining
-    restTime.value = workoutStore.restTime
+    timerRemaining.value = activeWorkoutStore.restTimeRemaining
+    restTime.value = activeWorkoutStore.restTime
 
-    if (workoutStore.restTimeRunning) startAnimation()
+    if (activeWorkoutStore.restTimeRunning) startAnimation()
   }
 
   const updateRestTime = (totalSeconds: number) => {
-    workoutStore.setRestTime(totalSeconds)
+    activeWorkoutStore.setRestTime(totalSeconds)
     timerRemaining.value = totalSeconds
     restTime.value = totalSeconds
   }
 
   const startAnimation = () => {
     timerRemaining.value = withTiming(0, {
-      duration: workoutStore.restTimeRemaining * 1000,
+      duration: activeWorkoutStore.restTimeRemaining * 1000,
       easing: Easing.linear,
     })
   }
@@ -74,20 +74,20 @@ export const RestTimerScreen: FC = observer(() => {
   const startTimer = () => {
     if (timePickerValue > 0) {
       updateRestTime(timePickerValue)
-      workoutStore.startRestTimer()
+      activeWorkoutStore.startRestTimer()
       startAnimation()
     }
   }
 
   const resetTimer = () => {
-    workoutStore.resetRestTimer()
+    activeWorkoutStore.resetRestTimer()
     cancelAnimation(timerRemaining)
-    timerRemaining.value = workoutStore.restTimeRemaining
+    timerRemaining.value = activeWorkoutStore.restTimeRemaining
     // syncTimerWithStore()
   }
 
   const adjustRestTime = (adjustBySeconds: number) => {
-    workoutStore.adjustRestTime(adjustBySeconds)
+    activeWorkoutStore.adjustRestTime(adjustBySeconds)
     // syncTimerWithStore()
   }
 
@@ -123,14 +123,14 @@ export const RestTimerScreen: FC = observer(() => {
             })`}
           />
         </Svg>
-        {workoutStore.restTimeCompleted ? (
+        {activeWorkoutStore.restTimeCompleted ? (
           <View style={$remainingTimeContainer}>
             <Text preset="subheading" tx="restTimerScreen.timesUpMessage" />
           </View>
         ) : (
           <View style={$remainingTimeContainer}>
-            <Text preset="subheading">{formatSecondsAsTime(workoutStore.restTime)}</Text>
-            <Text>{formatSecondsAsTime(workoutStore.restTimeRemaining)}</Text>
+            <Text preset="subheading">{formatSecondsAsTime(activeWorkoutStore.restTime)}</Text>
+            <Text>{formatSecondsAsTime(activeWorkoutStore.restTimeRemaining)}</Text>
           </View>
         )}
       </View>
@@ -161,7 +161,7 @@ export const RestTimerScreen: FC = observer(() => {
         <Spacer type="vertical" size="large" />
         <View style={$startStopButton}>
           {(() => {
-            if (workoutStore.restTimeRunning) {
+            if (activeWorkoutStore.restTimeRunning) {
               return (
                 <Button preset="default" tx="restTimerScreen.resetTimer" onPress={resetTimer} />
               )

@@ -12,7 +12,7 @@ import { Screen, Text } from "../../components"
 import { GymPicker } from "../Gym"
 
 export const WorkoutGymPickerScreen: FC = observer(() => {
-  const { workoutStore, gymStore } = useStores()
+  const { activeWorkoutStore, gymStore } = useStores()
   const mainNavigation = useMainNavigation()
   const [toastShowTx] = useToast()
   const [isBusy, setIsBusy] = useState(false)
@@ -33,7 +33,7 @@ export const WorkoutGymPickerScreen: FC = observer(() => {
       if (distanceToGym > GYM_PROXIMITY_THRESHOLD_METERS) {
         toastShowTx("gymPickerScreen.locationTooFarMessage")
       } else {
-        workoutStore.setGym(gym)
+        activeWorkoutStore.setGym(gym)
         mainNavigation.goBack()
       }
     } catch (e) {

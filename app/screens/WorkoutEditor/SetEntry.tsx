@@ -73,6 +73,7 @@ function isValidPrecision(value: string, decimalPlaces: number) {
 }
 
 interface SetSwipeableContainerProps extends ViewProps {
+  mode: "active" | "editor"
   exerciseOrder: number
   setOrder: number
   isCompleted: boolean
@@ -86,6 +87,7 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
   props: SetSwipeableContainerProps,
 ) => {
   const {
+    mode,
     exerciseOrder,
     setOrder,
     isCompleted,
@@ -94,7 +96,8 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
     onPressPreviousSet,
     onPressCompleteSet,
   } = props
-  const { workoutStore, themeStore } = useStores()
+  const { activeWorkoutStore, workoutEditorStore, themeStore } = useStores()
+  const workoutStore = mode === "active" ? activeWorkoutStore : workoutEditorStore
   const exerciseSetStore = workoutStore.exercises.at(exerciseOrder)?.setsPerformed?.[setOrder]
 
   function renderRightDelete() {
@@ -161,8 +164,10 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
 }
 
 const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
-  const { exerciseId, exerciseOrder, setOrder } = props
-  const { workoutStore, themeStore } = useStores()
+  const { mode, exerciseId, exerciseOrder, setOrder } = props
+  const { activeWorkoutStore, workoutEditorStore, themeStore } = useStores()
+  const isActiveWorkout = mode === "active"
+  const workoutStore = isActiveWorkout ? activeWorkoutStore : workoutEditorStore
 
   // Current exercise set
   const exerciseSetStore = workoutStore.exercises.at(exerciseOrder)?.setsPerformed?.[
@@ -220,7 +225,7 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     setIsNullTime(false)
     exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
 
-    if (autoRestTimerEnabled) {
+    if (isActiveWorkout && autoRestTimerEnabled) {
       workoutStore.restartRestTimer(restTimeSetting)
     }
   }
@@ -260,6 +265,7 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
         </RowView>
       </Modal>
       <SetSwipeableContainer
+        mode={mode}
         exerciseOrder={exerciseOrder}
         setOrder={setOrder}
         isCompleted={exerciseSetStore.isCompleted}
@@ -281,7 +287,10 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 })
 
 const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
-  const { workoutStore, themeStore } = useStores()
+  const { mode } = props
+  const { activeWorkoutStore, workoutEditorStore, themeStore } = useStores()
+  const isActiveWorkout = mode === "active"
+  const workoutStore = isActiveWorkout ? activeWorkoutStore : workoutEditorStore
   const { exerciseId, exerciseOrder, setOrder } = props
 
   // Current exercise set
@@ -347,7 +356,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     // so that the last completed set can be identified and used for notification
     exerciseSetStore.setProp("isCompleted", !exerciseSetStore.isCompleted)
 
-    if (autoRestTimerEnabled) {
+    if (isActiveWorkout && autoRestTimerEnabled) {
       workoutStore.restartRestTimer(restTimeSetting)
     }
   }
@@ -421,6 +430,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 
   return (
     <SetSwipeableContainer
+      mode={mode}
       exerciseOrder={exerciseOrder}
       setOrder={setOrder}
       isCompleted={exerciseSetStore.isCompleted}
@@ -474,6 +484,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 })
 
 export type SetEntryProps = {
+  mode: "active" | "editor"
   exerciseOrder: number
   exerciseId: string
   setOrder: number
@@ -490,7 +501,9 @@ export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   // The SetEntry component will yet to be removed from the UI,
   // and will throw an error when trying to access the destroyed set,
   // so we need to check if the set still exists before rendering.
-  const { workoutStore } = useStores()
+  const { mode } = props
+  const { activeWorkoutStore, workoutEditorStore } = useStores()
+  const workoutStore = mode === "active" ? activeWorkoutStore : workoutEditorStore
   const thisSet = workoutStore.exercises.at(props.exerciseOrder)?.setsPerformed?.[props.setOrder]
   if (!thisSet) return null
 

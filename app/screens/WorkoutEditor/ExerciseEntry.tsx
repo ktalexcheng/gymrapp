@@ -12,14 +12,17 @@ import { ExerciseSettingsMenu } from "./ExerciseSettingsMenu"
 import { SetEntry } from "./SetEntry"
 
 export type ExerciseEntryProps = {
+  mode: "active" | "editor"
   exerciseOrder: number
   exerciseId: string
   // setsPerformed: ExerciseSet[]
 }
 
 export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEntryProps) => {
-  const { exerciseOrder, exerciseId } = props
-  const { workoutStore, exerciseStore, themeStore } = useStores()
+  const { mode, exerciseOrder, exerciseId } = props
+  const { activeWorkoutStore, workoutEditorStore, exerciseStore, themeStore } = useStores()
+  const isActiveWorkout = mode === "active"
+  const workoutStore = isActiveWorkout ? activeWorkoutStore : workoutEditorStore
   const mainNavigation = useMainNavigation()
   const thisExercise = workoutStore.exercises.at(exerciseOrder)
   const setsPerformed = thisExercise?.setsPerformed ?? []
@@ -34,6 +37,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
   function renderSets() {
     return setsPerformed.map((set, i) => (
       <SetEntry
+        mode={mode}
         key={i}
         setOrder={i}
         exerciseOrder={exerciseOrder}
@@ -86,7 +90,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
         <TouchableOpacity onPress={navigateToExerciseDetails}>
           <Text preset="bold">{"#" + (exerciseOrder + 1) + " " + exerciseName}</Text>
         </TouchableOpacity>
-        <ExerciseSettingsMenu exerciseOrder={exerciseOrder} exerciseId={exerciseId} />
+        <ExerciseSettingsMenu mode={mode} exerciseOrder={exerciseOrder} exerciseId={exerciseId} />
       </RowView>
 
       <TextField

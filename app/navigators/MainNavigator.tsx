@@ -8,6 +8,7 @@ import {
   AddToMyGymsScreen,
   CreateExerciseScreen,
   CreateNewGymScreen,
+  EditWorkoutScreen,
   ExerciseDetailsScreen,
   ExercisePickerScreen,
   GymDetailsScreen,
@@ -32,9 +33,12 @@ export type MainStackParamList = {
   HomeTabNavigator: undefined
   NewWorkout: undefined
   ActiveWorkout: undefined
+  EditWorkout: undefined
   SaveWorkout: undefined
   WorkoutGymPicker: undefined
-  ExercisePicker: undefined
+  ExercisePicker: {
+    mode: "active" | "editor"
+  }
   CreateExercise: undefined
   RestTimer: undefined
   // ExerciseManager: undefined
@@ -229,6 +233,7 @@ export const MainNavigator = observer(function MainNavigator() {
             animation: "slide_from_bottom",
           }}
         />
+        <MainStack.Screen name="EditWorkout" component={EditWorkoutScreen} />
         <MainStack.Screen name="SaveWorkout" component={SaveWorkoutScreen} />
         <MainStack.Screen name="WorkoutGymPicker" component={WorkoutGymPickerScreen} />
         <MainStack.Screen

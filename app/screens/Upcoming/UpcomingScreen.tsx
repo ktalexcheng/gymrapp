@@ -5,8 +5,10 @@ import React from "react"
 import { Text, ViewStyle } from "react-native"
 
 export const UpcomingScreen = () => {
-  const { workoutStore } = useStores()
-  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? ["bottom"] : ["top", "bottom"]
+  const { activeWorkoutStore } = useStores()
+  const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress
+    ? ["bottom"]
+    : ["top", "bottom"]
 
   return (
     <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={$container}>

@@ -143,14 +143,14 @@ const ResetWorkoutDialog: FC<ResetWorkoutDialogProps> = function ResetWorkoutDia
 
 const NewActivityButton = observer(() => {
   const navigation = useMainNavigation()
-  const { themeStore, workoutStore } = useStores()
+  const { themeStore, activeWorkoutStore } = useStores()
   const [showResetWorkoutDialog, setShowResetWorkoutDialog] = useState(false)
 
   const startNewWorkout = () => {
-    if (workoutStore.inProgress) {
+    if (activeWorkoutStore.inProgress) {
       setShowResetWorkoutDialog(true)
     } else {
-      workoutStore.startNewWorkout(ActivityType.Gym)
+      activeWorkoutStore.startNewWorkout(ActivityType.Gym)
       navigation.navigate("ActiveWorkout")
     }
   }
@@ -162,7 +162,7 @@ const NewActivityButton = observer(() => {
 
   function resetWorkout() {
     setShowResetWorkoutDialog(false)
-    workoutStore.resetWorkout()
+    activeWorkoutStore.resetWorkout()
     navigation.navigate("ActiveWorkout")
   }
 
@@ -202,7 +202,7 @@ const NewActivityButton = observer(() => {
 
 export const HomeTabNavigator = observer(() => {
   const { bottom } = useSafeAreaInsets()
-  const { workoutStore, themeStore } = useStores()
+  const { activeWorkoutStore, themeStore } = useStores()
 
   const $tabBar: ViewStyle = {
     backgroundColor: themeStore.colors("background"),
@@ -211,7 +211,7 @@ export const HomeTabNavigator = observer(() => {
 
   return (
     <>
-      {workoutStore.inProgress && <ActiveWorkoutOverlay />}
+      {activeWorkoutStore.inProgress && <ActiveWorkoutOverlay />}
       <BottomTab.Navigator
         screenOptions={{
           headerShown: false,

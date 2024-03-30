@@ -20,14 +20,17 @@ const MenuItem = (props: TouchableOpacityProps) => {
 }
 
 export type ExerciseSettingsProps = {
+  mode: "active" | "editor"
   exerciseOrder: number
   exerciseId: string
 }
 
 export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
   (props: ExerciseSettingsProps) => {
-    const { exerciseId } = props
-    const { workoutStore, exerciseStore, themeStore } = useStores()
+    const { mode, exerciseOrder, exerciseId } = props
+    const { activeWorkoutStore, workoutEditorStore, exerciseStore, themeStore } = useStores()
+    const isActiveWorkout = mode === "active"
+    const workoutStore = isActiveWorkout ? activeWorkoutStore : workoutEditorStore
     const [weightUnitSetting] = useExerciseSetting<WeightUnit>(exerciseId, "weightUnit")
     const [restTimerEnabledSetting] = useExerciseSetting<boolean>(
       exerciseId,
@@ -49,7 +52,7 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
     }
 
     function removeExercise() {
-      workoutStore.removeExercise(props.exerciseOrder)
+      workoutStore.removeExercise(exerciseOrder)
     }
 
     const renderPopoverContent = () => {
@@ -134,13 +137,15 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
         default:
           return (
             <>
-              <MenuItem
-                onPress={() => {
-                  setPage("timer")
-                }}
-              >
-                <Text tx="exerciseEntrySettings.restTimeLabel" />
-              </MenuItem>
+              {isActiveWorkout ? (
+                <MenuItem
+                  onPress={() => {
+                    setPage("timer")
+                  }}
+                >
+                  <Text tx="exerciseEntrySettings.restTimeLabel" />
+                </MenuItem>
+              ) : null}
               <MenuItem
                 onPress={() => {
                   setPage("weightUnit")

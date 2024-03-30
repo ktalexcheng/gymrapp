@@ -12,8 +12,8 @@ import { WorkoutSummaryCard, WorkoutSummaryCardProps } from "../FinishedWorkout"
 // interface FeedScreenProps extends TabScreenProps<"Profile"> {}
 
 export const FeedScreen = observer(function FeedScreen() {
-  const { feedStore, userStore, workoutStore, themeStore } = useStores()
-  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? [] : ["top"]
+  const { feedStore, userStore, activeWorkoutStore, themeStore } = useStores()
+  const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress ? [] : ["top"]
   const [feedData, setFeedData] = useState<WorkoutSummaryCardProps[]>([])
   const [isLoading, setIsLoading] = useState(true)
 

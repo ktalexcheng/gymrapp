@@ -1,7 +1,7 @@
 import crashlytics from "@react-native-firebase/crashlytics"
 import firestore from "@react-native-firebase/firestore"
 import { ExerciseSource, ExerciseVolumeType, WorkoutSource } from "app/data/constants"
-import { ExerciseId, UserId, Workout, WorkoutComment, WorkoutId } from "app/data/types"
+import { ExerciseId, UserId, WorkoutComment, WorkoutId } from "app/data/types"
 import { api } from "app/services/api"
 import { getNestedField } from "app/utils/getNestedField"
 import { getTime, startOfWeek } from "date-fns"
@@ -71,6 +71,7 @@ export const WorkoutSummaryModel = types.snapshotProcessor(
     MetadataModel,
     types.model({
       workoutId: types.identifier,
+      isEdited: false,
       byUserId: types.string,
       userIsPrivate: types.boolean,
       isHidden: types.boolean,
@@ -192,7 +193,7 @@ export const FeedStoreModel = types
         }
 
         const workout = self.otherUserWorkouts.get(byUserId)?.workouts.get(workoutId)
-        return workout
+        return toJS(workout)
       }
 
       if (
@@ -204,7 +205,7 @@ export const FeedStoreModel = types
       }
 
       const workout = self.userWorkouts.get(workoutId) || self.feedWorkouts.get(workoutId)
-      return workout
+      return toJS(workout)
     },
     getSetFromWorkout(workoutId: WorkoutId, exerciseId: ExerciseId, setOrder: number) {
       console.debug("FeedStore.getSetFromWorkout() workoutId:", workoutId)
@@ -269,6 +270,35 @@ export const FeedStoreModel = types
       self.userWorkouts.put(workout)
     }
 
+    const refreshWorkout = flow(function* (
+      workoutSource: WorkoutSource,
+      userId: UserId,
+      workoutId: WorkoutId,
+    ) {
+      const { workoutRepository } = getEnv<RootStoreDependencies>(self)
+
+      try {
+        if (workoutSource === WorkoutSource.User) {
+          const workout = yield workoutRepository.get(workoutId, true)
+          console.debug("FeedStore.refreshWorkout() ", { workout })
+          self.userWorkouts.put(workout)
+        } else {
+          const workout = yield api.getOtherUserWorkout(userId, workoutId)
+          switch (workoutSource) {
+            case WorkoutSource.Feed:
+              self.feedWorkouts.put(workout)
+              break
+            case WorkoutSource.OtherUser:
+              self.otherUserWorkouts.get(userId)?.workouts?.put(workout)
+              break
+          }
+        }
+      } catch (e) {
+        crashlytics().recordError(e as any)
+        console.error("FeedStore.refreshWorkout error:", e)
+      }
+    })
+
     const loadUserWorkouts = flow(function* () {
       console.debug("FeedStore.loadUserWorkouts called")
       if (!checkInitialized() || !self.userId) return undefined
@@ -330,20 +360,6 @@ export const FeedStoreModel = types
         self.isLoadingUserWorkouts = false
       } catch (e) {
         console.error("FeedStore.loadUserWorkouts error:", e)
-      }
-    })
-
-    const updateWorkout = flow(function* (workoutId: WorkoutId, data: Partial<Workout>) {
-      const { workoutRepository } = getEnv<RootStoreDependencies>(self)
-
-      const workout = self.getWorkout(WorkoutSource.User, workoutId)
-      const updatedWorkout = { ...workout, ...data }
-
-      try {
-        yield workoutRepository.update(workoutId, toJS(updatedWorkout) as Workout)
-        self.userWorkouts.put({ workoutId, ...updatedWorkout })
-      } catch (e) {
-        console.error("FeedStore.updateWorkout error:", e)
       }
     })
 
@@ -599,8 +615,8 @@ export const FeedStoreModel = types
       setUserId,
       resetFeed,
       addUserWorkout,
+      refreshWorkout,
       loadUserWorkouts,
-      updateWorkout,
       deleteWorkout,
       updateWorkoutInteractions,
       loadMoreFeedItems,

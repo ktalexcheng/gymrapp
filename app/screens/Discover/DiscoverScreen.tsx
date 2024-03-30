@@ -39,9 +39,9 @@ export enum SearchCategory {
 }
 
 export const DiscoverScreen = observer(() => {
-  const { workoutStore } = useStores()
+  const { activeWorkoutStore } = useStores()
   const [searchCategory, setSearchCategory] = useState<SearchCategory>(SearchCategory.Users)
-  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? [] : ["top"]
+  const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress ? [] : ["top"]
 
   return (
     <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={styles.screenContainer}>

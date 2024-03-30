@@ -6,7 +6,7 @@ import { FeedStoreModel } from "./FeedStore"
 import { GymStoreModel } from "./GymStore"
 import { ThemeStoreModel } from "./ThemeStore"
 import { UserStoreModel } from "./UserStore"
-import { WorkoutStoreModel } from "./WorkoutStore"
+import { ActiveWorkoutStoreModel, WorkoutEditorStoreModel } from "./WorkoutStore"
 /**
  * A RootStore model.
  */
@@ -14,7 +14,8 @@ export const RootStoreModel = types.model("RootStore").props({
   authenticationStore: types.optional(AuthenticationStoreModel, {}),
   userStore: types.optional(UserStoreModel, {}),
   activityStore: types.optional(ActivityStoreModel, {}),
-  workoutStore: types.optional(WorkoutStoreModel, {}),
+  activeWorkoutStore: types.optional(ActiveWorkoutStoreModel, {}),
+  workoutEditorStore: types.optional(WorkoutEditorStoreModel, {}),
   exerciseStore: types.optional(ExerciseStoreModel, {}),
   feedStore: types.optional(FeedStoreModel, {}),
   gymStore: types.optional(GymStoreModel, {}),

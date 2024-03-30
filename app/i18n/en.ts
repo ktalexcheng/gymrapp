@@ -270,10 +270,11 @@ const en = {
     noCommentsMessage: "Start the conversation!",
     workoutUnavailableMessage: "This workout is unavailable",
     workoutSavedLocallyMessage: "This workout is not synced with the server",
+    workoutEditedMessage: "This workout has been edited so personal records may not be accurate.",
   },
   workoutSummaryMenu: {
-    editTitleLabel: "Edit title",
-    workoutTitleLabel: "Workout title",
+    editWorkoutButtonLabel: "Edit workout",
+    // workoutTitleLabel: "Workout title",
     deleteWorkoutAlertTitle: "Delete workout",
     deleteWorkoutAlertMessage: "Are you sure you want to delete this workout?",
     deleteWorkoutSuccessMessage: "Workout deleted",

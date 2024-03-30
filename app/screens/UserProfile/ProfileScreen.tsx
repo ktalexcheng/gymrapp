@@ -202,8 +202,8 @@ const DashboardTabScene: FC = observer(() => {
 
 export const ProfileScreen = observer(function ProfileScreen() {
   const mainNavigation = useMainNavigation()
-  const { userStore, workoutStore, themeStore } = useStores()
-  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? [] : ["top"]
+  const { userStore, activeWorkoutStore, themeStore } = useStores()
+  const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress ? [] : ["top"]
   const [tabIndex, setTabIndex] = useState(0)
 
   useEffect(() => {

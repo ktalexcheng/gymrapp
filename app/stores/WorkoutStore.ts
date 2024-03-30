@@ -1,8 +1,9 @@
 import { ActivityId } from "app/data/types/activity.types"
 import { differenceInSeconds } from "date-fns"
 import * as Notifications from "expo-notifications"
+import lodash from "lodash"
 import { IKeyValueMap, toJS } from "mobx"
-import { Instance, SnapshotOrInstance, destroy, flow, getEnv, types } from "mobx-state-tree"
+import { SnapshotOrInstance, destroy, flow, getEnv, types } from "mobx-state-tree"
 import { ExerciseSetType, ExerciseSource, ExerciseVolumeType } from "../../app/data/constants"
 import { translate } from "../../app/i18n"
 import { REST_TIMER_CHANNEL_ID } from "../data/constants"
@@ -18,9 +19,9 @@ import {
   ISetPerformedModel,
   ITimePersonalRecordModel,
   ITimeSetPerformedModel,
+  IUserModel,
   RepsSetPerformedModel,
   TimeSetPerformedModel,
-  UserModel,
 } from "./models"
 
 const BaseExercisePerformedModel = types
@@ -61,8 +62,8 @@ const Exercises = types.array(ExercisePerformedModel)
 
 export type IExercisePerformedModel = SnapshotOrInstance<typeof ExercisePerformedModel>
 
-export const WorkoutStoreModel = types
-  .model("WorkoutStore")
+export const ActiveWorkoutStoreModel = types
+  .model("ActiveWorkoutStore")
   .props({
     startTime: types.maybe(types.Date),
     endTime: types.maybe(types.Date),
@@ -110,6 +111,12 @@ export const WorkoutStoreModel = types
       const duration = differenceInSeconds(new Date(), self.startTime)
       return formatSecondsAsTime(duration, true)
     },
+    get workoutDurationFormatted() {
+      if (!self.startTime || !self.endTime) return "00:00:00"
+
+      const duration = differenceInSeconds(self.endTime, self.startTime)
+      return formatSecondsAsTime(duration, true)
+    },
     get totalVolume() {
       let total = 0
       self.exercises.forEach((e) => {
@@ -153,7 +160,7 @@ export const WorkoutStoreModel = types
      * Function to be called when rest timer is completed.
      */
     const handleEndOfTimer = () => {
-      console.debug("WorkoutStore.handleEndOfTimer called")
+      console.debug("ActiveWorkoutStore.handleEndOfTimer called")
       if (intervalId) {
         clearInterval(intervalId)
       }
@@ -237,7 +244,7 @@ export const WorkoutStoreModel = types
       const lastCompletedSet = lastCompletedExercise?.setsPerformed
         ?.filter((s) => s.isCompleted)
         ?.pop()
-      console.debug("WorkoutStore.startRestTimer lastCompletedSet:", {
+      console.debug("ActiveWorkoutStore.startRestTimer lastCompletedSet:", {
         lastCompletedExercise,
         lastCompletedSet,
       })
@@ -282,7 +289,7 @@ export const WorkoutStoreModel = types
     const cancelRestNotifications = async () => {
       if (notificationId) {
         await Notifications.cancelScheduledNotificationAsync(notificationId)
-        console.debug("WorkoutStore.cancelRestNotifications canceled notification:", {
+        console.debug("ActiveWorkoutStore.cancelRestNotifications canceled notification:", {
           notificationId,
         })
 
@@ -293,9 +300,12 @@ export const WorkoutStoreModel = types
     const dismissRestNotifications = async () => {
       if (notificationId) {
         await Notifications.dismissNotificationAsync(notificationId)
-        console.debug("WorkoutStore.dismissRestNotifications dismissed presented notification:", {
-          notificationId,
-        })
+        console.debug(
+          "ActiveWorkoutStore.dismissRestNotifications dismissed presented notification:",
+          {
+            notificationId,
+          },
+        )
       }
     }
 
@@ -355,18 +365,22 @@ export const WorkoutStoreModel = types
     }
 
     const getLatestExerciseRecord = (
-      user: Instance<typeof UserModel>,
+      user: IUserModel,
       exerciseId: string,
       reps: number,
+      excludeWorkoutId?: string,
     ) => {
       const exerciseHistory = user.exerciseHistory
       const exercisePersonalRecords = exerciseHistory?.get(exerciseId)?.personalRecords
-      console.debug("WorkoutStore.getLatestExerciseRecord()", {
+      console.debug("ActiveWorkoutStore.getLatestExerciseRecord()", {
         exerciseHistory,
         exercisePersonalRecords,
       })
 
-      const exerciseRecords = exercisePersonalRecords?.get(reps)?.records
+      let exerciseRecords = exercisePersonalRecords?.get(reps)?.records
+      if (excludeWorkoutId) {
+        exerciseRecords = exerciseRecords?.filter((r) => r.workoutId !== excludeWorkoutId)
+      }
       if (!exerciseRecords) return null
 
       const recordsCount = exerciseRecords?.length
@@ -377,7 +391,9 @@ export const WorkoutStoreModel = types
 
     // IMPORTANT: Note that applying toJS() to the model instances (such as exercise and set)
     // is necessary to avoid issues with MST when attemping to add the new workout to user's feed.
-    const getAllExerciseSummary = (user: Instance<typeof UserModel>) => {
+    // excludeWorkoutId is used to exclude the current workout from the list of personal records
+    // when updating an existing workout.
+    const getAllExerciseSummary = (user: IUserModel, excludeWorkoutId?: string) => {
       const exercisesSummary: ExercisePerformed[] = []
       const datePerformed = self.startTime ?? new Date()
 
@@ -390,7 +406,7 @@ export const WorkoutStoreModel = types
 
           e.setsPerformed.forEach((s) => {
             if (!s.reps || s.reps === 0) {
-              console.error("WorkoutStore.getAllExerciseSummary: Skipping set, reps is 0", {
+              console.error("ActiveWorkoutStore.getAllExerciseSummary: Skipping set, reps is 0", {
                 exercise: e,
                 setsPerformed: s,
               })
@@ -404,7 +420,7 @@ export const WorkoutStoreModel = types
               bestSet = toJS(s)
             }
 
-            let latestRecord = getLatestExerciseRecord(user, e.exerciseId, s.reps)
+            let latestRecord = getLatestExerciseRecord(user, e.exerciseId, s.reps, excludeWorkoutId)
             // Safety check, in case the exercise was modified and the latest record is not a reps record
             if (latestRecord?.volumeType !== ExerciseVolumeType.Reps) latestRecord = null
 
@@ -437,7 +453,7 @@ export const WorkoutStoreModel = types
 
           e.setsPerformed.forEach((s) => {
             if (!s.time || s.time === 0) {
-              console.error("WorkoutStore.getAllExerciseSummary: Skipping set, time is 0", {
+              console.error("ActiveWorkoutStore.getAllExerciseSummary: Skipping set, time is 0", {
                 exercise: e,
                 setsPerformed: s,
               })
@@ -450,7 +466,7 @@ export const WorkoutStoreModel = types
               bestSet = toJS(s)
             }
 
-            let latestRecord = getLatestExerciseRecord(user, e.exerciseId, 0)
+            let latestRecord = getLatestExerciseRecord(user, e.exerciseId, 0, excludeWorkoutId)
             // Safety check, in case the exercise was modified and the latest record is not a time record
             if (latestRecord?.volumeType !== ExerciseVolumeType.Time) latestRecord = null
 
@@ -502,20 +518,16 @@ export const WorkoutStoreModel = types
       self.inProgress = false
     }
 
-    const saveWorkout = flow(function* (
-      isHidden: boolean,
-      user: Instance<typeof UserModel>,
-      isOffline = false,
-    ) {
+    const saveWorkout = flow(function* (isHidden: boolean, user: IUserModel, isOffline = false) {
       try {
         if (self.inProgress) {
-          console.warn("WorkoutStore.saveWorkout: Unable to save, workout still in progress")
+          console.warn("ActiveWorkoutStore.saveWorkout: Unable to save, workout still in progress")
           return undefined
         }
 
         cleanUpWorkout()
 
-        // console.debug("WorkoutStore.exerciseSummary:", self.exerciseSummary)
+        // console.debug("ActiveWorkoutStore.exerciseSummary:", self.exerciseSummary)
         const { workoutRepository } = getEnv<RootStoreDependencies>(self)
         const userId = user.userId
         const privateAccount = user.privateAccount
@@ -536,15 +548,15 @@ export const WorkoutStoreModel = types
           performedAtGymId: self.performedAtGymId ?? null,
           performedAtGymName: self.performedAtGymName ?? null,
         } as IWorkoutSummaryModel
-        console.debug("WorkoutStore.saveWorkout newWorkout:", newWorkout)
+        console.debug("ActiveWorkoutStore.saveWorkout newWorkout:", newWorkout)
 
         // If offline, the uploadWorkout function will save the workout locally
-        const isUploadedToDatabase = yield workoutRepository.saveWorkout(newWorkout, isOffline)
-        newWorkout.__isLocalOnly = !isUploadedToDatabase
+        const isSynced = yield workoutRepository.saveWorkout(newWorkout, isOffline)
+        newWorkout.__isLocalOnly = !isSynced
 
         return newWorkout
       } catch (error) {
-        console.error("WorkoutStore.saveWorkout error:", error)
+        console.error("ActiveWorkoutStore.saveWorkout error:", error)
         return undefined
       }
     })
@@ -572,7 +584,7 @@ export const WorkoutStoreModel = types
     function addSet(targetExerciseOrder: number, initialSetValues?: Partial<ISetPerformedModel>) {
       const exercise = self.exercises.at(targetExerciseOrder)
       if (!exercise) {
-        console.error("WorkoutStore.addSet: exercise not found")
+        console.error("ActiveWorkoutStore.addSet: exercise not found")
         return
       }
 
@@ -606,7 +618,7 @@ export const WorkoutStoreModel = types
     function removeSet(targetExerciseOrder: number, targetExerciseSetOrder: number) {
       const targetExercise = self.exercises.at(targetExerciseOrder)
       if (!targetExercise) {
-        console.error("WorkoutStore.removeSet: exercise not found")
+        console.error("ActiveWorkoutStore.removeSet: exercise not found")
         return
       }
 
@@ -625,10 +637,99 @@ export const WorkoutStoreModel = types
       pauseWorkout,
       resumeWorkout,
       endWorkout,
+      getAllExerciseSummary,
       saveWorkout,
       addExercise,
       removeExercise,
       addSet,
       removeSet,
+    }
+  })
+
+export const WorkoutEditorStoreModel = ActiveWorkoutStoreModel.named("WorkoutEditorStore")
+  .props({
+    // inProgress: types.optional(types.literal(false), false),
+    // restTimeRunning: types.optional(types.literal(false), false),
+    originalWorkout: types.maybe(types.frozen<IWorkoutSummaryModel>()),
+    workoutId: types.maybe(types.string),
+    isHidden: true, // for safety, default to true
+  })
+  .actions((self) => {
+    function hydrateWithWorkout(workout: IWorkoutSummaryModel) {
+      try {
+        self.originalWorkout = workout
+        // self.inProgress = false
+        // self.restTimeRunning = false
+        self.workoutId = workout.workoutId
+        self.isHidden = workout.isHidden
+        self.startTime = workout.startTime
+        self.endTime = workout.endTime
+        self.workoutTitle = workout.workoutTitle
+        self.activityId = workout.activityId
+        self.performedAtGymId = workout.performedAtGymId
+        self.performedAtGymName = workout.performedAtGymName
+        // toJS() to convert from model instance to snapshot is necessary to avoid issues with MST
+        self.exercises = toJS(workout.exercises)
+      } catch (e) {
+        console.error("WorkoutEditorStore.hydrateWithWorkout error:", e)
+      }
+    }
+
+    const updateWorkout = flow(function* updateWorkout(
+      isHidden: boolean,
+      user: IUserModel,
+      isOffline = false,
+    ) {
+      // This should not happen, but just in case
+      if (!self.workoutId) {
+        throw new Error("WorkoutEditorStore.updateWorkout() error: workoutId is undefined")
+      }
+
+      self.cleanUpWorkout()
+
+      const { workoutRepository } = getEnv<RootStoreDependencies>(self)
+      const privateAccount = user.privateAccount
+      const allExerciseSummary = self.getAllExerciseSummary(user, self.workoutId)
+
+      // If sets performed are modified in any way, we will flag the workout as edited
+      const originalExercises = self.originalWorkout.exercises.reduce(
+        (acc, e) => ({
+          ...acc,
+          [e.exerciseId]: {
+            exerciseId: e.exerciseId,
+            setsPerformed: e.setsPerformed,
+          },
+        }),
+        {},
+      )
+      const updatedExercises = allExerciseSummary.reduce(
+        (acc, e) => ({
+          ...acc,
+          [e.exerciseId]: {
+            exerciseId: e.exerciseId,
+            setsPerformed: e.setsPerformed,
+          },
+        }),
+        {},
+      )
+      const isExerciseModified = !lodash.isEqual(toJS(originalExercises), toJS(updatedExercises))
+
+      const updatedWorkout = {
+        ...toJS(self.originalWorkout),
+        _modifiedAt: new Date(), // Repository should handle this field, but we set it here for offline use
+        userIsPrivate: privateAccount,
+        isHidden,
+        workoutTitle: self.workoutTitle,
+        exercises: allExerciseSummary,
+        isEdited: self.originalWorkout.isEdited || isExerciseModified, // Once a workout is edited, it remains edited
+      }
+
+      yield workoutRepository.update(self.workoutId, updatedWorkout, false, isOffline)
+      return updatedWorkout
+    })
+
+    return {
+      hydrateWithWorkout,
+      updateWorkout,
     }
   })

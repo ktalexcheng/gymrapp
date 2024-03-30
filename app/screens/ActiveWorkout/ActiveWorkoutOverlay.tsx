@@ -7,7 +7,7 @@ import React, { useEffect, useState } from "react"
 import { TouchableOpacity, View, ViewStyle } from "react-native"
 
 export const ActiveWorkoutOverlay = () => {
-  const { workoutStore, themeStore } = useStores()
+  const { activeWorkoutStore, themeStore } = useStores()
   const [timeElapsed, setTimeElapsed] = useState("00:00:00")
   const navigation = useMainNavigation()
   const $containerTopInset = useSafeAreaInsetsStyle(["top"], "margin")
@@ -15,9 +15,9 @@ export const ActiveWorkoutOverlay = () => {
   // Using MobX observer and useEffect will not work for some reason
   // @ts-ignore
   useEffect(() => {
-    if (workoutStore.inProgress) {
+    if (activeWorkoutStore.inProgress) {
       const intervalId = setInterval(() => {
-        setTimeElapsed(workoutStore.timeElapsedFormatted)
+        setTimeElapsed(activeWorkoutStore.timeElapsedFormatted)
       }, 1000)
       console.debug("ActiveWorkoutOverlay setInterval called:", intervalId)
 
@@ -26,7 +26,7 @@ export const ActiveWorkoutOverlay = () => {
         clearInterval(intervalId)
       }
     }
-  }, [workoutStore.inProgress])
+  }, [activeWorkoutStore.inProgress])
 
   function goToActiveWorkout() {
     navigation.navigate("ActiveWorkout")
@@ -53,7 +53,7 @@ export const ActiveWorkoutOverlay = () => {
               preset="subheading"
               numberOfLines={1}
               textColor={themeStore.colors("actionableForeground")}
-              text={workoutStore.workoutTitle}
+              text={activeWorkoutStore.workoutTitle}
             />
           </View>
           <Text

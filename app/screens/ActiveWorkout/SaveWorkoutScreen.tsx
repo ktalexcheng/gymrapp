@@ -15,6 +15,7 @@ import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
+import { toJS } from "mobx"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
 import { Alert, TouchableOpacity, ViewStyle } from "react-native"
@@ -33,16 +34,16 @@ const workoutIsHiddenOptions = [
 
 export const SaveWorkoutScreen: FC = observer(() => {
   const mainNavigation = useMainNavigation()
-  const { workoutStore, exerciseStore, feedStore, userStore, themeStore } = useStores()
+  const { activeWorkoutStore, exerciseStore, feedStore, userStore, themeStore } = useStores()
   const [showEditTitleModal, setShowEditTitleModal] = useState(false)
-  const [workoutTitle, setWorkoutTitle] = useState(workoutStore.workoutTitle)
+  const [workoutTitle, setWorkoutTitle] = useState(activeWorkoutStore.workoutTitle)
   const [isHidden, setIsHidden] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [toastShowTx] = useToast()
   const [isInternetConnected] = useInternetStatus()
 
   function resumeWorkout() {
-    workoutStore.resumeWorkout()
+    activeWorkoutStore.resumeWorkout()
     mainNavigation.goBack()
   }
 
@@ -58,7 +59,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
         {
           text: translate("common.discard"),
           onPress: () => {
-            workoutStore.endWorkout()
+            activeWorkoutStore.endWorkout()
             mainNavigation.navigate("HomeTabNavigator")
           },
         },
@@ -75,12 +76,16 @@ export const SaveWorkoutScreen: FC = observer(() => {
 
     setIsSaving(true)
     try {
-      const workout = await workoutStore.saveWorkout(isHidden, userStore.user, !isInternetConnected)
+      const workout = await activeWorkoutStore.saveWorkout(
+        isHidden,
+        toJS(userStore.user),
+        !isInternetConnected,
+      )
 
       if (!workout) throw new Error("SaveWorkoutScreen.saveWorkout: workout is undefined")
 
       feedStore.addUserWorkout(workout) // Manually add the workout so it is available in WorkoutSummary
-      workoutStore.resetWorkout()
+      activeWorkoutStore.resetWorkout()
       await exerciseStore.uploadExerciseSettings(!isInternetConnected)
       setIsSaving(false)
 
@@ -107,16 +112,19 @@ export const SaveWorkoutScreen: FC = observer(() => {
   }
 
   const handleShowEditTitleModal = () => {
-    setWorkoutTitle(workoutStore.workoutTitle)
+    setWorkoutTitle(activeWorkoutStore.workoutTitle)
     setShowEditTitleModal(true)
   }
 
   const updateWorkoutTitle = () => {
     console.debug("SaveWorkoutScreen.updateWorkoutTitle", { workoutTitle })
     if (!workoutTitle) {
-      workoutStore.setProp("workoutTitle", translate("saveWorkoutScreen.workoutTitlePlaceholder"))
+      activeWorkoutStore.setProp(
+        "workoutTitle",
+        translate("saveWorkoutScreen.workoutTitlePlaceholder"),
+      )
     } else {
-      workoutStore.setProp("workoutTitle", workoutTitle)
+      activeWorkoutStore.setProp("workoutTitle", workoutTitle)
     }
     setShowEditTitleModal(false)
   }
@@ -160,7 +168,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
       <TouchableOpacity onPress={handleShowEditTitleModal}>
         <RowView alignItems="baseline">
           <Text preset="heading">
-            {workoutStore.workoutTitle}
+            {activeWorkoutStore.workoutTitle}
             {<Icon name="pencil-outline" size={20} />}
           </Text>
         </RowView>
@@ -173,7 +181,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
         onValueChange={setIsHidden}
       />
       <Text preset="subheading" tx="workoutSettings.workoutSummaryLabel" />
-      {workoutStore.exercises.map((e, _) => {
+      {activeWorkoutStore.exercises.map((e, _) => {
         return <ExerciseSummary key={e.exerciseId} exercise={e} />
       })}
       <Spacer type="vertical" size="medium" />

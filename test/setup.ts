@@ -104,6 +104,8 @@ jest.doMock("@react-native-firebase/firestore", () => {
   }
 })
 
+jest.doMock("@react-native-firebase/crashlytics", () => {})
+
 // jest.mock("@react-native-firebase/auth", () => {
 //   return {
 //     // ...jest.requireActual("@react-native-firebase/auth"),

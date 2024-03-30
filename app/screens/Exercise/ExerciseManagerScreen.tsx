@@ -12,9 +12,9 @@ import { ExerciseCatalog } from "./ExerciseCatalog"
 interface ExerciseManagerScreenProps extends TabScreenProps<"Exercises"> {}
 
 export const ExerciseManagerScreen: FC<ExerciseManagerScreenProps> = observer(() => {
-  const { workoutStore } = useStores()
+  const { activeWorkoutStore } = useStores()
   const mainNavigation = useMainNavigation()
-  const safeAreaEdges: ExtendedEdge[] = workoutStore.inProgress ? [] : ["top"]
+  const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress ? [] : ["top"]
 
   function handleSelectExercise(exercise: IExerciseModel) {
     mainNavigation.navigate("ExerciseDetails", { exerciseId: exercise.exerciseId })

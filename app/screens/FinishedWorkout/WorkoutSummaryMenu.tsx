@@ -1,4 +1,4 @@
-import { Button, Icon, Modal, RowView, TextField } from "app/components"
+import { Button, Icon } from "app/components"
 import { WorkoutSource } from "app/data/constants"
 import { WorkoutId } from "app/data/types"
 import { translate } from "app/i18n"
@@ -15,17 +15,17 @@ interface WorkoutSummaryMenuProps {
   workoutSource: WorkoutSource
   workoutId: WorkoutId
   onBusyChange?: (isBusy: boolean) => void
-  onWorkoutUpdated?: () => void
+  // onWorkoutUpdated?: () => void
 }
 
 export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
-  const { workoutSource, workoutId, onBusyChange, onWorkoutUpdated } = props
-  const { feedStore, themeStore } = useStores()
+  const { workoutSource, workoutId, onBusyChange } = props
+  const { feedStore, themeStore, workoutEditorStore } = useStores()
   const mainNavigation = useMainNavigation()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [workoutTitle, setWorkoutTitle] = useState<string>()
-  const [workoutTitleError, setWorkoutTitleError] = useState(false)
-  const [showEditTitleModal, setShowEditTitleModal] = useState(false)
+  // const [workoutTitle, setWorkoutTitle] = useState<string>()
+  // const [workoutTitleError, setWorkoutTitleError] = useState(false)
+  // const [showEditTitleModal, setShowEditTitleModal] = useState(false)
 
   const workout = feedStore.getWorkout(workoutSource, workoutId)
 
@@ -55,35 +55,37 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
     )
   }
 
-  const handleShowEditTitleModal = () => {
-    if (!workout) return
-
-    setWorkoutTitle(workout.workoutTitle)
+  const goToEditWorkout = () => {
+    // if (!workout) return
+    // setWorkoutTitle(workout.workoutTitle)
+    // setMenuOpen(false)
+    // setShowEditTitleModal(true)
     setMenuOpen(false)
-    setShowEditTitleModal(true)
+    workoutEditorStore.hydrateWithWorkout(workout)
+    mainNavigation.navigate("EditWorkout")
   }
 
-  const updateWorkoutTitle = () => {
-    if (workoutTitle) {
-      if (onBusyChange) onBusyChange(true)
-      feedStore.updateWorkout(workoutId, { workoutTitle }).then(() => {
-        if (onBusyChange) onBusyChange(false)
-        if (onWorkoutUpdated) onWorkoutUpdated()
-      })
-      setWorkoutTitleError(false)
-      setShowEditTitleModal(false)
-    } else {
-      setWorkoutTitleError(true)
-    }
-  }
+  // const updateWorkoutTitle = () => {
+  //   if (workoutTitle) {
+  //     if (onBusyChange) onBusyChange(true)
+  //     feedStore.updateWorkout(workoutId, { workoutTitle }).then(() => {
+  //       if (onBusyChange) onBusyChange(false)
+  //       if (onWorkoutUpdated) onWorkoutUpdated()
+  //     })
+  //     setWorkoutTitleError(false)
+  //     setShowEditTitleModal(false)
+  //   } else {
+  //     setWorkoutTitleError(true)
+  //   }
+  // }
 
   const renderPopoverContent = () => {
     return (
       <>
         <Button
           preset="menuItem"
-          tx="workoutSummaryMenu.editTitleLabel"
-          onPress={handleShowEditTitleModal}
+          tx="workoutSummaryMenu.editWorkoutButtonLabel"
+          onPress={goToEditWorkout}
         />
         <Button
           preset="menuItem"
@@ -99,7 +101,7 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
 
   return (
     <>
-      <Modal
+      {/* <Modal
         visible={showEditTitleModal}
         animationType="fade"
         transparent={true}
@@ -116,7 +118,7 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
           <Button preset="text" tx="common.cancel" onPress={() => setShowEditTitleModal(false)} />
           <Button preset="text" tx="common.save" onPress={updateWorkoutTitle} />
         </RowView>
-      </Modal>
+      </Modal> */}
 
       <Popover placement="bottom-end" open={menuOpen} onOpenChange={(open) => setMenuOpen(open)}>
         <Popover.Trigger>

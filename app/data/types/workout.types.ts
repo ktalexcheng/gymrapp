@@ -15,6 +15,7 @@ export type WorkoutId = string
 
 export interface Workout extends baseMetadata {
   workoutId: WorkoutId
+  isEdited?: boolean
   byUserId: UserId
   userIsPrivate: boolean
   isHidden: boolean
