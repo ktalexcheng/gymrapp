@@ -1,4 +1,3 @@
-import { useFocusEffect } from "@react-navigation/native"
 import { Gym } from "app/data/types"
 import { useInternetStatus, useToast } from "app/hooks"
 import { translate } from "app/i18n"
@@ -6,8 +5,8 @@ import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { formatSecondsAsTime } from "app/utils/formatTime"
 import { getUserLocation } from "app/utils/getUserLocation"
 import { observer } from "mobx-react-lite"
-import React, { FC, useCallback, useEffect, useState } from "react"
-import { AppState, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import React, { FC, useEffect, useState } from "react"
+import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { Button, Icon, Modal, RowView, Screen, Spacer, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
 import { fontSize, spacing, styles } from "../../theme"
@@ -196,33 +195,6 @@ export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
       setTimeElapsed(workoutStore.workoutDurationFormatted)
     }
   }, [workoutStore.inProgress])
-
-  // Dismiss stale rest timer notification when app is resumed from background
-  useEffect(() => {
-    const subscribeAppStateChange = AppState.addEventListener("change", (state) => {
-      if (state === "active" && !workoutStore.restTimeRunning) {
-        console.debug(
-          "ActiveWorkoutScreen AppState.addEventListener: dismiss exercise rest notifications",
-        )
-        workoutStore.dismissRestNotifications()
-      }
-    })
-
-    return () => subscribeAppStateChange.remove()
-  }, [])
-
-  // Dismiss stale rest timer notification when user navigates back to this screen
-  // Set a 3 second delay to allow the notification to be displayed briefly
-  useFocusEffect(
-    useCallback(() => {
-      if (!workoutStore.restTimeRunning) {
-        console.debug("ActiveWorkoutScreen useFocusEffect: dismiss exercise rest notifications")
-        const timeout = setTimeout(() => workoutStore.dismissRestNotifications(), 3000)
-        return () => clearTimeout(timeout)
-      }
-      return undefined
-    }, [workoutStore.restTimeRunning]),
-  )
 
   function updateWorkoutTitle(value: string) {
     setWorkoutTitle(value)
