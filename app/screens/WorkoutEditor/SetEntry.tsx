@@ -451,7 +451,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
           textAlign="center"
           autoCorrect={false}
           keyboardType="decimal-pad"
-          inputMode="numeric"
+          inputMode="decimal"
           maxLength={7}
         />
       </View>
@@ -466,6 +466,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
           textAlign="center"
           autoCorrect={false}
           keyboardType="decimal-pad"
+          inputMode="numeric"
           maxLength={3}
         />
       </View>
