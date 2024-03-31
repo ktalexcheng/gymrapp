@@ -306,6 +306,8 @@ export const ActiveWorkoutStoreModel = types
             notificationId,
           },
         )
+
+        notificationId = undefined
       }
     }
 
