@@ -4,6 +4,7 @@ import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { formatSecondsAsTime } from "app/utils/formatTime"
 import { getUserLocation } from "app/utils/getUserLocation"
+import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
 import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
@@ -70,7 +71,7 @@ const RestTimerProgressBar: FC = observer(() => {
 
   const $timeProgressContainer: ViewStyle = {
     width: progressBarWidth,
-    height: "80%",
+    height: 40,
     borderRadius: 10,
     backgroundColor: themeStore.colors("contentBackground"),
     overflow: "hidden",
@@ -280,8 +281,58 @@ export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
     mainNavigation.navigate("ExercisePicker", { mode })
   }
 
+  function renderHeaderRow() {
+    const $containerInsets = useSafeAreaInsetsStyle(["top"])
+
+    return (
+      <View style={$containerInsets}>
+        <RowView style={$workoutHeaderRow}>
+          {isActiveWorkout ? (
+            <RowView
+              style={[
+                styles.flex1,
+                styles.alignCenter,
+                workoutStore.restTimeRunning ? styles.flex2 : null,
+              ]}
+            >
+              <Icon
+                name="chevron-down-outline"
+                color={themeStore.colors("foreground")}
+                size={30}
+                onPress={() => mainNavigation.navigate("HomeTabNavigator")}
+              />
+              <RestTimerProgressBar />
+            </RowView>
+          ) : (
+            <Button preset="text" tx="common.discard" onPress={() => mainNavigation.goBack()} />
+          )}
+
+          <TextField
+            selectTextOnFocus
+            containerStyle={styles.flex4}
+            inputWrapperStyle={$workoutTitleWrapper}
+            style={$workoutTitle}
+            value={workoutTitle}
+            placeholderTx="activeWorkoutScreen.newActiveWorkoutTitle"
+            onChangeText={updateWorkoutTitle}
+            autoCapitalize="sentences"
+          />
+
+          <Button
+            tx={isActiveWorkout ? "activeWorkoutScreen.finishWorkoutButton" : "common.save"}
+            preset="text"
+            onPress={finishWorkout}
+          />
+        </RowView>
+      </View>
+    )
+  }
+
   const $container: ViewStyle = {
-    padding: spacing.screenPadding,
+    // paddingTop intentionally left out because of header row
+    paddingLeft: spacing.screenPadding,
+    paddingRight: spacing.screenPadding,
+    paddingBottom: spacing.screenPadding,
   }
 
   const $metricsRow: ViewStyle = {
@@ -302,9 +353,12 @@ export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
   }
 
   const $workoutHeaderRow: ViewStyle = {
+    paddingTop: spacing.screenPadding,
+    paddingLeft: spacing.screenPadding,
+    paddingRight: spacing.screenPadding,
+    // paddingBottom intentionally left out because of Screen component below it
     justifyContent: "space-between",
     alignItems: "center",
-    height: 50,
   }
 
   const $workoutTitleWrapper: TextStyle = {
@@ -321,110 +375,75 @@ export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
   }
 
   return (
-    <Screen
-      safeAreaEdges={["top", "bottom"]}
-      preset="scroll"
-      contentContainerStyle={$container}
-      isBusy={isBusy}
-    >
-      <EmptyWorkoutModal
-        visible={showEmptyWorkoutModal}
-        onDiscard={discardWorkout}
-        onCancel={cancelFinishWorkout}
-      />
+    <>
+      {renderHeaderRow()}
 
-      <RemoveIncompleteSetsModal
-        visible={showRemoveIncompleteSetsModal}
-        onConfirm={onConfirmRemoveIncompleteSets}
-        onCancel={cancelFinishWorkout}
-      />
+      <Screen
+        safeAreaEdges={["bottom"]}
+        preset="scroll"
+        contentContainerStyle={$container}
+        isBusy={isBusy}
+      >
+        <EmptyWorkoutModal
+          visible={showEmptyWorkoutModal}
+          onDiscard={discardWorkout}
+          onCancel={cancelFinishWorkout}
+        />
 
-      <RowView style={$workoutHeaderRow}>
-        {isActiveWorkout ? (
-          <RowView
-            style={[
-              styles.flex1,
-              styles.alignCenter,
-              workoutStore.restTimeRunning ? styles.flex2 : null,
-            ]}
-          >
-            <Icon
-              name="chevron-down-outline"
-              color={themeStore.colors("foreground")}
-              size={30}
-              onPress={() => mainNavigation.navigate("HomeTabNavigator")}
+        <RemoveIncompleteSetsModal
+          visible={showRemoveIncompleteSetsModal}
+          onConfirm={onConfirmRemoveIncompleteSets}
+          onCancel={cancelFinishWorkout}
+        />
+
+        <RowView style={styles.alignCenter}>
+          <View style={styles.flex1}>
+            <Button
+              disabled={!isActiveWorkout}
+              preset="text"
+              numberOfLines={1}
+              onPress={() => mainNavigation.navigate("WorkoutGymPicker")}
+              text={
+                workoutStore.performedAtGymName
+                  ? workoutStore.performedAtGymName
+                  : translate("activeWorkoutScreen.setCurrentGymLabel")
+              }
+              style={$gymTextButton}
+              LeftAccessory={() => (
+                <Icon name="location-sharp" color={themeStore.colors("foreground")} size={30} />
+              )}
             />
-            <RestTimerProgressBar />
-          </RowView>
-        ) : (
-          <Button preset="text" tx="common.discard" onPress={() => mainNavigation.goBack()} />
-        )}
+          </View>
+          {workoutStore.performedAtGymId && isActiveWorkout && (
+            <Icon name="close-outline" onPress={() => workoutStore.setGym(undefined)} size={30} />
+          )}
+        </RowView>
 
-        <TextField
-          selectTextOnFocus
-          containerStyle={styles.flex4}
-          inputWrapperStyle={$workoutTitleWrapper}
-          style={$workoutTitle}
-          value={workoutTitle}
-          placeholderTx="activeWorkoutScreen.newActiveWorkoutTitle"
-          onChangeText={updateWorkoutTitle}
-          autoCapitalize="sentences"
-        />
+        <RowView style={$metricsRow}>
+          <View style={$metric}>
+            <Text tx="activeWorkoutScreen.timeElapsedLabel" style={$metricLabel} />
+            <Text text={timeElapsed} />
+          </View>
+          <View style={$metric}>
+            <Text tx="activeWorkoutScreen.timeSinceLastSetLabel" style={$metricLabel} />
+            <Text text={timeSinceLastSet} />
+          </View>
+          <View style={$metric}>
+            <Text tx="activeWorkoutScreen.totalVolumeLabel" style={$metricLabel} />
+            <Text text={workoutStore.totalVolume.toFixed(0)} />
+          </View>
+        </RowView>
 
-        <Button
-          tx={isActiveWorkout ? "activeWorkoutScreen.finishWorkoutButton" : "common.save"}
-          preset="text"
-          onPress={finishWorkout}
-        />
-      </RowView>
-
-      <RowView style={styles.alignCenter}>
-        <View style={styles.flex1}>
-          <Button
-            disabled={!isActiveWorkout}
-            preset="text"
-            numberOfLines={1}
-            onPress={() => mainNavigation.navigate("WorkoutGymPicker")}
-            text={
-              workoutStore.performedAtGymName
-                ? workoutStore.performedAtGymName
-                : translate("activeWorkoutScreen.setCurrentGymLabel")
-            }
-            style={$gymTextButton}
-            LeftAccessory={() => (
-              <Icon name="location-sharp" color={themeStore.colors("foreground")} size={30} />
-            )}
+        {workoutStore.exercises.map((exercise) => (
+          <ExerciseEntry
+            mode={mode}
+            key={`${exercise.exerciseId}_${exercise.exerciseOrder}`}
+            {...exercise}
           />
-        </View>
-        {workoutStore.performedAtGymId && isActiveWorkout && (
-          <Icon name="close-outline" onPress={() => workoutStore.setGym(undefined)} size={30} />
-        )}
-      </RowView>
+        ))}
 
-      <RowView style={$metricsRow}>
-        <View style={$metric}>
-          <Text tx="activeWorkoutScreen.timeElapsedLabel" style={$metricLabel} />
-          <Text text={timeElapsed} />
-        </View>
-        <View style={$metric}>
-          <Text tx="activeWorkoutScreen.timeSinceLastSetLabel" style={$metricLabel} />
-          <Text text={timeSinceLastSet} />
-        </View>
-        <View style={$metric}>
-          <Text tx="activeWorkoutScreen.totalVolumeLabel" style={$metricLabel} />
-          <Text text={workoutStore.totalVolume.toFixed(0)} />
-        </View>
-      </RowView>
-
-      {workoutStore.exercises.map((exercise) => (
-        <ExerciseEntry
-          mode={mode}
-          key={`${exercise.exerciseId}_${exercise.exerciseOrder}`}
-          {...exercise}
-        />
-      ))}
-
-      <Button preset="text" tx="activeWorkoutScreen.addExerciseAction" onPress={addExercise} />
-    </Screen>
+        <Button preset="text" tx="activeWorkoutScreen.addExerciseAction" onPress={addExercise} />
+      </Screen>
+    </>
   )
 })

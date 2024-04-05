@@ -32,13 +32,13 @@ export const ExerciseSummary = (props: ExerciseSummaryProps) => {
 
   function renderSetSummary(set: ISetPerformedModel, setOrder: number) {
     let summaryText = "-"
+    let weight: Weight
     switch (set.volumeType) {
       case ExerciseVolumeType.Reps:
-        summaryText = `${new Weight(
-          set.weight ?? 0,
-          WeightUnit.kg,
-          userWeightUnit,
-        ).formattedDisplayWeight(1)} ${translate(weightUnitTx)}  x ${set.reps ?? 0}`
+        weight = new Weight(set.weight)
+        summaryText = `${weight.getFormattedWeightInUnit(userWeightUnit, 1)} ${translate(
+          weightUnitTx,
+        )}  x ${set.reps ?? 0}`
         if (set.rpe) summaryText += ` @ ${set.rpe}`
         break
 

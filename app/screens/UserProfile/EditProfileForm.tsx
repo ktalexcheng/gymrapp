@@ -38,6 +38,7 @@ import {
   View,
   ViewStyle,
 } from "react-native"
+import { Popover } from "tamagui"
 import { SwitchSettingTile } from "./UserSettingTile"
 
 type EditProfileFormProps = {
@@ -272,17 +273,20 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
       }
 
       if (userStore.user) {
-        await userStore.updateProfile(user).then(
-          () => {
+        await userStore
+          .updateProfile(user)
+          .then(() => {
             setHasUnsavedChanges(false)
             setIsSaved(true)
-          },
-          (e: Error) => {
+          })
+          .catch((e: Error) => {
             if (e.cause === UserErrorType.UserHandleAlreadyTakenError) {
               setUserHandleError(translate("editProfileForm.error.userHandleIsTakenMessage"))
+            } else {
+              console.error("EditProfileForm.saveProfile error:", e)
+              toastShowTx("common.error.unknownErrorMessage")
             }
-          },
-        )
+          })
       } else {
         // New user profile is created after the user has verified their email,
         // or after the user signs in with a social provider (Google, Apple)
@@ -430,13 +434,34 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
         />
 
         <View style={styles.formFieldTopMargin}>
-          <Text tx="editProfileForm.myGymsLabel" preset="formLabel" />
-          {renderMyGymsItem()}
-          <Button
-            preset="text"
-            tx="editProfileForm.addGymButtonLabel"
-            onPress={() => mainNavigator.navigate("AddToMyGyms")}
-          />
+          <RowView style={styles.justifyBetween}>
+            <Text tx="editProfileForm.myGymsLabel" preset="formLabel" />
+            {userStore.profileIncomplete && (
+              <Popover placement="bottom-end">
+                <Popover.Trigger>
+                  <Icon name="information-circle-outline" size={24} />
+                </Popover.Trigger>
+
+                <Popover.Content unstyled style={themeStore.styles("walkthroughPopoverContainer")}>
+                  <Text
+                    tx="editProfileForm.availableAfterProfileCreatedMessage"
+                    preset="formHelper"
+                  />
+                </Popover.Content>
+              </Popover>
+            )}
+          </RowView>
+          <View
+            style={userStore.profileIncomplete ? styles.disabled : undefined}
+            pointerEvents={userStore.profileIncomplete ? "none" : "auto"}
+          >
+            {renderMyGymsItem()}
+            <Button
+              preset="text"
+              tx="editProfileForm.addGymButtonLabel"
+              onPress={() => mainNavigator.navigate("AddToMyGyms")}
+            />
+          </View>
         </View>
 
         <Spacer type="vertical" size="large" />

@@ -35,11 +35,10 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
   }
 
   function renderSets() {
-    return setsPerformed.map((set, i) => (
+    return setsPerformed.map((set) => (
       <SetEntry
         mode={mode}
-        key={i}
-        setOrder={i}
+        key={set.setId}
         exerciseOrder={exerciseOrder}
         exerciseId={exerciseId}
         volumeType={volumeType}

@@ -1,6 +1,7 @@
 import { WeightUnit } from "app/data/constants"
 import { ExerciseId } from "app/data/types"
 import { TxKeyPath } from "app/i18n"
+import { useStores } from "app/stores"
 import { useExerciseSetting } from "./useExerciseSetting"
 
 /**
@@ -9,8 +10,14 @@ import { useExerciseSetting } from "./useExerciseSetting"
  * @returns Key path for the weight unit translation
  */
 export const useWeightUnitTx = (exerciseId?: ExerciseId) => {
+  const { userStore } = useStores()
+
   let weightUnit
-  if (exerciseId) [weightUnit] = useExerciseSetting(exerciseId, "weightUnit")
+  if (exerciseId) {
+    ;[weightUnit] = useExerciseSetting(exerciseId, "weightUnit")
+  } else {
+    weightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
+  }
 
   let weightUnitTx: TxKeyPath
   switch (weightUnit) {

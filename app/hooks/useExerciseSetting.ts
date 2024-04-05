@@ -13,30 +13,25 @@ export const useExerciseSetting = <T>(
   exerciseId: ExerciseId,
   settingName: keyof ExerciseSettings,
 ): [settingValue: T] => {
-  const defaultSetting = DefaultUserPreferences[settingName]
   const { exerciseStore, userStore } = useStores()
-  const [exerciseSetting, setExerciseSetting] = useState<any>(defaultSetting)
-  // In order to get the observable value from the MST store,
-  // we need to access the field directly and not through a getter
-  // Update: I'm not sure this is true
+
   const exerciseSpecificSetting =
     exerciseStore.getExercise(exerciseId)?.exerciseSettings?.[settingName]
   const userPreference = userStore.getUserPreference(settingName)
+  const defaultSetting = DefaultUserPreferences[settingName]
+  const settingValue = exerciseSpecificSetting ?? userPreference ?? defaultSetting
+
+  const [exerciseSetting, setExerciseSetting] = useState<any>(settingValue)
 
   useEffect(() => {
-    const setting = exerciseSpecificSetting ?? userPreference ?? defaultSetting
-    setExerciseSetting(setting)
-    // console.debug(
-    //   "useExerciseSetting exerciseId:",
-    //   exerciseId,
-    //   "; settingName:",
-    //   settingName,
-    //   "; exerciseSpecificSetting:",
-    //   exerciseSpecificSetting,
-    //   "; userPreference:",
-    //   userPreference,
-    // )
-  }, [exerciseSpecificSetting, userPreference])
+    setExerciseSetting(settingValue)
+    console.debug("useExerciseSetting", {
+      exerciseId,
+      settingName,
+      exerciseSpecificSetting,
+      userPreference,
+    })
+  }, [settingValue])
 
   return [exerciseSetting]
 }

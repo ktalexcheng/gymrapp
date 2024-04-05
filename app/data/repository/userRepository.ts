@@ -71,7 +71,7 @@ export class UserRepository extends BaseRepository<User, UserId> {
         // So we rely on cloud functions to update user handle
         const status = await api.updateUserHandle(_data.userHandle)
         if (status === UserErrorType.UserHandleAlreadyTakenError) {
-          return Promise.reject(new Error("User handle already exists", { cause: status }))
+          throw new Error("User handle already exists", { cause: status })
         }
         !!_data.userHandle && delete _data.userHandle
         !!_data._userHandleLower && delete _data._userHandleLower

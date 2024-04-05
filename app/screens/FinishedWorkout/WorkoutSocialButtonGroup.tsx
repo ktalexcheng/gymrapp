@@ -1,7 +1,7 @@
 import { Icon, RowView, Spacer, Text } from "app/components"
 import { WorkoutSource } from "app/data/constants"
 import { UserId, WorkoutId } from "app/data/types"
-import { IWorkoutInteractionModel, useStores } from "app/stores"
+import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
@@ -19,16 +19,13 @@ const buttonGroupIconSize = 24
 export const WorkoutSocialButtonGroup = observer((props: WorkoutSocialButtonGroupProps) => {
   const { workoutSource, workoutId, workoutByUserId, onPressComments } = props
   const { userStore, feedStore, themeStore } = useStores()
-  const [workoutInteractions, setInteractions] = useState<IWorkoutInteractionModel>()
   const [isLikedByUser, setIsLikedByUser] = useState(false)
   const [likesCount, setLikesCount] = useState<number>(0)
 
-  useEffect(() => {
-    // console.debug("WorkoutSocialButtonGroup.useEffect [getInteractionsForWorkout] called")
-    setInteractions(feedStore.getInteractionsForWorkout(workoutSource, workoutId))
-  }, [feedStore.getInteractionsForWorkout(workoutSource, workoutId)])
+  const workoutInteractions = feedStore.getInteractionsForWorkout(workoutSource, workoutId)
 
   useEffect(() => {
+    // console.debug("WorkoutSocialButtonGroup.useEffect", { workoutInteractions })
     if (userStore.userId) {
       setIsLikedByUser(workoutInteractions?.likedByUserIds?.includes(userStore.userId) ?? false)
     }

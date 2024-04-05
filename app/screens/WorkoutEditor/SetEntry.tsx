@@ -23,7 +23,7 @@ import { formatSecondsAsTime } from "app/utils/formatTime"
 import { Weight } from "app/utils/weight"
 import { observer } from "mobx-react-lite"
 import { Instance } from "mobx-state-tree"
-import React, { FC, useEffect, useState } from "react"
+import React, { FC, useEffect, useRef, useState } from "react"
 import { TextStyle, TouchableOpacity, View, ViewProps, ViewStyle } from "react-native"
 import { Swipeable } from "react-native-gesture-handler"
 import { useStores } from "../../stores"
@@ -99,9 +99,11 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
   const { activeWorkoutStore, workoutEditorStore, themeStore } = useStores()
   const workoutStore = mode === "active" ? activeWorkoutStore : workoutEditorStore
   const exerciseSetStore = workoutStore.exercises.at(exerciseOrder)?.setsPerformed?.[setOrder]
+  const swipeableRef = useRef<Swipeable>(null)
 
   function renderRightDelete() {
     const handleDelete = () => {
+      swipeableRef.current?.close()
       workoutStore.removeSet(exerciseOrder, setOrder)
     }
 
@@ -130,7 +132,11 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
   }
 
   return (
-    <Swipeable renderRightActions={renderRightDelete} rightThreshold={thresholds.swipeableRight}>
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightDelete}
+      rightThreshold={thresholds.swipeableRight}
+    >
       <RowView style={[$exerciseSet, $exerciseSetCompletion]}>
         <Text text={(props.setOrder + 1).toString()} style={[$setOrderColumn, $textAlignCenter]} />
         <TouchableOpacity
@@ -324,15 +330,18 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const [rpeInput, setRpeInput] = useState(rpe?.toString())
 
   useEffect(() => {
+    setWeightInput(displayWeight ? roundToString(displayWeight, 2, false) : undefined)
+  }, [displayWeight])
+
+  useEffect(() => {
     setDisplayUnit(weightUnitSetting)
   }, [weightUnitSetting])
 
   useEffect(() => {
     updateSetStore()
-  }, [displayWeight, reps, rpe])
+  }, [weightKg, reps, rpe])
 
   function updateSetStore() {
-    console.debug("RepsSetEntry updateSetStore", { weightKg, reps, rpe })
     exerciseSetStore.updateSetValues("weight", weightKg ?? null)
     exerciseSetStore.updateSetValues("reps", reps ?? null)
     exerciseSetStore.updateSetValues("rpe", rpe ?? null)
@@ -404,11 +413,12 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const renderPreviousSetText = () => {
     if (!setFromLastWorkout) return "-"
 
-    const prevWeight = new Weight(setFromLastWorkout.weight ?? 0, WeightUnit.kg, weightUnitSetting)
+    const prevWeight = new Weight(setFromLastWorkout.weight)
 
-    let prevSet = `${prevWeight.formattedDisplayWeight(1)} ${weightUnitSetting} x ${
-      setFromLastWorkout.reps
-    }`
+    let prevSet = `${roundToString(
+      prevWeight.getWeightInUnit(weightUnitSetting) ?? 0,
+      1,
+    )} ${weightUnitSetting} x ${setFromLastWorkout.reps}`
     if (setFromLastWorkout.rpe) {
       prevSet += ` @ ${setFromLastWorkout.rpe}`
     }
@@ -422,8 +432,8 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     // RPE will not be copied as it should be set by the user
     // If weight was null in the previous set, ignore it as well
     if (setFromLastWorkout.weight) {
-      const prevWeight = new Weight(setFromLastWorkout.weight, WeightUnit.kg, weightUnitSetting)
-      handleWeightChangeText(prevWeight.formattedDisplayWeight(2, false))
+      const prevWeight = new Weight(setFromLastWorkout.weight)
+      handleWeightChangeText(roundToString(prevWeight.getWeightInUnit(weightUnitSetting) ?? 0, 2))
     }
     handleRepsChangeText(roundToString(setFromLastWorkout.reps ?? 0, 0, false))
   }
@@ -490,10 +500,6 @@ export type SetEntryProps = {
   exerciseId: string
   setOrder: number
   volumeType: ExerciseVolumeType
-  // setType: string
-  // isCompleted: boolean
-  // weight: number
-  // reps: number
 }
 
 export const SetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {

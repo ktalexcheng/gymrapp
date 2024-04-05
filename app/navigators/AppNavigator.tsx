@@ -239,6 +239,7 @@ export interface NavigationProps
 export const AppNavigator = observer((props: NavigationProps) => {
   const { userStore, themeStore, feedStore } = useStores()
   const systemColorScheme = useColorScheme() // Initial system color scheme
+  const [isInternetConnectState, setIsInternetConnectState] = useState<boolean>()
   const [isInternetConnected] = useInternetStatus()
   const [showToastTx] = useToast()
 
@@ -267,7 +268,7 @@ export const AppNavigator = observer((props: NavigationProps) => {
         firestore()
           .waitForPendingWrites()
           .then(() => {
-            showToastTx("common.offlineMode.pendingWritesSuccessMessage")
+            // showToastTx("common.offlineMode.pendingWritesSuccessMessage")
           })
           .catch(() => {
             showToastTx("common.offlineMode.pendingWritesFailedMessage")
@@ -285,7 +286,11 @@ export const AppNavigator = observer((props: NavigationProps) => {
       }
     }
 
-    handleNetworkChange(isInternetConnected)
+    // Update state but don't do anything on initial undefined state
+    setIsInternetConnectState(isInternetConnected)
+    if (isInternetConnectState !== undefined) {
+      handleNetworkChange(isInternetConnected)
+    }
   }, [isInternetConnected])
 
   const envMode = Constants.expoConfig?.extra?.gymrappEnvironment

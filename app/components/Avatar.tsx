@@ -1,8 +1,18 @@
 import { UserSearchResult } from "app/data/types"
 import { IUserModel, useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
-import React from "react"
-import { Image, ImageStyle, TextStyle, View, ViewProps, ViewStyle } from "react-native"
+import React, { useState } from "react"
+import {
+  Image,
+  ImageErrorEventData,
+  ImageStyle,
+  NativeSyntheticEvent,
+  TextStyle,
+  View,
+  ViewProps,
+  ViewStyle,
+} from "react-native"
+import { Icon } from "./Icon"
 import { Text } from "./Text"
 
 export interface AvatarProps extends ViewProps {
@@ -11,7 +21,7 @@ export interface AvatarProps extends ViewProps {
    */
   imageUrl?: string
   /**
-   * User for this avatar, from which the property avatarUrl will be as source of image. If source is provided, this will be ignored.
+   * User for this avatar, from which the property avatarUrl will be as source of image. If imageUrl is provided, this will be ignored.
    */
   user?: IUserModel | UserSearchResult
   /**
@@ -42,6 +52,10 @@ export const Avatar = observer((props: AvatarProps) => {
     containerStyle: $containerStyleOverride,
     imageStyle: $imageStyleOverride,
   } = props
+  const [loadError, setLoadError] = useState<NativeSyntheticEvent<ImageErrorEventData>>()
+
+  const placeholderImage = <Icon name="barbell" size={avatarSize[size] * 0.7} />
+  const imageUrlToUse = imageUrl || user?.avatarUrl // imageUrl takes precedence over user.avatarUrl
 
   const $avatarContainer: ViewStyle = {
     width: avatarSize[size],
@@ -59,27 +73,35 @@ export const Avatar = observer((props: AvatarProps) => {
     resizeMode: "cover",
   }
 
-  const renderAvatarImage = () => {
-    if (!imageUrl && !user?.avatarUrl && user) {
-      let userInitialsText: string
-      if (/^[\u4E00-\u9FA5]+$/.test(user.lastName + user.firstName)) {
-        userInitialsText = `${user.lastName}${user.firstName}`.slice(-2)
-      } else {
-        userInitialsText = [user.firstName?.[0], user.lastName?.[0]].join("")
-      }
-      const $text: TextStyle = {
-        fontSize: avatarSize[size] / 3,
-        lineHeight: avatarSize[size] / 2.5,
-      }
-      return <Text text={userInitialsText} style={$text} />
+  const $text: TextStyle = {
+    fontSize: avatarSize[size] / 3,
+    lineHeight: avatarSize[size] / 2.5,
+  }
+
+  const renderUserInitialsText = () => {
+    let userInitialsText: string
+    if (/^[\u4E00-\u9FA5]+$/.test(user.lastName + user.firstName)) {
+      userInitialsText = `${user.lastName}${user.firstName}`.slice(-2)
+    } else {
+      userInitialsText = [user.firstName?.[0], user.lastName?.[0]].join("")
     }
 
-    const imageUri = imageUrl || user?.avatarUrl
-    const imageSource = imageUri ? { uri: imageUri } : undefined
+    return <Text text={userInitialsText} style={$text} />
+  }
 
-    if (!imageSource) return null
+  const renderAvatarImage = () => {
+    if (loadError || !imageUrlToUse) {
+      if (user) return renderUserInitialsText()
+      else return placeholderImage
+    }
 
-    return <Image source={imageSource} style={[$image, $imageStyleOverride]} />
+    return (
+      <Image
+        source={{ uri: imageUrlToUse }}
+        style={[$image, $imageStyleOverride]}
+        onError={(e) => setLoadError(e)}
+      />
+    )
   }
 
   return <View style={[$avatarContainer, $containerStyleOverride]}>{renderAvatarImage()}</View>

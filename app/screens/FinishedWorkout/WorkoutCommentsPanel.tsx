@@ -10,6 +10,8 @@ import { observer } from "mobx-react-lite"
 import React, { useEffect, useRef, useState } from "react"
 import {
   ActivityIndicator,
+  Keyboard,
+  Platform,
   StyleProp,
   TextInput,
   TouchableOpacity,
@@ -18,7 +20,6 @@ import {
 } from "react-native"
 import { FlatList, Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
-  AnimatedStyleProp,
   Easing,
   runOnJS,
   useAnimatedStyle,
@@ -142,9 +143,15 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
       }
     })
 
+  // This is a named function so that it can be called from runOnJS, using an anonymous functions in runOnJS led to a crash
+  const dismissKeyboard = () => {
+    Keyboard.dismiss()
+  }
+
   const tapGestureHandler = Gesture.Tap().onEnd(() => {
     runOnJS(setSelectedComment)(undefined)
     runOnJS(setIsCommentDeleteConfirmation)(false)
+    runOnJS(dismissKeyboard)()
   })
 
   const $animatedStyle = useAnimatedStyle(() => {
@@ -154,7 +161,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
           translateY: panelTranslateY.value,
         },
       ],
-    } as AnimatedStyleProp<ViewStyle>
+    }
   })
 
   const commentInputHeightStyle = () => {
@@ -179,7 +186,18 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
     if (isSubmittingComment) {
       return <ActivityIndicator size="small" color={themeStore.colors("actionable")} {...props} />
     }
-    return <Icon name="send-outline" size={28} onPress={submitComment} {...props} />
+
+    const isEmptyInput = commentInput.trim().length === 0
+    return (
+      <Icon
+        disabled={isEmptyInput}
+        color={themeStore.colors(isEmptyInput ? "disabledBackground" : "actionable")}
+        name="send-outline"
+        size={28}
+        onPress={submitComment}
+        {...props}
+      />
+    )
   }
 
   const panelHeader = () => {
@@ -254,7 +272,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
     )
   }
 
-  const $panelContainer: AnimatedStyleProp<ViewStyle> = {
+  const $panelContainer: ViewStyle = {
     position: "absolute",
     width: "100%",
     height: "100%",
@@ -285,6 +303,11 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
     backgroundColor: themeStore.colors("border"),
   }
 
+  const $panelContent: ViewStyle = {
+    flex: 1,
+    marginBottom: Math.max(40, Math.min(80, commentInputHeight)) + spacing.medium,
+  }
+
   const $commentInputContainerStyle: ViewStyle = {
     position: "absolute",
     width: "100%",
@@ -300,10 +323,11 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
       <BlurView
         style={$blurView}
         tint="dark"
-        intensity={90}
+        intensity={Platform.select({ android: 100, ios: 20 })}
         onTouchEnd={() => {
           setSelectedComment(undefined)
           setIsCommentDeleteConfirmation(false)
+          Keyboard.dismiss()
         }}
       />
       <GestureDetector gesture={panGestureHandler}>
@@ -342,7 +366,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
         multiline={true}
         value={commentInput}
         onChangeText={setCommentInput}
-        textAlignVertical="center"
+        textAlignVertical="center" // TODO: This is Android only, there seems to be no solution for vertically centering multiline text input on iOS
         onContentSizeChange={(event) => {
           setCommentInputHeight(event.nativeEvent.contentSize.height)
         }}
@@ -373,10 +397,6 @@ const $panelHeader: ViewStyle = {
   height: 80,
   padding: spacing.screenPadding,
   alignItems: "center",
-}
-
-const $panelContent: ViewStyle = {
-  flex: 1,
 }
 
 const $noCommentsContainer: ViewStyle = {

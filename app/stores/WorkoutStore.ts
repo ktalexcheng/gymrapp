@@ -1,5 +1,6 @@
 import { ActivityId } from "app/data/types/activity.types"
 import { differenceInSeconds } from "date-fns"
+import { randomUUID } from "expo-crypto"
 import * as Notifications from "expo-notifications"
 import lodash from "lodash"
 import { IKeyValueMap, toJS } from "mobx"
@@ -273,16 +274,20 @@ export const ActiveWorkoutStoreModel = types
         notificationMessage = translate("notification.restTime.restTimeCompletedGenericPrompt")
       }
 
+      console.debug("ActiveWorkoutStore.scheduleRestNotifications:", {
+        seconds: self.restTime,
+        channelId: REST_TIMER_CHANNEL_ID,
+      })
       notificationId = await Notifications.scheduleNotificationAsync({
         content: {
-          priority: Notifications.AndroidNotificationPriority.HIGH,
+          priority: Notifications.AndroidNotificationPriority.MAX,
           title: translate("notification.restTime.restTimeCompletedTitle"),
           body: notificationMessage,
           data: {
             url: "gymrapp://activeWorkout",
           },
         },
-        trigger: { seconds: self.restTime, channelId: REST_TIMER_CHANNEL_ID },
+        trigger: { seconds: self.restTime, repeats: false, channelId: REST_TIMER_CHANNEL_ID },
       })
     }
 
@@ -596,6 +601,7 @@ export const ActiveWorkoutStoreModel = types
           exercise.setsPerformed.push(
             RepsSetPerformedModel.create({
               ...initialSetValues,
+              setId: randomUUID(),
               setOrder: newSetOrder,
               volumeType: exercise.volumeType,
               setType: ExerciseSetType.Normal,
@@ -607,6 +613,7 @@ export const ActiveWorkoutStoreModel = types
           exercise.setsPerformed.push(
             TimeSetPerformedModel.create({
               ...initialSetValues,
+              setId: randomUUID(),
               setOrder: newSetOrder,
               volumeType: exercise.volumeType,
               setType: ExerciseSetType.Normal,

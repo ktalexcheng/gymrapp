@@ -23,7 +23,7 @@ import {
 } from "app/screens"
 import { INotificationModel, IWorkoutSummaryModel, useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
-import React, { useEffect, useState } from "react"
+import React, { useCallback, useEffect, useState } from "react"
 import { HomeTabNavigator } from "./HomeTabNavigator"
 import { OnboardingNavigator } from "./OnboardingNavigator"
 import { useMainNavigation } from "./navigationUtilities"
@@ -136,7 +136,7 @@ export const MainNavigator = observer(function MainNavigator() {
     }
   }
 
-  const navigateToHomeIfNeeded = () => {
+  const navigateToHomeIfNeeded = useCallback(() => {
     // The root navigator is MainNavigator, so we need to get the state of routes[0]
     // If profile is complete and there is nothing in the navigator stack (i.e. MainNavigator not yet initialized to initialRouteName)
     // or the navigator is on "Loading" (i.e. the user has just logged in),
@@ -164,28 +164,23 @@ export const MainNavigator = observer(function MainNavigator() {
         routes: [{ name: "HomeTabNavigator" }],
       })
     }
-  }
+  }, [mainNavigation])
 
-  // Handle forced navigation to onboarding procedure if profile is incomplete
   useEffect(() => {
-    // console.debug("MainNavigator.useEffect called", {
-    //   isAuthenticated: authStore.isAuthenticated,
-    //   profileIncomplete: userStore.profileIncomplete,
-    //   isInitialized,
-    // })
-    let cleanUpSubscriptions
-
     // As long as the user is authenticated, we can start listening to snapshots
     if (!authStore.isAuthenticated) {
       console.debug("MainNavigator.useEffect: User is not authenticated, nothing is done")
       return undefined
-    } else {
-      cleanUpSubscriptions = listenToSnapshots()
     }
 
+    return listenToSnapshots()
+  }, [authStore.isAuthenticated])
+
+  // Handle forced navigation to onboarding procedure if profile is incomplete
+  useEffect(() => {
     if (userStore.isLoadingProfile) {
       console.debug("MainNavigator.useEffect: User profile is being loaded")
-      return cleanUpSubscriptions
+      return
     }
 
     // If something goes wrong or we add a new field to the user profile, we can force the user to complete the profile again
@@ -196,7 +191,7 @@ export const MainNavigator = observer(function MainNavigator() {
         index: 0,
         routes: [{ name: "OnboardingNavigator" }],
       })
-      return cleanUpSubscriptions
+      return
     }
 
     // If user is authenticated and profile is complete, then we can initialize the app
@@ -215,9 +210,7 @@ export const MainNavigator = observer(function MainNavigator() {
 
       setIsInitialized(true)
     }
-
-    return cleanUpSubscriptions
-  }, [mainNavigation, authStore.isAuthenticated, userStore.isLoadingProfile, userStore.profileIncomplete])
+  }, [isInitialized, authStore.userId, userStore.isLoadingProfile, userStore.profileIncomplete])
 
   return (
     <MainStack.Navigator screenOptions={{ headerShown: false }} initialRouteName={"Loading"}>
@@ -238,13 +231,21 @@ export const MainNavigator = observer(function MainNavigator() {
         <MainStack.Screen name="WorkoutGymPicker" component={WorkoutGymPickerScreen} />
         <MainStack.Screen
           name="ExercisePicker"
-          options={{ headerShown: true, title: translate("exercisePickerScreen.headerTitle") }}
+          options={{
+            headerShown: true,
+            title: translate("exercisePickerScreen.headerTitle"),
+            headerBackTitleVisible: false,
+          }}
           component={ExercisePickerScreen}
         />
         <MainStack.Screen name="CreateExercise" component={CreateExerciseScreen} />
         <MainStack.Screen
           name="RestTimer"
-          options={{ headerShown: true, title: translate("restTimerScreen.headerTitle") }}
+          options={{
+            headerShown: true,
+            title: translate("restTimerScreen.headerTitle"),
+            headerBackTitleVisible: false,
+          }}
           component={RestTimerScreen}
         />
       </MainStack.Group>
@@ -256,13 +257,21 @@ export const MainNavigator = observer(function MainNavigator() {
         /> */}
         <MainStack.Screen
           name="ExerciseDetails"
-          options={{ headerShown: true, title: translate("exerciseDetailsScreen.headerTitle") }}
+          options={{
+            headerShown: true,
+            title: translate("exerciseDetailsScreen.headerTitle"),
+            headerBackTitleVisible: false,
+          }}
           component={ExerciseDetailsScreen}
         />
         <MainStack.Screen
           name="WorkoutSummary"
           component={WorkoutSummaryScreen}
-          options={{ headerShown: true, title: translate("workoutSummaryScreen.headerTitle") }}
+          options={{
+            headerShown: true,
+            title: translate("workoutSummaryScreen.headerTitle"),
+            headerBackTitleVisible: false,
+          }}
         />
       </MainStack.Group>
 
@@ -271,7 +280,11 @@ export const MainNavigator = observer(function MainNavigator() {
         <MainStack.Screen name="CreateNewGym" component={CreateNewGymScreen} />
         <MainStack.Screen
           name="GymDetails"
-          options={{ headerShown: true, title: translate("gymDetailsScreen.headerTitle") }}
+          options={{
+            headerShown: true,
+            title: translate("gymDetailsScreen.headerTitle"),
+            headerBackTitleVisible: false,
+          }}
           component={GymDetailsScreen}
         />
       </MainStack.Group>
@@ -282,7 +295,15 @@ export const MainNavigator = observer(function MainNavigator() {
         component={UserSettingsScreen}
       />
       <MainStack.Screen name="Notifications" component={NotificationsScreen} />
-      <MainStack.Screen name="ProfileVisitorView" component={ProfileVisitorViewScreen} />
+      <MainStack.Screen
+        name="ProfileVisitorView"
+        options={{
+          headerShown: true,
+          title: "",
+          headerBackTitleVisible: false,
+        }}
+        component={ProfileVisitorViewScreen}
+      />
     </MainStack.Navigator>
   )
 })

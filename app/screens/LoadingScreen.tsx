@@ -27,7 +27,7 @@ export const LoadingScreen = observer(() => {
   }
 
   const $logoTextAndroid: TextStyle = {
-    textShadowColor: themeStore.colors("logo"), // android
+    // textShadowColor: themeStore.colors("logo"), // android: this is throwing error for some reason
     textShadowRadius: 20, // android
   }
 

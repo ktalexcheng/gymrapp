@@ -43,7 +43,7 @@ export const useNotification = () => {
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync(REST_TIMER_CHANNEL_ID, {
         name: translate("notification.restTime.channelName"),
-        importance: Notifications.AndroidImportance.HIGH,
+        importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: themeStore.colors("actionable"),
       })

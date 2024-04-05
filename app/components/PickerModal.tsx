@@ -41,7 +41,6 @@ export const PickerModal: FC<PickerModalProps> = observer((props: PickerModalPro
     opacity: disabled ? 0.5 : 1,
   }
 
-  console.debug("PickerModal", { value })
   return (
     <>
       <TouchableOpacity

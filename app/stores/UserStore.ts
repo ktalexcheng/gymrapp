@@ -1,5 +1,5 @@
 import crashlytics from "@react-native-firebase/crashlytics"
-import { DefaultUserPreferences, UserErrorType } from "app/data/constants"
+import { DefaultUserPreferences } from "app/data/constants"
 import {
   ExerciseId,
   FollowRequest,
@@ -315,6 +315,7 @@ export const UserStoreModel = types
       console.debug("UserStore.updateProfile called")
       self.isLoadingProfile = true
 
+      // Error handling done by the caller, here we only do try-finally to set isLoadingProfile to false
       try {
         const updatedUser = yield getEnv<RootStoreDependencies>(self).userRepository.update(
           self.userId,
@@ -324,18 +325,11 @@ export const UserStoreModel = types
 
         console.debug("UserStore.updateProfile new user:", updatedUser)
         setUserFromFirebase(updatedUser)
-      } catch (e: any) {
-        if (e?.cause === UserErrorType.UserHandleAlreadyTakenError) {
-          self.isLoadingProfile = false
-          return Promise.reject(e)
-        }
-        console.error("UserStore.updateProfile error:", e)
       } finally {
         self.isLoadingProfile = false
       }
 
       console.debug("UserStore.updateProfile done")
-      return Promise.resolve()
     })
 
     const deleteProfile = flow(function* () {

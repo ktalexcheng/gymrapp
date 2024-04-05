@@ -104,7 +104,7 @@ Notifications.setNotificationHandler({
   handleNotification: async () => {
     console.debug("Received a notification while app is in the foreground!")
     return {
-      priority: Notifications.AndroidNotificationPriority.HIGH,
+      priority: Notifications.AndroidNotificationPriority.MAX,
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: false,

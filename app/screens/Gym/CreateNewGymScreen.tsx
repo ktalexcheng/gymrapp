@@ -1,33 +1,35 @@
-import { Button, Icon, Screen, Spacer, Text, TextField } from "app/components"
+import { Button, Icon, RowView, Screen, Spacer, Text, TextField } from "app/components"
 import { AppLocale } from "app/data/constants"
 import { useUserLocation } from "app/hooks"
 import { MainStackScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { GoogleMapsPlacePrediction, api } from "app/services/api"
 import { useStores } from "app/stores"
-import { styles } from "app/theme"
+import { spacing, styles } from "app/theme"
 import React, { useEffect, useState } from "react"
-import { LoadingScreen } from "../LoadingScreen"
+import { View, ViewStyle } from "react-native"
 
 interface CreateNewGymScreenProps extends MainStackScreenProps<"CreateNewGym"> {}
 
 export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
-  const { gymStore, userStore } = useStores()
+  const { themeStore, gymStore, userStore } = useStores()
   const mainNavigator = useMainNavigation()
   const { userLocation, isGettingUserLocation, refreshUserLocation } = useUserLocation()
-  const [gymName, setGymName] = useState("")
-  const [gymAddress, setGymAddress] = useState("")
+  const [searchInput, setSearchInput] = useState<string>()
+  const [gymName, setGymName] = useState<string>()
+  const [gymAddress, setGymAddress] = useState<string>()
   const [gymPlaceId, setGymPlaceId] = useState<string>()
-  const [isAutofilled, setIsAutofilled] = useState(false)
   const [isPredicting, setIsPredicting] = useState(false)
   const [predictedPlaces, setPredictedPlaces] = useState<GoogleMapsPlacePrediction[]>()
   const [isCreatingGym, setIsCreatingGym] = useState(false)
   const userAppLocale = userStore.getUserPreference<AppLocale>("appLocale")
 
+  const isReadyForSubmission = !!gymName && !!gymAddress && !!gymPlaceId
+
   useEffect(() => {
     refreshUserLocation()
     if (route?.params?.searchString) {
-      setGymName(route.params.searchString)
+      setSearchInput(route.params.searchString)
     }
   }, [])
 
@@ -35,22 +37,19 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
     // Abort if user location is unavailable yet
     if (!userLocation || isGettingUserLocation) return undefined
 
-    // Abort if fields are auto-populated by user selection from predicted places
-    if (isAutofilled) return undefined
-
     // Reset state as soon as the user starts typing again (gymName changes)
     // setPredictedPlaces(undefined) is the initial state, if the predicted result is empty
     // it will be set to an empty array instead
     setIsPredicting(false)
     setPredictedPlaces(undefined)
 
-    // Abort if gym name is empty
-    if (!gymName) return undefined
+    // Abort if search string is empty
+    if (!searchInput) return undefined
 
     const getPredictionsTimeout = setTimeout(() => {
       setIsPredicting(true)
       api
-        .getPlacePredictions(gymName, userAppLocale, userLocation)
+        .getPlacePredictions(searchInput, userAppLocale, userLocation)
         .then((results) => {
           setPredictedPlaces(results)
           setIsPredicting(false)
@@ -59,10 +58,9 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
     }, 500) // Only runs after delay
 
     return () => clearTimeout(getPredictionsTimeout)
-  }, [gymName, userLocation, isGettingUserLocation])
+  }, [searchInput, userLocation, isGettingUserLocation])
 
   const selectGymFromPrediction = (place: GoogleMapsPlacePrediction) => {
-    setIsAutofilled(true)
     setGymName(place.structured_formatting.main_text)
     setGymAddress(place.structured_formatting.secondary_text)
     setGymPlaceId(place.place_id)
@@ -84,7 +82,6 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
     if (predictedPlaces && predictedPlaces.length > 0) {
       return (
         <>
-          <Text preset="subheading" tx="createNewGymScreen.gymsNearYouLabel" />
           {predictedPlaces.map((place) => (
             <Button
               key={place.place_id}
@@ -101,14 +98,10 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
     return null
   }
 
-  const handleManualGymNameChange = (text: string) => {
-    setIsAutofilled(false)
-    setGymName(text)
-  }
-
-  const handleManualGymAddressChange = (text: string) => {
-    setIsAutofilled(false)
-    setGymAddress(text)
+  const handleClearSelection = () => {
+    setGymName(undefined)
+    setGymAddress(undefined)
+    setGymPlaceId(undefined)
   }
 
   const handleCreateNewGym = () => {
@@ -127,8 +120,11 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
     }
   }
 
-  if (isCreatingGym) {
-    return <LoadingScreen />
+  const $readOnlySection: ViewStyle = {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: themeStore.colors("border"),
+    padding: spacing.small,
   }
 
   return (
@@ -136,32 +132,67 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
       preset="auto"
       safeAreaEdges={["top", "bottom"]}
       contentContainerStyle={styles.screenContainer}
+      isBusy={isCreatingGym}
     >
+      <RowView style={styles.justifyBetween}>
+        <Button preset="text" tx="common.cancel" onPress={() => mainNavigator.goBack()} />
+        <Button
+          disabled={!isReadyForSubmission}
+          preset="text"
+          tx="createNewGymScreen.createNewGymButtonLabel"
+          onPress={handleCreateNewGym}
+        />
+      </RowView>
       <Text tx="createNewGymScreen.createNewGymTitle" preset="heading" />
+      <Text tx="createNewGymScreen.howToCreateANewGymMessage" />
+      <Spacer type="vertical" size="small" />
+
+      {isReadyForSubmission && (
+        <>
+          <View style={$readOnlySection}>
+            <TextField
+              status="disabled"
+              labelTx="createNewGymScreen.gymNameLabel"
+              placeholderTx="createNewGymScreen.gymNamePlaceholder"
+              multiline={true}
+              // containerStyle={styles.formFieldTopMargin}
+              value={gymName}
+              RightAccessory={() => !!gymName && <Icon name="checkmark-circle" size={24} />}
+            />
+            <TextField
+              status="disabled"
+              labelTx="createNewGymScreen.gymLocationLabel"
+              placeholderTx="createNewGymScreen.gymLocationPlaceholder"
+              multiline={true}
+              containerStyle={styles.formFieldTopMargin}
+              value={gymAddress}
+              // onChangeText={handleManualGymAddressChange}
+              RightAccessory={() => !!gymAddress && <Icon name="checkmark-circle" size={24} />}
+            />
+          </View>
+          <RowView style={styles.justifyFlexEnd}>
+            <Button tx="common.clear" preset="text" onPress={handleClearSelection} />
+          </RowView>
+        </>
+      )}
+
+      <Text preset="subheading" tx="createNewGymScreen.searchLabel" />
+      <Spacer type="vertical" size="small" />
       <TextField
-        labelTx="createNewGymScreen.gymNameLabel"
-        placeholderTx="createNewGymScreen.gymNamePlaceholder"
-        containerStyle={styles.formFieldTopMargin}
-        value={gymName}
-        onChangeText={handleManualGymNameChange}
+        placeholderTx="createNewGymScreen.searchPlaceholder"
+        value={searchInput}
+        onChangeText={setSearchInput}
         RightAccessory={(props) => (
-          <Icon name="close-circle-outline" size={24} onPress={() => setGymName("")} {...props} />
+          <Icon
+            name="close-circle-outline"
+            size={24}
+            onPress={() => setSearchInput(undefined)}
+            {...props}
+          />
         )}
       />
-      <TextField
-        status="disabled"
-        labelTx="createNewGymScreen.gymLocationLabel"
-        placeholderTx="createNewGymScreen.gymLocationPlaceholder"
-        multiline={true}
-        containerStyle={styles.formFieldTopMargin}
-        value={gymAddress}
-        onChangeText={handleManualGymAddressChange}
-      />
-      <Spacer type="vertical" size="large" />
+      <Spacer type="vertical" size="small" />
       {renderPredictedPlaces()}
-      <Spacer type="vertical" size="large" />
-      <Button tx="createNewGymScreen.createNewGymButtonLabel" onPress={handleCreateNewGym} />
-      <Button preset="text" tx="common.cancel" onPress={() => mainNavigator.goBack()} />
     </Screen>
   )
 }

@@ -1,7 +1,7 @@
 import { firebase } from "@react-native-firebase/firestore"
 import { useFocusEffect } from "@react-navigation/native"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { Avatar, Icon, RowView, Screen, Spacer, Text } from "app/components"
+import { Avatar, Icon, RowView, Screen, Spacer, Text, ThemedRefreshControl } from "app/components"
 import { WorkoutSource } from "app/data/constants"
 import { MainStackParamList } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
@@ -40,6 +40,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
   const [showCommentsPanel, setShowCommentsPanel] = useState(jumpToComments)
 
   const workoutLoaded = !isLoading && workout && workoutByUser
+  const isMyWorkout = workout?.byUserId === userStore.userId
 
   const getWorkoutAndUser = async () => {
     console.debug("WorkoutSummaryScreen.getWorkoutAndUser called", { isLoading })
@@ -150,11 +151,12 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
     return (
       <>
         <FlatList
-          refreshing={isLoading}
-          onRefresh={refreshWorkout}
+          refreshControl={
+            <ThemedRefreshControl refreshing={isLoading} onRefresh={refreshWorkout} />
+          }
           ListHeaderComponent={
             <>
-              {workout?.__isOnlyLocal && (
+              {isMyWorkout && workout?.__isOnlyLocal && (
                 <RowView style={styles.alignCenter}>
                   <Icon name="cloud-offline-outline" size={16} />
                   <Spacer type="horizontal" size="tiny" />
@@ -167,7 +169,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                   <Text preset="heading">{workout.workoutTitle}</Text>
                   <Text preset="subheading">{formatDate(workout.startTime)}</Text>
                 </View>
-                {workout.byUserId === userStore.userId && (
+                {isMyWorkout && (
                   <View style={$menuButton}>
                     <WorkoutSummaryMenu
                       workoutSource={workoutSource}
@@ -183,7 +185,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                 <>
                   <Spacer type="vertical" size="small" />
                   <TouchableOpacity
-                    disabled={userStore.userId === workoutByUser.userId}
+                    disabled={isMyWorkout}
                     onPress={() => {
                       mainNavigation.navigate("ProfileVisitorView", {
                         userId: workoutByUser.userId,
@@ -268,6 +270,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
 const $screenContentContainer: ViewStyle = {
   flex: 1,
   padding: spacing.screenPadding,
+  overflow: "hidden", // Hides the overflow of the comments panel at the bottom
 }
 
 const $menuButton: ViewStyle = {

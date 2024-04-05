@@ -1,4 +1,4 @@
-import { Screen, Spacer, Text } from "app/components"
+import { Screen, Spacer, Text, ThemedRefreshControl } from "app/components"
 import { LoadingIndicator } from "app/components/LoadingIndicator"
 import { WorkoutSource } from "app/data/constants"
 import { IWorkoutSummaryModel, useStores } from "app/stores"
@@ -100,8 +100,12 @@ export const FeedScreen = observer(function FeedScreen() {
     return (
       <View style={styles.flex1}>
         <FlatList
-          refreshing={feedStore.isLoadingFeed}
-          onRefresh={feedStore.refreshFeedItems}
+          refreshControl={
+            <ThemedRefreshControl
+              refreshing={feedStore.isLoadingFeed}
+              onRefresh={feedStore.refreshFeedItems}
+            />
+          }
           data={feedData}
           renderItem={renderFeedWorkoutItem}
           contentContainerStyle={styles.flexGrow}

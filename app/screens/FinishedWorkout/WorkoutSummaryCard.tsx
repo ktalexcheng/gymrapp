@@ -43,13 +43,11 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
 
       const bestSet = e.bestSet
       let bestSetString = ""
+      let weight: Weight
       switch (bestSet.volumeType) {
         case ExerciseVolumeType.Reps:
-          bestSetString += `${new Weight(
-            bestSet.weight ?? 0,
-            WeightUnit.kg,
-            userWeightUnit,
-          ).formattedDisplayWeight(1)} x ${bestSet.reps}`
+          weight = new Weight(bestSet.weight)
+          bestSetString += `${weight.getFormattedWeightInUnit(userWeightUnit, 1)} x ${bestSet.reps}`
           if (bestSet.rpe) {
             bestSetString += ` @ ${bestSet.rpe}`
           }

@@ -88,7 +88,7 @@ export const GymPicker: FC<GymPickerProps> = observer((props: GymPickerProps) =>
 })
 
 const $myGymsContainer: ViewStyle = {
-  maxHeight: 200,
+  // maxHeight: 200,
 }
 
 const $gymSearchContainer: ViewStyle = {

@@ -153,26 +153,25 @@ export const ExerciseStoreModel = types
       }
     })
 
-    const createPrivateExercise = flow(function* (newExercise: NewExercise) {
+    const createPrivateExercise = flow(function* (newExercise: NewExercise, isOffline = false) {
       self.isLoading = true
 
       try {
         const { privateExerciseRepository } = getEnv<RootStoreDependencies>(self)
+        const newExerciseId = privateExerciseRepository.newDocumentId()
         const _newExercise = {
           ...newExercise,
+          exerciseId: newExerciseId,
           hasLeaderboard: false,
           exerciseSource: ExerciseSource.Private,
         }
-        const createdExercise = yield privateExerciseRepository.create(toJS(_newExercise))
-        self.allExercises.put({
-          ..._newExercise,
-          exerciseId: createdExercise.exerciseId,
-        })
+        yield privateExerciseRepository.create(toJS(_newExercise), isOffline)
+        self.allExercises.put(_newExercise)
 
         self.lastUpdated = new Date()
         self.isLoading = false
       } catch (e) {
-        console.error("ExerciseStore.createNewExercise error:", e)
+        console.error("ExerciseStore.createPrivateExercise error:", e)
       }
     })
 

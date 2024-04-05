@@ -70,6 +70,9 @@ export const styles = StyleSheet.create({
   justifyAround: {
     justifyContent: "space-around",
   },
+  justifyFlexEnd: {
+    justifyContent: "flex-end",
+  },
   listItemContainer: {
     borderRadius: 10,
     borderWidth: 1,
@@ -99,5 +102,11 @@ export const styles = StyleSheet.create({
     width: "100%",
     alignItems: "flex-start",
     paddingVertical: spacing.small,
+  },
+  walkthroughPopoverContainer: {
+    padding: spacing.medium,
+    width: 300,
+    borderRadius: 10,
+    borderWidth: 1,
   },
 })

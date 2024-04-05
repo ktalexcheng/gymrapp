@@ -67,7 +67,7 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
     const personalRecordsMap = userStore.getPropAsJS<IPersonalRecordsMapModelAsJS>(
       `user.exerciseHistory.${exerciseId}.personalRecords`,
     )
-    const personalRecords = Object.fromEntries(personalRecordsMap.entries()) // Quick fix to convert Map to Object
+    const personalRecords = personalRecordsMap && Object.fromEntries(personalRecordsMap.entries()) // Quick fix to convert Map to Object
     const volumeType = exerciseStore.getExerciseVolumeType(exerciseId)
 
     const renderTimePersonalRecords = (personalRecords: IPersonalRecordsMapModel) => {
@@ -93,13 +93,15 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
       return Object.entries(personalRecords).map(([reps, recordModel]) => {
         const recordsCount = recordModel.records.length
         const bestRecord = recordModel.records[recordsCount - 1] as RepsPersonalRecord
-        const weight = new Weight(bestRecord.weight, WeightUnit.kg, userWeightUnit)
+        const weight = new Weight(bestRecord.weight)
 
         return (
           <RowView key={`${exerciseId}_${reps}`} style={$recordItem}>
             <Text style={$recordsDateColumn}>{formatDate(bestRecord.datePerformed)}</Text>
             <Text style={$recordsRepsColumn}>{reps}</Text>
-            <Text style={$recordsWeightColumn}>{weight.formattedDisplayWeight(1, true)}</Text>
+            <Text style={$recordsWeightColumn}>
+              {weight.getFormattedWeightInUnit(userWeightUnit, 1)}
+            </Text>
           </RowView>
         )
       })

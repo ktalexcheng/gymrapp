@@ -1,6 +1,6 @@
 import firestore from "@react-native-firebase/firestore"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { Avatar, Button, RowView, Screen, Spacer, Text } from "app/components"
+import { Avatar, Button, RowView, Screen, Spacer, Text, ThemedRefreshControl } from "app/components"
 import { WorkoutSource } from "app/data/constants"
 import { MainStackParamList } from "app/navigators"
 import { IUserModel, IWorkoutSummaryModel, useStores } from "app/stores"
@@ -13,20 +13,22 @@ import React, { FC, useEffect, useState } from "react"
 import { FlatList, View, ViewStyle } from "react-native"
 import { WorkoutSummaryCard } from "../FinishedWorkout"
 import { UserProfileStatsBar } from "./UserProfileStatsBar"
-
 interface ProfileVisitorViewScreenProps
   extends NativeStackScreenProps<MainStackParamList, "ProfileVisitorView"> {}
 
 export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = observer(
-  ({ route }: ProfileVisitorViewScreenProps) => {
+  ({ navigation, route }: ProfileVisitorViewScreenProps) => {
     const otherUserId = route.params.userId
     const { userStore, feedStore } = useStores()
     const [otherUser, setOtherUser] = useState<IUserModel>()
-    const [isFollowing, setIsFollowing] = useState<boolean>(false)
-    const [isFollowRequested, setIsFollowRequested] = useState<boolean>(false)
+    const [isInitialized, setIsInitialized] = useState(false)
+    const [isFollowing, setIsFollowing] = useState(false)
+    const [isFollowRequested, setIsFollowRequested] = useState(false)
+    const [isProcessingFollowRequest, setIsProcessingFollowRequest] = useState(false)
 
-    let otherUserWorkouts, workouts, isEndOfFeed, otherUserFeed
+    let otherUserIsPrivate, otherUserWorkouts, workouts, isEndOfFeed, otherUserFeed
     if (otherUser) {
+      otherUserIsPrivate = otherUser?.privateAccount
       otherUserWorkouts = feedStore.otherUserWorkouts.get(otherUserId)
       workouts = otherUserWorkouts?.workouts
       isEndOfFeed = otherUserWorkouts?.noMoreItems
@@ -45,7 +47,11 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
     const isReadyForDisplay = !!otherUser && !isLoading
 
     useEffect(() => {
-      refreshFeed()
+      userStore.getOtherUser(otherUserId).then((user) => {
+        setOtherUser(user)
+        navigation.setOptions({ title: user.userHandle })
+      })
+
       const unsubscribe = firestore()
         .collection("users")
         .doc(otherUserId)
@@ -57,30 +63,51 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
       return unsubscribe
     }, [])
 
+    useEffect(() => {
+      if (!isInitialized && otherUser) {
+        refreshFeed().then(() => setIsInitialized(true))
+      }
+    }, [otherUser])
+
     const refreshFeed = async () => {
-      updateFollowStatus()
-      await feedStore.refreshOtherUserWorkouts(otherUserId)
+      const _isFollowing = await updateFollowStatus()
+
+      if (otherUserIsPrivate === false || (otherUserIsPrivate === true && _isFollowing)) {
+        await feedStore.refreshOtherUserWorkouts(otherUserId)
+      }
     }
 
     const updateFollowStatus = async () => {
-      await userStore
-        .isFollowingUser(otherUserId)
-        .then((isFollowing) => setIsFollowing(isFollowing))
-      await userStore
-        .isFollowRequested(otherUserId)
-        .then((isFollowRequested) => setIsFollowRequested(isFollowRequested))
+      const _isFollowing = await userStore.isFollowingUser(otherUserId)
+      setIsFollowing(_isFollowing)
+      const _isFollowRequested = await userStore.isFollowRequested(otherUserId)
+      setIsFollowRequested(_isFollowRequested)
+
+      return _isFollowing
     }
 
     const loadMoreWorkouts = () => {
-      feedStore.loadMoreOtherUserWorkouts(otherUserId)
+      if (otherUserIsPrivate === false || (otherUserIsPrivate === true && isFollowing)) {
+        feedStore.loadMoreOtherUserWorkouts(otherUserId)
+      }
     }
 
     const renderFollowUnfollowButton = () => {
+      if (isProcessingFollowRequest) {
+        return <Button disabled={true} tx="common.loading" />
+      }
+
       if (isFollowing) {
         return (
           <Button
             tx="profileVisitorViewScreen.unfollowButtonLabel"
-            onPress={() => userStore.unfollowUser(otherUserId).then(() => refreshFeed())}
+            onPress={() => {
+              setIsProcessingFollowRequest(true)
+              userStore
+                .unfollowUser(otherUserId)
+                .then(() => refreshFeed())
+                .finally(() => setIsProcessingFollowRequest(false))
+            }}
           />
         )
       }
@@ -90,7 +117,13 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
           <Button
             tx="profileVisitorViewScreen.followRequestSentMessage"
             preset="reversed"
-            onPress={() => userStore.cancelFollowRequest(otherUserId).then(() => refreshFeed())}
+            onPress={() => {
+              setIsProcessingFollowRequest(true)
+              userStore
+                .cancelFollowRequest(otherUserId)
+                .then(() => refreshFeed())
+                .finally(() => setIsProcessingFollowRequest(false))
+            }}
           />
         )
       }
@@ -98,7 +131,13 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
       return (
         <Button
           tx="profileVisitorViewScreen.followButtonLabel"
-          onPress={() => userStore.followUser(otherUserId).then(() => refreshFeed())}
+          onPress={() => {
+            setIsProcessingFollowRequest(true)
+            userStore
+              .followUser(otherUserId)
+              .then(() => refreshFeed())
+              .finally(() => setIsProcessingFollowRequest(false))
+          }}
         />
       )
     }
@@ -131,21 +170,20 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
 
     return (
       <Screen
-        safeAreaEdges={["top", "bottom"]}
+        safeAreaEdges={["bottom"]}
         contentContainerStyle={styles.screenContainer}
         preset="fixed"
         isBusy={!isReadyForDisplay}
       >
         <FlatList
-          refreshing={isLoading}
-          onRefresh={refreshFeed}
+          refreshControl={<ThemedRefreshControl refreshing={isLoading} onRefresh={refreshFeed} />}
           data={otherUserFeed}
           renderItem={({ item }) => {
             return <WorkoutSummaryCard {...item} byUser={otherUser} />
           }}
           contentContainerStyle={styles.flexGrow}
           ListEmptyComponent={() => {
-            if (!isFollowing && otherUser?.privateAccount) {
+            if (!isFollowing && otherUserIsPrivate) {
               return (
                 <View style={[styles.flex1, styles.centeredContainer]}>
                   <Text tx="profileVisitorViewScreen.userIsPrivateMessage" />
@@ -153,7 +191,6 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
               )
             }
 
-            console.debug("isEndOfFeed", isEndOfFeed)
             if (!isLoading && isEndOfFeed && otherUserFeed.length === 0) {
               return (
                 <View style={styles.fillAndCenter}>
@@ -166,6 +203,16 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
           }}
           ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
           ListHeaderComponent={profileHeaderComponent()}
+          ListFooterComponent={() => {
+            if (!isEndOfFeed) return null
+
+            return (
+              <>
+                <Spacer type="vertical" size="medium" />
+                <Text tx="profileVisitorViewScreen.endOfUserActivityMessage" textAlign="center" />
+              </>
+            )
+          }}
           onEndReachedThreshold={0.5}
           onEndReached={loadMoreWorkouts}
         />

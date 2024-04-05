@@ -73,43 +73,41 @@ interface ExerciseCatalogTabRoute extends Route {
 export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: ExerciseCatalogProps) => {
   const { onItemPress, listFooterComponent } = props
   const [tabIndex, setTabIndex] = useState(0)
-  const [routes, setRoutes] = useState<ExerciseCatalogTabRoute[]>([])
+  const [routes, setRoutes] = useState<ExerciseCatalogTabRoute[]>() // Set initial to undefined for initial render to be correct
   const { exerciseStore } = useStores()
 
+  // createSectionsData creates the section data for each tab, grouping exercises by first letter of name
+  // Sorting of exercise by name is also done here
+  const createSectionedData = (exercises: IExerciseModel[]): ExerciseListProps["sectionsData"] => {
+    const groupedExercises: { [initialLetter: string]: IExerciseModel[] } = {}
+    exercises.forEach((exercise) => {
+      // In each tab, group exercises by first letter of name
+      const initialLetter = exercise.exerciseName[0].toUpperCase()
+      if (initialLetter in groupedExercises) {
+        groupedExercises[initialLetter].push(exercise)
+      } else {
+        groupedExercises[initialLetter] = [exercise]
+      }
+    })
+
+    const sectionedData: ExerciseListProps["sectionsData"] = []
+    Object.entries(groupedExercises).forEach(([initialLetter, exercises]) => {
+      // Sort exercises within each section by exercise name
+      exercises.sort((a, b) => (a.exerciseName < b.exerciseName ? -1 : 1))
+
+      sectionedData.push({
+        title: initialLetter,
+        data: exercises,
+      })
+    })
+
+    // Sort sections by by initial letter
+    sectionedData.sort((a, b) => (a.title < b.title ? -1 : 1))
+
+    return sectionedData
+  }
+
   useEffect(() => {
-    // createSectionsData creates the section data for each tab, grouping exercises by first letter of name
-    // Sorting of exercise by name is also done here
-    const createSectionedData = (
-      exercises: IExerciseModel[],
-    ): ExerciseListProps["sectionsData"] => {
-      const groupedExercises: { [initialLetter: string]: IExerciseModel[] } = {}
-      exercises.forEach((exercise) => {
-        // In each tab, group exercises by first letter of name
-        const initialLetter = exercise.exerciseName[0].toUpperCase()
-        if (initialLetter in groupedExercises) {
-          groupedExercises[initialLetter].push(exercise)
-        } else {
-          groupedExercises[initialLetter] = [exercise]
-        }
-      })
-
-      const sectionedData: ExerciseListProps["sectionsData"] = []
-      Object.entries(groupedExercises).forEach(([initialLetter, exercises]) => {
-        // Sort exercises within each section by exercise name
-        exercises.sort((a, b) => (a.exerciseName < b.exerciseName ? -1 : 1))
-
-        sectionedData.push({
-          title: initialLetter,
-          data: exercises,
-        })
-      })
-
-      // Sort sections by by initial letter
-      sectionedData.sort((a, b) => (a.title < b.title ? -1 : 1))
-
-      return sectionedData
-    }
-
     // Exercises are grouped by category for each tab
     const groupedAllExercises: {
       [category: string]: IExerciseModel[]
@@ -168,6 +166,8 @@ export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: Exerci
   const renderTabBar = (props) => {
     return <TabBar tabIndex={tabIndex} setTabIndex={setTabIndex} {...props} />
   }
+
+  if (!routes) return null
 
   // Note that tab press does not work properly when a debugger is attached
   // See: https://github.com/satya164/react-native-tab-view/issues/703

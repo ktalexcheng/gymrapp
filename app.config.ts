@@ -25,6 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       // Only using app.json for versionCode and buildNumber since we are using "appVersionSource" = "local" in EAS
       ...config.android,
+      permissions: ["android.permission.SCHEDULE_EXACT_ALARM"],
       googleServicesFile: process.env.GOOGLE_SERVICES_JSON,
       icon: "./assets/images/app-icon-android-legacy.png",
       package: isDev ? "com.gymrapp.dev" : "com.gymrapp",
@@ -103,9 +104,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         "expo-location",
         {
-          locationWhenInUsePermission: "Allow $(PRODUCT_NAME) to use your location.",
+          locationWhenInUsePermission:
+            "$(PRODUCT_NAME) uses your location to verify your proximity to a gym when recording a workout.",
         },
       ],
+      "expo-font",
       "@react-native-google-signin/google-signin",
       "expo-apple-authentication",
     ],

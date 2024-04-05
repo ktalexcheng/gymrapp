@@ -7,7 +7,7 @@ import { getNestedField } from "app/utils/getNestedField"
 import { getTime, startOfWeek } from "date-fns"
 import { randomUUID } from "expo-crypto"
 import { toJS } from "mobx"
-import { SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
+import { Instance, SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
 import { convertUserToMSTSnapshot } from "./helpers/convertUserToMSTSnapshot"
 import { convertWorkoutToMSTSnapshot } from "./helpers/convertWorkoutToMSTSnapshot"
 import { RootStoreDependencies } from "./helpers/useStores"
@@ -100,19 +100,37 @@ export const WorkoutSummaryModel = types.snapshotProcessor(
   },
 )
 
-const WorkoutCommentModel = types.model("WorkoutCommentModel", {
-  _createdAt: types.Date,
-  commentId: types.identifier,
-  byUserId: types.string,
-  comment: types.string,
-})
+const WorkoutCommentModel = types.compose(
+  "WorkoutCommentModel",
+  MetadataModel,
+  types.model({
+    commentId: types.identifier,
+    byUserId: types.string,
+    comment: types.string,
+  }),
+)
 
-const WorkoutInteractionModel = types.model("WorkoutInteractionModel", {
-  workoutId: types.identifier,
-  workoutByUserId: types.string,
-  likedByUserIds: types.array(types.string),
-  comments: types.array(WorkoutCommentModel),
-})
+const WorkoutInteractionModel = types
+  .model("WorkoutInteractionModel", {
+    workoutId: types.identifier,
+    workoutByUserId: types.string,
+    likedByUserIds: types.array(types.string),
+    comments: types.array(WorkoutCommentModel),
+  })
+  .actions((self) => ({
+    addComment(workoutComment: IWorkoutCommentModel) {
+      self.comments.push(workoutComment)
+    },
+    removeComment(workoutComment: Instance<typeof WorkoutCommentModel>) {
+      self.comments.remove(workoutComment)
+    },
+    addLike(likedByUserId: string) {
+      self.likedByUserIds.push(likedByUserId)
+    },
+    removeLike(likedByUserId: string) {
+      self.likedByUserIds.remove(likedByUserId)
+    },
+  }))
 
 export type IRepsExerciseSummaryModel = SnapshotOrInstance<typeof RepsExerciseSummaryModel>
 export type ITimeExerciseSummaryModel = SnapshotOrInstance<typeof TimeExerciseSummaryModel>
@@ -229,14 +247,7 @@ export const FeedStoreModel = types
         return undefined
       }
 
-      const interactions = self.workoutInteractions.get(workoutId) || undefined
-      // if (!interactions) {
-      //   // This is possible if no user has interacted with the workout yet
-      //   console.debug(
-      //     "FeedStore.getInteractionsForWorkout no interactions found for workoutId:",
-      //     workoutId,
-      //   )
-      // }
+      const interactions = self.workoutInteractions.get(workoutId)
       return interactions
     },
   }))
@@ -437,7 +448,6 @@ export const FeedStoreModel = types
       commentByUserId: UserId,
       comment: string,
     ) {
-      const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
       // Nested FieldValue.serverTimestamp() in arrayUnion() is not supported
       // so we use the client timestamp instead, should be good enough for this case
       const newComment = {
@@ -447,44 +457,45 @@ export const FeedStoreModel = types
         _createdAt: new Date(),
       } as WorkoutComment
 
-      let updatedInteractions
-      const docExists = yield workoutInteractionRepository.checkDocumentExists(workoutId)
-      if (docExists) {
-        updatedInteractions = yield workoutInteractionRepository.update(
-          workoutId,
-          {
-            comments: firestore.FieldValue.arrayUnion(newComment),
-          },
-          false,
-        )
-      } else {
-        updatedInteractions = yield workoutInteractionRepository.create({
+      try {
+        const interactions = self.workoutInteractions.get(workoutId)
+        interactions?.addComment(newComment)
+
+        const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
+        yield workoutInteractionRepository.upsert(workoutId, {
           workoutId,
           workoutByUserId,
-          comments: [newComment],
+          comments: firestore.FieldValue.arrayUnion(newComment),
         })
+      } catch (e) {
+        crashlytics().recordError(e as any)
+        console.error("FeedStore.addCommentToWorkout error:", e)
       }
-
-      self.workoutInteractions.put(updatedInteractions)
     })
 
     const removeCommentFromWorkout = flow(function* (
       workoutId: WorkoutId,
       workoutComment: IWorkoutCommentModel,
     ) {
-      const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
-      const updatedInteractions = yield workoutInteractionRepository
-        .update(
+      try {
+        const interactions = self.workoutInteractions.get(workoutId)
+        const commentToDelete = interactions?.comments.find(
+          (c) => c.commentId === workoutComment.commentId,
+        )
+        commentToDelete && interactions?.removeComment(commentToDelete)
+
+        const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
+        yield workoutInteractionRepository.update(
           workoutId,
           {
             comments: firestore.FieldValue.arrayRemove(workoutComment),
           },
           false,
         )
-        .catch((e) => {
-          console.error("FeedStore.removeCommentFromWorkout error:", e)
-        })
-      self.workoutInteractions.put(updatedInteractions)
+      } catch (e) {
+        crashlytics().recordError(e as any)
+        console.error("FeedStore.removeCommentFromWorkout error:", e)
+      }
     })
 
     const likeWorkout = flow(function* (
@@ -492,43 +503,39 @@ export const FeedStoreModel = types
       workoutByUserId: UserId,
       likedByUserId: UserId,
     ) {
-      const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
-
-      const docExists = yield workoutInteractionRepository.checkDocumentExists(workoutId)
       try {
-        if (docExists) {
-          yield workoutInteractionRepository.update(
-            workoutId,
-            {
-              likedByUserIds: firestore.FieldValue.arrayUnion(likedByUserId),
-            },
-            false,
-          )
-        } else {
-          yield workoutInteractionRepository.create({
-            workoutId,
-            workoutByUserId,
-            likedByUserIds: [likedByUserId],
-          })
-        }
+        const interactions = self.workoutInteractions.get(workoutId)
+        interactions?.addLike(likedByUserId)
+
+        const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
+        yield workoutInteractionRepository.upsert(workoutId, {
+          workoutId,
+          workoutByUserId,
+          likedByUserIds: firestore.FieldValue.arrayUnion(likedByUserId),
+        })
       } catch (e) {
+        crashlytics().recordError(e as any)
         console.error("FeedStore.likeWorkout error:", e)
       }
     })
 
     const unlikeWorkout = flow(function* (workoutId: WorkoutId, byUserId: UserId) {
-      const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
-      yield workoutInteractionRepository
-        .update(
+      try {
+        const interactions = self.workoutInteractions.get(workoutId)
+        interactions?.removeLike(byUserId)
+
+        const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
+        yield workoutInteractionRepository.update(
           workoutId,
           {
             likedByUserIds: firestore.FieldValue.arrayRemove(byUserId),
           },
           false,
         )
-        .catch((e) => {
-          console.error("FeedStore.unlikeWorkout error:", e)
-        })
+      } catch (e) {
+        crashlytics().recordError(e as any)
+        console.error("FeedStore.unlikeWorkout error:", e)
+      }
     })
 
     const refreshFeedItems = flow(function* () {

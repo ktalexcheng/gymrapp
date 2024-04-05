@@ -1,3 +1,4 @@
+import { useHeaderHeight } from "@react-navigation/elements"
 import { useScrollToTop } from "@react-navigation/native"
 import { useStores } from "app/stores"
 import { StatusBar, StatusBarProps } from "expo-status-bar"
@@ -225,8 +226,7 @@ export const Screen = observer((props: ScreenProps) => {
   const $containerInsets = useSafeAreaInsetsStyle(safeAreaEdges)
   // TODO: Figure out proper way to get KeyboardAvoidingView to work with react-navigation
   // See: https://stackoverflow.com/questions/48420468/keyboardavoidingview-not-working-properly
-  // const navigationHeaderHeight = useHeaderHeight()
-  const navigationHeaderHeight = 0
+  const navigationHeaderHeight = useHeaderHeight()
 
   const $containerStyle: ViewStyle = {
     flex: 1,

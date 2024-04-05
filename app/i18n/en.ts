@@ -2,6 +2,7 @@ const en = {
   common: {
     ok: "OK!",
     cancel: "Cancel",
+    clear: "Clear",
     back: "Back",
     delete: "Delete",
     loading: "Loading...",
@@ -52,7 +53,8 @@ const en = {
     },
     permissionAlert: {
       title: "Permission required",
-      message: "Please enable notifications to receive updates about your workouts.",
+      message:
+        "Please enable notifications to receive rest time alerts and stay up to date on friends' activities.",
       goToAppSettingsButtonLabel: "App settings",
     },
   },
@@ -168,6 +170,8 @@ const en = {
     personaTypeLabel: "Are you a coach?",
     uploadAvatarLabel: "Set your avatar",
     uploadAvatarPlaceholder: "Choose a picture",
+    availableAfterProfileCreatedMessage:
+      "This feature will be available after your profile is completed.",
     myGymsLabel: "My gyms",
     myGymsDescription: "Add gyms you frequently visit to your profile",
     addGymButtonLabel: "Add gym",
@@ -331,20 +335,23 @@ const en = {
   },
   createNewGymScreen: {
     createNewGymTitle: "Create a new gym",
+    howToCreateANewGymMessage:
+      "Select from one of the search results, verify the name and address, and create your gym!",
     gymNameLabel: "Gym name",
-    gymNamePlaceholder: "Enter gym name",
+    gymNamePlaceholder: "Filled in when you select a gym from the search results",
     gymLocationLabel: "Gym address",
-    gymLocationPlaceholder: "Enter a gym name and select from the list",
+    gymLocationPlaceholder: "Filled in when you select a gym from the search results",
+    searchLabel: "Search for a gym",
+    searchPlaceholder: "Enter gym name",
     createNewGymButtonLabel: "Create gym",
     checkingGymExistsLabel: "Checking if gym exists...",
-    gymsNearYouLabel: "Gyms near you",
     noGymsFoundLabel: "No gyms found around your area",
   },
   userLocation: {
     gettingUserLocationLabel: "Getting current location...",
     locationPermissionRequiredTitle: "Location permission is required",
     locationPermissionRequiredMessage:
-      "Location permission is required to verify gym location. Please enable location permission in your device settings if you wish to use this feature.",
+      "Your location is used to verify your proximity to the gym. Please enable location permission in your device settings if you wish to use this feature.",
     goToAppSettingsButtonLabel: "App settings",
     unableToAcquireLocationMessage: "Unable to acquire current location",
   },
@@ -394,6 +401,7 @@ const en = {
     followRequestRejectedMessage: "You have rejected this user's follow request",
     noActivityHistoryMessage: "No activity history",
     userIsPrivateMessage: "This user is private",
+    endOfUserActivityMessage: "That's all from this user!",
   },
   notificationsScreen: {
     notificationsTitle: "Notifications",

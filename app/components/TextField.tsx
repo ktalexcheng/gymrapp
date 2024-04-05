@@ -121,6 +121,7 @@ export const TextField = observer(
       LeftAccessory,
       HelperTextProps,
       LabelTextProps,
+      textAlignVertical,
       style: $inputStyleOverride,
       containerStyle: $containerStyleOverride,
       inputWrapperStyle: $inputWrapperStyleOverride,
@@ -229,7 +230,7 @@ export const TextField = observer(
           <TextInput
             ref={input}
             underlineColorAndroid={themeStore.colors("transparent")}
-            textAlignVertical="top"
+            textAlignVertical={textAlignVertical ?? "top"}
             placeholder={placeholderContent}
             placeholderTextColor={themeStore.colors("textDim")}
             {...TextInputProps}

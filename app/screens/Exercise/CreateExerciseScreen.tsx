@@ -1,6 +1,6 @@
 import { useNavigation } from "@react-navigation/native"
 import { Exercise, NewExercise } from "app/data/types"
-import { useToast } from "app/hooks"
+import { useInternetStatus, useToast } from "app/hooks"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
 import React, { FC, useEffect, useState } from "react"
@@ -19,6 +19,7 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
   const { exerciseStore } = useStores()
   const navigation = useNavigation()
   const [toastShowTx] = useToast()
+  const [isInternetConnected] = useInternetStatus()
 
   async function addExercise() {
     console.debug("CreateExerciseScreen.addExercise:", {
@@ -32,13 +33,16 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
       return
     }
 
-    await exerciseStore.createPrivateExercise({
-      activityName,
-      exerciseCat1,
-      exerciseCat2,
-      exerciseName,
-      volumeType,
-    } as NewExercise)
+    await exerciseStore.createPrivateExercise(
+      {
+        activityName,
+        exerciseCat1,
+        exerciseCat2,
+        exerciseName,
+        volumeType,
+      } as NewExercise,
+      !isInternetConnected,
+    )
 
     navigation.goBack()
   }

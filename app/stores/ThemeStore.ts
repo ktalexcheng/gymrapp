@@ -51,6 +51,11 @@ export const ThemeStoreModel = types
           backgroundColor: self.colors("contentBackground"),
           borderColor: self.colors("border"),
         },
+        walkthroughPopoverContainer: {
+          ...appStyles.walkthroughPopoverContainer,
+          backgroundColor: self.colors("contentBackground"),
+          borderColor: self.colors("border"),
+        },
       }
 
       return coloredStyles[name]

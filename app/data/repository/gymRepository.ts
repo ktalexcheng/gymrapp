@@ -59,7 +59,10 @@ export class GymRepository extends BaseRepository<GymDetails, GymId> {
       return {
         lastMemberId: newLastMemberId,
         noMoreItems,
-        gymMembers: members.docs.map((doc) => convertFirestoreTimestampToDate(doc.data())),
+        gymMembers: members.docs.map((doc) => ({
+          ...convertFirestoreTimestampToDate(doc.data()),
+          userId: doc.id, // some gymMembers documents are missing userId field, doing this to ensure userId is always present
+        })),
       }
     } catch (e) {
       throw new RepositoryError(this.repositoryId, `getGymMembers error: ${e}`)

@@ -88,6 +88,7 @@ export const RestTimerScreen: FC = observer(() => {
   const adjustRestTime = (adjustBySeconds: number) => {
     const adjustedTime = Math.max(0, timePickerValue + adjustBySeconds)
     timePickerRef.current?.scrollToTime(adjustedTime)
+    activeWorkoutStore.adjustRestTime(adjustBySeconds)
     setTimePickerValue(adjustedTime)
   }
 
