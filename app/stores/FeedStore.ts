@@ -386,7 +386,12 @@ export const FeedStoreModel = types
     })
 
     function updateWorkoutInteractions(workoutInteractions: IWorkoutInteractionModel) {
-      self.workoutInteractions.put(workoutInteractions)
+      try {
+        self.workoutInteractions.put(workoutInteractions)
+      } catch (e) {
+        crashlytics().recordError(e as any)
+        console.error("FeedStore.updateWorkoutInteractions error:", e)
+      }
     }
 
     const fetchUserProfileToStore = flow(function* (userId: UserId) {

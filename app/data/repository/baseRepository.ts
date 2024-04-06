@@ -546,15 +546,8 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     id: D,
     data: { [P in keyof T]?: T[P] | FirebaseFirestoreTypes.FieldValue | null },
   ): Promise<T> {
-    const docExists = await this.checkDocumentExists(id)
-
-    // Using FieldValue will fail for create() methods
-    // for compatibility, always create if doc does not exist then update
-    if (!docExists) {
-      await this.create({ [this.#documentIdField]: id } as Partial<T>)
-    }
-
-    return await this.update(id, data)
+    // upsert() is just an alias for update() with useSetMerge = true
+    return await this.update(id, data, true)
   }
 
   async delete(id: D): Promise<void> {

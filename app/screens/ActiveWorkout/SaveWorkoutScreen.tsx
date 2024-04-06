@@ -15,8 +15,8 @@ import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
-import { toJS } from "mobx"
 import { observer } from "mobx-react-lite"
+import { getSnapshot } from "mobx-state-tree"
 import React, { FC, useState } from "react"
 import { Alert, TouchableOpacity, ViewStyle } from "react-native"
 import { ExerciseSummary } from "../FinishedWorkout"
@@ -78,7 +78,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
     try {
       const workout = await activeWorkoutStore.saveWorkout(
         isHidden,
-        toJS(userStore.user),
+        getSnapshot(userStore.user), // do not wrap in toJS(), MST map keys are stored internally as strings which can cause issues
         !isInternetConnected,
       )
 
@@ -182,7 +182,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
       />
       <Text preset="subheading" tx="workoutSettings.workoutSummaryLabel" />
       {activeWorkoutStore.exercises.map((e, _) => {
-        return <ExerciseSummary key={e.exerciseId} exercise={e} />
+        return <ExerciseSummary key={e.exerciseId} byUserId={userStore.userId!} exercise={e} />
       })}
       <Spacer type="vertical" size="medium" />
       <Button preset="dangerOutline" onPress={discardWorkout} tx="common.discard" />

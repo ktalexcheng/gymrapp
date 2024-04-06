@@ -60,7 +60,7 @@ const FollowRequestTile = ({ followRequest }: { followRequest: IFollowRequestsMo
 const NotificationTile = ({ notification }: { notification: INotificationModel }) => {
   const mainNavigation = useMainNavigation()
   const [isInitialized, setIsInitialized] = useState(false)
-  const { userStore } = useStores()
+  const { themeStore, userStore } = useStores()
   const [senderUser, setSenderUser] = useState<User>()
   const [message, setMessage] = useState("")
 
@@ -134,7 +134,34 @@ const NotificationTile = ({ notification }: { notification: INotificationModel }
     console.debug("NotificationTile: Confirm and decline follow request")
   }
 
-  if (!isInitialized || !senderUser) return null
+  const $skeletonAvatar: ViewStyle = {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: themeStore.colors("contentBackground"),
+  }
+
+  const $skeletonGroup: ViewStyle = {
+    gap: spacing.small,
+  }
+
+  const $skeletonText: ViewStyle = {
+    height: 20,
+    width: 100,
+    borderRadius: 10,
+    backgroundColor: themeStore.colors("contentBackground"),
+  }
+
+  if (!isInitialized || !senderUser)
+    return (
+      <RowView style={$skeletonGroup}>
+        <View style={$skeletonAvatar} />
+        <View style={$skeletonGroup}>
+          <View style={$skeletonText} />
+          <View style={$skeletonText} />
+        </View>
+      </RowView>
+    )
 
   return (
     <TouchableOpacity onPress={handleOnPress}>

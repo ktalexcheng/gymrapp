@@ -12,7 +12,7 @@ import { formatDate } from "app/utils/formatDate"
 import { formatName } from "app/utils/formatName"
 import { observer } from "mobx-react-lite"
 import React, { useCallback, useEffect, useState } from "react"
-import { FlatList, TouchableOpacity, View, ViewStyle } from "react-native"
+import { FlatList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { ExerciseSummary } from "./ExerciseSummary"
 import { WorkoutCommentsPanel } from "./WorkoutCommentsPanel"
 import { WorkoutSocialButtonGroup } from "./WorkoutSocialButtonGroup"
@@ -38,9 +38,13 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
   const [isLoading, setIsLoading] = useState(false)
   const [isError, setIsError] = useState(false)
   const [showCommentsPanel, setShowCommentsPanel] = useState(jumpToComments)
+  const [showEntireTitle, setShowEntireTitle] = useState(false)
 
   const workoutLoaded = !isLoading && workout && workoutByUser
   const isMyWorkout = workout?.byUserId === userStore.userId
+  const newRecordsCount = workout?.exercises?.reduce((acc, exercise) => {
+    return acc + (exercise?.newRecords?.size ?? 0)
+  }, 0)
 
   const getWorkoutAndUser = async () => {
     console.debug("WorkoutSummaryScreen.getWorkoutAndUser called", { isLoading })
@@ -134,7 +138,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
     }
   }
 
-  const $isEditedWarning: ViewStyle = {
+  const $announcementContainer: ViewStyle = {
     alignItems: "center",
     borderRadius: 8,
     backgroundColor: themeStore.colors("contentBackground"),
@@ -164,10 +168,18 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                 </RowView>
               )}
 
-              <RowView style={styles.justifyBetween}>
-                <View>
-                  <Text preset="heading">{workout.workoutTitle}</Text>
-                  <Text preset="subheading">{formatDate(workout.startTime)}</Text>
+              <RowView style={[styles.flex1, styles.justifyBetween]}>
+                <View style={styles.flex1}>
+                  <TouchableOpacity onPress={() => setShowEntireTitle((prev) => !prev)}>
+                    <Text
+                      size="lg"
+                      style={$workoutTitleText}
+                      text={workout.workoutTitle}
+                      numberOfLines={showEntireTitle ? undefined : 2}
+                    />
+                  </TouchableOpacity>
+                  <Spacer type="vertical" size="extraSmall" />
+                  <Text size="sm" style={$workoutDateText} text={formatDate(workout.startTime)} />
                 </View>
                 {isMyWorkout && (
                   <View style={$menuButton}>
@@ -227,19 +239,40 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                 onPressComments={toggleShowCommentsPanel}
               />
 
-              {workout?.isEdited && (
-                <RowView style={$isEditedWarning}>
-                  <Icon name="warning-outline" size={16} />
-                  <Spacer type="horizontal" size="tiny" />
-                  <View style={styles.flex1}>
-                    <Text preset="light" tx="workoutSummaryScreen.workoutEditedMessage" size="xs" />
-                  </View>
-                </RowView>
-              )}
+              <View style={{ gap: spacing.small }}>
+                {workout?.isEdited && (
+                  <RowView style={$announcementContainer}>
+                    <Icon name="warning-outline" color={themeStore.colors("danger")} size={24} />
+                    <Spacer type="horizontal" size="extraSmall" />
+                    <View style={styles.flex1}>
+                      <Text
+                        preset="light"
+                        size="xs"
+                        tx="workoutSummaryScreen.workoutEditedMessage"
+                      />
+                    </View>
+                  </RowView>
+                )}
+
+                {newRecordsCount > 0 && (
+                  <RowView style={$announcementContainer}>
+                    <Icon name="trophy" color={themeStore.colors("logo")} size={24} />
+                    <Spacer type="horizontal" size="extraSmall" />
+                    <Text
+                      preset="light"
+                      size="xs"
+                      tx="workoutSummaryScreen.newRecordsMessage"
+                      txOptions={{ newRecordsCount }}
+                    />
+                  </RowView>
+                )}
+              </View>
             </>
           }
           data={workout.exercises}
-          renderItem={({ item }) => <ExerciseSummary key={item.exerciseId} exercise={item} />}
+          renderItem={({ item }) => (
+            <ExerciseSummary key={item.exerciseId} byUserId={workoutByUserId} exercise={item} />
+          )}
         />
 
         {/* Having WorkoutCommentsPanel after the FlatList matters to achieve an overlay */}
@@ -280,4 +313,13 @@ const $menuButton: ViewStyle = {
   // zIndex: 1,
   // top: spacing.screenPadding + spacing.tiny,
   // right: spacing.screenPadding + spacing.tiny,
+}
+
+const $workoutTitleText: TextStyle = {
+  fontFamily: "lexendExaBold",
+  lineHeight: 24,
+}
+
+const $workoutDateText: TextStyle = {
+  fontFamily: "lexendExaRegular",
 }

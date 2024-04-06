@@ -21,6 +21,7 @@ import {
   ITimePersonalRecordModel,
   ITimeSetPerformedModel,
   IUserModel,
+  IUserModelSnapshot,
   RepsSetPerformedModel,
   TimeSetPerformedModel,
 } from "./models"
@@ -372,27 +373,33 @@ export const ActiveWorkoutStoreModel = types
     }
 
     const getLatestExerciseRecord = (
-      user: IUserModel,
+      userSnapshot: IUserModelSnapshot,
       exerciseId: string,
       reps: number,
       excludeWorkoutId?: string,
     ) => {
-      const exerciseHistory = user.exerciseHistory
-      const exercisePersonalRecords = exerciseHistory?.get(exerciseId)?.personalRecords
-      console.debug("ActiveWorkoutStore.getLatestExerciseRecord()", {
-        exerciseHistory,
-        exercisePersonalRecords,
-      })
+      const exerciseHistory = userSnapshot.exerciseHistory
+      const exercisePersonalRecords = exerciseHistory?.[exerciseId]?.personalRecords
 
-      let exerciseRecords = exercisePersonalRecords?.get(reps)?.records
+      let exerciseRecords = exercisePersonalRecords?.[reps]?.records
       if (excludeWorkoutId) {
+        console.debug(
+          "ActiveWorkoutStore.getLatestExerciseRecord() excluding workoutId:",
+          excludeWorkoutId,
+        )
         exerciseRecords = exerciseRecords?.filter((r) => r.workoutId !== excludeWorkoutId)
       }
-      if (!exerciseRecords) return null
+      if (!exerciseRecords) {
+        console.debug("ActiveWorkoutStore.getLatestExerciseRecord() no records found", {
+          exerciseId,
+        })
+        return null
+      }
 
       const recordsCount = exerciseRecords?.length
       const latestRecord = exerciseRecords[recordsCount - 1]
 
+      console.debug("ActiveWorkoutStore.getLatestExerciseRecord()", { exerciseId, latestRecord })
       return latestRecord
     }
 
@@ -400,7 +407,7 @@ export const ActiveWorkoutStoreModel = types
     // is necessary to avoid issues with MST when attemping to add the new workout to user's feed.
     // excludeWorkoutId is used to exclude the current workout from the list of personal records
     // when updating an existing workout.
-    const getAllExerciseSummary = (user: IUserModel, excludeWorkoutId?: string) => {
+    const getAllExerciseSummary = (userSnapshot: IUserModelSnapshot, excludeWorkoutId?: string) => {
       const exercisesSummary: ExercisePerformed[] = []
       const datePerformed = self.startTime ?? new Date()
 
@@ -427,9 +434,22 @@ export const ActiveWorkoutStoreModel = types
               bestSet = toJS(s)
             }
 
-            let latestRecord = getLatestExerciseRecord(user, e.exerciseId, s.reps, excludeWorkoutId)
+            let latestRecord = getLatestExerciseRecord(
+              userSnapshot,
+              e.exerciseId,
+              s.reps,
+              excludeWorkoutId,
+            )
             // Safety check, in case the exercise was modified and the latest record is not a reps record
-            if (latestRecord?.volumeType !== ExerciseVolumeType.Reps) latestRecord = null
+            if (latestRecord?.volumeType !== ExerciseVolumeType.Reps) {
+              console.debug(
+                "ActiveWorkoutStore.getAllExerciseSummary: latest record is not a reps record",
+                {
+                  latestRecord,
+                },
+              )
+              latestRecord = null
+            }
 
             if ((s.weight ?? 0) > (latestRecord?.weight ?? 0)) {
               // Make sure we don't overwrite a new record with a lower weight
@@ -441,6 +461,7 @@ export const ActiveWorkoutStoreModel = types
                 weight: s.weight,
                 reps: s.reps,
               }
+              s.isNewRecord = true
             }
           })
 
@@ -473,7 +494,12 @@ export const ActiveWorkoutStoreModel = types
               bestSet = toJS(s)
             }
 
-            let latestRecord = getLatestExerciseRecord(user, e.exerciseId, 0, excludeWorkoutId)
+            let latestRecord = getLatestExerciseRecord(
+              userSnapshot,
+              e.exerciseId,
+              0,
+              excludeWorkoutId,
+            )
             // Safety check, in case the exercise was modified and the latest record is not a time record
             if (latestRecord?.volumeType !== ExerciseVolumeType.Time) latestRecord = null
 
@@ -487,6 +513,7 @@ export const ActiveWorkoutStoreModel = types
                 datePerformed,
                 time: s.time,
               }
+              s.isNewRecord = true
             }
           })
 
@@ -525,7 +552,11 @@ export const ActiveWorkoutStoreModel = types
       self.inProgress = false
     }
 
-    const saveWorkout = flow(function* (isHidden: boolean, user: IUserModel, isOffline = false) {
+    const saveWorkout = flow(function* (
+      isHidden: boolean,
+      userSnapshot: IUserModelSnapshot,
+      isOffline = false,
+    ) {
       try {
         if (self.inProgress) {
           console.warn("ActiveWorkoutStore.saveWorkout: Unable to save, workout still in progress")
@@ -536,9 +567,9 @@ export const ActiveWorkoutStoreModel = types
 
         // console.debug("ActiveWorkoutStore.exerciseSummary:", self.exerciseSummary)
         const { workoutRepository } = getEnv<RootStoreDependencies>(self)
-        const userId = user.userId
-        const privateAccount = user.privateAccount
-        const allExerciseSummary = getAllExerciseSummary(user)
+        const userId = userSnapshot.userId
+        const privateAccount = userSnapshot.privateAccount
+        const allExerciseSummary = getAllExerciseSummary(userSnapshot)
         const workoutId = workoutRepository.newDocumentId()
         const newWorkout = {
           workoutId,

@@ -204,7 +204,7 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
           ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
           ListHeaderComponent={profileHeaderComponent()}
           ListFooterComponent={() => {
-            if (!isEndOfFeed) return null
+            if (!isEndOfFeed || otherUserFeed.length === 0) return null
 
             return (
               <>

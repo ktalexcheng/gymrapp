@@ -7,7 +7,7 @@ import { getUserLocation } from "app/utils/getUserLocation"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
-import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import { Alert, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { Button, Icon, Modal, RowView, Screen, Spacer, Text, TextField } from "../../components"
 import { useStores } from "../../stores"
 import { fontSize, spacing, styles } from "../../theme"
@@ -229,7 +229,20 @@ export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
       workoutStore.endWorkout()
       mainNavigation.navigate("SaveWorkout")
     } else {
-      updateWorkout()
+      Alert.alert(
+        translate("editWorkoutScreen.editWorkoutWarningTitle"),
+        translate("editWorkoutScreen.editWorkoutWarningMessage"),
+        [
+          {
+            text: translate("common.cancel"),
+            style: "cancel",
+          },
+          {
+            text: translate("common.save"),
+            onPress: () => updateWorkout(),
+          },
+        ],
+      )
     }
   }
 

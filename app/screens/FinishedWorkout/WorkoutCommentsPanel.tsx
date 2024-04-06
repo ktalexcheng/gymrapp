@@ -104,14 +104,16 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
   const [isCommentDeleteConfirmation, setIsCommentDeleteConfirmation] = useState(false)
   const [toastShowTx] = useToast()
 
+  const thisWorkoutInteraction = feedStore.getInteractionsForWorkout(workoutSource, workoutId)
+
   useEffect(() => {
     commentInputRef.current?.focus()
   }, [])
 
   useEffect(() => {
     console.debug("WorkoutCommentsPanel.useEffect [getInteractionsForWorkout] called")
-    setInteractions(feedStore.getInteractionsForWorkout(workoutSource, workoutId))
-  }, [feedStore.getInteractionsForWorkout(workoutSource, workoutId)])
+    setInteractions(thisWorkoutInteraction)
+  }, [thisWorkoutInteraction])
 
   const panGestureHandler = Gesture.Pan()
     .onStart(() => {

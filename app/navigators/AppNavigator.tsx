@@ -253,7 +253,7 @@ export const AppNavigator = observer((props: NavigationProps) => {
     themeStore.setProp("systemColorScheme", systemColorScheme)
     themeStore.setProp("appColorScheme", userColorScheme)
 
-    setStatusBarStyle(themeStore.isDark ? "light" : "dark")
+    setStatusBarStyle(themeStore.isDark ? "light" : "dark", true)
     if (Platform.OS === "android") {
       NavigationBar.setBackgroundColorAsync(themeStore.colors("background"))
       NavigationBar.setButtonStyleAsync(themeStore.isDark ? "light" : "dark")

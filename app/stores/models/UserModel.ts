@@ -1,6 +1,6 @@
 import { AppColorScheme, AppLocale, DefaultUserPreferences, WeightUnit } from "app/data/constants"
 import { NotificationType } from "app/data/types"
-import { SnapshotOrInstance, types } from "mobx-state-tree"
+import { SnapshotIn, SnapshotOrInstance, types } from "mobx-state-tree"
 import { convertUserToMSTSnapshot } from "../helpers/convertUserToMSTSnapshot"
 import { withSetPropAction } from "../helpers/withSetPropAction"
 import { MetadataModel } from "./MetadataModel"
@@ -153,5 +153,6 @@ export type IWorkoutMetaModel = SnapshotOrInstance<typeof WorkoutMetaModel>
 export type IExerciseHistoryModel = SnapshotOrInstance<typeof ExerciseHistoryModel>
 export type IPersonalRecordsMapModel = SnapshotOrInstance<typeof PersonalRecordsMapModel>
 export type IUserModel = SnapshotOrInstance<typeof UserModel>
+export type IUserModelSnapshot = SnapshotIn<typeof UserModel>
 export type INotificationModel = SnapshotOrInstance<typeof NotificationModel>
 export type IFollowRequestsModel = SnapshotOrInstance<typeof FollowRequestsModel>

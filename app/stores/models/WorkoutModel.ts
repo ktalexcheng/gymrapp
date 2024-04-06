@@ -25,6 +25,7 @@ export const BaseSetPerformedModel = types
     setOrder: types.number,
     setType: types.enumeration("ExerciseSetType", Object.values(ExerciseSetType)),
     isCompleted: types.boolean,
+    isNewRecord: types.optional(types.boolean, false),
   })
   .actions(withSetPropAction)
   // This is a workaround for a bug in mobx-state-tree where the type of action parameters for union types is not inferred correctly

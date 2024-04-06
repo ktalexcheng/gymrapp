@@ -30,6 +30,9 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
     const weightUnitTx = useWeightUnitTx()
 
     const displayName = `${byUser.firstName} ${byUser.lastName}`
+    const newRecordsCount = workout?.exercises?.reduce((acc, exercise) => {
+      return acc + (exercise?.newRecords?.size ?? 0)
+    }, 0)
 
     const renderBestSet = (e: IExerciseSummaryModel, i: number) => {
       const $highlightExercise: TextStyle =
@@ -118,7 +121,18 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
               <Text>{formatDate(workout.startTime)}</Text>
             </RowView>
           )}
-          <Text>{workout.workoutTitle}</Text>
+          <RowView style={[styles.alignCenter, styles.justifyBetween]}>
+            <View style={styles.flex1}>
+              <Text numberOfLines={2}>{workout.workoutTitle}</Text>
+            </View>
+            {newRecordsCount > 0 && (
+              <RowView style={styles.alignCenter}>
+                <Icon name="trophy" color={themeStore.colors("logo")} size={16} />
+                <Spacer type="horizontal" size="tiny" />
+                <Text preset="bold" text={newRecordsCount} />
+              </RowView>
+            )}
+          </RowView>
           <WorkoutSocialButtonGroup
             workoutSource={workoutSource}
             workoutId={workoutId}

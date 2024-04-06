@@ -253,6 +253,11 @@ const en = {
     noFavoriteGymFoundMessage: "Seems like you are not near any of your favorite gyms!",
     favoriteGymFoundMessage: "Setting workout location to {{gymName}}",
   },
+  editWorkoutScreen: {
+    editWorkoutWarningTitle: "Are you sure?",
+    editWorkoutWarningMessage:
+      "If you edit this workout, it will be labeled as edited and any new records after the edit will not be included in your personal exercise history.",
+  },
   saveWorkoutScreen: {
     workoutTitleLabel: "Workout title",
     workoutTitlePlaceholder: "New workout",
@@ -274,7 +279,12 @@ const en = {
     noCommentsMessage: "Start the conversation!",
     workoutUnavailableMessage: "This workout is unavailable",
     workoutSavedLocallyMessage: "This workout is not synced with the server",
-    workoutEditedMessage: "This workout has been edited so personal records may not be accurate.",
+    workoutEditedMessage:
+      "This workout has been edited so personal records may not be accurate or missing.",
+    newRecordsMessage: "Congratulations! You have set {{newRecordsCount}} new personal record!",
+  },
+  exerciseSummary: {
+    userExerciseHistoryHiddenMessage: "This user has hidden their exercise history",
   },
   workoutSummaryMenu: {
     editWorkoutButtonLabel: "Edit workout",
