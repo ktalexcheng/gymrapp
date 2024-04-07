@@ -5,6 +5,7 @@ import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
 import { getUserLocation } from "app/utils/getUserLocation"
+import { logError } from "app/utils/logger"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
 import { ViewStyle } from "react-native"
@@ -37,7 +38,7 @@ export const WorkoutGymPickerScreen: FC = observer(() => {
         mainNavigation.goBack()
       }
     } catch (e) {
-      console.error("ActiveWorkoutScreen.checkProximityAndSetGym error:", e)
+      logError(e, "ActiveWorkoutScreen.checkProximityAndSetGym error")
     } finally {
       setIsBusy(false)
     }

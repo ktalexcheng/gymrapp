@@ -226,7 +226,12 @@ export const Screen = observer((props: ScreenProps) => {
   const $containerInsets = useSafeAreaInsetsStyle(safeAreaEdges)
   // TODO: Figure out proper way to get KeyboardAvoidingView to work with react-navigation
   // See: https://stackoverflow.com/questions/48420468/keyboardavoidingview-not-working-properly
-  const navigationHeaderHeight = useHeaderHeight()
+  let navigationHeaderHeight = 0
+  try {
+    navigationHeaderHeight = useHeaderHeight()
+  } catch (e) {
+    console.debug("Failed to get navigation header height", e)
+  }
 
   const $containerStyle: ViewStyle = {
     flex: 1,

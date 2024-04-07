@@ -2,6 +2,7 @@ import { LatLongCoords } from "app/data/types"
 import { translate } from "app/i18n"
 import * as Location from "expo-location"
 import { Alert, Linking } from "react-native"
+import { logError } from "./logger"
 
 export async function getUserLocation() {
   let locationPermissionStatus = Location.PermissionStatus.UNDETERMINED
@@ -55,7 +56,7 @@ export async function getUserLocation() {
       location,
     }
   } catch (e) {
-    console.error("getUserLocation error:", e)
+    logError(e, "getUserLocation error")
   }
 
   console.debug("getUserLocation: returning undefined location")

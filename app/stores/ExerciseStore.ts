@@ -1,5 +1,6 @@
 import { ExerciseSource, ExerciseVolumeType } from "app/data/constants"
 import { Exercise, ExerciseSettings, NewExercise, User } from "app/data/types"
+import { logError } from "app/utils/logger"
 import { toJS } from "mobx"
 import { SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
@@ -92,7 +93,7 @@ export const ExerciseStoreModel = types
         self.lastUpdated = new Date()
         self.isLoading = false
       } catch (e) {
-        console.error("ExerciseStore.getAllExercises error:", e)
+        logError(e, "ExerciseStore.getAllExercises error")
       }
     })
 
@@ -102,18 +103,18 @@ export const ExerciseStoreModel = types
       exerciseSettingsValue,
     ) {
       if (!self.allExercises.has(exerciseId)) {
-        console.error("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseId")
+        console.warn("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseId")
         return
       }
 
       if (!(exerciseSettingsId in ExerciseSettingsModel.properties)) {
-        console.error("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseSettingsId")
+        console.warn("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseSettingsId")
         return
       }
 
       const exercise = self.allExercises.get(exerciseId)
       if (!exercise) {
-        console.error("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseId")
+        console.warn("ExerciseStoreModel.updateExerciseSetting error: Invalid exerciseId")
         return
       }
 
@@ -149,7 +150,7 @@ export const ExerciseStoreModel = types
 
         self.isLoading = false
       } catch (error) {
-        console.error("ExerciseStore.uploadExerciseSettings error:", error)
+        logError(error, "ExerciseStore.uploadExerciseSettings error")
       }
     })
 
@@ -171,7 +172,7 @@ export const ExerciseStoreModel = types
         self.lastUpdated = new Date()
         self.isLoading = false
       } catch (e) {
-        console.error("ExerciseStore.createPrivateExercise error:", e)
+        logError(e, "ExerciseStore.createPrivateExercise error")
       }
     })
 

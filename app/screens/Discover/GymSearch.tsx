@@ -40,7 +40,8 @@ const GymSearchResultItem: FC<GymSearchResultItemProps> = (props: GymSearchResul
         </View>
         <Spacer type="horizontal" size="small" />
         <View style={styles.flex1}>
-          <Text text={gym.gymName} numberOfLines={2} />
+          <Text text={gym.gymName} numberOfLines={2} size="md" weight="semiBold" />
+          <Text text={gym.gymAddress} numberOfLines={2} size="xs" />
         </View>
       </RowView>
     </TouchableOpacity>

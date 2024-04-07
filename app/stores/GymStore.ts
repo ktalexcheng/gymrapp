@@ -2,6 +2,7 @@ import firestore from "@react-native-firebase/firestore"
 import { GYM_PROXIMITY_THRESHOLD_METERS } from "app/data/constants"
 import { GymDetails, GymId, GymLeaderboard, GymMember, LatLongCoords } from "app/data/types"
 import { PlaceId, api } from "app/services/api"
+import { logError } from "app/utils/logger"
 import { flow, getEnv, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { IUserModel } from "./models"
@@ -82,7 +83,7 @@ export const GymStoreModel = types
       try {
         yield gymRepository.create(newGym)
       } catch (e) {
-        console.error("GymStore.createNewGym error:", e)
+        logError(e, "GymStore.createNewGym error")
       }
     })
 
@@ -110,7 +111,7 @@ export const GymStoreModel = types
       } = yield gymRepository
         .getGymMembersByWorkoutsCount(gymId, lastMemberId, limit)
         .catch((e) => {
-          console.error("GymStore.getGymMemberProfiles getGymMembers error:", e)
+          logError(e, "GymStore.getWorkoutsLeaderboard error")
         })
       if (gymMembers.length === 0) {
         return {
@@ -123,11 +124,12 @@ export const GymStoreModel = types
       const users = yield getEnv<RootStoreDependencies>(self)
         .userRepository.getMany(gymMembers.map((member) => member.userId))
         .catch((e) => {
-          console.error("GymStore.getGymMemberProfiles userRepository.getMany error:", e)
+          logError(e, "GymStore.getWorkoutsLeaderboard userRepository.getMany error")
         })
-      const gymMemberProfiles = gymMembers.map((gymMember) => ({
-        ...gymMember,
-        ...users.find((user) => user.userId === gymMember.userId),
+      // Make sure to only return user profile that still exists (might have been deleted)
+      const gymMemberProfiles = users.map((user) => ({
+        ...user,
+        ...gymMembers.find((gymMember) => gymMember.userId === user.userId),
       }))
 
       return {
@@ -141,7 +143,7 @@ export const GymStoreModel = types
       const { gymRepository } = getEnv<RootStoreDependencies>(self)
 
       return yield gymRepository.getGymMember(gymId, userId).catch((e) => {
-        console.error("GymStore.getGymMember error:", e)
+        logError(e, "GymStore.getGymMember error")
       })
     })
 

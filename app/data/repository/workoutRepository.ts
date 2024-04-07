@@ -1,5 +1,6 @@
 import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { storage } from "app/services"
+import { logError } from "app/utils/logger"
 import { Workout, WorkoutId } from "../types/workout.types"
 import { BaseRepository } from "./baseRepository"
 
@@ -54,7 +55,7 @@ export class WorkoutRepository extends BaseRepository<Workout, WorkoutId> {
         await this.firestoreClient.runTransaction(txUpdateFunction)
         return true
       } catch (e) {
-        console.error(`${this.repositoryId} uploadWorkout error: ${e}`)
+        logError(e, "WorkoutRepository.saveWorkout error")
       }
     }
 

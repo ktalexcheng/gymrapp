@@ -22,6 +22,7 @@ import {
   WorkoutSummaryScreen,
 } from "app/screens"
 import { INotificationModel, IWorkoutSummaryModel, useStores } from "app/stores"
+import { logError } from "app/utils/logger"
 import { observer } from "mobx-react-lite"
 import React, { useCallback, useEffect, useState } from "react"
 import { HomeTabNavigator } from "./HomeTabNavigator"
@@ -95,7 +96,7 @@ export const MainNavigator = observer(function MainNavigator() {
           // Once we start listening to the user document, we can stop showing the loading screen
           userStore.setProp("isLoadingProfile", false)
         },
-        (e) => console.error("MainNavigator.userSubscriber.onSnapshot error:", e),
+        (e) => logError(e, "MainNavigator.userSubscriber.onSnapshot error"),
       )
 
     // TODO: Should only process the documents that changed, not the entire collection

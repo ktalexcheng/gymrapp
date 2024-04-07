@@ -1,9 +1,9 @@
-import crashlytics from "@react-native-firebase/crashlytics"
 import firestore from "@react-native-firebase/firestore"
 import { ExerciseSource, ExerciseVolumeType, WorkoutSource } from "app/data/constants"
-import { ExerciseId, UserId, WorkoutComment, WorkoutId } from "app/data/types"
+import { CommentId, ExerciseId, UserId, WorkoutComment, WorkoutId } from "app/data/types"
 import { api } from "app/services/api"
 import { getNestedField } from "app/utils/getNestedField"
+import { logError } from "app/utils/logger"
 import { getTime, startOfWeek } from "date-fns"
 import { randomUUID } from "expo-crypto"
 import { toJS } from "mobx"
@@ -199,7 +199,7 @@ export const FeedStoreModel = types
     getWorkout(workoutSource: WorkoutSource, workoutId: string, byUserId?: string) {
       if (workoutSource === WorkoutSource.OtherUser) {
         if (!byUserId) {
-          console.error(
+          console.warn(
             "FeedStore.getWorkout workoutSource is OtherUser but byUserId is not defined",
           )
           return undefined
@@ -254,7 +254,7 @@ export const FeedStoreModel = types
   .actions((self) => {
     function checkInitialized() {
       if (!self.userId) {
-        console.error("FeedStore is not initialized with userId")
+        console.warn("FeedStore is not initialized with userId")
         return false
       }
       return true
@@ -305,8 +305,7 @@ export const FeedStoreModel = types
           }
         }
       } catch (e) {
-        crashlytics().recordError(e as any)
-        console.error("FeedStore.refreshWorkout error:", e)
+        logError(e, "FeedStore.refreshWorkout error")
       }
     })
 
@@ -321,8 +320,9 @@ export const FeedStoreModel = types
         const { userRepository } = getEnv<RootStoreDependencies>(self)
         const user = yield userRepository.get(self.userId, true)
         const workoutMetas = getNestedField(user, "workoutMetas")
+        const workoutIds = workoutMetas && Object.keys(workoutMetas)
 
-        if (!workoutMetas) {
+        if (!workoutMetas || !workoutIds || workoutIds.length === 0) {
           console.debug("FeedStore.loadUserWorkouts empty workoutMetas")
           self.isLoadingUserWorkouts = false
           return
@@ -330,7 +330,6 @@ export const FeedStoreModel = types
 
         const { workoutRepository, workoutInteractionRepository } =
           getEnv<RootStoreDependencies>(self)
-        const workoutIds = Object.keys(workoutMetas)
         const workouts: IWorkoutSummaryModel[] = yield workoutRepository.getMany(workoutIds)
 
         if (!workouts) {
@@ -343,8 +342,7 @@ export const FeedStoreModel = types
           try {
             self.userWorkouts.put(w)
           } catch (e) {
-            crashlytics().recordError(e as any)
-            console.error("FeedStore.loadUserWorkouts invalid workout snapshot:", e, {
+            logError(e, "FeedStore.loadUserWorkouts invalid workout snapshot", {
               workoutid: w.workoutId,
             })
           }
@@ -370,7 +368,7 @@ export const FeedStoreModel = types
         console.debug("FeedStore.loadUserWorkouts done")
         self.isLoadingUserWorkouts = false
       } catch (e) {
-        console.error("FeedStore.loadUserWorkouts error:", e)
+        logError(e, "FeedStore.loadUserWorkouts error")
       }
     })
 
@@ -381,7 +379,7 @@ export const FeedStoreModel = types
         yield workoutRepository.delete(workoutId)
         self.userWorkouts.delete(workoutId)
       } catch (e) {
-        console.error("FeedStore.deleteWorkout error:", e)
+        logError(e, "FeedStore.deleteWorkout error")
       }
     })
 
@@ -389,8 +387,7 @@ export const FeedStoreModel = types
       try {
         self.workoutInteractions.put(workoutInteractions)
       } catch (e) {
-        crashlytics().recordError(e as any)
-        console.error("FeedStore.updateWorkoutInteractions error:", e)
+        logError(e, "FeedStore.updateWorkoutInteractions error")
       }
     }
 
@@ -401,8 +398,7 @@ export const FeedStoreModel = types
           const user = yield userRepository.get(userId)
           self.feedUsers.put(convertUserToMSTSnapshot(user))
         } catch (e) {
-          crashlytics().recordError(e as any)
-          console.error("FeedStore.fetchUserProfileToStore error:", e)
+          logError(e, "FeedStore.fetchUserProfileToStore error")
         }
       }
     })
@@ -431,15 +427,14 @@ export const FeedStoreModel = types
           self.workoutInteractions.put(interaction)
         }
 
-        const feedUserIds = workouts.map((w) => w.byUserId)
+        const feedUserIds = new Set<string>(workouts.map((w) => w.byUserId))
         for (const feedUserId of feedUserIds) {
           yield fetchUserProfileToStore(feedUserId)
         }
 
         return workouts
       } catch (e) {
-        crashlytics().recordError(e as any)
-        console.error("FeedStore.loadMoreFeedItems error:", e)
+        logError(e, "FeedStore.loadMoreFeedItems error")
       } finally {
         self.isLoadingFeed = false
       }
@@ -473,33 +468,32 @@ export const FeedStoreModel = types
           comments: firestore.FieldValue.arrayUnion(newComment),
         })
       } catch (e) {
-        crashlytics().recordError(e as any)
-        console.error("FeedStore.addCommentToWorkout error:", e)
+        logError(e, "FeedStore.addCommentToWorkout error")
       }
     })
 
-    const removeCommentFromWorkout = flow(function* (
-      workoutId: WorkoutId,
-      workoutComment: IWorkoutCommentModel,
-    ) {
+    const removeCommentFromWorkout = flow(function* (workoutId: WorkoutId, commentId: CommentId) {
       try {
         const interactions = self.workoutInteractions.get(workoutId)
-        const commentToDelete = interactions?.comments.find(
-          (c) => c.commentId === workoutComment.commentId,
-        )
+        const commentToDelete = interactions?.comments.find((c) => c.commentId === commentId)
+        const commentToDeleteAsJS = toJS(commentToDelete) // Get the snapshot before removing
         commentToDelete && interactions?.removeComment(commentToDelete)
 
         const { workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
         yield workoutInteractionRepository.update(
           workoutId,
           {
-            comments: firestore.FieldValue.arrayRemove(workoutComment),
+            comments: firestore.FieldValue.arrayRemove({
+              _createdAt: commentToDeleteAsJS?._createdAt,
+              byUserId: commentToDeleteAsJS?.byUserId,
+              comment: commentToDeleteAsJS?.comment,
+              commentId: commentToDeleteAsJS?.commentId,
+            }),
           },
           false,
         )
       } catch (e) {
-        crashlytics().recordError(e as any)
-        console.error("FeedStore.removeCommentFromWorkout error:", e)
+        logError(e, "FeedStore.removeCommentFromWorkout error")
       }
     })
 
@@ -519,8 +513,7 @@ export const FeedStoreModel = types
           likedByUserIds: firestore.FieldValue.arrayUnion(likedByUserId),
         })
       } catch (e) {
-        crashlytics().recordError(e as any)
-        console.error("FeedStore.likeWorkout error:", e)
+        logError(e, "FeedStore.likeWorkout error")
       }
     })
 
@@ -538,8 +531,7 @@ export const FeedStoreModel = types
           false,
         )
       } catch (e) {
-        crashlytics().recordError(e as any)
-        console.error("FeedStore.unlikeWorkout error:", e)
+        logError(e, "FeedStore.unlikeWorkout error")
       }
     })
 
@@ -548,6 +540,8 @@ export const FeedStoreModel = types
       self.lastFeedRefresh = undefined
       self.oldestFeedItemId = undefined
       self.noMoreFeedItems = false
+      self.feedWorkouts.clear()
+      self.feedUsers.clear()
       yield loadMoreFeedItems()
       self.lastFeedRefresh = new Date()
     })
@@ -594,8 +588,7 @@ export const FeedStoreModel = types
           })
         }
       } catch (e) {
-        crashlytics().recordError(e as any)
-        console.error("FeedStore.loadMoreOtherUserWorkouts error:", e)
+        logError(e, "FeedStore.loadMoreOtherUserWorkouts error")
       } finally {
         self.isLoadingOtherUserWorkouts = false
       }

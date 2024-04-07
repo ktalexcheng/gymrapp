@@ -2,6 +2,8 @@ import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import crashlytics from "@react-native-firebase/crashlytics"
 import { GoogleSignin } from "@react-native-google-signin/google-signin"
 import { defaultAppLocale } from "app/utils/appLocale"
+import { logError } from "app/utils/logger"
+import * as storage from "app/utils/storage"
 import * as AppleAuthentication from "expo-apple-authentication"
 import Constants from "expo-constants"
 import * as Crypto from "expo-crypto"
@@ -128,10 +130,7 @@ export const AuthenticationStoreModel = types
           break
         default:
           // Just in case an unexpected error is encountered
-          console.error("AuthenticationStore.catchAuthError called from", caller, ":", {
-            error,
-            ...error,
-          })
+          logError(error, "AuthenticationStore.catchAuthError unexpected error", { caller })
           self.authError = AuthErrorType.UnknownError
       }
     }
@@ -182,6 +181,7 @@ export const AuthenticationStoreModel = types
       }
       self.firebaseUserCredential = undefined
       self.authToken = undefined
+      yield storage.remove("CURRENT_USER_ID_STORAGE_KEY")
     })
 
     // @ts-ignore
@@ -216,7 +216,7 @@ export const AuthenticationStoreModel = types
         self.isEmailVerified = auth().currentUser?.emailVerified ?? false
         yield refreshAuthToken()
       } catch (e) {
-        console.error("AuthenticationStore.checkEmailVerified error:", e)
+        logError(e, "AuthenticationStore.checkEmailVerified error")
       } finally {
         self.isAuthenticating = false
       }
@@ -247,6 +247,7 @@ export const AuthenticationStoreModel = types
       self.isEmailVerified = firebaseUser.emailVerified
       refreshAuthToken()
       crashlytics().setUserId(firebaseUser.uid)
+      storage.saveString("CURRENT_USER_ID_STORAGE_KEY", firebaseUser.uid)
       self.isAuthenticating = false
     }
 

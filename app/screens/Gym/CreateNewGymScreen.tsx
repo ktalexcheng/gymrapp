@@ -6,6 +6,7 @@ import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { GoogleMapsPlacePrediction, api } from "app/services/api"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
+import { logError } from "app/utils/logger"
 import React, { useEffect, useState } from "react"
 import { View, ViewStyle } from "react-native"
 
@@ -54,7 +55,7 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
           setPredictedPlaces(results)
           setIsPredicting(false)
         })
-        .catch((e) => console.error("error encountered when searching users:", e))
+        .catch((e) => logError(e, "error encountered when searching users:"))
     }, 500) // Only runs after delay
 
     return () => clearTimeout(getPredictionsTimeout)
@@ -114,7 +115,7 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
           mainNavigator.replace("GymDetails", { gymId: gymPlaceId })
         })
         .catch((e) => {
-          console.error("CreateNewGymScreen.handleCreateNewGym error:", e)
+          logError(e, "CreateNewGymScreen.handleCreateNewGym error")
           setIsCreatingGym(false)
         })
     }

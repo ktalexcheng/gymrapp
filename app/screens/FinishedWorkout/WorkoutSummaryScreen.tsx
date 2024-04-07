@@ -10,6 +10,7 @@ import { spacing, styles } from "app/theme"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { formatDate } from "app/utils/formatDate"
 import { formatName } from "app/utils/formatName"
+import { logError } from "app/utils/logger"
 import { observer } from "mobx-react-lite"
 import React, { useCallback, useEffect, useState } from "react"
 import { FlatList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
@@ -40,7 +41,8 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
   const [showCommentsPanel, setShowCommentsPanel] = useState(jumpToComments)
   const [showEntireTitle, setShowEntireTitle] = useState(false)
 
-  const workoutLoaded = !isLoading && workout && workoutByUser
+  const workoutLoaded = !isLoading && !!workout && !!workoutByUser
+  console.debug("WorkoutSummaryScreen.render", { workoutLoaded, isLoading, workout, workoutByUser })
   const isMyWorkout = workout?.byUserId === userStore.userId
   const newRecordsCount = workout?.exercises?.reduce((acc, exercise) => {
     return acc + (exercise?.newRecords?.size ?? 0)
@@ -70,7 +72,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
       }
       setIsError(false)
     } catch (e) {
-      console.error("WorkoutSummaryScreen.useEffect error:", e)
+      logError(e, "WorkoutSummaryScreen.getWorkoutAndUser error")
       setIsError(true)
     } finally {
       setIsLoading(false)
@@ -110,21 +112,6 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
     setShowCommentsPanel(!showCommentsPanel)
   }
 
-  // const onWorkoutUpdated = () => {
-  //   setIsLoading(true)
-  //   try {
-  //     // User should only be able to access menu of their own workouts
-  //     const updatedWorkout = feedStore.getWorkout(WorkoutSource.User, workoutId)
-  //     if (updatedWorkout) {
-  //       setWorkout(updatedWorkout)
-  //     }
-  //   } catch (e) {
-  //     console.error("WorkoutSummaryScreen.onWorkoutUpdated error:", e)
-  //   } finally {
-  //     setIsLoading(false)
-  //   }
-  // }
-
   const refreshWorkout = async () => {
     if (isLoading) return
 
@@ -133,7 +120,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
       await feedStore.refreshWorkout(workoutSource, workoutByUserId, workoutId)
       getWorkoutAndUser()
     } catch (e) {
-      console.error("WorkoutSummaryScreen.refreshWorkout error:", e)
+      logError(e, "WorkoutSummaryScreen.refreshWorkout error")
       setIsError(true)
     }
   }
@@ -148,7 +135,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
   const renderScreen = () => {
     if (!isInitialized) return null
 
-    if (!workoutLoaded && isError) {
+    if (!workoutLoaded || isError) {
       return <Text tx="workoutSummaryScreen.workoutUnavailableMessage" />
     }
 
@@ -161,11 +148,25 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
           ListHeaderComponent={
             <>
               {isMyWorkout && workout?.__isOnlyLocal && (
-                <RowView style={styles.alignCenter}>
-                  <Icon name="cloud-offline-outline" size={16} />
-                  <Spacer type="horizontal" size="tiny" />
-                  <Text preset="light" tx="workoutSummaryScreen.workoutSavedLocallyMessage" />
-                </RowView>
+                <>
+                  <RowView style={styles.alignCenter}>
+                    <Icon name="cloud-offline-outline" size={16} />
+                    <Spacer type="horizontal" size="tiny" />
+                    <Text preset="light" tx="workoutSummaryScreen.workoutSavedLocallyMessage" />
+                  </RowView>
+                  <Spacer type="vertical" size="small" />
+                </>
+              )}
+
+              {isMyWorkout && workout?.isHidden && (
+                <>
+                  <RowView style={styles.alignCenter}>
+                    <Icon name="eye-off-outline" size={16} />
+                    <Spacer type="horizontal" size="tiny" />
+                    <Text preset="light" tx="workoutSummaryScreen.workoutIsHiddenMessage" />
+                  </RowView>
+                  <Spacer type="vertical" size="small" />
+                </>
               )}
 
               <RowView style={[styles.flex1, styles.justifyBetween]}>
@@ -244,13 +245,12 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                   <RowView style={$announcementContainer}>
                     <Icon name="warning-outline" color={themeStore.colors("danger")} size={24} />
                     <Spacer type="horizontal" size="extraSmall" />
-                    <View style={styles.flex1}>
-                      <Text
-                        preset="light"
-                        size="xs"
-                        tx="workoutSummaryScreen.workoutEditedMessage"
-                      />
-                    </View>
+                    <Text
+                      style={styles.flex1}
+                      preset="light"
+                      size="xs"
+                      tx="workoutSummaryScreen.workoutEditedMessage"
+                    />
                   </RowView>
                 )}
 
@@ -259,6 +259,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                     <Icon name="trophy" color={themeStore.colors("logo")} size={24} />
                     <Spacer type="horizontal" size="extraSmall" />
                     <Text
+                      style={styles.flex1}
                       preset="light"
                       size="xs"
                       tx="workoutSummaryScreen.newRecordsMessage"

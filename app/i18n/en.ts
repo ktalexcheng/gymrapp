@@ -76,7 +76,8 @@ const en = {
   },
   errorScreen: {
     title: "This is awkward...",
-    message: "Something went wrong with GYMRAPP. Please report it to us so we can fix it.",
+    message:
+      "Something went wrong with Gymrapp. This issue will be automatically reported to us after you reset the app.",
     reset: "RESET APP",
   },
   emptyStateComponent: {
@@ -277,8 +278,10 @@ const en = {
     headerTitle: "Workout summary",
     commentInputPlaceholder: "Leave a comment...",
     noCommentsMessage: "Start the conversation!",
-    workoutUnavailableMessage: "This workout is unavailable",
+    workoutUnavailableMessage:
+      "This workout is no longer available. It might have been deleted by the user.",
     workoutSavedLocallyMessage: "This workout is not synced with the server",
+    workoutIsHiddenMessage: "This workout is hidden and only visible to you",
     workoutEditedMessage:
       "This workout has been edited so personal records may not be accurate or missing.",
     newRecordsMessage: "Congratulations! You have set {{newRecordsCount}} new personal record!",

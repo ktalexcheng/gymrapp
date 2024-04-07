@@ -1,5 +1,6 @@
 import { LatLongCoords } from "app/data/types"
 import { translate } from "app/i18n"
+import { logError } from "app/utils/logger"
 import * as Location from "expo-location"
 import { useEffect, useState } from "react"
 import { Alert, Linking } from "react-native"
@@ -71,7 +72,7 @@ export const useUserLocation = (): {
         const location = await Location.getCurrentPositionAsync()
         setUserLocation({ lat: location.coords.latitude, lng: location.coords.longitude })
       } catch (e) {
-        console.error("useUserLocation.useEffect [getUserLocationRefreshKey] error:", e)
+        logError(e, "useUserLocation.useEffect [getUserLocation] error")
         toastShowTx("userLocation.unableToAcquireLocationMessage")
       } finally {
         setIsGettingUserLocation(false)

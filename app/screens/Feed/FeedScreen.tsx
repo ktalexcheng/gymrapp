@@ -1,5 +1,4 @@
-import { Screen, Spacer, Text, ThemedRefreshControl } from "app/components"
-import { LoadingIndicator } from "app/components/LoadingIndicator"
+import { LoadingIndicator, Screen, Spacer, Text, ThemedRefreshControl } from "app/components"
 import { WorkoutSource } from "app/data/constants"
 import { IWorkoutSummaryModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
@@ -83,14 +82,10 @@ export const FeedScreen = observer(function FeedScreen() {
     return null
   }
 
-  // const isEmptyFeed = () => {
-  //   return (
-  //     userStore.isLoadingProfile ||
-  //     !userStore.user ||
-  //     userStore.user.followingCount === 0 ||
-  //     feedStore.feedWorkouts.size === 0
-  //   )
-  // }
+  const refreshFeed = () => {
+    setFeedData([])
+    feedStore.refreshFeedItems()
+  }
 
   const renderFeed = () => {
     if (userStore.isLoadingProfile || !userStore.user) {
@@ -101,10 +96,7 @@ export const FeedScreen = observer(function FeedScreen() {
       <View style={styles.flex1}>
         <FlatList
           refreshControl={
-            <ThemedRefreshControl
-              refreshing={feedStore.isLoadingFeed}
-              onRefresh={feedStore.refreshFeedItems}
-            />
+            <ThemedRefreshControl refreshing={feedStore.isLoadingFeed} onRefresh={refreshFeed} />
           }
           data={feedData}
           renderItem={renderFeedWorkoutItem}
@@ -141,6 +133,22 @@ export const FeedScreen = observer(function FeedScreen() {
 
   return (
     <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={styles.screenContainer}>
+      {/* {__DEV__ && (
+        <Button
+          text="Test crash"
+          onPress={() => {
+            try {
+              throw new Error("This is a test error")
+            } catch (e) {
+              logError(e, "Some error message", {
+                debugVar: "debugValue",
+                anotherVar: "anotherValue",
+              })
+            }
+            // crashlytics().crash()
+          }}
+        />
+      )} */}
       <View style={$headingContainer}>
         <Text tx="common.appTitle" preset="screenTitle" textColor={themeStore.colors("logo")} />
       </View>

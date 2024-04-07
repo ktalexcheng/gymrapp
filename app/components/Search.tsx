@@ -1,5 +1,6 @@
 import { TxKeyPath } from "app/i18n"
 import { styles } from "app/theme"
+import { logError } from "app/utils/logger"
 import React, { FC, useEffect, useState } from "react"
 import { FlatList, ListRenderItem, ViewProps } from "react-native"
 import { LoadingIndicator } from "./LoadingIndicator"
@@ -85,7 +86,7 @@ export const Search: FC<SearchProps> = ({
           setIsSearching(false)
         })
         .catch((e) => {
-          console.error("Search.useEffect() [searchText] searchCallback error:", e)
+          logError(e, "Search.useEffect() [searchText] searchCallback error")
         })
     }, 500)
 

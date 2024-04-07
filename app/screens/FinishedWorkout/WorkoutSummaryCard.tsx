@@ -29,7 +29,7 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
     const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
     const weightUnitTx = useWeightUnitTx()
 
-    const displayName = `${byUser.firstName} ${byUser.lastName}`
+    const displayName = `${byUser?.firstName} ${byUser?.lastName}`
     const newRecordsCount = workout?.exercises?.reduce((acc, exercise) => {
       return acc + (exercise?.newRecords?.size ?? 0)
     }, 0)
@@ -122,9 +122,15 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
             </RowView>
           )}
           <RowView style={[styles.alignCenter, styles.justifyBetween]}>
-            <View style={styles.flex1}>
-              <Text numberOfLines={2}>{workout.workoutTitle}</Text>
-            </View>
+            <RowView style={[styles.flex1, styles.alignCenter]}>
+              {workout?.isHidden && (
+                <>
+                  <Icon name="eye-off-outline" size={16} />
+                  <Spacer type="horizontal" size="tiny" />
+                </>
+              )}
+              <Text style={styles.flex1} numberOfLines={2} text={workout.workoutTitle} />
+            </RowView>
             {newRecordsCount > 0 && (
               <RowView style={styles.alignCenter}>
                 <Icon name="trophy" color={themeStore.colors("logo")} size={16} />

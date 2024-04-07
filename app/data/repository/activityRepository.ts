@@ -1,4 +1,4 @@
-import { Activity, ActivityId } from "../types/activity.types"
+import { Activity, ActivityId } from "../types"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class ActivityRepository extends BaseRepository<Activity, ActivityId> {

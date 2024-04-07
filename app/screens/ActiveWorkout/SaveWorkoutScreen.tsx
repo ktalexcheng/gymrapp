@@ -15,20 +15,22 @@ import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
+import { logError } from "app/utils/logger"
 import { observer } from "mobx-react-lite"
-import { getSnapshot } from "mobx-state-tree"
 import React, { FC, useState } from "react"
 import { Alert, TouchableOpacity, ViewStyle } from "react-native"
 import { ExerciseSummary } from "../FinishedWorkout"
 
+// The values "" and "true" are a hacky way to represent boolean values in the Picker component
+// because the Picker component will convert all values to strings
 const workoutIsHiddenOptions = [
   {
     label: translate("workoutSettings.workoutVisibleToFeedLabel"),
-    value: false,
+    value: "",
   },
   {
     label: translate("workoutSettings.workoutHiddenLabel"),
-    value: true,
+    value: "true",
   },
 ]
 
@@ -37,7 +39,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
   const { activeWorkoutStore, exerciseStore, feedStore, userStore, themeStore } = useStores()
   const [showEditTitleModal, setShowEditTitleModal] = useState(false)
   const [workoutTitle, setWorkoutTitle] = useState(activeWorkoutStore.workoutTitle)
-  const [isHidden, setIsHidden] = useState(false)
+  const [isHidden, setIsHidden] = useState<"" | "true">("")
   const [isSaving, setIsSaving] = useState(false)
   const [toastShowTx] = useToast()
   const [isInternetConnected] = useInternetStatus()
@@ -77,8 +79,8 @@ export const SaveWorkoutScreen: FC = observer(() => {
     setIsSaving(true)
     try {
       const workout = await activeWorkoutStore.saveWorkout(
-        isHidden,
-        getSnapshot(userStore.user), // do not wrap in toJS(), MST map keys are stored internally as strings which can cause issues
+        Boolean(isHidden),
+        userStore.user, // do not wrap in toJS(), MST map keys are stored internally as strings which can cause issues
         !isInternetConnected,
       )
 
@@ -106,7 +108,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
       })
     } catch (e) {
       setIsSaving(false)
-      console.error("SaveWorkoutScreen.saveWorkout error:", e)
+      logError(e, "SaveWorkoutScreen.saveWorkout error")
       toastShowTx("common.error.unknownErrorMessage")
     }
   }
@@ -178,7 +180,10 @@ export const SaveWorkoutScreen: FC = observer(() => {
         labelTx="workoutSettings.setWorkoutVisibilityLabel"
         itemsList={workoutIsHiddenOptions}
         selectedValue={isHidden}
-        onValueChange={setIsHidden}
+        onValueChange={(value) => {
+          console.debug("SaveWorkoutScreen.onValueChange", { value, boolean: Boolean(value) })
+          setIsHidden(value)
+        }}
       />
       <Text preset="subheading" tx="workoutSettings.workoutSummaryLabel" />
       {activeWorkoutStore.exercises.map((e, _) => {

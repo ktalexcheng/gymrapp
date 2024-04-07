@@ -1,5 +1,13 @@
-import { Avatar, Icon, RowView, Screen, Spacer, TabBar, Text } from "app/components"
-import { LoadingIndicator } from "app/components/LoadingIndicator"
+import {
+  Avatar,
+  Icon,
+  LoadingIndicator,
+  RowView,
+  Screen,
+  Spacer,
+  TabBar,
+  Text,
+} from "app/components"
 import { WorkoutSource } from "app/data/constants"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"

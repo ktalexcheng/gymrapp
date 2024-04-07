@@ -1,4 +1,3 @@
-import crashlytics from "@react-native-firebase/crashlytics"
 import { DefaultUserPreferences } from "app/data/constants"
 import {
   ExerciseId,
@@ -14,6 +13,7 @@ import { api } from "app/services/api"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { formatName } from "app/utils/formatName"
 import { getNestedField } from "app/utils/getNestedField"
+import { logError } from "app/utils/logger"
 import { toJS } from "mobx"
 import { flow, getEnv, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
@@ -154,7 +154,7 @@ export const UserStoreModel = types
 
         return avatarUrl
       } catch (e) {
-        console.error("UserStore.uploadUserAvatar error:", e)
+        logError(e, "UserStore.uploadUserAvatar error")
       }
     })
 
@@ -173,7 +173,7 @@ export const UserStoreModel = types
         yield userRepository.create(newUser)
         yield loadUserWithId(newUser.userId)
       } catch (e) {
-        console.error("UserStore.createNewProfile error:", e)
+        logError(e, "UserStore.createNewProfile error")
       } finally {
         self.isLoadingProfile = false
       }
@@ -190,7 +190,7 @@ export const UserStoreModel = types
       try {
         yield api.requestFollowOtherUser(followeeUserId)
       } catch (e) {
-        console.error("UserStore.followUser error:", e)
+        logError(e, "UserStore.followUser error")
       }
     })
 
@@ -199,7 +199,7 @@ export const UserStoreModel = types
       try {
         yield api.unfollowOtherUser(followeeUserId)
       } catch (e) {
-        console.error("UserStore.unfollowUser error:", e)
+        logError(e, "UserStore.unfollowUser error")
       }
     })
 
@@ -220,7 +220,7 @@ export const UserStoreModel = types
       try {
         yield userRepository.cancelFollowRequest(followeeUserId)
       } catch (e) {
-        console.error("UserStore.cancelFollowRequest error:", e)
+        logError(e, "UserStore.cancelFollowRequest error")
       }
     })
 
@@ -229,7 +229,7 @@ export const UserStoreModel = types
       try {
         yield userRepository.declineFollowRequest(followRequestId)
       } catch (e) {
-        console.error("UserStore.declineFollowRequest error:", e)
+        logError(e, "UserStore.declineFollowRequest error")
       }
     })
 
@@ -239,13 +239,13 @@ export const UserStoreModel = types
         yield userRepository.acceptFollowRequest(followRequestId)
         yield api.acceptFollowRequest(followRequestId)
       } catch (e) {
-        console.error("UserStore.acceptFollowRequest error:", e)
+        logError(e, "UserStore.acceptFollowRequest error")
       }
     })
 
     const fetchUserProfile = flow(function* () {
       if (!self.userId) {
-        console.error("UserStore.fetchUserProfile: No userId set")
+        console.warn("UserStore.fetchUserProfile: No userId set")
         return
       }
 
@@ -258,7 +258,7 @@ export const UserStoreModel = types
           setUserFromFirebase(user)
         }
       } catch (e) {
-        console.error("UserStore.fetchUserProfile error:", e)
+        logError(e, "UserStore.fetchUserProfile error")
       } finally {
         self.isLoadingProfile = false
       }
@@ -283,7 +283,7 @@ export const UserStoreModel = types
         yield fetchUserProfile()
         console.debug("UserStore.loadUserWIthId done")
       } catch (e) {
-        console.error("UserStore.loadUserWIthId error:", e)
+        logError(e, "UserStore.loadUserWIthId error")
       } finally {
         self.isLoadingProfile = false
       }
@@ -302,8 +302,7 @@ export const UserStoreModel = types
           setRepositoryUserId(user.userId)
         }
       } catch (e) {
-        crashlytics().recordError(e as any)
-        console.error("UserStore.setUserFromFirebase error:", e)
+        logError(e, "UserStore.setUserFromFirebase error:")
       } finally {
         self.isLoadingProfile = false
       }
@@ -340,7 +339,7 @@ export const UserStoreModel = types
         yield userRepository.delete(self.userId)
         self.user = undefined
       } catch (e) {
-        console.error("UserStore.deleteProfile error:", e)
+        logError(e, "UserStore.deleteProfile error")
       }
       invalidateSession()
     })
@@ -395,7 +394,7 @@ export const UserStoreModel = types
       try {
         yield notificationRepository.update(notificationId, { isRead: true })
       } catch (e) {
-        console.error("UserStore.readNotification error:", e)
+        logError(e, "UserStore.markNotificationAsRead error")
       }
     })
 
@@ -415,7 +414,7 @@ export const UserStoreModel = types
         const isAvailable = yield userRepository.userHandleIsAvailable(userHandle)
         return isAvailable
       } catch (e) {
-        console.error("UserStore.userHandleAvailable error:", e)
+        logError(e, "UserStore.userHandleAvailable error")
       }
     })
 

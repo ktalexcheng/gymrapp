@@ -1,13 +1,20 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
+const storageKeys = {
+  CURRENT_USER_ID_STORAGE_KEY: "userId",
+  BUILD_VERSION_STORAGE_KEY: "build-version",
+  ROOT_STATE_STORAGE_KEY: "root-v1",
+  NAVIGATION_PERSISTENT_STORAGE_KEY: "NAVIGATION_STATE",
+}
+
 /**
  * Loads a string from storage.
  *
  * @param key The key to fetch.
  */
-export async function loadString(key: string): Promise<string | null> {
+export async function loadString(key: keyof typeof storageKeys): Promise<string | null> {
   try {
-    return await AsyncStorage.getItem(key)
+    return await AsyncStorage.getItem(storageKeys[key])
   } catch {
     // not sure why this would fail... even reading the RN docs I'm unclear
     return null
@@ -20,9 +27,9 @@ export async function loadString(key: string): Promise<string | null> {
  * @param key The key to fetch.
  * @param value The value to store.
  */
-export async function saveString(key: string, value: string): Promise<boolean> {
+export async function saveString(key: keyof typeof storageKeys, value: string): Promise<boolean> {
   try {
-    await AsyncStorage.setItem(key, value)
+    await AsyncStorage.setItem(storageKeys[key], value)
     return true
   } catch {
     return false
@@ -34,9 +41,9 @@ export async function saveString(key: string, value: string): Promise<boolean> {
  *
  * @param key The key to fetch.
  */
-export async function load(key: string): Promise<unknown | null> {
+export async function load(key: keyof typeof storageKeys): Promise<unknown | null> {
   try {
-    const almostThere = await AsyncStorage.getItem(key)
+    const almostThere = await AsyncStorage.getItem(storageKeys[key])
     if (!almostThere) return null
     return JSON.parse(almostThere)
   } catch {
@@ -50,9 +57,9 @@ export async function load(key: string): Promise<unknown | null> {
  * @param key The key to fetch.
  * @param value The value to store.
  */
-export async function save(key: string, value: unknown): Promise<boolean> {
+export async function save(key: keyof typeof storageKeys, value: unknown): Promise<boolean> {
   try {
-    await AsyncStorage.setItem(key, JSON.stringify(value))
+    await AsyncStorage.setItem(storageKeys[key], JSON.stringify(value))
     return true
   } catch {
     return false
@@ -64,9 +71,9 @@ export async function save(key: string, value: unknown): Promise<boolean> {
  *
  * @param key The key to kill.
  */
-export async function remove(key: string): Promise<void> {
+export async function remove(key: keyof typeof storageKeys): Promise<void> {
   try {
-    await AsyncStorage.removeItem(key)
+    await AsyncStorage.removeItem(storageKeys[key])
   } catch {}
 }
 

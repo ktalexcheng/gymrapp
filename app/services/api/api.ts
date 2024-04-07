@@ -20,6 +20,7 @@ import {
 } from "app/data/types"
 import { IWorkoutSummaryModel } from "app/stores"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
+import { logError } from "app/utils/logger"
 import * as Application from "expo-application"
 import { getDistance } from "geolib"
 import { Platform } from "react-native"
@@ -85,7 +86,7 @@ export class Api {
       console.debug("checkForUpdates response:", response)
       return response.data
     } catch (e) {
-      console.error("checkForUpdates error:", e)
+      logError(e, "checkForUpdates error")
       throw e
     }
   }
@@ -106,7 +107,7 @@ export class Api {
 
       return predictions.data as GoogleMapsPlacePrediction[]
     } catch (e) {
-      console.error("getPlacePredictions error:", e)
+      logError(e, "getPlacePredictions error")
       throw e
     }
   }
@@ -119,7 +120,7 @@ export class Api {
 
       return placeDetails.data as GoogleMapsPlaceDetails
     } catch (e) {
-      console.error("getPlaceDetails error:", e)
+      logError(e, "getPlaceDetails error")
       throw e
     }
   }
@@ -133,7 +134,7 @@ export class Api {
 
       return searchResult
     } catch (e) {
-      console.error("searchGyms error:", e)
+      logError(e, "searchGyms error")
       throw e
     }
   }
@@ -147,7 +148,7 @@ export class Api {
 
       return searchResult
     } catch (e) {
-      console.error("searchUsers error:", e)
+      logError(e, "searchUsers error")
       throw e
     }
   }
@@ -169,7 +170,7 @@ export class Api {
         ...convertFirestoreTimestampToDate(response.data),
       }
     } catch (e) {
-      console.error("getOtherUserWorkout error:", e)
+      logError(e, "getOtherUserWorkout error")
       throw e
     }
   }
@@ -192,7 +193,7 @@ export class Api {
         workouts: convertFirestoreTimestampToDate(response.data.workouts),
       }
     } catch (e) {
-      console.error("getOtherUserWorkouts error:", e)
+      logError(e, "getOtherUserWorkouts error")
       throw e
     }
   }
@@ -211,7 +212,7 @@ export class Api {
         workouts: convertFirestoreTimestampToDate(reponse.data.workouts),
       }
     } catch (e) {
-      console.error("getFeedWorkouts error:", e)
+      logError(e, "getFeedWorkouts error")
       throw e
     }
   }
@@ -232,7 +233,7 @@ export class Api {
         workouts: convertFirestoreTimestampToDate(response.data.workouts),
       }
     } catch (e) {
-      console.error("getGymWorkouts error:", e)
+      logError(e, "getGymWorkouts error")
       throw e
     }
   }
@@ -250,7 +251,7 @@ export class Api {
       // { status: "success", requestId: null }
       return convertFirestoreTimestampToDate(response.data)
     } catch (e) {
-      console.error("requestFollowOtherUser error:", e)
+      logError(e, "requestFollowOtherUser error")
       throw e
     }
   }
@@ -261,7 +262,7 @@ export class Api {
         userId,
       })
     } catch (e) {
-      console.error("acceptFollowRequest error:", e)
+      logError(e, "acceptFollowRequest error")
       throw e
     }
   }
@@ -272,7 +273,7 @@ export class Api {
         userId,
       })
     } catch (e) {
-      console.error("unfollowOtherUser error:", e)
+      logError(e, "unfollowOtherUser error")
       throw e
     }
   }
@@ -287,7 +288,7 @@ export class Api {
       console.debug("updateUserHandle response:", reponse)
       return reponse.data.status
     } catch (e) {
-      console.error("updateUserHandle error:", e)
+      logError(e, "updateUserHandle error")
       throw e
     }
   }

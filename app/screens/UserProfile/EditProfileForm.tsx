@@ -25,6 +25,7 @@ import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { styles } from "app/theme"
 import { formatSecondsAsTime } from "app/utils/formatTime"
+import { logError } from "app/utils/logger"
 import * as Device from "expo-device"
 import * as ImagePicker from "expo-image-picker"
 import { observer } from "mobx-react-lite"
@@ -242,7 +243,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
         setImagePath(result.assets[0].uri)
       }
     } catch (e) {
-      console.error("EditProfileForm.pickImage error:", e)
+      logError(e, "EditProfileForm.pickImage error")
     }
   }
 
@@ -283,7 +284,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
             if (e.cause === UserErrorType.UserHandleAlreadyTakenError) {
               setUserHandleError(translate("editProfileForm.error.userHandleIsTakenMessage"))
             } else {
-              console.error("EditProfileForm.saveProfile error:", e)
+              logError(e, "EditProfileForm.saveProfile error")
               toastShowTx("common.error.unknownErrorMessage")
             }
           })
@@ -301,7 +302,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
       }
       console.debug("EditProfileForm.saveProfile: profile saved successfully")
     } catch (e) {
-      console.error("EditProfileForm.createProfile error:", e)
+      logError(e, "EditProfileForm.saveProfile error")
     } finally {
       onBusyChange && onBusyChange(false)
     }

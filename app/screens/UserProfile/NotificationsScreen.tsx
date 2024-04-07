@@ -5,6 +5,7 @@ import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { IFollowRequestsModel, INotificationModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
+import { formatDate } from "app/utils/formatDate"
 import { formatName } from "app/utils/formatName"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
@@ -168,7 +169,10 @@ const NotificationTile = ({ notification }: { notification: INotificationModel }
       <RowView style={$notificationTileContainer}>
         <Avatar user={senderUser} />
         <View style={styles.flex1}>
-          <Text style={$notificationText} weight="bold" text={senderUser.userHandle} />
+          <RowView style={[styles.justifyBetween, styles.alignCenter]}>
+            <Text style={$notificationText} weight="bold" text={senderUser.userHandle} />
+            <Text size="xs">{formatDate(notification.notificationDate)}</Text>
+          </RowView>
           <Text style={$notificationText} text={message} />
         </View>
         {notification.notificationType === NotificationType.FollowRequest && (

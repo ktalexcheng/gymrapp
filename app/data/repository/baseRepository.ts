@@ -1,5 +1,6 @@
 import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
+import { logError } from "app/utils/logger"
 import * as crypto from "expo-crypto"
 
 export class RepositoryError extends Error {
@@ -249,7 +250,7 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
       const snapshot = await this.#firestoreCollection!.doc(id as string).get()
       return snapshot.exists
     } catch (e) {
-      console.error("Error checking if document exists:", { id })
+      logError(e, "Error checking if document exists:", { id })
       throw new RepositoryError(this.#repositoryId, `Error checking if document exists: ${e}`)
     }
   }
@@ -284,7 +285,7 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
       })
       return data
     } catch (e) {
-      console.error("Error getting document by ID:", { id, refresh })
+      logError(e, "Error getting document by ID:", { id, refresh })
       throw new RepositoryError(this.#repositoryId, `Error getting document by ID: ${e}`)
     }
   }
@@ -337,7 +338,7 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
 
       return allData
     } catch (e) {
-      console.error("Error getting document by filter:", {
+      logError(e, "Error getting document by filter:", {
         orderByField,
         orderDirection,
         limit,
@@ -381,10 +382,7 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
         querySnapshots.push(snapshot)
       }
     } catch (e) {
-      console.error("Error getting document by IDs:", {
-        ids,
-        refresh,
-      })
+      logError(e, "Error getting document by IDs:", { ids, refresh })
       throw new RepositoryError(this.#repositoryId, `Error getting documents by IDs: ${e}`)
     }
 
@@ -460,7 +458,7 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
         })
       else await newDocRef.set({ [this.#documentIdField]: docId, ...convertedData })
     } catch (e) {
-      console.error("Error creating document with data:", { data, convertedData })
+      logError(e, "Error creating document with data:", { data, convertedData })
       throw new RepositoryError(this.#repositoryId, `Error creating document: ${e}`)
     }
 
@@ -537,7 +535,7 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
 
       return snapshotData
     } catch (e) {
-      console.error("Error updating document with data:", { id, useSetMerge, data, convertedData })
+      logError(e, "Error updating document with data:", { id, useSetMerge, data, convertedData })
       throw new RepositoryError(this.#repositoryId, `Error updating document: ${e}`)
     }
   }
@@ -560,7 +558,7 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     try {
       await this.#firestoreCollection!.doc(id as string).delete()
     } catch (e) {
-      console.error("Error deleting document:", { id })
+      logError(e, "Error deleting document:", { id })
       throw new RepositoryError(this.#repositoryId, `Error deleting document: ${e}`)
     }
   }

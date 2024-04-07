@@ -1,4 +1,5 @@
-import { ActivityId } from "app/data/types/activity.types"
+import { ActivityId } from "app/data/types"
+import { logError } from "app/utils/logger"
 import { differenceInSeconds } from "date-fns"
 import { randomUUID } from "expo-crypto"
 import * as Notifications from "expo-notifications"
@@ -420,7 +421,7 @@ export const ActiveWorkoutStoreModel = types
 
           e.setsPerformed.forEach((s) => {
             if (!s.reps || s.reps === 0) {
-              console.error("ActiveWorkoutStore.getAllExerciseSummary: Skipping set, reps is 0", {
+              console.warn("ActiveWorkoutStore.getAllExerciseSummary: Skipping set, reps is 0", {
                 exercise: e,
                 setsPerformed: s,
               })
@@ -481,7 +482,7 @@ export const ActiveWorkoutStoreModel = types
 
           e.setsPerformed.forEach((s) => {
             if (!s.time || s.time === 0) {
-              console.error("ActiveWorkoutStore.getAllExerciseSummary: Skipping set, time is 0", {
+              console.warn("ActiveWorkoutStore.getAllExerciseSummary: Skipping set, time is 0", {
                 exercise: e,
                 setsPerformed: s,
               })
@@ -594,7 +595,7 @@ export const ActiveWorkoutStoreModel = types
 
         return newWorkout
       } catch (error) {
-        console.error("ActiveWorkoutStore.saveWorkout error:", error)
+        logError(error, "ActiveWorkoutStore.saveWorkout error")
         return undefined
       }
     })
@@ -622,7 +623,7 @@ export const ActiveWorkoutStoreModel = types
     function addSet(targetExerciseOrder: number, initialSetValues?: Partial<ISetPerformedModel>) {
       const exercise = self.exercises.at(targetExerciseOrder)
       if (!exercise) {
-        console.error("ActiveWorkoutStore.addSet: exercise not found")
+        console.warn("ActiveWorkoutStore.addSet: exercise not found")
         return
       }
 
@@ -658,7 +659,7 @@ export const ActiveWorkoutStoreModel = types
     function removeSet(targetExerciseOrder: number, targetExerciseSetOrder: number) {
       const targetExercise = self.exercises.at(targetExerciseOrder)
       if (!targetExercise) {
-        console.error("ActiveWorkoutStore.removeSet: exercise not found")
+        console.warn("ActiveWorkoutStore.removeSet: exercise not found")
         return
       }
 
@@ -711,7 +712,7 @@ export const WorkoutEditorStoreModel = ActiveWorkoutStoreModel.named("WorkoutEdi
         // toJS() to convert from model instance to snapshot is necessary to avoid issues with MST
         self.exercises = toJS(workout.exercises)
       } catch (e) {
-        console.error("WorkoutEditorStore.hydrateWithWorkout error:", e)
+        logError(e, "WorkoutEditorStore.hydrateWithWorkout error")
       }
     }
 

@@ -4,6 +4,7 @@ import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { formatSecondsAsTime } from "app/utils/formatTime"
 import { getUserLocation } from "app/utils/getUserLocation"
+import { logError } from "app/utils/logger"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
@@ -160,7 +161,7 @@ export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
             }
           })
           .catch((e) => {
-            console.error("ActiveWorkoutScreen.useEffect getClosestGym error:", e)
+            logError(e, "ActiveWorkoutScreen.useEffect getClosestGym error")
           })
       } else {
         toastShowTx("activeWorkoutScreen.emptyFavoriteGymsMessage")

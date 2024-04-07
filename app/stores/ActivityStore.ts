@@ -1,4 +1,5 @@
-import { Activity } from "app/data/types/activity.types"
+import { Activity } from "app/data/types"
+import { logError } from "app/utils/logger"
 import { SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
@@ -41,7 +42,7 @@ const ActivityStoreModel = types
 
         self.isLoading = false
       } catch (e) {
-        console.error("ActivityStore.getAllActivities error:", e)
+        logError(e, "ActivityStore.getAllActivities error")
       }
     }),
   }))

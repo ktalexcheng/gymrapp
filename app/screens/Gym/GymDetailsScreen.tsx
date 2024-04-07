@@ -1,6 +1,14 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { Button, Icon, RowView, Screen, Spacer, TabBar, Text } from "app/components"
-import { LoadingIndicator } from "app/components/LoadingIndicator"
+import {
+  Button,
+  Icon,
+  LoadingIndicator,
+  RowView,
+  Screen,
+  Spacer,
+  TabBar,
+  Text,
+} from "app/components"
 import { WorkoutSource } from "app/data/constants"
 import { GymDetails, GymMember, UserId, WorkoutId } from "app/data/types"
 import { useToast } from "app/hooks"
@@ -10,6 +18,7 @@ import { api } from "app/services/api"
 import { IUserModel, IWorkoutSummaryModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { simplifyNumber } from "app/utils/formatNumber"
+import { logError } from "app/utils/logger"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
 import { FlatList, TouchableOpacity, View, ViewStyle } from "react-native"
@@ -281,7 +290,7 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
         setGymDetails(gym)
       })
       .catch((e) => {
-        console.error("GymDetailsScreen.useEffect getGymById error:", e)
+        logError(e, "GymDetailsScreen.useEffect getGymById error")
       })
       .finally(() => setIsRefreshing(false))
   }
@@ -298,7 +307,7 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
       .addToMyGyms(gymDetails)
       .then(() => refreshGymDetails())
       .catch((e) => {
-        console.error("GymDetailsScreen.handleAddToMyGyms error:", e)
+        logError(e, "GymDetailsScreen.handleAddToMyGyms error")
       })
       .finally(() => setIsRefreshing(false))
   }
@@ -315,7 +324,7 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
       .removeFromMyGyms(gymDetails)
       .then(() => refreshGymDetails())
       .catch((e) => {
-        console.error("GymDetailsScreen.handleRemoveFromMyGyms error:", e)
+        logError(e, "GymDetailsScreen.handleRemoveFromMyGyms error")
       })
       .finally(() => setIsRefreshing(false))
   }

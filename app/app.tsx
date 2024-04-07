@@ -36,9 +36,6 @@ import { useInitialRootStore } from "./stores"
 import tamaguiConfig from "./tamagui.config"
 import { customFontsToLoad } from "./theme"
 import "./utils/ignoreWarnings"
-import * as storage from "./utils/storage"
-
-export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 
 // Linking configuration
 const linkPrefix = Linking.createURL("")
@@ -182,7 +179,7 @@ function App(props: AppProps) {
     initialNavigationState,
     onNavigationStateChange,
     isRestored: isNavigationStateRestored,
-  } = useNavigationPersistence(storage, NAVIGATION_PERSISTENCE_KEY)
+  } = useNavigationPersistence()
 
   const [areFontsLoaded] = useFonts(customFontsToLoad)
 

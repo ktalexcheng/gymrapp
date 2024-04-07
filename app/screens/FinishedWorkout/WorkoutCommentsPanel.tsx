@@ -46,7 +46,7 @@ const WorkoutCommentTile = (props: {
   const $commentContainer: StyleProp<ViewStyle> = [
     {
       padding: spacing.small,
-      alignItems: "center",
+      // alignItems: "center",
     },
     selectedState && {
       backgroundColor: themeStore.colors("contentBackground"),
@@ -221,8 +221,9 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
               onPress={() => {
                 if (!selectedComment) return
 
-                feedStore.removeCommentFromWorkout(workoutId, selectedComment)
+                feedStore.removeCommentFromWorkout(workoutId, selectedComment.commentId)
                 setSelectedComment(undefined)
+                setIsCommentDeleteConfirmation(false)
               }}
             />
           </RowView>

@@ -4,7 +4,7 @@
  * @param fieldPath Path to the nested field in dot-notation, e.g. "user.preferences.restTime"
  * @returns Value of the nested field, or undefined if the field does not exist
  */
-export const getNestedField = (obj: object | Map<any, any>, fieldPath: string) => {
+export const getNestedField = (obj: object | Map<any, any>, fieldPath: string): any => {
   const keys = fieldPath.split(".")
   let field = obj
   for (const key of keys) {
