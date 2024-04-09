@@ -91,6 +91,7 @@ export const Avatar = observer((props: AvatarProps) => {
 
   const renderAvatarImage = () => {
     if (loadError || !imageUrlToUse) {
+      // console.debug("Avatar image load error or image URL undefined", { loadError, imageUrlToUse })
       if (user) return renderUserInitialsText()
       else return placeholderImage
     }

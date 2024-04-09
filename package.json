@@ -1,6 +1,6 @@
 {
   "name": "gymrapp",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "start": "expo start --dev-client",
@@ -83,7 +83,7 @@
     "react-native-bootsplash": "^5.1.2",
     "react-native-gesture-handler": "~2.14.0",
     "react-native-pager-view": "6.2.3",
-    "react-native-reanimated": "^3.8.1",
+    "react-native-reanimated": "~3.6.2",
     "react-native-root-toast": "^3.5.1",
     "react-native-safe-area-context": "4.8.2",
     "react-native-screens": "~3.29.0",

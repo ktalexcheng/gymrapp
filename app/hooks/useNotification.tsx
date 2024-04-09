@@ -1,9 +1,9 @@
+import { REST_TIMER_CHANNEL_ID } from "app/data/constants"
 import { translate } from "app/i18n"
 import { useStores } from "app/stores"
 import * as Notifications from "expo-notifications"
 import { useEffect } from "react"
 import { Alert, Linking, Platform } from "react-native"
-import { REST_TIMER_CHANNEL_ID } from "../data/constants"
 
 export const useNotification = () => {
   const { themeStore } = useStores()
@@ -41,9 +41,14 @@ export const useNotification = () => {
 
   const registerAndroidNotificationChannels = async () => {
     if (Platform.OS === "android") {
+      // Android remembers settings for each channel, even after the channel is deleted
+      // To apply changes, the only way is to get the previous settings, update and apply them to a new channel
+      // See: https://stackoverflow.com/a/60203498
       await Notifications.setNotificationChannelAsync(REST_TIMER_CHANNEL_ID, {
-        name: translate("notification.restTime.channelName"),
         importance: Notifications.AndroidImportance.MAX,
+        name: translate("notification.restTime.channelName"),
+        sound: "rest_time_notification.wav",
+        enableVibrate: true,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: themeStore.colors("actionable"),
       })

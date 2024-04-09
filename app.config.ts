@@ -8,7 +8,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: isDev ? "Gymrapp (Dev)" : "Gymrapp",
     slug: isDev ? "gymrapp-dev" : "gymrapp",
     scheme: "gymrapp",
-    version: "0.0.1",
+    version: "0.1.0",
     orientation: "portrait",
     userInterfaceStyle: "automatic",
     icon: "./assets/images/app-icon-all.png",
@@ -25,7 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       // Only using app.json for versionCode and buildNumber since we are using "appVersionSource" = "local" in EAS
       ...config.android,
-      permissions: ["android.permission.SCHEDULE_EXACT_ALARM"],
+      permissions: ["android.permission.USE_EXACT_ALARM"],
       googleServicesFile: process.env.GOOGLE_SERVICES_JSON,
       icon: "./assets/images/app-icon-android-legacy.png",
       package: isDev ? "com.gymrapp.dev" : "com.gymrapp",
@@ -106,6 +106,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         {
           locationWhenInUsePermission:
             "$(PRODUCT_NAME) uses your location to verify your proximity to a gym when recording a workout.",
+        },
+      ],
+      [
+        "expo-notifications",
+        {
+          sounds: ["assets/sounds/rest_time_notification.wav"],
         },
       ],
       "expo-font",

@@ -240,6 +240,9 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
       })
 
       if (!result.canceled) {
+        console.debug("EditProfileForm.pickImage: image picked successfully", {
+          uri: result.assets[0].uri,
+        })
         setImagePath(result.assets[0].uri)
       }
     } catch (e) {

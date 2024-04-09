@@ -283,6 +283,8 @@ export const ActiveWorkoutStoreModel = types
       notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           priority: Notifications.AndroidNotificationPriority.MAX,
+          sound: "rest_time_notification.wav",
+          vibrate: [0, 250, 250, 250],
           title: translate("notification.restTime.restTimeCompletedTitle"),
           body: notificationMessage,
           data: {

@@ -5,8 +5,7 @@ import { api } from "app/services/api"
 import { spacing, styles } from "app/theme"
 import { simplifyNumber } from "app/utils/formatNumber"
 import React, { FC } from "react"
-import { View, ViewStyle } from "react-native"
-import { TouchableOpacity } from "react-native-gesture-handler"
+import { TouchableOpacity, View, ViewStyle } from "react-native"
 
 interface GymSearchResultItemProps {
   gym: GymSearchResult
