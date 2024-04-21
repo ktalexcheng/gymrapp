@@ -1,76 +1,37 @@
-import { LoadingIndicator, Screen, Spacer, Text, ThemedRefreshControl } from "app/components"
-import { WorkoutSource } from "app/data/constants"
-import { IWorkoutSummaryModel, useStores } from "app/stores"
+import { Screen, Spacer, Text, ThemedRefreshControl } from "app/components"
+import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
 import { FlatList, View, ViewStyle } from "react-native"
-import { WorkoutSummaryCard, WorkoutSummaryCardProps } from "../FinishedWorkout"
+import { WorkoutSummaryCard } from "../FinishedWorkout"
 
 // interface FeedScreenProps extends TabScreenProps<"Profile"> {}
 
 export const FeedScreen = observer(function FeedScreen() {
   const { feedStore, userStore, activeWorkoutStore, themeStore } = useStores()
   const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress ? [] : ["top"]
-  const [feedData, setFeedData] = useState<WorkoutSummaryCardProps[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [feedItems, setFeedItems] = useState(feedStore.feedListData)
 
+  // UX improvement: Replacing feedItems in one action only once new data is ready
+  // to prevent flickering during loading
   useEffect(() => {
-    if (userStore.isLoadingProfile || feedStore.isLoadingFeed) {
-      setIsLoading(true)
-      return
+    if (!feedStore.isLoadingFeed && feedStore.feedListData.length > 0) {
+      setFeedItems(feedStore.feedListData)
     }
-
-    // This is only used to display the initial list of feed items,
-    // for subsequent feed items loaded on request, we will append to the feedData array
-    if (feedData.length === 0) {
-      const feedWorkouts: IWorkoutSummaryModel[] = []
-      feedStore.feedWorkouts.forEach((workout) => feedWorkouts.push(workout))
-      setFeedData(makeFeedData(feedWorkouts))
-    }
-
-    setIsLoading(false)
-  }, [userStore.isLoadingProfile, feedStore.isLoadingFeed])
-
-  const makeFeedData = (feedWorkouts: IWorkoutSummaryModel[]) => {
-    return feedWorkouts
-      .map(
-        (workout) =>
-          ({
-            workoutSource: WorkoutSource.Feed,
-            workoutId: workout.workoutId,
-            workout,
-            byUser: feedStore.feedUsers.get(workout.byUserId),
-          } as WorkoutSummaryCardProps),
-      )
-      .sort((a, b) => b.workout.startTime - a.workout.startTime)
-  }
-
-  const getMoreFeedItems = () => {
-    if (isLoading) return
-    if (feedStore.noMoreFeedItems) return
-
-    setIsLoading(true)
-    feedStore
-      .loadMoreFeedItems()
-      .then((newFeedItems) => {
-        const newFeedData = makeFeedData(newFeedItems)
-        setFeedData((prev) => prev.concat(newFeedData))
-      })
-      .finally(() => setIsLoading(false))
-  }
+  }, [feedStore.isLoadingFeed, feedStore.feedListData])
 
   const renderFeedWorkoutItem = ({ item }) => {
     return <WorkoutSummaryCard {...item} />
   }
 
   const renderFeedFooterItem = () => {
-    if (isLoading) {
+    if (feedStore.isLoadingFeed) {
       return null
     }
 
-    if (feedData.length > 0 && feedStore.noMoreFeedItems) {
+    if (feedItems.length > 0 && feedStore.noMoreFeedItems) {
       return (
         <View style={styles.alignCenter}>
           <Spacer type="vertical" size="medium" />
@@ -82,23 +43,17 @@ export const FeedScreen = observer(function FeedScreen() {
     return null
   }
 
-  const refreshFeed = () => {
-    setFeedData([])
-    feedStore.refreshFeedItems()
-  }
-
   const renderFeed = () => {
-    if (userStore.isLoadingProfile || !userStore.user) {
-      return <LoadingIndicator />
-    }
-
     return (
       <View style={styles.flex1}>
         <FlatList
           refreshControl={
-            <ThemedRefreshControl refreshing={feedStore.isLoadingFeed} onRefresh={refreshFeed} />
+            <ThemedRefreshControl
+              refreshing={feedStore.isLoadingFeed}
+              onRefresh={feedStore.refreshFeedItems}
+            />
           }
-          data={feedData}
+          data={feedItems}
           renderItem={renderFeedWorkoutItem}
           contentContainerStyle={styles.flexGrow}
           showsVerticalScrollIndicator={false}
@@ -110,9 +65,9 @@ export const FeedScreen = observer(function FeedScreen() {
             </>
           )}
           onEndReachedThreshold={0.5}
-          onEndReached={getMoreFeedItems}
+          onEndReached={feedStore.loadMoreFeedItems}
           ListEmptyComponent={() => {
-            if (!userStore.user?.followingCount) {
+            if (userStore?.user?.followingCount) {
               return (
                 <View style={styles.fillAndCenter}>
                   <Text tx="feedScreen.notFollowingAnyone" />

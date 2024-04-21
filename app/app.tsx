@@ -153,8 +153,10 @@ if (__DEV__) {
     const envMode = Constants.expoConfig?.extra?.gymrappEnvironment
 
     if (envMode !== "development" || firebaseProjectId !== "gymrapp-test") {
-      console.error("firebaseProjectId:", firebaseProjectId)
-      console.error("envMode:", envMode)
+      console.error("You are NOT connected to gymrapp-test, check your .env files:", {
+        firebaseProjectId,
+        envMode,
+      })
       throw new Error(
         "Environment variable GYMRAPP_ENVIRONMENT must be 'development' in __DEV__ mode. This ensures you connect to the test Firebase project if you are not using the emulator",
       )

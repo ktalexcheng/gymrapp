@@ -5,6 +5,7 @@ const storageKeys = {
   BUILD_VERSION_STORAGE_KEY: "build-version",
   ROOT_STATE_STORAGE_KEY: "root-v1",
   NAVIGATION_PERSISTENT_STORAGE_KEY: "NAVIGATION_STATE",
+  APP_LOCALE_STORAGE_KEY: "app-locale",
 }
 
 /**

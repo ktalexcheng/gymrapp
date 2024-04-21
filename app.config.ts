@@ -85,12 +85,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
       infoPlist: {
         UIBackgroundModes: ["remote-notification"],
+        CFBundleAllowMixedLocalizations: true,
       },
       associatedDomains: ["applinks:gymrapp.com", "applinks:gymrapp-test.web.app"],
     },
     plugins: [
       "@react-native-firebase/app",
-      "@react-native-firebase/perf",
       "@react-native-firebase/crashlytics",
       [
         "expo-build-properties",
@@ -103,10 +103,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-localization",
       [
         "expo-location",
-        {
-          locationWhenInUsePermission:
-            "$(PRODUCT_NAME) uses your location to verify your proximity to a gym when recording a workout.",
-        },
+        // {
+        //   locationWhenInUsePermission:
+        //     "$(PRODUCT_NAME) uses your location to verify your proximity to a gym when recording a workout.",
+        // },
       ],
       [
         "expo-notifications",
@@ -118,6 +118,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "@react-native-google-signin/google-signin",
       "expo-apple-authentication",
     ],
+    locales: {
+      en: "./languages/en.json",
+      zh: "./languages/zh.json",
+    },
     extra: {
       eas: {
         projectId: "f5644dcf-c1f4-47a8-b64c-712e94371abb",

@@ -3,7 +3,7 @@ import i18n from "i18n-js"
 import { observer } from "mobx-react-lite"
 import React from "react"
 import { Text as RNText, TextProps as RNTextProps, StyleProp, TextStyle } from "react-native"
-import { TxKeyPath, isRTL, translate } from "../i18n"
+import { TxKeyPath, translate } from "../i18n"
 import { typography } from "../theme"
 
 type Sizes = keyof typeof $sizeStyles
@@ -125,7 +125,6 @@ export const Text = observer((props: TextProps) => {
 
   const preset: Presets = props.preset && $presets[props.preset] ? props.preset : "default"
   const $styles = [
-    $rtlStyle,
     !!preset && $presets[preset],
     !!weight && $primaryWeightStyles[weight],
     !!size && $sizeStyles[size],
@@ -167,5 +166,3 @@ const $secondaryWeightStyles = Object.entries(typography.secondary).reduce(
   },
   {},
 ) as Record<Weights, TextStyle>
-
-const $rtlStyle: TextStyle = isRTL ? { writingDirection: "rtl" } : {}

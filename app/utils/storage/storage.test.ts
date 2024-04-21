@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { load, loadString, save, saveString, clear, remove } from "./storage"
+import { clear, load, loadString, remove, save, saveString } from "./storage"
 
 // fixtures
 const VALUE_OBJECT = { x: 1 }
@@ -9,28 +9,28 @@ beforeEach(() => (AsyncStorage.getItem as jest.Mock).mockReturnValue(Promise.res
 afterEach(() => jest.clearAllMocks())
 
 test("load", async () => {
-  const value = await load("something")
+  const value = await load("CURRENT_USER_ID_STORAGE_KEY")
   expect(value).toEqual(JSON.parse(VALUE_STRING))
 })
 
 test("loadString", async () => {
-  const value = await loadString("something")
+  const value = await loadString("CURRENT_USER_ID_STORAGE_KEY")
   expect(value).toEqual(VALUE_STRING)
 })
 
 test("save", async () => {
-  await save("something", VALUE_OBJECT)
-  expect(AsyncStorage.setItem).toHaveBeenCalledWith("something", VALUE_STRING)
+  await save("CURRENT_USER_ID_STORAGE_KEY", VALUE_OBJECT)
+  expect(AsyncStorage.setItem).toHaveBeenCalledWith("CURRENT_USER_ID_STORAGE_KEY", VALUE_STRING)
 })
 
 test("saveString", async () => {
-  await saveString("something", VALUE_STRING)
-  expect(AsyncStorage.setItem).toHaveBeenCalledWith("something", VALUE_STRING)
+  await saveString("CURRENT_USER_ID_STORAGE_KEY", VALUE_STRING)
+  expect(AsyncStorage.setItem).toHaveBeenCalledWith("CURRENT_USER_ID_STORAGE_KEY", VALUE_STRING)
 })
 
 test("remove", async () => {
-  await remove("something")
-  expect(AsyncStorage.removeItem).toHaveBeenCalledWith("something")
+  await remove("CURRENT_USER_ID_STORAGE_KEY")
+  expect(AsyncStorage.removeItem).toHaveBeenCalledWith("CURRENT_USER_ID_STORAGE_KEY")
 })
 
 test("clear", async () => {

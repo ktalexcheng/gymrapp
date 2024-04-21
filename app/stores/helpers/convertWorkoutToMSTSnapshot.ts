@@ -28,12 +28,12 @@ export function convertWorkoutToMSTSnapshot(workout: Workout) {
     }
 
     // Flag sets with isNewRecord = true if it is a new record
-    for (const set of exercise.setsPerformed) {
-      const newRecord = exercise?.newRecords?.[set.reps]
-      if (newRecord && (newRecord.weight === set.weight || newRecord.time === set.time)) {
-        set.isNewRecord = true
-      }
-    }
+    // for (const set of exercise.setsPerformed) {
+    //   const newRecord = exercise?.newRecords?.[set.reps]
+    //   if (newRecord && (newRecord.weight === set.weight || newRecord.time === set.time)) {
+    //     set.isNewRecord = true
+    //   }
+    // }
   }
 
   return {

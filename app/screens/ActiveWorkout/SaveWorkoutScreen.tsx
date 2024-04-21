@@ -16,6 +16,7 @@ import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing } from "app/theme"
 import { logError } from "app/utils/logger"
+import { toJS } from "mobx"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
 import { Alert, TouchableOpacity, ViewStyle } from "react-native"
@@ -80,13 +81,13 @@ export const SaveWorkoutScreen: FC = observer(() => {
     try {
       const workout = await activeWorkoutStore.saveWorkout(
         Boolean(isHidden),
-        userStore.user, // do not wrap in toJS(), MST map keys are stored internally as strings which can cause issues
+        toJS(userStore.user), // WARNING: MST map keys are stored internally as strings which toJS() returns, keep this in mind when accessing personalRecords
         !isInternetConnected,
       )
 
       if (!workout) throw new Error("SaveWorkoutScreen.saveWorkout: workout is undefined")
 
-      feedStore.addUserWorkout(workout) // Manually add the workout so it is available in WorkoutSummary
+      feedStore.addWorkoutToStore(WorkoutSource.User, workout) // Manually add the workout so it is available in WorkoutSummary
       activeWorkoutStore.resetWorkout()
       await exerciseStore.uploadExerciseSettings(!isInternetConnected)
       setIsSaving(false)

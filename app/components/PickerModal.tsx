@@ -29,6 +29,7 @@ export const PickerModal: FC<PickerModalProps> = observer((props: PickerModalPro
   } = props
   const { themeStore } = useStores()
   const [modalVisible, setModalVisible] = useState(false)
+  const [tentativeValue, setTentativeValue] = useState(value)
 
   const $touchable: ViewStyle = {
     height: 40,
@@ -61,8 +62,19 @@ export const PickerModal: FC<PickerModalProps> = observer((props: PickerModalPro
         onRequestClose={() => setModalVisible(false)}
       >
         <Text tx={modalTitleTx} preset="formLabel" />
-        <Picker selectedValue={value} onValueChange={onChange} itemsList={itemsList} />
-        <Button tx="common.ok" preset="text" onPress={() => setModalVisible(false)} />
+        <Picker
+          selectedValue={tentativeValue}
+          onValueChange={setTentativeValue}
+          itemsList={itemsList}
+        />
+        <Button
+          tx="common.ok"
+          preset="text"
+          onPress={() => {
+            onChange(tentativeValue)
+            setModalVisible(false)
+          }}
+        />
       </Modal>
     </>
   )

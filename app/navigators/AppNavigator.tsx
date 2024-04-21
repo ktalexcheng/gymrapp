@@ -9,7 +9,7 @@ import firestore from "@react-native-firebase/firestore"
 import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/native"
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { Icon, RowView, Spacer, Text } from "app/components"
-import { AppColorScheme } from "app/data/constants"
+import { AppColorScheme, AppLocale } from "app/data/constants"
 import { translate } from "app/i18n"
 import { LoadingScreen } from "app/screens"
 import { api } from "app/services/api"
@@ -21,7 +21,7 @@ import { setStatusBarStyle } from "expo-status-bar"
 import { observer } from "mobx-react-lite"
 import React, { useCallback, useEffect, useState } from "react"
 
-import { useInternetStatus, useToast } from "app/hooks"
+import { useInternetStatus, useLocale, useToast } from "app/hooks"
 import {
   Alert,
   AlertButton,
@@ -242,12 +242,17 @@ export const AppNavigator = observer((props: NavigationProps) => {
   const [isInternetConnectState, setIsInternetConnectState] = useState<boolean>()
   const [isInternetConnected] = useInternetStatus()
   const [showToastTx] = useToast()
+  const [_, setLocale] = useLocale()
+
+  const userLocale = userStore.getUserPreference<AppLocale>("appLocale")
+  const userColorScheme = userStore.getUserPreference<AppColorScheme>("appColorScheme")
 
   // Set initial theme and react to system and user preference changes
   useEffect(() => {
-    console.debug("AppNavigator.useEffect colorScheme:", systemColorScheme)
-    // Get user color scheme preference
-    const userColorScheme = userStore.getUserPreference<AppColorScheme>("appColorScheme")
+    console.debug("AppNavigator.useEffect colorScheme change:", {
+      systemColorScheme,
+      userColorScheme,
+    })
 
     // Update theme store
     themeStore.setProp("systemColorScheme", systemColorScheme)
@@ -258,7 +263,13 @@ export const AppNavigator = observer((props: NavigationProps) => {
       NavigationBar.setBackgroundColorAsync(themeStore.colors("background"))
       NavigationBar.setButtonStyleAsync(themeStore.isDark ? "light" : "dark")
     }
-  }, [systemColorScheme, userStore.getUserPreference("appColorScheme")])
+  }, [systemColorScheme, userColorScheme])
+
+  // Set app locale
+  useEffect(() => {
+    console.debug("AppNavigator.useEffect userLocale change:", { userLocale })
+    setLocale(userLocale)
+  }, [userLocale])
 
   useEffect(() => {
     const handleNetworkChange = (newIsInternetConnected: boolean) => {

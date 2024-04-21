@@ -19,10 +19,19 @@ const buttonGroupIconSize = 24
 export const WorkoutSocialButtonGroup = observer((props: WorkoutSocialButtonGroupProps) => {
   const { workoutSource, workoutId, workoutByUserId, onPressComments } = props
   const { userStore, feedStore, themeStore } = useStores()
+  const workoutInteractionsFromStore = feedStore.getInteractionsForWorkout(workoutSource, workoutId)
+  const [workoutInteractions, setWorkoutInteractions] = useState(workoutInteractionsFromStore)
   const [isLikedByUser, setIsLikedByUser] = useState(false)
   const [likesCount, setLikesCount] = useState<number>(0)
 
-  const workoutInteractions = feedStore.getInteractionsForWorkout(workoutSource, workoutId)
+  // UX improvement: Replacing workoutInteractions in one action only once new data is ready
+  // to prevent flickering during loading
+  useEffect(() => {
+    if (!feedStore.feedStoreIsBusy) {
+      // console.debug("WorkoutSocialButtonGroup.useEffect", { workoutInteractionsFromStore })
+      setWorkoutInteractions(workoutInteractionsFromStore)
+    }
+  }, [feedStore.feedStoreIsBusy, workoutInteractionsFromStore])
 
   useEffect(() => {
     // console.debug("WorkoutSocialButtonGroup.useEffect", { workoutInteractions })

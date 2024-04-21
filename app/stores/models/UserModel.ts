@@ -42,7 +42,7 @@ const UserPreferencesModel = types.model("UserPreferencesModel", {
   ),
 })
 
-const WorkoutMetaModel = types.model("WorkoutMetaModel", {
+export const WorkoutMetaModel = types.model("WorkoutMetaModel", {
   workoutId: types.identifier,
   startTime: types.Date,
 })

@@ -1,3 +1,4 @@
+import { WorkoutSource } from "app/data/constants"
 import { Gym } from "app/data/types"
 import { useInternetStatus, useToast } from "app/hooks"
 import { translate } from "app/i18n"
@@ -6,6 +7,7 @@ import { formatSecondsAsTime } from "app/utils/formatTime"
 import { getUserLocation } from "app/utils/getUserLocation"
 import { logError } from "app/utils/logger"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
+import { toJS } from "mobx"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
 import { Alert, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
@@ -251,10 +253,15 @@ export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
     if (userStore.user) {
       setIsBusy(true)
       workoutEditorStore
-        .updateWorkout(workoutEditorStore.isHidden, userStore.user, !isInternetConnected)
+        .updateWorkout(
+          workoutEditorStore.isHidden,
+          toJS(userStore.user),
+          false,
+          !isInternetConnected,
+        )
         .then((updatedWorkout) => {
           console.debug("WorkoutEditor.updateWorkout():", { updatedWorkout })
-          feedStore.addUserWorkout(updatedWorkout)
+          feedStore.addWorkoutToStore(WorkoutSource.User, updatedWorkout)
           mainNavigation.goBack()
         })
         .finally(() => setIsBusy(false))

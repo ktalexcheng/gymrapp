@@ -20,6 +20,7 @@ import {
   TimePersonalRecordModel,
   TimeSetPerformedModel,
   UserModel,
+  WorkoutMetaModel,
 } from "./models"
 
 const BaseExerciseSummaryModel = types.model("BaseExerciseSummaryModel", {
@@ -148,109 +149,164 @@ export type IWorkoutInteractionModel = SnapshotOrInstance<typeof WorkoutInteract
 export const FeedStoreModel = types
   .model("FeedStoreModel")
   .props({
-    isLoadingFeed: true,
-    isLoadingUserWorkouts: true,
+    isLoadingFeed: false,
+    isLoadingUserWorkouts: false,
+    isLoadingOtherUserWorkouts: false,
     lastFeedRefresh: types.maybe(types.Date),
     userId: types.maybeNull(types.string),
     oldestFeedItemId: types.maybe(types.string),
     noMoreFeedItems: false,
     workoutInteractions: types.map(WorkoutInteractionModel),
-    userWorkouts: types.map(WorkoutSummaryModel),
-    feedWorkouts: types.map(WorkoutSummaryModel),
-    feedUsers: types.map(UserModel),
-  })
-  .props({
-    isLoadingOtherUserWorkouts: false,
-    otherUserWorkouts: types.map(
-      types.model("OtherUserWorkoutsModel", {
+    workouts: types.map(WorkoutSummaryModel),
+    userWorkoutMetas: types.array(WorkoutMetaModel),
+    feedWorkoutMetas: types.array(WorkoutMetaModel),
+    otherUserProfiles: types.map(UserModel),
+    otherUserMetas: types.map(
+      types.model("OtherUserMetasModel", {
         byUserId: types.identifier,
         lastWorkoutId: types.maybeNull(types.string),
         noMoreItems: types.boolean,
-        workouts: types.map(WorkoutSummaryModel),
-      }),
-    ),
-    otherUserWorkoutInteractions: types.map(
-      types.model("OtherUserWorkoutInteractionsModel", {
-        byUserId: types.identifier,
-        workouts: types.map(WorkoutInteractionModel),
+        workoutMetas: types.array(WorkoutMetaModel),
       }),
     ),
   })
-  .views((self) => ({
-    get weeklyWorkoutsCount() {
-      const workouts = Array.from(self.userWorkouts.values())
-      const _weeklyWorkoutsCount = new Map<number, number>()
-      workouts.forEach((w) => {
-        // Find start of week (Monday)
-        const weekStart = startOfWeek(w.startTime, {
-          weekStartsOn: 1,
+  .views((self) => {
+    function getAllWorkoutMetas(workoutSource: WorkoutSource, otherUserId?: UserId) {
+      let workoutMetas
+      switch (workoutSource) {
+        case WorkoutSource.User:
+          workoutMetas = self.userWorkoutMetas
+          break
+        case WorkoutSource.Feed:
+          workoutMetas = self.feedWorkoutMetas
+          break
+        case WorkoutSource.OtherUser:
+          if (!otherUserId) {
+            logError("getWorkoutsListData: otherUserId is required for WorkoutSource.OtherUser")
+            throw new Error(
+              "getWorkoutsListData: otherUserId is required for WorkoutSource.OtherUser",
+            )
+          }
+          workoutMetas = self.otherUserMetas.get(otherUserId)?.workoutMetas
+          break
+      }
+
+      return workoutMetas ?? []
+    }
+
+    function getAllWorkouts(workoutSource: WorkoutSource, otherUserId?: UserId) {
+      const workoutMetas = getAllWorkoutMetas(workoutSource, otherUserId)
+      return workoutMetas
+        .map((w) => self.workouts.get(w.workoutId))
+        .filter((w) => w !== undefined)
+        .sort((a, b) => b?.startTime?.getTime() - a?.startTime?.getTime())
+    }
+
+    function getAllWorkoutsListData(workoutSource: WorkoutSource, otherUserId?: UserId) {
+      const workoutMetas = getAllWorkoutMetas(workoutSource, otherUserId)
+      const workouts = workoutMetas
+        .map((w) => {
+          const workout = self.workouts.get(w.workoutId)
+          if (!workout) return undefined
+
+          return {
+            workoutId: workout.workoutId,
+            workoutSource,
+            workout,
+            byUser: self.otherUserProfiles.get(workout.byUserId),
+          }
         })
-        const weekStartTime = getTime(weekStart)
+        .filter((w) => w !== undefined)
+        .sort((a, b) => b.workout.startTime.getTime() - a.workout.startTime.getTime())
 
-        if (!_weeklyWorkoutsCount.has(weekStartTime)) {
-          _weeklyWorkoutsCount.set(weekStartTime, 0)
-        }
+      return workouts
+    }
 
-        _weeklyWorkoutsCount.set(weekStartTime, (_weeklyWorkoutsCount.get(weekStartTime) ?? 0) + 1)
-      })
+    return {
+      get weeklyWorkoutsCount() {
+        const workouts = Array.from(self.userWorkoutMetas.values())
+        const _weeklyWorkoutsCount = new Map<number, number>()
+        workouts.forEach((w) => {
+          // Find start of week (Monday)
+          const weekStart = startOfWeek(w.startTime, {
+            weekStartsOn: 1,
+          })
+          const weekStartTime = getTime(weekStart)
 
-      return _weeklyWorkoutsCount
-    },
-    getWorkout(workoutSource: WorkoutSource, workoutId: string, byUserId?: string) {
-      if (workoutSource === WorkoutSource.OtherUser) {
-        if (!byUserId) {
-          console.warn(
-            "FeedStore.getWorkout workoutSource is OtherUser but byUserId is not defined",
+          if (!_weeklyWorkoutsCount.has(weekStartTime)) {
+            _weeklyWorkoutsCount.set(weekStartTime, 0)
+          }
+
+          _weeklyWorkoutsCount.set(
+            weekStartTime,
+            (_weeklyWorkoutsCount.get(weekStartTime) ?? 0) + 1,
           )
-          return undefined
-        }
+        })
 
-        if (self.isLoadingOtherUserWorkouts) {
+        return _weeklyWorkoutsCount
+      },
+      get userWorkouts() {
+        return getAllWorkouts(WorkoutSource.User)
+      },
+      get userWorkoutsListData() {
+        return getAllWorkoutsListData(WorkoutSource.User)
+      },
+      get feedListData() {
+        return getAllWorkoutsListData(WorkoutSource.Feed)
+      },
+      get feedStoreIsBusy() {
+        console.debug("FeedStore.feedStoreIsBusy called", {
+          isLoadingFeed: self.isLoadingFeed,
+          isLoadingUserWorkouts: self.isLoadingUserWorkouts,
+          isLoadingOtherUserWorkouts: self.isLoadingOtherUserWorkouts,
+        })
+        return self.isLoadingUserWorkouts || self.isLoadingFeed || self.isLoadingOtherUserWorkouts
+      },
+      getWorkout(workoutSource: WorkoutSource, workoutId: string) {
+        if (
+          (workoutSource === WorkoutSource.User && self.isLoadingUserWorkouts) ||
+          (workoutSource === WorkoutSource.Feed && self.isLoadingFeed) ||
+          (workoutSource === WorkoutSource.OtherUser && self.isLoadingOtherUserWorkouts)
+        ) {
           console.debug("FeedStore.getWorkout loading workouts")
           return undefined
         }
 
-        const workout = self.otherUserWorkouts.get(byUserId)?.workouts.get(workoutId)
+        const workout = self.workouts.get(workoutId)
         return toJS(workout)
-      }
+      },
+      getSetFromWorkout(workoutId: WorkoutId, exerciseId: ExerciseId, setOrder: number) {
+        console.debug("FeedStore.getSetFromWorkout() workoutId:", workoutId)
+        const latestWorkout = self.workouts.get(workoutId)
+        if (!latestWorkout) return null
 
-      if (
-        (workoutSource === WorkoutSource.User && self.isLoadingUserWorkouts) ||
-        (workoutSource === WorkoutSource.Feed && self.isLoadingFeed)
-      ) {
-        console.debug("FeedStore.getWorkout loading workouts")
-        return undefined
-      }
+        console.debug("FeedStore.getSetFromWorkout() latestWorkout:", latestWorkout)
+        const lastPerformedSet = latestWorkout.exercises.filter(
+          (e) => e.exerciseId === exerciseId,
+        )[0].setsPerformed?.[setOrder]
+        if (!lastPerformedSet) return null
 
-      const workout = self.userWorkouts.get(workoutId) || self.feedWorkouts.get(workoutId)
-      return toJS(workout)
-    },
-    getSetFromWorkout(workoutId: WorkoutId, exerciseId: ExerciseId, setOrder: number) {
-      console.debug("FeedStore.getSetFromWorkout() workoutId:", workoutId)
-      const latestWorkout = self.userWorkouts.get(workoutId)
-      if (!latestWorkout) return null
+        console.debug("FeedStore.getSetFromWorkout() lastPerformedSet:", lastPerformedSet)
+        return lastPerformedSet
+      },
+      getInteractionsForWorkout(workoutSource: WorkoutSource, workoutId: string) {
+        if (
+          (workoutSource === WorkoutSource.User && self.isLoadingUserWorkouts) ||
+          (workoutSource === WorkoutSource.Feed && self.isLoadingFeed) ||
+          (workoutSource === WorkoutSource.Feed && self.isLoadingFeed)
+        ) {
+          // console.debug("FeedStore.getInteractionsForWorkout loading workouts")
+          return undefined
+        }
 
-      console.debug("FeedStore.getSetFromWorkout() latestWorkout:", latestWorkout)
-      const lastPerformedSet = latestWorkout.exercises.filter((e) => e.exerciseId === exerciseId)[0]
-        .setsPerformed?.[setOrder]
-      if (!lastPerformedSet) return null
-
-      console.debug("FeedStore.getSetFromWorkout() lastPerformedSet:", lastPerformedSet)
-      return lastPerformedSet
-    },
-    getInteractionsForWorkout(workoutSource: WorkoutSource, workoutId: string) {
-      if (
-        (workoutSource === WorkoutSource.User && self.isLoadingUserWorkouts) ||
-        (workoutSource === WorkoutSource.Feed && self.isLoadingFeed)
-      ) {
-        // console.debug("FeedStore.getInteractionsForWorkout loading workouts")
-        return undefined
-      }
-
-      const interactions = self.workoutInteractions.get(workoutId)
-      return interactions
-    },
-  }))
+        const interactions = self.workoutInteractions.get(workoutId)
+        return interactions
+      },
+      getOtherUserWorkoutsListData(otherUserId: UserId) {
+        return getAllWorkoutsListData(WorkoutSource.OtherUser, otherUserId)
+      },
+    }
+  })
   .actions((self) => {
     function checkInitialized() {
       if (!self.userId) {
@@ -266,19 +322,59 @@ export const FeedStoreModel = types
 
     function resetFeed() {
       self.userId = null
-      self.isLoadingFeed = true
-      self.isLoadingUserWorkouts = true
+      self.isLoadingFeed = false
+      self.isLoadingUserWorkouts = false
+      self.isLoadingOtherUserWorkouts = false
       self.lastFeedRefresh = undefined
       self.oldestFeedItemId = undefined
       self.noMoreFeedItems = false
-      self.feedWorkouts.clear()
+      self.workouts.clear()
       self.workoutInteractions.clear()
-      self.feedUsers.clear()
+      self.userWorkoutMetas.clear()
+      self.feedWorkoutMetas.clear()
+      self.otherUserProfiles.clear()
+      self.otherUserMetas.clear()
     }
 
-    function addUserWorkout(workout: IWorkoutSummaryModel) {
-      console.debug("FeedStore.addUserWorkout()", { workout })
-      self.userWorkouts.put(workout)
+    function addWorkoutToStore(workoutSource: WorkoutSource, ...workouts: IWorkoutSummaryModel[]) {
+      for (const workout of workouts) {
+        try {
+          self.workouts.put(workout)
+          const workoutMeta = {
+            workoutId: workout.workoutId,
+            startTime: workout.startTime,
+          }
+          let workoutMetas
+          switch (workoutSource) {
+            case WorkoutSource.User:
+              // self.userWorkoutMetas.push(workoutMeta)
+              workoutMetas = self.userWorkoutMetas
+              break
+            case WorkoutSource.Feed:
+              // self.feedWorkoutMetas.push(workoutMeta)
+              workoutMetas = self.feedWorkoutMetas
+              break
+            case WorkoutSource.OtherUser:
+              // self.otherUserMetas.get(workout.byUserId)?.workoutMetas?.push(workoutMeta)
+              workoutMetas = self.otherUserMetas.get(workout.byUserId)?.workoutMetas
+              break
+          }
+
+          if (!workoutMetas) {
+            console.warn("FeedStore.addWorkoutToStore: workoutMetas is undefined")
+            return
+          }
+
+          const existingWorkoutMeta = workoutMetas.find((w) => w.workoutId === workout.workoutId)
+          if (existingWorkoutMeta) {
+            existingWorkoutMeta.startTime = workout.startTime
+          } else {
+            workoutMetas.push(workoutMeta)
+          }
+        } catch (e) {
+          logError(e, "FeedStore.addWorkout error", { workout })
+        }
+      }
     }
 
     const refreshWorkout = flow(function* (
@@ -289,21 +385,14 @@ export const FeedStoreModel = types
       const { workoutRepository } = getEnv<RootStoreDependencies>(self)
 
       try {
+        let workout
         if (workoutSource === WorkoutSource.User) {
-          const workout = yield workoutRepository.get(workoutId, true)
-          console.debug("FeedStore.refreshWorkout() ", { workout })
-          self.userWorkouts.put(workout)
+          workout = yield workoutRepository.get(workoutId, true)
         } else {
-          const workout = yield api.getOtherUserWorkout(userId, workoutId)
-          switch (workoutSource) {
-            case WorkoutSource.Feed:
-              self.feedWorkouts.put(workout)
-              break
-            case WorkoutSource.OtherUser:
-              self.otherUserWorkouts.get(userId)?.workouts?.put(workout)
-              break
-          }
+          workout = yield api.getOtherUserWorkout(userId, workoutId)
         }
+        console.debug("FeedStore.refreshWorkout() ", { workout })
+        addWorkoutToStore(workoutSource, workout)
       } catch (e) {
         logError(e, "FeedStore.refreshWorkout error")
       }
@@ -315,14 +404,14 @@ export const FeedStoreModel = types
 
       try {
         self.isLoadingUserWorkouts = true
-        self.userWorkouts.clear()
+        self.userWorkoutMetas.clear()
 
         const { userRepository } = getEnv<RootStoreDependencies>(self)
         const user = yield userRepository.get(self.userId, true)
-        const workoutMetas = getNestedField(user, "workoutMetas")
-        const workoutIds = workoutMetas && Object.keys(workoutMetas)
+        const workoutMetasMap = getNestedField(user, "workoutMetas")
+        const workoutIds = workoutMetasMap && Object.keys(workoutMetasMap)
 
-        if (!workoutMetas || !workoutIds || workoutIds.length === 0) {
+        if (!workoutMetasMap || !workoutIds || workoutIds.length === 0) {
           console.debug("FeedStore.loadUserWorkouts empty workoutMetas")
           self.isLoadingUserWorkouts = false
           return
@@ -338,15 +427,7 @@ export const FeedStoreModel = types
           return
         }
 
-        workouts.forEach((w) => {
-          try {
-            self.userWorkouts.put(w)
-          } catch (e) {
-            logError(e, "FeedStore.loadUserWorkouts invalid workout snapshot", {
-              workoutid: w.workoutId,
-            })
-          }
-        })
+        addWorkoutToStore(WorkoutSource.User, ...workouts)
 
         const workoutInteractions = yield workoutInteractionRepository.getMany(workoutIds)
         workoutInteractions.forEach((interaction) => {
@@ -360,10 +441,7 @@ export const FeedStoreModel = types
 
         // Load local user workouts
         const localWorkouts = yield workoutRepository.getAllLocalWorkouts()
-        localWorkouts.forEach((w) => {
-          console.debug("FeedStore.loadUserWorkouts local workout", w)
-          self.userWorkouts.put(w)
-        })
+        addWorkoutToStore(WorkoutSource.User, ...localWorkouts)
 
         console.debug("FeedStore.loadUserWorkouts done")
         self.isLoadingUserWorkouts = false
@@ -377,7 +455,11 @@ export const FeedStoreModel = types
 
       try {
         yield workoutRepository.delete(workoutId)
-        self.userWorkouts.delete(workoutId)
+        self.workouts.delete(workoutId)
+        const workoutMeta = self.userWorkoutMetas.find((w) => w.workoutId === workoutId)
+        if (workoutMeta) {
+          self.userWorkoutMetas.remove(workoutMeta)
+        }
       } catch (e) {
         logError(e, "FeedStore.deleteWorkout error")
       }
@@ -393,10 +475,10 @@ export const FeedStoreModel = types
 
     const fetchUserProfileToStore = flow(function* (userId: UserId) {
       const { userRepository } = getEnv<RootStoreDependencies>(self)
-      if (!self.feedUsers.has(userId)) {
+      if (!self.otherUserProfiles.has(userId)) {
         try {
           const user = yield userRepository.get(userId)
-          self.feedUsers.put(convertUserToMSTSnapshot(user))
+          self.otherUserProfiles.put(convertUserToMSTSnapshot(user))
         } catch (e) {
           logError(e, "FeedStore.fetchUserProfileToStore error")
         }
@@ -417,11 +499,8 @@ export const FeedStoreModel = types
         )
         self.oldestFeedItemId = lastFeedItemId === null ? undefined : lastFeedItemId
         self.noMoreFeedItems = noMoreItems
-        const workoutIds: string[] = []
-        for (const workout of workouts) {
-          self.feedWorkouts.put(workout)
-          workoutIds.push(workout.workoutId)
-        }
+        const workoutIds = workouts.map((w) => w.workoutId)
+        addWorkoutToStore(WorkoutSource.Feed, ...workouts)
         const workoutInteractions = yield workoutInteractionRepository.getMany(workoutIds)
         for (const interaction of workoutInteractions) {
           self.workoutInteractions.put(interaction)
@@ -536,12 +615,11 @@ export const FeedStoreModel = types
     })
 
     const refreshFeedItems = flow(function* () {
-      // self.isLoadingFeed = true
       self.lastFeedRefresh = undefined
       self.oldestFeedItemId = undefined
       self.noMoreFeedItems = false
-      self.feedWorkouts.clear()
-      self.feedUsers.clear()
+      self.feedWorkoutMetas.clear()
+      // TODO: Clear other user profiles after a while
       yield loadMoreFeedItems()
       self.lastFeedRefresh = new Date()
     })
@@ -549,12 +627,12 @@ export const FeedStoreModel = types
     const loadMoreOtherUserWorkouts = flow(function* (otherUserId: UserId) {
       if (self.isLoadingOtherUserWorkouts) return undefined
 
-      const otherUserWorkouts = self.otherUserWorkouts.get(otherUserId)
+      const otherUserWorkouts = self.otherUserMetas.get(otherUserId)
       const lastFeedItemId = otherUserWorkouts
-        ? self.otherUserWorkouts.get(otherUserId)?.lastWorkoutId
+        ? self.otherUserMetas.get(otherUserId)?.lastWorkoutId
         : undefined
       const noMoreItems = otherUserWorkouts
-        ? self.otherUserWorkouts.get(otherUserId)?.noMoreItems
+        ? self.otherUserMetas.get(otherUserId)?.noMoreItems
         : false
 
       if (noMoreItems) return undefined
@@ -569,24 +647,22 @@ export const FeedStoreModel = types
           workouts: newWorkouts,
         } = yield api.getOtherUserWorkouts(otherUserId, lastFeedItemId ?? undefined)
 
-        const newWorkoutsMap = newWorkouts.reduce(
-          (acc, workout) => ({ ...acc, [workout.workoutId]: workout }),
-          {},
-        )
         if (otherUserWorkouts) {
           otherUserWorkouts.lastWorkoutId = newLastWorkoutId
           otherUserWorkouts.noMoreItems = newNoMoreItems
-          Object.values(newWorkoutsMap).forEach((w) => {
-            otherUserWorkouts.workouts.put(w)
-          })
         } else {
-          self.otherUserWorkouts.put({
+          self.otherUserMetas.put({
             byUserId: otherUserId,
             lastWorkoutId: newLastWorkoutId,
             noMoreItems: newNoMoreItems,
-            workouts: newWorkoutsMap,
+            workoutMetas: newWorkouts.map((w) => ({
+              workoutId: w.workoutId,
+              startTime: w.startTime,
+            })),
           })
         }
+
+        addWorkoutToStore(WorkoutSource.OtherUser, ...newWorkouts)
       } catch (e) {
         logError(e, "FeedStore.loadMoreOtherUserWorkouts error")
       } finally {
@@ -596,7 +672,8 @@ export const FeedStoreModel = types
 
     const refreshOtherUserWorkouts = flow(function* (otherUserId: UserId) {
       console.debug("FeedStore.refreshOtherUserWorkouts called")
-      self.otherUserWorkouts.delete(otherUserId)
+      // TODO: Clear other user's workouts from self.workouts
+      self.otherUserMetas.delete(otherUserId)
       yield loadMoreOtherUserWorkouts(otherUserId)
     })
 
@@ -606,10 +683,10 @@ export const FeedStoreModel = types
 
       // update __isLocalOnly to false
       for (const workoutId of uploadedWorkoutIds) {
-        const workout = self.userWorkouts.get(workoutId)
+        const workout = self.workouts.get(workoutId)
         if (workout) {
           workout.__isLocalOnly = false
-          self.userWorkouts.put(workout)
+          self.workouts.put(workout)
         }
       }
 
@@ -619,7 +696,7 @@ export const FeedStoreModel = types
     return {
       setUserId,
       resetFeed,
-      addUserWorkout,
+      addWorkoutToStore,
       refreshWorkout,
       loadUserWorkouts,
       deleteWorkout,

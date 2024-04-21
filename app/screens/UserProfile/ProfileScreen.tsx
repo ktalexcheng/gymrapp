@@ -7,12 +7,12 @@ import {
   Spacer,
   TabBar,
   Text,
+  ThemedRefreshControl,
 } from "app/components"
-import { WorkoutSource } from "app/data/constants"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
-import { spacing } from "app/theme"
+import { spacing, styles } from "app/theme"
 import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
 import { format, milliseconds } from "date-fns"
 import { observer } from "mobx-react-lite"
@@ -33,35 +33,39 @@ import { UserProfileStatsBar } from "./UserProfileStatsBar"
 
 const UserActivitiesTabScene: FC = observer(() => {
   const { userStore, feedStore } = useStores()
+  const [workoutsListData, setWorkoutsListData] = useState(feedStore.userWorkoutsListData)
 
-  function getWorkoutData() {
-    const workouts = Array.from(feedStore.userWorkouts.values())
-    workouts.sort((a, b) => (a.startTime > b.startTime ? -1 : 1))
-
-    return workouts.map((workout) => {
-      return {
-        workoutId: workout.workoutId,
-        workout,
-        byUser: userStore.user,
-        workoutSource: WorkoutSource.User,
-      }
-    })
-  }
+  useEffect(() => {
+    if (!feedStore.feedStoreIsBusy && feedStore.userWorkoutsListData) {
+      setWorkoutsListData(feedStore.userWorkoutsListData)
+    }
+  }, [feedStore.feedStoreIsBusy, feedStore.userWorkoutsListData])
 
   function renderWorkoutItem({ item }) {
-    return <WorkoutSummaryCard {...item} />
+    return <WorkoutSummaryCard {...item} byUser={userStore.user} />
   }
-
-  if (feedStore.isLoadingUserWorkouts) return <LoadingIndicator />
-  if (feedStore.userWorkouts.size === 0) return <Text tx="profileScreen.noActivityhistory" />
 
   return (
     <FlatList
-      data={getWorkoutData()}
+      data={workoutsListData}
+      refreshControl={
+        <ThemedRefreshControl
+          onRefresh={feedStore.loadUserWorkouts}
+          refreshing={feedStore.isLoadingUserWorkouts}
+        />
+      }
       renderItem={renderWorkoutItem}
       showsVerticalScrollIndicator={false}
       ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
-      ListFooterComponent={() => <Spacer type="vertical" size="extraLarge" />}
+      contentContainerStyle={styles.flexGrow}
+      ListEmptyComponent={() => (
+        <View style={styles.fillAndCenter}>
+          <Text tx="profileScreen.noActivityHistory" />
+        </View>
+      )}
+      ListFooterComponent={() =>
+        workoutsListData?.length > 0 && <Spacer type="vertical" size="extraLarge" />
+      }
     />
   )
 })
@@ -196,7 +200,12 @@ const DashboardTabScene: FC = observer(() => {
   const { feedStore } = useStores()
 
   if (feedStore.isLoadingUserWorkouts) return <LoadingIndicator />
-  if (feedStore.userWorkouts.size === 0) return <Text tx="profileScreen.noActivityhistory" />
+  if (feedStore.userWorkouts.length === 0)
+    return (
+      <View style={styles.fillAndCenter}>
+        <Text tx="profileScreen.noActivityHistory" />
+      </View>
+    )
 
   return (
     <>
@@ -210,13 +219,14 @@ const DashboardTabScene: FC = observer(() => {
 
 export const ProfileScreen = observer(function ProfileScreen() {
   const mainNavigation = useMainNavigation()
-  const { userStore, activeWorkoutStore, themeStore } = useStores()
+  const { userStore, feedStore, activeWorkoutStore, themeStore } = useStores()
   const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress ? [] : ["top"]
   const [tabIndex, setTabIndex] = useState(0)
 
   useEffect(() => {
     console.debug("ProfileScreen mounted")
     userStore.fetchUserProfile()
+    feedStore.loadUserWorkouts()
   }, [])
 
   const routes = [

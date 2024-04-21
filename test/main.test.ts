@@ -160,7 +160,7 @@ describe.skip("Main test suite", () => {
       const expectFeedItems = async () => {
         await feedStoreTestUser2.refreshFeedItems()
         // expect(feedStoreTestUser2.feedItems.length).toBe(1)
-        expect(feedStoreTestUser2.feedWorkouts.size).toBe(1)
+        expect(feedStoreTestUser2.feedWorkouts.length).toBe(1)
       }
 
       return retryExpectAsync(expectFeedItems, retryDelay, maxRetries)

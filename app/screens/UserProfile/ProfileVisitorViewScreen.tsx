@@ -1,9 +1,17 @@
 import firestore from "@react-native-firebase/firestore"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { Avatar, Button, RowView, Screen, Spacer, Text, ThemedRefreshControl } from "app/components"
-import { WorkoutSource } from "app/data/constants"
+import {
+  Avatar,
+  Button,
+  LoadingIndicator,
+  RowView,
+  Screen,
+  Spacer,
+  Text,
+  ThemedRefreshControl,
+} from "app/components"
 import { MainStackParamList } from "app/navigators"
-import { IUserModel, IWorkoutSummaryModel, useStores } from "app/stores"
+import { IUserModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { formatDate } from "app/utils/formatDate"
@@ -20,38 +28,29 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
   ({ navigation, route }: ProfileVisitorViewScreenProps) => {
     const otherUserId = route.params.userId
     const { userStore, feedStore } = useStores()
-    const [otherUser, setOtherUser] = useState<IUserModel>()
-    const [isInitialized, setIsInitialized] = useState(false)
+    const [otherUser, setOtherUser] = useState<IUserModel>(
+      feedStore.otherUserProfiles.get(otherUserId),
+    )
+    const [isLoadingOtherUser, setIsLoadingOtherUser] = useState(
+      !feedStore.otherUserProfiles.get(otherUserId),
+    )
     const [isFollowing, setIsFollowing] = useState(false)
     const [isFollowRequested, setIsFollowRequested] = useState(false)
     const [isProcessingFollowRequest, setIsProcessingFollowRequest] = useState(false)
 
-    let otherUserIsPrivate, otherUserWorkouts, workouts, isEndOfFeed, otherUserFeed
+    // Derived states
+    let otherUserIsPrivate, otherUserMeta, isEndOfFeed, otherUserFeed
     if (otherUser) {
       otherUserIsPrivate = otherUser?.privateAccount
-      otherUserWorkouts = feedStore.otherUserWorkouts.get(otherUserId)
-      workouts = otherUserWorkouts?.workouts
-      isEndOfFeed = otherUserWorkouts?.noMoreItems
-      otherUserFeed =
-        workouts &&
-        Array.from(workouts.values())
-          .map((workout: IWorkoutSummaryModel) => ({
-            workoutSource: WorkoutSource.OtherUser,
-            workoutId: workout.workoutId,
-            workout,
-          }))
-          .sort((a, b) => b.workout.startTime - a.workout.startTime)
+      otherUserMeta = feedStore.otherUserMetas.get(otherUserId)
+      otherUserFeed = feedStore.getOtherUserWorkoutsListData(otherUserId)
+      isEndOfFeed = otherUserMeta?.noMoreItems
     }
 
-    const isLoading = feedStore.isLoadingOtherUserWorkouts
-    const isReadyForDisplay = !!otherUser && !isLoading
+    const isLoadingFeed = feedStore.isLoadingOtherUserWorkouts
 
+    // Listen to user document changes for following status updates
     useEffect(() => {
-      userStore.getOtherUser(otherUserId).then((user) => {
-        setOtherUser(user)
-        navigation.setOptions({ title: user.userHandle })
-      })
-
       const unsubscribe = firestore()
         .collection("users")
         .doc(otherUserId)
@@ -63,12 +62,28 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
       return unsubscribe
     }, [])
 
+    // If otherUser is not available, fetch it
     useEffect(() => {
-      if (!isInitialized && otherUser) {
-        refreshFeed().then(() => setIsInitialized(true))
+      if (!otherUser) {
+        console.debug("ProfileVisitorViewScreen: Fetching other user")
+        setIsLoadingOtherUser(true)
+        userStore
+          .getOtherUser(otherUserId)
+          .then((user) => {
+            setOtherUser(user)
+            refreshFeed()
+          })
+          .finally(() => setIsLoadingOtherUser(false))
+      } else {
+        updateFollowStatus()
+        console.debug("ProfileVisitorViewScreen: Setting navigation title to user handle", {
+          title: otherUser.userHandle,
+        })
+        navigation.setOptions({ title: otherUser.userHandle })
       }
     }, [otherUser])
 
+    // Handles relationship validation before fetching feed
     const refreshFeed = async () => {
       const _isFollowing = await updateFollowStatus()
 
@@ -173,10 +188,12 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
         safeAreaEdges={["bottom"]}
         contentContainerStyle={styles.screenContainer}
         preset="fixed"
-        isBusy={!isReadyForDisplay}
+        isBusy={isLoadingOtherUser}
       >
         <FlatList
-          refreshControl={<ThemedRefreshControl refreshing={isLoading} onRefresh={refreshFeed} />}
+          refreshControl={
+            <ThemedRefreshControl refreshing={isLoadingFeed} onRefresh={refreshFeed} />
+          }
           data={otherUserFeed}
           renderItem={({ item }) => {
             return <WorkoutSummaryCard {...item} byUser={otherUser} />
@@ -191,7 +208,7 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
               )
             }
 
-            if (!isLoading && isEndOfFeed && otherUserFeed.length === 0) {
+            if (!isLoadingFeed && isEndOfFeed && otherUserFeed.length === 0) {
               return (
                 <View style={styles.fillAndCenter}>
                   <Text tx="profileVisitorViewScreen.noActivityHistoryMessage" />
@@ -204,14 +221,25 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
           ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
           ListHeaderComponent={profileHeaderComponent()}
           ListFooterComponent={() => {
-            if (!isEndOfFeed || otherUserFeed.length === 0) return null
+            if (isEndOfFeed && otherUserFeed?.length > 0) {
+              return (
+                <>
+                  <Spacer type="vertical" size="medium" />
+                  <Text tx="profileVisitorViewScreen.endOfUserActivityMessage" textAlign="center" />
+                </>
+              )
+            }
 
-            return (
-              <>
-                <Spacer type="vertical" size="medium" />
-                <Text tx="profileVisitorViewScreen.endOfUserActivityMessage" textAlign="center" />
-              </>
-            )
+            if (isLoadingFeed) {
+              return (
+                <>
+                  <Spacer type="vertical" size="small" />
+                  <LoadingIndicator size="small" />
+                </>
+              )
+            }
+
+            return null
           }}
           onEndReachedThreshold={0.5}
           onEndReached={loadMoreWorkouts}

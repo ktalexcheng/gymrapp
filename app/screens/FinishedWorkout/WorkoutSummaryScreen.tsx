@@ -23,13 +23,7 @@ interface WorkoutSummaryScreenProps
   extends NativeStackScreenProps<MainStackParamList, "WorkoutSummary"> {}
 
 export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) => {
-  const {
-    workoutSource,
-    workoutId,
-    workoutByUserId,
-    jumpToComments,
-    workout: workoutInput,
-  } = props.route.params
+  const { workoutSource, workoutId, workoutByUserId, jumpToComments } = props.route.params
 
   const mainNavigation = useMainNavigation()
   const { feedStore, userStore, themeStore } = useStores()
@@ -47,6 +41,8 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
   const newRecordsCount = workout?.exercises?.reduce((acc, exercise) => {
     return acc + (exercise?.newRecords?.size ?? 0)
   }, 0)
+  const workoutByUserDisplayName =
+    workoutByUser && formatName(workoutByUser.firstName, workoutByUser.lastName)
 
   const getWorkoutAndUser = async () => {
     console.debug("WorkoutSummaryScreen.getWorkoutAndUser called", { isLoading })
@@ -54,14 +50,14 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
 
     setIsLoading(true)
     try {
-      const _workout = feedStore.getWorkout(workoutSource, workoutId, workoutByUserId)
+      const _workout = feedStore.getWorkout(workoutSource, workoutId)
       if (_workout) {
         setWorkout(_workout)
       } else {
         console.debug(
-          "WorkoutSummaryScreen.getWorkoutAndUser: workout not found in FeedStore, falling back to param input",
+          "WorkoutSummaryScreen.getWorkoutAndUser: workout not found in FeedStore, fetching...",
         )
-        setWorkout(workoutInput)
+        console.debug("TODO: feedStore.fetchSingleWorkout") // TODO
       }
       if (workoutSource === WorkoutSource.User) {
         setWorkoutByUser(userStore.user)
@@ -135,7 +131,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
   const renderScreen = () => {
     if (!isInitialized) return null
 
-    if (!workoutLoaded || isError) {
+    if (!workoutLoaded && isError) {
       return <Text tx="workoutSummaryScreen.workoutUnavailableMessage" />
     }
 
@@ -262,8 +258,12 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                       style={styles.flex1}
                       preset="light"
                       size="xs"
-                      tx="workoutSummaryScreen.newRecordsMessage"
-                      txOptions={{ newRecordsCount }}
+                      tx={
+                        workoutByUserId === userStore.userId
+                          ? "workoutSummaryScreen.newRecordsMessageForYou"
+                          : "workoutSummaryScreen.newRecordsMessageForOthers"
+                      }
+                      txOptions={{ displayName: workoutByUserDisplayName, newRecordsCount }}
                     />
                   </RowView>
                 )}

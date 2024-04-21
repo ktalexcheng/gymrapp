@@ -46,7 +46,7 @@ export class WorkoutRepository extends BaseRepository<Workout, WorkoutId> {
     const userDocRef = this.firestoreClient!.collection("users").doc(workout.byUserId)
 
     const txUpdateFunction = async (tx: FirebaseFirestoreTypes.Transaction) => {
-      tx.set(newWorkoutRef, convertedWorkout)
+      tx.set(newWorkoutRef, convertedWorkout, { merge: true }) // Use set merge in case we are updating
       tx.update(userDocRef, userUpdate)
     }
 

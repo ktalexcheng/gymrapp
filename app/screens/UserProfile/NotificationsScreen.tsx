@@ -87,8 +87,8 @@ const NotificationTile = ({ notification }: { notification: INotificationModel }
           messageTx = "notificationsScreen.followAcceptedNotificationMessage"
           break
       }
-      const senderName = formatName(senderUser.firstName, senderUser.lastName)
-      setMessage(`${senderName} ${translate(messageTx)}`)
+      const senderDisplayName = formatName(senderUser.firstName, senderUser.lastName)
+      setMessage(translate(messageTx, { senderDisplayName }))
     }
   }, [isInitialized])
 

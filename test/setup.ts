@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin"
 import { initializeApp } from "firebase/app"
 import { getFunctions, httpsCallable } from "firebase/functions"
+// require("dotenv").config({ path: ".env.local" })
 require("dotenv").config({ path: ".env.local" })
 
 declare const tron // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -11,26 +12,37 @@ declare global {
   let __TEST__
 }
 
-// libraries to mock
-// jest.doMock("react-native", () => {
-//   // Extend ReactNative
-//   return Object.setPrototypeOf(
-//     {
-//       Image: {
-//         ...ReactNative.Image,
-//         resolveAssetSource: jest.fn((_source) => mockFile), // eslint-disable-line @typescript-eslint/no-unused-vars
-//         getSize: jest.fn(
-//           (
-//             uri: string, // eslint-disable-line @typescript-eslint/no-unused-vars
-//             success: (width: number, height: number) => void,
-//             failure?: (_error: any) => void, // eslint-disable-line @typescript-eslint/no-unused-vars
-//           ) => success(100, 100),
-//         ),
-//       },
-//     },
-//     ReactNative,
-//   )
-// })
+// If not using emulator, remove these environment variables
+if (process.env.EXPO_PUBLIC_USE_EMULATOR !== "1") {
+  console.log("Connecting to Firebase")
+  delete process.env.FIRESTORE_EMULATOR_HOST
+  delete process.env.FIREBASE_AUTH_EMULATOR_HOST
+  delete process.env.FIREBASE_STORAGE_EMULATOR_HOST
+} else {
+  console.log("Connecting to Firebase emulators")
+}
+
+// Set environment variable GOOGLE_APPLICATION_CREDENTIALS to path of the service account key
+// See: https://firebase.google.com/docs/admin/setup#initialize_the_sdk_in_non-google_environments
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  throw new Error(
+    "Environment variable GOOGLE_APPLICATION_CREDENTIALS not set and is required for firebase-admin",
+  )
+}
+if (!process.env.FIREBASE_WEB_CONFIG) {
+  throw new Error(
+    "Environment variable FIREBASE_WEB_CONFIG not set and is required for react-native-firebase",
+  )
+}
+console.log("Environment variables set:", {
+  GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+  FIREBASE_WEB_CONFIG: process.env.FIREBASE_WEB_CONFIG,
+})
+admin.initializeApp()
+const firebaseApp = initializeApp(require(process.env.FIREBASE_WEB_CONFIG))
+const firebaseFunctionsClient = getFunctions(firebaseApp)
+console.log("Firebase project ID:", firebaseApp.options.projectId)
+console.log("Pause")
 
 jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
@@ -44,6 +56,7 @@ jest.mock("i18n-js", () => ({
 }))
 
 jest.mock("react-native/Libraries/EventEmitter/NativeEventEmitter")
+
 jest.mock("expo-constants", () => {
   return {
     ...jest.requireActual("expo-constants"),
@@ -55,21 +68,26 @@ jest.mock("expo-constants", () => {
   }
 })
 
-// If not using emulator, remove these environment variables
-if (process.env.EXPO_PUBLIC_USE_EMULATOR === "0") {
-  delete process.env.FIRESTORE_EMULATOR_HOST
-  delete process.env.FIREBASE_AUTH_EMULATOR_HOST
-  delete process.env.FIREBASE_STORAGE_EMULATOR_HOST
-}
-// Set environment variable GOOGLE_APPLICATION_CREDENTIALS to path of the service account key
-// See: https://firebase.google.com/docs/admin/setup#initialize_the_sdk_in_non-google_environments
-admin.initializeApp()
-if (!process.env.FIREBASE_WEB_CONFIG)
-  throw new Error("Environment variable FIREBASE_WEB_CONFIG not set")
-const firebaseApp = initializeApp(require(process.env.FIREBASE_WEB_CONFIG))
-const firebaseFunctionsClient = getFunctions(firebaseApp)
+jest.mock("expo-crypto", () => {
+  return {
+    randomUUID: jest.fn(() => {
+      return Math.random().toString()
+    }),
+  }
+})
 
 // jest.doMock is not hoisted, jest.mock is hoisted
+
+jest.doMock("@react-native-firebase/crashlytics", () => {
+  return {
+    // ...jest.requireActual("@react-native-firebase/crashlytics"),
+    __esModule: true,
+    default: jest.fn(() => ({
+      log: jest.fn(),
+    })),
+  }
+})
+
 jest.doMock("@react-native-firebase/functions", () => {
   return {
     // ...jest.requireActual("@react-native-firebase/functions"),
@@ -105,55 +123,3 @@ jest.doMock("@react-native-firebase/firestore", () => {
 })
 
 jest.doMock("@react-native-firebase/crashlytics", () => {})
-
-// jest.mock("@react-native-firebase/auth", () => {
-//   return {
-//     // ...jest.requireActual("@react-native-firebase/auth"),
-//     __esModule: true,
-//     default: jest.fn(() => {
-//       let currentUser: UserRecord
-
-//       return {
-//         createUserWithEmailAndPassword: async (email: string, password: string) => {
-//           const userRecord = await admin.auth().createUser({
-//             email,
-//             password,
-//           })
-//           currentUser = userRecord
-
-//           return {
-//             user: {
-//               uid: userRecord.uid,
-//               email: userRecord.email,
-//             },
-//             additionalUserInfo: {
-//               providerId: "jest-mock",
-//             },
-//           } as FirebaseAuthTypes.UserCredential
-//         },
-//         signInWithEmailAndPassword: async (email: string, password: string) => {
-//           const userRecord = await admin.auth().getUserByEmail(email)
-//           currentUser = userRecord
-
-//           return {
-//             user: {
-//               uid: userRecord.uid,
-//               email: userRecord.email,
-//             },
-//             additionalUserInfo: {
-//               providerId: "jest-mock",
-//             },
-//           } as FirebaseAuthTypes.UserCredential
-//         },
-//         signOut: async () => {
-//           currentUser = undefined
-//         },
-//         currentUser: {
-//           delete: async () => {
-//             await admin.auth().deleteUser(currentUser.uid)
-//           },
-//         },
-//       }
-//     }),
-//   }
-// })

@@ -26,7 +26,7 @@ const WorkoutHistoryTabScene = (exerciseId: string) =>
     if (!exerciseHistory) return <Text tx="exerciseDetailsScreen.noExerciseHistoryFound" />
 
     function getWorkoutData() {
-      const workouts = Array.from(feedStore.userWorkouts.values()).filter(({ workoutId }) => {
+      const workouts = feedStore.userWorkouts.filter(({ workoutId }) => {
         return exerciseHistory.includes(workoutId)
       })
       workouts.sort((a, b) => (a.startTime > b.startTime ? -1 : 1))

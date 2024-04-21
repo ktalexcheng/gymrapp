@@ -46,7 +46,7 @@ export const convertUserToMSTSnapshot = (user: User) => {
 
   // Handle workoutMetas
   if (convertedUser.workoutMetas) {
-    console.debug("convertUserToMSTModel(): Converting workoutMetas")
+    // console.debug("convertUserToMSTModel(): Converting workoutMetas")
     const convertedWorkoutMetas = {}
 
     for (const [workoutId, workoutMeta] of Object.entries(
@@ -63,7 +63,7 @@ export const convertUserToMSTSnapshot = (user: User) => {
 
   // Handle personalRecords
   if (convertedUser.exerciseHistory) {
-    console.debug("convertUserToMSTModel(): Converting exerciseHistory")
+    // console.debug("convertUserToMSTModel(): Converting exerciseHistory")
     const convertedExerciseHistory = {}
 
     for (const [exerciseId, exerciseHistory] of Object.entries(

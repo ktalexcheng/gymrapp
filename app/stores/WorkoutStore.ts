@@ -21,7 +21,6 @@ import {
   ISetPerformedModel,
   ITimePersonalRecordModel,
   ITimeSetPerformedModel,
-  IUserModel,
   IUserModelSnapshot,
   RepsSetPerformedModel,
   TimeSetPerformedModel,
@@ -80,8 +79,8 @@ export const ActiveWorkoutStoreModel = types
     lastSetCompletedTime: types.maybe(types.Date),
     workoutTitle: translate("activeWorkoutScreen.newActiveWorkoutTitle"),
     activityId: types.maybe(types.string),
-    performedAtGymId: types.maybe(types.string),
-    performedAtGymName: types.maybe(types.string),
+    performedAtGymId: types.maybeNull(types.string),
+    performedAtGymName: types.maybeNull(types.string),
   })
   .views((self) => ({
     get isAllSetsCompleted() {
@@ -231,8 +230,8 @@ export const ActiveWorkoutStoreModel = types
     const scheduleRestNotifications = async () => {
       // Make sure to cancel any existing notifications
       if (notificationId) {
-        await dismissRestNotifications()
-        await cancelRestNotifications()
+        dismissRestNotifications()
+        cancelRestNotifications()
       }
 
       // Find last set completed
@@ -301,8 +300,6 @@ export const ActiveWorkoutStoreModel = types
         console.debug("ActiveWorkoutStore.cancelRestNotifications canceled notification:", {
           notificationId,
         })
-
-        notificationId = undefined
       }
     }
 
@@ -315,8 +312,6 @@ export const ActiveWorkoutStoreModel = types
             notificationId,
           },
         )
-
-        notificationId = undefined
       }
     }
 
@@ -351,8 +346,8 @@ export const ActiveWorkoutStoreModel = types
       self.restTimeStartedAt = undefined
       self.exercises = Exercises.create()
       self.workoutTitle = translate("activeWorkoutScreen.newActiveWorkoutTitle")
-      self.performedAtGymId = undefined
-      self.performedAtGymName = undefined
+      self.performedAtGymId = null
+      self.performedAtGymName = null
     }
 
     function cleanUpWorkout() {
@@ -366,8 +361,8 @@ export const ActiveWorkoutStoreModel = types
 
     function setGym(gym?: Gym) {
       if (!gym) {
-        self.performedAtGymId = undefined
-        self.performedAtGymName = undefined
+        self.performedAtGymId = null
+        self.performedAtGymName = null
         return
       }
 
@@ -382,14 +377,24 @@ export const ActiveWorkoutStoreModel = types
       excludeWorkoutId?: string,
     ) => {
       const exerciseHistory = userSnapshot.exerciseHistory
-      const exercisePersonalRecords = exerciseHistory?.[exerciseId]?.personalRecords
-
-      let exerciseRecords = exercisePersonalRecords?.[reps]?.records
-      if (excludeWorkoutId) {
+      if (!exerciseHistory) {
         console.debug(
-          "ActiveWorkoutStore.getLatestExerciseRecord() excluding workoutId:",
-          excludeWorkoutId,
+          "ActiveWorkoutStore.getLatestExerciseRecord() user exercise history unavailable",
         )
+        return null
+      }
+      const exercisePersonalRecords = exerciseHistory.get(exerciseId)?.personalRecords
+
+      // console.debug("ActiveWorkoutStore.getLatestExerciseRecord()", {
+      //   exerciseHistory,
+      //   exercisePersonalRecords,
+      // })
+      let exerciseRecords = exercisePersonalRecords?.get(reps.toString())?.records // MST map keys are stored internally as strings
+      if (excludeWorkoutId) {
+        // console.debug(
+        //   "ActiveWorkoutStore.getLatestExerciseRecord() excluding workoutId:",
+        //   excludeWorkoutId,
+        // )
         exerciseRecords = exerciseRecords?.filter((r) => r.workoutId !== excludeWorkoutId)
       }
       if (!exerciseRecords) {
@@ -402,15 +407,16 @@ export const ActiveWorkoutStoreModel = types
       const recordsCount = exerciseRecords?.length
       const latestRecord = exerciseRecords[recordsCount - 1]
 
-      console.debug("ActiveWorkoutStore.getLatestExerciseRecord()", { exerciseId, latestRecord })
+      // console.debug("ActiveWorkoutStore.getLatestExerciseRecord()", { exerciseId, latestRecord })
       return latestRecord
     }
 
-    // IMPORTANT: Note that applying toJS() to the model instances (such as exercise and set)
-    // is necessary to avoid issues with MST when attemping to add the new workout to user's feed.
+    // IMPORTANT: Note that applying toJS() to the model instances (such as exercise and set) to get a snapshot
+    // is necessary to avoid MST issues where model instances might be removed from the state tree.
     // excludeWorkoutId is used to exclude the current workout from the list of personal records
     // when updating an existing workout.
     const getAllExerciseSummary = (userSnapshot: IUserModelSnapshot, excludeWorkoutId?: string) => {
+      // console.debug("ActiveWorkoutStore.getAllExerciseSummary", { userSnapshot })
       const exercisesSummary: ExercisePerformed[] = []
       const datePerformed = self.startTime ?? new Date()
 
@@ -422,6 +428,8 @@ export const ActiveWorkoutStoreModel = types
           let totalVolume = 0
 
           e.setsPerformed.forEach((s) => {
+            s.isNewRecord = false // Reset isNewRecord flag in case we are updating an existing workout
+
             if (!s.reps || s.reps === 0) {
               console.warn("ActiveWorkoutStore.getAllExerciseSummary: Skipping set, reps is 0", {
                 exercise: e,
@@ -454,14 +462,15 @@ export const ActiveWorkoutStoreModel = types
               latestRecord = null
             }
 
-            if ((s.weight ?? 0) > (latestRecord?.weight ?? 0)) {
+            // Comparing with (latestRecord?.weight ?? -1) to also catch weight = 0 records
+            if ((s.weight ?? 0) > (latestRecord?.weight ?? -1)) {
               // Make sure we don't overwrite a new record with a lower weight
-              if (newRecords[s.reps] && (s.weight ?? 0) < (newRecords[s.reps].weight ?? 0)) return
+              if (newRecords[s.reps] && (s.weight ?? 0) <= (newRecords[s.reps].weight ?? 0)) return
 
               newRecords[s.reps] = {
                 volumeType: ExerciseVolumeType.Reps,
                 datePerformed,
-                weight: s.weight,
+                weight: s.weight ?? 0,
                 reps: s.reps,
               }
               s.isNewRecord = true
@@ -483,6 +492,8 @@ export const ActiveWorkoutStoreModel = types
           let totalTime = 0
 
           e.setsPerformed.forEach((s) => {
+            s.isNewRecord = false // Reset isNewRecord flag in case we are updating an existing workout
+
             if (!s.time || s.time === 0) {
               console.warn("ActiveWorkoutStore.getAllExerciseSummary: Skipping set, time is 0", {
                 exercise: e,
@@ -508,7 +519,7 @@ export const ActiveWorkoutStoreModel = types
 
             if (s.time > (latestRecord?.time ?? 0)) {
               // Make sure we don't overwrite a new record with a shorter time
-              if (newRecords[0] && s.time < newRecords[0].time) return
+              if (newRecords[0] && s.time <= newRecords[0].time) return
 
               newRecords[0] = {
                 reps: 0, // For time based exercises, reps is always 0
@@ -555,6 +566,8 @@ export const ActiveWorkoutStoreModel = types
       self.inProgress = false
     }
 
+    // IMPORTANT: Note that applying toJS() to the model instances (such as exercise and set) to get a snapshot
+    // is necessary to avoid MST issues where model instances might be removed from the state tree.
     const saveWorkout = flow(function* (
       isHidden: boolean,
       userSnapshot: IUserModelSnapshot,
@@ -589,7 +602,7 @@ export const ActiveWorkoutStoreModel = types
           performedAtGymId: self.performedAtGymId ?? null,
           performedAtGymName: self.performedAtGymName ?? null,
         } as IWorkoutSummaryModel
-        console.debug("ActiveWorkoutStore.saveWorkout newWorkout:", newWorkout)
+        // console.debug("ActiveWorkoutStore.saveWorkout newWorkout:", newWorkout)
 
         // If offline, the uploadWorkout function will save the workout locally
         const isSynced = yield workoutRepository.saveWorkout(newWorkout, isOffline)
@@ -720,12 +733,17 @@ export const WorkoutEditorStoreModel = ActiveWorkoutStoreModel.named("WorkoutEdi
 
     const updateWorkout = flow(function* updateWorkout(
       isHidden: boolean,
-      user: IUserModel,
+      user: IUserModelSnapshot,
+      updatePersonalRecords = false,
       isOffline = false,
     ) {
+      // console.debug("WorkoutEditorStore.updateWorkout called", { user })
       // This should not happen, but just in case
       if (!self.workoutId) {
-        throw new Error("WorkoutEditorStore.updateWorkout() error: workoutId is undefined")
+        logError("WorkoutEditorStore.updateWorkout() error: workoutId is undefined")
+        return Promise.reject(
+          new Error("WorkoutEditorStore.updateWorkout() error: workoutId is undefined"),
+        )
       }
 
       self.cleanUpWorkout()
@@ -764,10 +782,16 @@ export const WorkoutEditorStoreModel = ActiveWorkoutStoreModel.named("WorkoutEdi
         isHidden,
         workoutTitle: self.workoutTitle,
         exercises: allExerciseSummary,
-        isEdited: self.originalWorkout.isEdited || isExerciseModified, // Once a workout is edited, it remains edited
+        // isEdited: self.originalWorkout.isEdited || isExerciseModified, // Once a workout is edited, it remains edited
+        isEdited: false, // TODO: Only for dev
       }
 
-      yield workoutRepository.update(self.workoutId, updatedWorkout, false, isOffline)
+      if (updatePersonalRecords) {
+        yield workoutRepository.saveWorkout(updatedWorkout, isOffline)
+      } else {
+        yield workoutRepository.update(self.workoutId, updatedWorkout, false, isOffline)
+      }
+
       return updatedWorkout
     })
 

@@ -21,7 +21,7 @@ import {
   WorkoutGymPickerScreen,
   WorkoutSummaryScreen,
 } from "app/screens"
-import { INotificationModel, IWorkoutSummaryModel, useStores } from "app/stores"
+import { INotificationModel, useStores } from "app/stores"
 import { logError } from "app/utils/logger"
 import { observer } from "mobx-react-lite"
 import React, { useCallback, useEffect, useState } from "react"
@@ -51,7 +51,6 @@ export type MainStackParamList = {
     workoutId: string
     workoutByUserId: string
     jumpToComments: boolean
-    workout?: IWorkoutSummaryModel // For when the workout is not found in the FeedStore, for now it's not used
   }
   OnboardingNavigator: undefined
   AddToMyGyms: undefined
@@ -203,8 +202,6 @@ export const MainNavigator = observer(function MainNavigator() {
       })
       activityStore.getAllActivities()
       feedStore.setUserId(authStore.userId)
-      feedStore.refreshFeedItems()
-      feedStore.loadUserWorkouts()
 
       // If navigation is stuck at "Loading", or user just completed onboarding, or the stack is empty, then navigate to "HomeTabNavigator"
       navigateToHomeIfNeeded()

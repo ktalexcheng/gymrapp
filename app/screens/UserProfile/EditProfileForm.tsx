@@ -13,13 +13,14 @@ import {
 } from "app/components"
 import {
   AppColorScheme,
+  AppColorSchemeLabelValuePairs,
   AppLocale,
-  AppLocaleLabel,
+  AppLocaleLabelValuePairs,
   UserErrorType,
   WeightUnit,
 } from "app/data/constants"
 import { Gym, User } from "app/data/types"
-import { useToast } from "app/hooks"
+import { useLocale, useToast } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
@@ -68,6 +69,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   const [restTime, setRestTime] = useState(0)
   const [showRestTimePicker, setShowRestTimePicker] = useState(false)
   const [myGyms, setMyGyms] = useState<Gym[]>([])
+  const [_, setLocale] = useLocale()
 
   // Form state
   const [userHandleHelper, setUserHandleHelper] = useState<string>()
@@ -271,9 +273,15 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
         },
       } as User
 
+      // Upload new avatar image if it has changed
       if (imagePath && imagePath !== userStore.getPropAsJS("user.avatarUrl")) {
         const avatarUrl = await userStore.uploadUserAvatar(imagePath)
         user.avatarUrl = avatarUrl
+      }
+
+      // Update app locale if it has changed
+      if (appLocale !== userStore.getUserPreference<AppLocale>("appLocale")) {
+        setLocale(appLocale)
       }
 
       if (userStore.user) {
@@ -518,10 +526,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
           containerStyle={styles.formFieldTopMargin}
           onValueChange={(value: AppLocale) => setAppLocale(value)}
           labelTx="editProfileForm.appLocaleLabel"
-          itemsList={[
-            { label: AppLocaleLabel[AppLocale.en_US], value: AppLocale.en_US },
-            { label: AppLocaleLabel[AppLocale.zh_TW], value: AppLocale.zh_TW },
-          ]}
+          itemsList={AppLocaleLabelValuePairs()}
           selectedValue={appLocale}
         />
 
@@ -529,10 +534,7 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
           containerStyle={styles.formFieldTopMargin}
           onValueChange={(value: AppColorScheme) => setAppColorScheme(value)}
           labelTx="editProfileForm.appAppearanceLabel"
-          itemsList={Object.entries(AppColorScheme).map(([label, value]) => ({
-            label,
-            value,
-          }))}
+          itemsList={AppColorSchemeLabelValuePairs()}
           selectedValue={appColorScheme}
         />
 

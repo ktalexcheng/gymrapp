@@ -19,6 +19,7 @@ const workouts = {
 export const getWorkout = (id: keyof typeof workouts, userId: string): Workout => {
   return {
     ...workouts[id],
+    __isLocalOnly: false,
     byUserId: userId,
   }
 }

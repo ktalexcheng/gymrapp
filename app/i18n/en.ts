@@ -1,6 +1,6 @@
 const en = {
   common: {
-    ok: "OK!",
+    ok: "OK",
     cancel: "Cancel",
     clear: "Clear",
     back: "Back",
@@ -25,12 +25,13 @@ const en = {
     followers: "Followers",
     following: "Following",
     comments: "Comments",
-    copiedToClipboard: "Copied to clipboard!",
+    copiedToClipboard: "Copied to clipboard",
     selected: "Selected",
     discard: "Discard",
     save: "Save",
     user: "User",
     workouts: "Workouts",
+    you: "You",
     error: {
       networkErrorMessage: "Internet connection is not available",
       unknownErrorMessage: "Something went wrong",
@@ -38,10 +39,15 @@ const en = {
     offlineMode: {
       firestoreNetworkDisabledMessage:
         "Data will be saved locally and synced when internet connection is available",
-      firestoreNetworkEnabledMessage: "You are back online!",
+      firestoreNetworkEnabledMessage: "You are back online",
       pendingWritesFailedMessage: "Failed to sync offline data with the server",
       pendingWritesSuccessMessage: "Offline data synced with the server",
       localWorkoutsSyncedMessage: "Your workouts have been synced with the server",
+    },
+    colorScheme: {
+      light: "Light",
+      dark: "Dark",
+      auto: "Auto",
     },
   },
   notification: {
@@ -64,21 +70,22 @@ const en = {
     updateAvailableMessage: "A new version of the app is available. Would you like to update now?",
     forceUpdateTitle: "Update required",
     forceUpdateMessage:
-      "A new version of the app is available. Please update now to continue using the app.",
+      "A critical update of the app is available. Please update now to continue using the app.",
     checkForUpdateErrorMessage:
       "Failed to check for updates. Please make sure you are connected to the internet or restart the app.",
   },
   welcomeScreen: {
-    welcomeTitle: "Welcome to GYMRAPP!",
+    welcomeTitle: "Welcome to GYMRAPP",
     welcomeMessage:
       "This is the app for gym rats. Track and share your progress with the community and celebrate your accomplishments.",
     getStartedButtonLabel: "Get started",
+    appLocalePickerLabel: "Select your language",
   },
   errorScreen: {
     title: "This is awkward...",
     message:
       "Something went wrong with Gymrapp. This issue will be automatically reported to us after you reset the app.",
-    reset: "RESET APP",
+    reset: "Reset app",
   },
   emptyStateComponent: {
     generic: {
@@ -89,11 +96,8 @@ const en = {
   },
   tabNavigator: {
     activityTab: "Activity",
-    // startWorkout: "Start a workout",
-    // manageExercises: "Manage exercises",
     feedTab: "Feed",
     discoverTab: "Discover",
-    // upcomingTab: "Upcoming",
     exercisesTab: "Exercises",
     profileTab: "You",
   },
@@ -104,8 +108,7 @@ const en = {
     passwordFieldLabel: "Password",
     emailFieldPlaceholder: "Enter your email address",
     passwordFieldPlaceholder: "Enter your password",
-    tapToSignIn: "Tap to sign in!",
-    hint: "Hint: you can use any email address and your favorite password :)",
+    tapToSignIn: "Tap to sign in",
     signUpWithEmail: "Create account with email",
     signInWithGoogle: "Continue with Google",
     signInWithApple: "Continue with Apple",
@@ -136,17 +139,17 @@ const en = {
       emailInvalid: "Email is invalid",
       passwordMissing: "Password is not set",
       passwordInsecure:
-        "Password is too weak; please use a minimum 8 characters with at least one uppercase letter, one lowercase letter, one number",
+        "Password is too weak: Please use a minimum 8 characters with at least one uppercase letter, one lowercase letter, one number",
       passwordMismatch: "Passwords do not match",
     },
   },
   emailVerificationScreen: {
-    emailVerificationTitle: "Check your inbox!",
+    emailVerificationTitle: "Check your inbox",
     emailVerificationMessage:
       "We have sent a verification email to {{email}}. Please use the link in the email to verify your account.",
   },
   emailVerifiedScreen: {
-    emailVerifiedTitle: "Email verified!",
+    emailVerifiedTitle: "Email verified",
     emailVerifiedMessage: "Your email address has been verified.",
     continueButtonLabel: "Let's go!",
   },
@@ -160,7 +163,7 @@ const en = {
     activitiesTabLabel: "Activities",
     dashboardTabLabel: "Dashboard",
     dashboardWeeklyWorkoutsTitle: "Weekly workouts",
-    noActivityhistory: "No activity history",
+    noActivityHistory: "Log your first workout to see your activity history!",
     coachsCenterButtonLabel: "Coach's Center",
   },
   editProfileForm: {
@@ -174,7 +177,7 @@ const en = {
     availableAfterProfileCreatedMessage:
       "This feature will be available after your profile is completed.",
     myGymsLabel: "My gyms",
-    myGymsDescription: "Add gyms you frequently visit to your profile",
+    myGymsDescription: "Add gyms you frequently visit to your favorites",
     addGymButtonLabel: "Add gym",
     preferencesSectionLabel: "Preferences",
     privateAccountTitle: "Private account",
@@ -245,13 +248,13 @@ const en = {
     cancelAction: "Cancel",
     timeElapsedLabel: "Time elapsed:",
     totalVolumeLabel: "Total volume:",
-    timeSinceLastSetLabel: "Resting (set):",
+    timeSinceLastSetLabel: "Resting:",
     rpeNullLabel: "None",
     ongoingWorkoutLabel: "Ongoing workout",
     gymPickerScreenTitle: "Select gym",
     emptyFavoriteGymsMessage:
       "You do not have any favorite gyms yet, favorite a gym to automatically set your workout location.",
-    noFavoriteGymFoundMessage: "Seems like you are not near any of your favorite gyms!",
+    noFavoriteGymFoundMessage: "Seems like you are not near any of your favorite gyms",
     favoriteGymFoundMessage: "Setting workout location to {{gymName}}",
   },
   editWorkoutScreen: {
@@ -284,14 +287,16 @@ const en = {
     workoutIsHiddenMessage: "This workout is hidden and only visible to you",
     workoutEditedMessage:
       "This workout has been edited so personal records may not be accurate or missing.",
-    newRecordsMessage: "Congratulations! You have set {{newRecordsCount}} new personal record!",
+    newRecordsMessageForYou:
+      "Congratulations! You have set {{newRecordsCount}} new personal record!",
+    newRecordsMessageForOthers:
+      "Say congrats! {{displayName}} has set {{newRecordsCount}} new personal record!",
   },
   exerciseSummary: {
     userExerciseHistoryHiddenMessage: "This user has hidden their exercise history",
   },
   workoutSummaryMenu: {
     editWorkoutButtonLabel: "Edit workout",
-    // workoutTitleLabel: "Workout title",
     deleteWorkoutAlertTitle: "Delete workout",
     deleteWorkoutAlertMessage: "Are you sure you want to delete this workout?",
     deleteWorkoutSuccessMessage: "Workout deleted",
@@ -337,7 +342,7 @@ const en = {
     setAsBlankLabel: "Set as blank",
     requiredFieldsMissingMessage: "Please fill out all required fields",
     exerciseName: "Exercise name",
-    addExerciseButton: "Add exercise",
+    addExerciseButton: "Create exercise",
   },
   exerciseEntrySettings: {
     restTimerEnabledLabel: "Enabled",
@@ -349,7 +354,7 @@ const en = {
   createNewGymScreen: {
     createNewGymTitle: "Create a new gym",
     howToCreateANewGymMessage:
-      "Select from one of the search results, verify the name and address, and create your gym!",
+      "Select from one of the search results, verify the name and address, and create your gym",
     gymNameLabel: "Gym name",
     gymNamePlaceholder: "Filled in when you select a gym from the search results",
     gymLocationLabel: "Gym address",
@@ -395,8 +400,8 @@ const en = {
   },
   userSearch: {
     searchBarPlaceholder: "Search for a user",
-    inviteFriendsButtonLabel: "Invite your friends to GYMRAPP",
-    searchPromptMessage: "Find your friends on GYMRAPP now!",
+    inviteFriendsButtonLabel: "Invite your friends to Gymrapp",
+    searchPromptMessage: "Find your friends on Gymrapp now!",
   },
   discoverScreen: {
     discoverTitle: "Discover",
@@ -422,10 +427,10 @@ const en = {
     newNotificationsTitle: "New",
     olderNotificationsTitle: "Older",
     followRequestsTitle: "Follow requests",
-    commentNotificationMessage: "commented on your workout",
-    likeNotificationMessage: "liked your workout",
-    followRequestNotificationMessage: "requested to follow you",
-    followAcceptedNotificationMessage: "accepted your follow request",
+    commentNotificationMessage: "{{senderDisplayName}} commented on your workout",
+    likeNotificationMessage: "{{senderDisplayName}} liked your workout",
+    followRequestNotificationMessage: "{{senderDisplayName}} requested to follow you",
+    followAcceptedNotificationMessage: "{{senderDisplayName}} accepted your follow request",
     markAllAsReadButtonLabel: "Mark all as read",
   },
 }

@@ -1,5 +1,6 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import {
+  Avatar,
   Button,
   Icon,
   LoadingIndicator,
@@ -14,6 +15,7 @@ import { GymDetails, GymMember, UserId, WorkoutId } from "app/data/types"
 import { useToast } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
+import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { api } from "app/services/api"
 import { IUserModel, IWorkoutSummaryModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
@@ -58,7 +60,7 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
         gymId,
         noMoreItems,
         newLastWorkoutId,
-        workouts,
+        // workouts,
       })
       setLastWorkoutId(newLastWorkoutId)
       setNoMoreWorkouts(noMoreItems)
@@ -87,12 +89,11 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
     return (
       <FlatList
         data={gymWorkouts}
-        renderItem={({ item, index }) => {
+        renderItem={({ item }) => {
           if (!gymMemberProfiles[item.byUserId]) return null
 
           return (
             <>
-              {/* <Text>{index}</Text> */}
               <WorkoutSummaryCard
                 workout={item}
                 workoutSource={WorkoutSource.OtherUser}
@@ -106,10 +107,8 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
         keyExtractor={(item) => item.workoutId}
         onEndReachedThreshold={0.5}
         onEndReached={loadMoreGymWorkouts}
-        ListFooterComponent={() => {
-          if (loadingWorkouts) return <LoadingIndicator />
-
-          if (gymWorkouts.length === 0) {
+        ListEmptyComponent={() => {
+          if (!loadingWorkouts) {
             return (
               <View style={styles.alignCenter}>
                 <Spacer type="vertical" size="medium" />
@@ -118,7 +117,12 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
             )
           }
 
-          if (noMoreWorkouts) {
+          return null
+        }}
+        ListFooterComponent={() => {
+          if (loadingWorkouts) return <LoadingIndicator />
+
+          if (noMoreWorkouts && gymWorkouts?.length > 0) {
             return (
               <View style={styles.alignCenter}>
                 <Spacer type="vertical" size="medium" />
@@ -141,13 +145,14 @@ interface GymMembersTabSceneProps {
 const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
   (props: GymMembersTabSceneProps) => {
     const { gymId } = props
-    const { themeStore, gymStore } = useStores()
+    const { themeStore, gymStore, userStore } = useStores()
     const [gymMemberProfiles, setGymMemberProfiles] = useState<{
       [userId: string]: GymMember & IUserModel
     }>({})
     const [lastMemberId, setLastMemberId] = useState<UserId>()
     const [noMoreMembers, setNoMoreMembers] = useState(false)
     const [loadingMembers, setLoadingMembers] = useState(false)
+    const mainNavigation = useMainNavigation()
 
     const sortedGymMembers = Object.values(gymMemberProfiles).sort(
       (a, b) => (b.workoutsCount ?? 0) - (a.workoutsCount ?? 0),
@@ -193,10 +198,27 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
 
     const GymMemberTile = (gymMember: GymMember & IUserModel) => {
       return (
-        <RowView style={$tileContainer}>
-          <Text>{`${gymMember.firstName} ${gymMember.lastName}`}</Text>
-          <Text>{gymMember.workoutsCount ?? 0}</Text>
-        </RowView>
+        <TouchableOpacity
+          onPress={() => {
+            if (gymMember.userId !== userStore.userId)
+              mainNavigation.navigate("ProfileVisitorView", { userId: gymMember.userId })
+          }}
+        >
+          <RowView style={$tileContainer}>
+            <RowView style={styles.alignCenter}>
+              <Avatar user={gymMember} size="xs" />
+              <Spacer type="horizontal" size="extraSmall" />
+              <Text>{`${gymMember.firstName} ${gymMember.lastName}`}</Text>
+              {gymMember.userId === userStore.userId && (
+                <>
+                  <Spacer type="horizontal" size="extraSmall" />
+                  <Text text={`(${translate("common.you")})`} />
+                </>
+              )}
+            </RowView>
+            <Text>{gymMember.workoutsCount ?? 0}</Text>
+          </RowView>
+        </TouchableOpacity>
       )
     }
 
@@ -212,17 +234,14 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
           keyExtractor={(item) => item.userId}
           onEndReachedThreshold={0.5}
           onEndReached={() => !noMoreMembers && loadMoreGymMembers()}
+          ListEmptyComponent={() => (
+            <View style={styles.alignCenter}>
+              <Spacer type="vertical" size="medium" />
+              <Text tx="gymDetailsScreen.noActivityMessage" />
+            </View>
+          )}
           ListFooterComponent={() => {
-            if (sortedGymMembers.length === 0) {
-              return (
-                <View style={styles.alignCenter}>
-                  <Spacer type="vertical" size="medium" />
-                  <Text tx="gymDetailsScreen.noActivityMessage" />
-                </View>
-              )
-            }
-
-            if (noMoreMembers) {
+            if (noMoreMembers && sortedGymMembers?.length > 0) {
               return (
                 <View style={styles.alignCenter}>
                   <Spacer type="vertical" size="medium" />
