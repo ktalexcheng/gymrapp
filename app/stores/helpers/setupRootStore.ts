@@ -9,9 +9,9 @@
  *
  * @refresh reset
  */
+import { storage, storageKeys } from "app/services"
 import * as Application from "expo-application"
 import { IDisposer, applySnapshot, onSnapshot } from "mobx-state-tree"
-import * as storage from "../../utils/storage"
 import { RootStore, RootStoreSnapshot } from "../RootStore"
 
 /**
@@ -24,22 +24,22 @@ export async function setupRootStore(rootStore: RootStore) {
 
   try {
     // Anytime a new build is detected, we'll want to clear out the old state
-    const lastKnownBuildVersion = await storage.load("BUILD_VERSION_STORAGE_KEY")
+    const lastKnownBuildVersion = await storage.getData(storageKeys.BUILD_VERSION)
     console.debug("setupRootStore: Checking build version", {
       lastKnownBuildVersion,
       thisBuildVersion,
     })
     if (lastKnownBuildVersion !== thisBuildVersion) {
       console.debug("setupRootStore: Build version changed, clearing state")
-      await storage.remove("ROOT_STATE_STORAGE_KEY")
+      await storage.deleteData(storageKeys.ROOT_STORE_STATE)
     } else {
       // load the last known state from AsyncStorage
       console.debug("setupRootStore: Loading root store snapshot from AsyncStorage")
-      restoredState = (await storage.load("ROOT_STATE_STORAGE_KEY")) as RootStoreSnapshot
+      restoredState = (await storage.getData(storageKeys.ROOT_STORE_STATE)) as RootStoreSnapshot
       applySnapshot(rootStore, restoredState)
     }
 
-    await storage.save("BUILD_VERSION_STORAGE_KEY", thisBuildVersion)
+    await storage.storeData(storageKeys.BUILD_VERSION, thisBuildVersion)
   } catch (e: any) {
     // if there's any problems loading, then inform the dev what happened
     if (__DEV__) {
@@ -52,7 +52,9 @@ export async function setupRootStore(rootStore: RootStore) {
   if (_disposer) _disposer()
 
   // track changes & save to AsyncStorage
-  _disposer = onSnapshot(rootStore, (snapshot) => storage.save("ROOT_STATE_STORAGE_KEY", snapshot))
+  _disposer = onSnapshot(rootStore, (snapshot) =>
+    storage.storeData(storageKeys.ROOT_STORE_STATE, snapshot),
+  )
 
   const unsubscribe = () => {
     _disposer()

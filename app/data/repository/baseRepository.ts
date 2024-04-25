@@ -461,37 +461,6 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
       logError(e, "Error creating document with data:", { data, convertedData })
       throw new RepositoryError(this.#repositoryId, `Error creating document: ${e}`)
     }
-
-    // try {
-    //   // This extra read is required so we can get the document with server-side information
-    //   // e.g. the resolved value for firestore.FieldValue.serverTimestamp()
-    //   // IMPORTANT: The read from cache will error if the document has not been retrieved with a get() from the server first
-    //   // i.e. If we set() a new document and then immediately get() it, it will error
-    //   console.debug(
-    //     "firestore.FieldValue.serverTimestamp()",
-    //     firestore.FieldValue.serverTimestamp(),
-    //   )
-    //   const newDocSnapshot = await newDocRef.get({ source: offline ? "cache" : "default" })
-    //   const newDocData = this._processDocumentSnapshot(newDocSnapshot)
-
-    //   const cacheData = {
-    //     [this.#documentIdField]: docId,
-    //     ...newDocData,
-    //   } as T
-    //   this._setCacheData(docId, {
-    //     timestamp: Date.now(),
-    //     data: cacheData,
-    //     type: CacheDataType.Single,
-    //   })
-
-    //   return cacheData
-    // } catch (e) {
-    //   console.error(`Error getting the newly created document ${docId}: ${e}`)
-    //   throw new RepositoryError(
-    //     this.#repositoryId,
-    //     `Error getting the newly created document ${docId}: ${e}`,
-    //   )
-    // }
   }
 
   async update(
@@ -543,9 +512,10 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
   async upsert(
     id: D,
     data: { [P in keyof T]?: T[P] | FirebaseFirestoreTypes.FieldValue | null },
+    isOffline = false,
   ): Promise<T> {
     // upsert() is just an alias for update() with useSetMerge = true
-    return await this.update(id, data, true)
+    return await this.update(id, data, true, isOffline)
   }
 
   async delete(id: D): Promise<void> {

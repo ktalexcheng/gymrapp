@@ -8,7 +8,7 @@ type SwitchSettingTileProps = {
   titleTx: TxKeyPath
   descriptionTx: TxKeyPath
   toggleState: boolean
-  onToggle: () => void
+  onToggle: (value: boolean) => void
   isOnIcon?: React.ReactNode
   isOffIcon?: React.ReactNode
   containerStyle?: ViewStyle
@@ -36,12 +36,12 @@ export const SwitchSettingTile: React.FC<SwitchSettingTileProps> = (
   const SwitchIcon = () => {
     if (props.isOnIcon || props.isOffIcon) {
       return (
-        <TouchableOpacity onPress={onToggle} style={$iconButton}>
+        <TouchableOpacity onPress={() => onToggle(!toggleState)} style={$iconButton}>
           {toggleState ? props.isOnIcon : props.isOffIcon}
         </TouchableOpacity>
       )
     } else {
-      return <Toggle variant="switch" value={toggleState} onPress={onToggle} />
+      return <Toggle variant="switch" value={toggleState} onPress={() => onToggle(!toggleState)} />
     }
   }
 

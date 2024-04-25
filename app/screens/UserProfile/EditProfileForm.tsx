@@ -2,7 +2,9 @@ import { useFocusEffect } from "@react-navigation/native"
 import {
   Avatar,
   Button,
+  Divider,
   Icon,
+  LoadingIndicator,
   Modal,
   Picker,
   RestTimePicker,
@@ -15,16 +17,17 @@ import {
   AppColorScheme,
   AppColorSchemeLabelValuePairs,
   AppLocale,
+  AppLocaleLabel,
   AppLocaleLabelValuePairs,
   UserErrorType,
   WeightUnit,
 } from "app/data/constants"
 import { Gym, User } from "app/data/types"
 import { useLocale, useToast } from "app/hooks"
-import { translate } from "app/i18n"
+import { translate, TxKeyPath } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
-import { styles } from "app/theme"
+import { spacing, styles } from "app/theme"
 import { formatSecondsAsTime } from "app/utils/formatTime"
 import { logError } from "app/utils/logger"
 import * as Device from "expo-device"
@@ -42,6 +45,113 @@ import {
 } from "react-native"
 import { Popover } from "tamagui"
 import { SwitchSettingTile } from "./UserSettingTile"
+
+type PreferenceListItemProps = {
+  disabled?: boolean
+  preferenceId: string
+  preferenceNameLabelTx: TxKeyPath
+  preferenceDescriptionLabelTx?: TxKeyPath
+  currentValue: any
+  currentValueFormatted?: any
+  TooltipComponent?: React.ComponentType
+  overrideOnPress?: () => void
+  onValueChange?: (value: any) => void
+  /**
+   * selectedValue and onSelectionChange control the temporary state of the picker,
+   * the final value is only pass to onValueChange when the user confirms the selection
+   */
+  PickerComponent?: React.ComponentType<{
+    selectedValue: any
+    onSelectionChange: (value: any) => void
+  }>
+}
+
+const PreferenceListItem = observer((props: PreferenceListItemProps) => {
+  const {
+    disabled = false,
+    preferenceId,
+    preferenceNameLabelTx,
+    preferenceDescriptionLabelTx,
+    currentValue,
+    currentValueFormatted,
+    TooltipComponent,
+    overrideOnPress,
+    onValueChange,
+    PickerComponent,
+  } = props
+
+  const [showModal, setShowModal] = useState(false)
+  const [selectedValue, setSelectedValue] = useState<any>(currentValue)
+
+  const $container: ViewStyle = {
+    alignItems: "center",
+    justifyContent: "space-between",
+  }
+
+  const $preferenceLabelContainer: ViewStyle = {
+    flex: 1,
+    alignItems: "center",
+    overflow: "hidden",
+  }
+
+  const PreferenceListItemDisplay = () => (
+    <RowView style={[$container, disabled && styles.disabled]}>
+      <RowView style={$preferenceLabelContainer}>
+        <Text tx={preferenceNameLabelTx} preset="formLabel" />
+        {TooltipComponent && (
+          <>
+            <Spacer type="horizontal" size="tiny" />
+            <TooltipComponent />
+          </>
+        )}
+      </RowView>
+      <Spacer type="horizontal" size="small" />
+      <RowView style={styles.alignCenter}>
+        <Text text={currentValueFormatted ?? currentValue} />
+        <Icon name="chevron-forward-outline" size={30} />
+      </RowView>
+    </RowView>
+  )
+
+  if (overrideOnPress) {
+    return (
+      <TouchableOpacity key={preferenceId} disabled={disabled} onPress={overrideOnPress}>
+        <PreferenceListItemDisplay />
+      </TouchableOpacity>
+    )
+  } else if (!PickerComponent || !onValueChange) {
+    console.error(
+      "PreferenceListItem: PickerComponent and onValueChange are required if overrideOnPress is not provided",
+    )
+    return null
+  }
+
+  return (
+    <>
+      <TouchableOpacity key={preferenceId} disabled={disabled} onPress={() => setShowModal(true)}>
+        <PreferenceListItemDisplay />
+      </TouchableOpacity>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showModal}
+        onRequestClose={() => setShowModal(false)}
+      >
+        {preferenceDescriptionLabelTx && <Text tx={preferenceDescriptionLabelTx} />}
+        <PickerComponent selectedValue={selectedValue} onSelectionChange={setSelectedValue} />
+        <Button
+          tx="common.ok"
+          preset="text"
+          onPress={() => {
+            onValueChange(selectedValue)
+            setShowModal(false)
+          }}
+        />
+      </Modal>
+    </>
+  )
+})
 
 type EditProfileFormProps = {
   saveProfileCompletedCallback: () => void
@@ -67,7 +177,6 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   const [appLocale, setAppLocale] = useState(AppLocale.en_US)
   const [autoRestTimerEnabled, setAutoRestTimerEnabled] = useState(false)
   const [restTime, setRestTime] = useState(0)
-  const [showRestTimePicker, setShowRestTimePicker] = useState(false)
   const [myGyms, setMyGyms] = useState<Gym[]>([])
   const [_, setLocale] = useLocale()
 
@@ -117,7 +226,37 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
       return false
     }
 
-    setHasUnsavedChanges(checkForUnsavedChanges())
+    const hasUnsavedChanges = checkForUnsavedChanges()
+    if (hasUnsavedChanges) {
+      mainNavigator.setOptions({
+        headerBackVisible: false,
+        headerLeft: () => (
+          <Button
+            tx="common.discard"
+            onPress={confirmDiscardChanges}
+            preset="text"
+            style={{ minHeight: 0 }} // eslint-disable-line
+          />
+        ),
+        headerTitleAlign: "center",
+        headerRight: () => (
+          <Button
+            tx="common.save"
+            onPress={saveProfile}
+            preset="text"
+            style={{ minHeight: 0 }} // eslint-disable-line
+          />
+        ),
+      })
+    } else {
+      mainNavigator.setOptions({
+        headerBackVisible: true,
+        headerLeft: undefined,
+        headerRight: undefined,
+      })
+    }
+
+    setHasUnsavedChanges(hasUnsavedChanges)
   }, [
     userHandle,
     firstName,
@@ -135,7 +274,6 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
     // Populate form with user profile data
     if (userStore.isLoadingProfile) return
 
-    // if (!userStore.isLoadingProfile && !isAutofilled) {
     console.debug("EditProfileForm autofilling form with current user profile data")
     setUserHandle(userStore.getPropAsJS("user.userHandle"))
     setFirstName(userStore.getPropAsJS("user.firstName"))
@@ -255,6 +393,13 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
   const saveProfile = async () => {
     if (isInvalidForm() || !authStore.userId) return
 
+    mainNavigator.setOptions({
+      headerBackVisible: false,
+      headerLeft: undefined,
+      headerTitleAlign: "center",
+      headerRight: () => <LoadingIndicator />,
+    })
+
     onBusyChange && onBusyChange(true)
 
     try {
@@ -323,234 +468,199 @@ export const EditProfileForm: FC<EditProfileFormProps> = observer((props: EditPr
     setImagePath(undefined)
   }
 
-  const renderMyGymsItem = () => {
-    const $itemContainer: ViewStyle = {
-      alignItems: "center",
-      justifyContent: "space-between",
-    }
-
-    if (!myGyms?.length) {
-      return <Text tx="editProfileForm.myGymsDescription" preset="formHelper" />
-    }
-
-    return (
-      <>
-        {myGyms.map((myGym) => {
-          return (
-            <RowView key={myGym.gymId} style={$itemContainer}>
-              <View style={styles.flex3}>
-                <TouchableOpacity
-                  onPress={() => mainNavigator.navigate("GymDetails", { gymId: myGym.gymId })}
-                >
-                  <Text text={myGym.gymName} weight="normal" numberOfLines={1} />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.flex1}>
-                <Button
-                  tx="common.delete"
-                  preset="text"
-                  onPress={() => userStore.removeFromMyGyms(myGym)}
-                />
-              </View>
-            </RowView>
-          )
-        })}
-      </>
-    )
-  }
-
-  return (
-    <>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showRestTimePicker}
-        onRequestClose={() => setShowRestTimePicker(false)}
-      >
-        <Text tx="editProfileForm.defaultRestTimeSelectorLabel" preset="formLabel" />
-        <RestTimePicker initialRestTime={restTime} onRestTimeChange={setRestTime} />
-        <Button tx="common.ok" preset="text" onPress={() => setShowRestTimePicker(false)} />
-      </Modal>
-      <View style={$contentContainer}>
-        <RowView style={$headerContainer}>
-          <Button
-            preset="text"
-            disabled={!mainNavigator.canGoBack()}
-            tx={hasUnsavedChanges ? "common.discard" : "common.back"}
-            onPress={confirmDiscardChanges}
-          />
-          <Button
-            preset="text"
-            tx="common.save"
-            onPress={saveProfile}
-            disabled={!hasUnsavedChanges}
-          />
-        </RowView>
-
-        <Text tx="editProfileForm.editProfileTitle" preset="screenTitle" />
-
-        <Spacer type="vertical" size="large" />
-        <Text tx="editProfileForm.aboutYouSectionLabel" preset="subheading" />
-
-        <TextField
-          status={userHandleError ? "error" : null}
-          value={userHandle}
-          onChangeText={setUserHandle}
-          containerStyle={styles.formFieldTopMargin}
-          autoCapitalize="none"
-          autoCorrect={false}
-          labelTx="editProfileForm.userHandleLabel"
-          onSubmitEditing={() => firstNameInputRef.current?.focus()}
-          helper={userHandleError ?? userHandleHelper}
-        />
-
-        <View style={styles.formFieldTopMargin}>
-          <Text tx="editProfileForm.uploadAvatarLabel" preset="formLabel" />
-          <View style={$avatar}>
-            <Icon
-              name="close-circle"
-              style={$removeAvatarButton}
-              onPress={removeAvatar}
-              color={themeStore.colors("tint")}
-              size={30}
-            />
-            <TouchableOpacity onPress={pickImage}>
-              <Avatar imageUrl={imagePath} user={userStore.user} size="xxl" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <TextField
-          ref={firstNameInputRef}
-          status={firstNameError ? "error" : null}
-          value={firstName}
-          onChangeText={setFirstName}
-          containerStyle={styles.formFieldTopMargin}
-          autoCapitalize="words"
-          autoCorrect={false}
-          labelTx="common.firstName"
-          onSubmitEditing={() => lastNameInputRef.current?.focus()}
-          helper={firstNameError}
-        />
-
-        <TextField
-          ref={lastNameInputRef}
-          status={lastNameError ? "error" : null}
-          value={lastName}
-          onChangeText={setLastName}
-          containerStyle={styles.formFieldTopMargin}
-          autoCapitalize="words"
-          autoCorrect={false}
-          labelTx="common.lastName"
-          helper={lastNameError}
-        />
-
-        <View style={styles.formFieldTopMargin}>
-          <RowView style={styles.justifyBetween}>
-            <Text tx="editProfileForm.myGymsLabel" preset="formLabel" />
-            {userStore.profileIncomplete && (
-              <Popover placement="bottom-end">
-                <Popover.Trigger>
-                  <Icon name="information-circle-outline" size={24} />
-                </Popover.Trigger>
-
-                <Popover.Content unstyled style={themeStore.styles("walkthroughPopoverContainer")}>
-                  <Text
-                    tx="editProfileForm.availableAfterProfileCreatedMessage"
-                    preset="formHelper"
-                  />
-                </Popover.Content>
-              </Popover>
-            )}
-          </RowView>
-          <View
-            style={userStore.profileIncomplete ? styles.disabled : undefined}
-            pointerEvents={userStore.profileIncomplete ? "none" : "auto"}
-          >
-            {renderMyGymsItem()}
-            <Button
-              preset="text"
-              tx="editProfileForm.addGymButtonLabel"
-              onPress={() => mainNavigator.navigate("AddToMyGyms")}
-            />
-          </View>
-        </View>
-
-        <Spacer type="vertical" size="large" />
-        <Text tx="editProfileForm.preferencesSectionLabel" preset="subheading" />
-
+  const preferencesData: PreferenceListItemProps[] = [
+    {
+      preferenceId: "privateAccount",
+      preferenceNameLabelTx: "editProfileForm.privateAccountTitle",
+      // preferenceDescriptionLabelTx: "editProfileForm.privateAccountDescription",
+      currentValue: privateAccount,
+      currentValueFormatted: privateAccount ? translate("common.yes") : translate("common.no"),
+      onValueChange: setPrivateAccount,
+      PickerComponent: ({ selectedValue, onSelectionChange }) => (
         <SwitchSettingTile
           titleTx="editProfileForm.privateAccountTitle"
           descriptionTx="editProfileForm.privateAccountDescription"
-          containerStyle={styles.formFieldTopMargin}
-          toggleState={privateAccount}
+          toggleState={selectedValue}
           isOffIcon={<Icon name="lock-open-outline" size={30} />}
           isOnIcon={<Icon name="lock-closed" size={30} />}
-          onToggle={() => setPrivateAccount(!privateAccount)}
+          onToggle={onSelectionChange}
         />
+      ),
+    },
+    {
+      disabled: userStore.profileIncomplete,
+      preferenceId: "myGyms",
+      preferenceNameLabelTx: "editProfileForm.myGymsLabel",
+      TooltipComponent: () => {
+        if (userStore.profileIncomplete) {
+          return (
+            <Popover placement="bottom-end">
+              <Popover.Trigger>
+                <Icon name="information-circle-outline" size={24} />
+              </Popover.Trigger>
 
+              <Popover.Content unstyled style={themeStore.styles("walkthroughPopoverContainer")}>
+                <Text
+                  tx="editProfileForm.availableAfterProfileCreatedMessage"
+                  preset="formHelper"
+                />
+              </Popover.Content>
+            </Popover>
+          )
+        }
+        return null
+      },
+      currentValue: myGyms?.length ?? 0,
+      overrideOnPress: () => mainNavigator.navigate("ManageMyGyms"),
+    },
+    {
+      preferenceId: "weightUnit",
+      preferenceNameLabelTx: "editProfileForm.weightUnitLabel",
+      currentValue: weightUnit,
+      currentValueFormatted: translate(("common." + weightUnit) as TxKeyPath),
+      onValueChange: setWeightUnit,
+      PickerComponent: ({ selectedValue, onSelectionChange }) => (
         <Picker
-          containerStyle={styles.formFieldTopMargin}
-          onValueChange={(value: WeightUnit) => setWeightUnit(value)}
+          onValueChange={onSelectionChange}
           labelTx="editProfileForm.weightUnitLabel"
           itemsList={[
-            { label: WeightUnit.kg, value: WeightUnit.kg },
-            { label: WeightUnit.lbs, value: WeightUnit.lbs },
+            { label: translate(("common." + WeightUnit.kg) as TxKeyPath), value: WeightUnit.kg },
+            { label: translate(("common." + WeightUnit.lbs) as TxKeyPath), value: WeightUnit.lbs },
           ]}
-          selectedValue={weightUnit}
+          selectedValue={selectedValue}
         />
-
+      ),
+    },
+    {
+      preferenceId: "autoRestTimer",
+      preferenceNameLabelTx: "editProfileForm.autoRestTimerLabel",
+      currentValue: autoRestTimerEnabled,
+      currentValueFormatted: autoRestTimerEnabled
+        ? translate("common.yes")
+        : translate("common.no"),
+      onValueChange: setAutoRestTimerEnabled,
+      PickerComponent: ({ selectedValue, onSelectionChange }) => (
         <SwitchSettingTile
           titleTx="editProfileForm.autoRestTimerLabel"
           descriptionTx="editProfileForm.autoRestTimerDescription"
-          containerStyle={styles.formFieldTopMargin}
-          toggleState={autoRestTimerEnabled}
-          // isOffIcon={<Icon name="radio-button-off" size={30} />}
-          // isOnIcon={<Icon name="radio-button-on" size={30} />}
-          onToggle={() => setAutoRestTimerEnabled((prev) => !prev)}
+          toggleState={selectedValue}
+          onToggle={onSelectionChange}
         />
-
-        <View style={[styles.formFieldTopMargin, !autoRestTimerEnabled && styles.disabled]}>
-          <Text tx="editProfileForm.defaultRestTimeLabel" preset="formLabel" />
-          <Spacer type="vertical" size="small" />
-          <TouchableOpacity
-            style={themeStore.styles("listItemContainer")}
-            onPress={() => setShowRestTimePicker(true)}
-            disabled={!autoRestTimerEnabled}
-          >
-            <Text>{formatSecondsAsTime(restTime)}</Text>
-          </TouchableOpacity>
-        </View>
-
+      ),
+    },
+    {
+      preferenceId: "defaultRestTime",
+      preferenceNameLabelTx: "editProfileForm.defaultRestTimeLabel",
+      currentValue: restTime,
+      currentValueFormatted: formatSecondsAsTime(restTime),
+      onValueChange: setRestTime,
+      PickerComponent: ({ selectedValue, onSelectionChange }) => (
+        <>
+          <Text tx="editProfileForm.defaultRestTimeSelectorLabel" preset="formLabel" />
+          <RestTimePicker initialRestTime={selectedValue} onRestTimeChange={onSelectionChange} />
+        </>
+      ),
+    },
+    {
+      preferenceId: "appLocale",
+      preferenceNameLabelTx: "editProfileForm.appLocaleLabel",
+      currentValue: appLocale,
+      currentValueFormatted: AppLocaleLabel[appLocale],
+      onValueChange: setAppLocale,
+      PickerComponent: ({ selectedValue, onSelectionChange }) => (
         <Picker
-          containerStyle={styles.formFieldTopMargin}
-          onValueChange={(value: AppLocale) => setAppLocale(value)}
+          onValueChange={onSelectionChange}
           labelTx="editProfileForm.appLocaleLabel"
           itemsList={AppLocaleLabelValuePairs()}
-          selectedValue={appLocale}
+          selectedValue={selectedValue}
         />
-
+      ),
+    },
+    {
+      preferenceId: "appColorScheme",
+      preferenceNameLabelTx: "editProfileForm.appAppearanceLabel",
+      currentValue: appColorScheme,
+      currentValueFormatted: translate(`common.colorScheme.${appColorScheme}`),
+      onValueChange: setAppColorScheme,
+      PickerComponent: ({ selectedValue, onSelectionChange }) => (
         <Picker
-          containerStyle={styles.formFieldTopMargin}
-          onValueChange={(value: AppColorScheme) => setAppColorScheme(value)}
+          onValueChange={onSelectionChange}
           labelTx="editProfileForm.appAppearanceLabel"
           itemsList={AppColorSchemeLabelValuePairs()}
-          selectedValue={appColorScheme}
+          selectedValue={selectedValue}
         />
+      ),
+    },
+  ]
+
+  return (
+    <>
+      <View style={$contentContainer}>
+        <Text tx="editProfileForm.aboutYouSectionLabel" preset="subheading" />
+        <View style={$formFieldGap}>
+          <View style={$avatar}>
+            <View>
+              <Icon
+                name="close-circle"
+                style={$removeAvatarButton}
+                onPress={removeAvatar}
+                color={themeStore.colors("tint")}
+                size={30}
+              />
+              <TouchableOpacity onPress={pickImage}>
+                <Avatar imageUrl={imagePath} user={userStore.user} size="xxl" />
+              </TouchableOpacity>
+            </View>
+          </View>
+          <TextField
+            status={userHandleError ? "error" : null}
+            value={userHandle}
+            onChangeText={setUserHandle}
+            autoCapitalize="none"
+            autoCorrect={false}
+            labelTx="editProfileForm.userHandleLabel"
+            onSubmitEditing={() => firstNameInputRef.current?.focus()}
+            helper={userHandleError ?? userHandleHelper}
+          />
+          <RowView style={$formFieldGap}>
+            <TextField
+              ref={firstNameInputRef}
+              status={firstNameError ? "error" : null}
+              value={firstName}
+              onChangeText={setFirstName}
+              containerStyle={styles.flex1}
+              autoCapitalize="words"
+              autoCorrect={false}
+              labelTx="common.firstName"
+              onSubmitEditing={() => lastNameInputRef.current?.focus()}
+              helper={firstNameError}
+            />
+            <TextField
+              ref={lastNameInputRef}
+              status={lastNameError ? "error" : null}
+              value={lastName}
+              onChangeText={setLastName}
+              containerStyle={styles.flex1}
+              autoCapitalize="words"
+              autoCorrect={false}
+              labelTx="common.lastName"
+              helper={lastNameError}
+            />
+          </RowView>
+        </View>
 
         <Spacer type="vertical" size="large" />
 
-        <Button
-          tx="editProfileForm.saveProfileChanges"
-          disabled={!hasUnsavedChanges}
-          onPress={saveProfile}
-        />
-        <Button
-          preset="text"
-          disabled={!mainNavigator.canGoBack()}
-          tx={hasUnsavedChanges ? "common.discard" : "common.back"}
-          onPress={confirmDiscardChanges}
-        />
+        <Text tx="editProfileForm.preferencesSectionLabel" preset="subheading" />
+        <Spacer type="vertical" size="small" />
+        {preferencesData.map((prefData, i) => {
+          return (
+            <View key={prefData.preferenceId}>
+              {i > 0 && <Divider orientation="horizontal" spaceSize={12} lineWidth={0} />}
+              <PreferenceListItem {...prefData} />
+            </View>
+          )
+        })}
       </View>
     </>
   )
@@ -561,15 +671,16 @@ const $contentContainer: ViewStyle = {
   // width: "100%",
 }
 
-const $headerContainer: ViewStyle = {
-  justifyContent: "space-between",
-}
-
 const $avatar: ImageStyle = {
   alignSelf: "center",
+  paddingVertical: spacing.large,
 }
 
 const $removeAvatarButton: ImageStyle = {
   position: "absolute",
   zIndex: 1,
+}
+
+const $formFieldGap: ViewStyle = {
+  gap: spacing.small,
 }

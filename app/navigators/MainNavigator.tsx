@@ -5,7 +5,6 @@ import { FollowRequest, User } from "app/data/types"
 import { translate } from "app/i18n"
 import {
   ActiveWorkoutScreen,
-  AddToMyGymsScreen,
   CreateExerciseScreen,
   CreateNewGymScreen,
   EditWorkoutScreen,
@@ -13,6 +12,7 @@ import {
   ExercisePickerScreen,
   GymDetailsScreen,
   LoadingScreen,
+  ManageMyGymsScreen,
   NotificationsScreen,
   ProfileVisitorViewScreen,
   RestTimerScreen,
@@ -45,6 +45,7 @@ export type MainStackParamList = {
   // ExerciseManager: undefined
   ExerciseDetails: { exerciseId: string }
   UserSettings: undefined
+  ManageMyGyms: undefined
   Notifications: undefined
   WorkoutSummary: {
     workoutSource: WorkoutSource
@@ -53,7 +54,6 @@ export type MainStackParamList = {
     jumpToComments: boolean
   }
   OnboardingNavigator: undefined
-  AddToMyGyms: undefined
   CreateNewGym: { searchString?: string }
   GymDetails: { gymId: string }
   ProfileVisitorView: { userId: string }
@@ -211,7 +211,7 @@ export const MainNavigator = observer(function MainNavigator() {
   }, [isInitialized, authStore.userId, userStore.isLoadingProfile, userStore.profileIncomplete])
 
   return (
-    <MainStack.Navigator screenOptions={{ headerShown: false }} initialRouteName={"Loading"}>
+    <MainStack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Loading">
       <MainStack.Screen name="Loading" component={LoadingScreen} />
       <MainStack.Screen name="OnboardingNavigator" component={OnboardingNavigator} />
       <MainStack.Screen name="HomeTabNavigator" component={HomeTabNavigator} />
@@ -274,7 +274,6 @@ export const MainNavigator = observer(function MainNavigator() {
       </MainStack.Group>
 
       <MainStack.Group>
-        <MainStack.Screen name="AddToMyGyms" component={AddToMyGymsScreen} />
         <MainStack.Screen name="CreateNewGym" component={CreateNewGymScreen} />
         <MainStack.Screen
           name="GymDetails"
@@ -287,11 +286,28 @@ export const MainNavigator = observer(function MainNavigator() {
         />
       </MainStack.Group>
 
-      <MainStack.Screen
-        name="UserSettings"
-        options={{ gestureEnabled: false }}
-        component={UserSettingsScreen}
-      />
+      <MainStack.Group>
+        <MainStack.Screen
+          name="UserSettings"
+          options={{
+            gestureEnabled: false,
+            headerShown: true,
+            headerBackTitleVisible: false,
+            headerTitle: translate("editProfileForm.editProfileTitle"),
+          }}
+          component={UserSettingsScreen}
+        />
+        <MainStack.Screen
+          name="ManageMyGyms"
+          component={ManageMyGymsScreen}
+          options={{
+            headerShown: true,
+            title: translate("manageMyGymsScreen.manageMyGymsTitle"),
+            headerBackTitleVisible: false,
+          }}
+        />
+      </MainStack.Group>
+
       <MainStack.Screen name="Notifications" component={NotificationsScreen} />
       <MainStack.Screen
         name="ProfileVisitorView"

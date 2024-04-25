@@ -83,9 +83,6 @@ export const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.screenPadding,
   },
-  formFieldTopMargin: {
-    marginTop: spacing.large,
-  },
   disabled: {
     opacity: 0.5,
   },

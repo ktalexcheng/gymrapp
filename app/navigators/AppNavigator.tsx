@@ -10,28 +10,21 @@ import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { Icon, RowView, Spacer, Text } from "app/components"
 import { AppColorScheme, AppLocale } from "app/data/constants"
-import { translate } from "app/i18n"
 import { LoadingScreen } from "app/screens"
-import { api } from "app/services/api"
 import { spacing } from "app/theme"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
 import Constants from "expo-constants"
 import * as NavigationBar from "expo-navigation-bar"
-import { setStatusBarStyle } from "expo-status-bar"
+import {
+  setStatusBarBackgroundColor,
+  setStatusBarStyle,
+  setStatusBarTranslucent,
+} from "expo-status-bar"
 import { observer } from "mobx-react-lite"
 import React, { useCallback, useEffect, useState } from "react"
 
 import { useInternetStatus, useLocale, useToast } from "app/hooks"
-import {
-  Alert,
-  AlertButton,
-  AppState,
-  Linking,
-  Platform,
-  StyleProp,
-  ViewStyle,
-  useColorScheme,
-} from "react-native"
+import { Platform, StyleProp, ViewStyle, useColorScheme } from "react-native"
 import Config from "../config"
 import { useStores } from "../stores"
 import { darkColors, lightColors } from "../theme/colors"
@@ -55,7 +48,6 @@ import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
 export type AppStackParamList = {
   Welcome: undefined
   // 🔥 Your screens go here
-  AppDisabled: undefined
   MainNavigator: undefined
   AuthNavigator: undefined
   // IGNITE_GENERATOR_ANCHOR_APP_STACK_PARAM_LIST
@@ -76,152 +68,30 @@ export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStack
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = observer(() => {
-  const { authenticationStore: authStore, userStore, feedStore, exerciseStore } = useStores()
-  const [forceUpdate, setForceUpdate] = useState(false)
-  const [checkUpdateError, setCheckUpdateError] = useState(false)
-  const [isInitializing, setIsInitializing] = useState(true) // To prevent initial route flicker
-
-  // Handle user state changes
-  async function onAuthStateChanged(user: FirebaseAuthTypes.User | null) {
-    // Update authentication and user data
-    if (user) {
-      console.debug("onAuthStateChanged received valid user", { user })
-      authStore.setFirebaseUser(user)
-      // Don't load user data if email is not verified
-      if (user.emailVerified) {
-        console.debug("onAuthStateChanged user is email verified")
-        await userStore.loadUserWithId(user.uid)
-      }
-    } else {
-      console.debug("onAuthStateChanged received invalid user, invalidating session")
-      await authStore.invalidateSession()
-      userStore.invalidateSession()
-      feedStore.resetFeed()
-    }
-
-    setIsInitializing(false)
-  }
-
-  useEffect(() => {
-    // Check for updates
-    const checkForUpdates = async () => {
-      try {
-        // const appLastUpdated = await storage.getAppLastUpdated()
-        // console.debug("AppNavigator.checkForUpdates appLastUpdated:", appLastUpdated)
-        // if (appLastUpdated && Date.now() - appLastUpdated < Config.checkAppUpdateInterval) {
-        //   console.debug("AppNavigator.checkForUpdates: app updated < 24 hours, skipping")
-        //   return
-        // }
-
-        setCheckUpdateError(false)
-
-        let updates
-        if (exerciseStore.lastUpdated) {
-          updates = await api.checkForUpdates(exerciseStore.lastUpdated)
-          console.debug("AppNavigator.checkForUpdates response:", updates)
-        }
-
-        if (updates && updates.updateAvailable) {
-          if (updates.forceUpdate) {
-            setForceUpdate(true)
-          }
-
-          const alertButtons: AlertButton[] = [
-            {
-              text: translate("updateApp.update"),
-              onPress: () => {
-                Linking.openURL(updates.updateLink)
-              },
-            },
-          ]
-
-          if (!updates.forceUpdate) {
-            alertButtons.push({
-              text: translate("common.cancel"),
-              onPress: () => {},
-              style: "cancel",
-            })
-          }
-
-          Alert.alert(
-            updates.forceUpdate
-              ? translate("updateApp.forceUpdateTitle")
-              : translate("updateApp.updateAvailableTitle"),
-            updates.forceUpdate
-              ? translate("updateApp.forceUpdateMessage")
-              : translate("updateApp.updateAvailableMessage"),
-            alertButtons,
-          )
-        }
-
-        // Exercise update is done in MainNavigator on each app start
-        // if (updates && updates.exercisesUpdateAvailable && authStore.isAuthenticated) {
-        //   await exerciseStore.getAllExercises()
-        // }
-
-        // Set last updated timestamp only if successful
-        // await storage.setAppLastUpdated()
-      } catch (e) {
-        console.warn("AppNavigator.checkForUpdates failed:", e)
-        setCheckUpdateError(true)
-      }
-    }
-    checkForUpdates()
-
-    // Refresh authentication status by freshing token
-    // Not sure if this is necessary
-    // authStore.refreshAuthToken()
-
-    // onAuthStateChanged is fired upon app initialization as well
-    const unsubscribeAuthChange = auth().onAuthStateChanged(onAuthStateChanged)
-
-    // Check for updates when app is resumed
-    const subscribeAppStateChange = AppState.addEventListener("change", (state) => {
-      if (state === "active") {
-        console.debug("AppNavigator.subscribeAppStateChange: app resumed")
-        checkForUpdates()
-      }
-    })
-
-    return () => {
-      unsubscribeAuthChange()
-      subscribeAppStateChange.remove()
-    }
-  }, [])
-
-  useEffect(() => {
-    if (checkUpdateError) {
-      Alert.alert(
-        translate("common.error.unknownErrorMessage"),
-        translate("updateApp.checkForUpdateErrorMessage"),
-        [
-          {
-            text: translate("common.ok"),
-            onPress: () => {},
-            style: "cancel",
-          },
-        ],
-      )
-    }
-  }, [checkUpdateError])
+  const { authenticationStore: authStore } = useStores()
 
   const setInitialRouteName = useCallback(() => {
-    return forceUpdate
-      ? "AppDisabled"
-      : authStore.isAuthenticated
-      ? "MainNavigator"
-      : "AuthNavigator"
-  }, [forceUpdate, checkUpdateError, authStore.isAuthenticated])
+    return authStore.isAuthenticated ? "MainNavigator" : "AuthNavigator"
+  }, [authStore.isAuthenticated])
 
   const setStackScreen = useCallback(() => {
-    return forceUpdate || isInitializing ? (
-      <Stack.Screen name="AppDisabled" component={LoadingScreen} />
-    ) : authStore.isAuthenticated ? (
+    if (__DEV__ && Config.persistNavigation === "dev") {
+      // For development, we will put all screens in the stack to support state persistence
+      // In production, we will only have the appropriate screen based on the user's authentication state
+      return (
+        <>
+          <Stack.Screen name="MainNavigator" component={MainNavigator} />
+          <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
+        </>
+      )
+    }
+
+    return authStore.isAuthenticated ? (
       <Stack.Screen name="MainNavigator" component={MainNavigator} />
     ) : (
       <Stack.Screen name="AuthNavigator" component={AuthNavigator} />
     )
-  }, [forceUpdate, checkUpdateError, isInitializing, authStore.isAuthenticated])
+  }, [authStore.isAuthenticated])
 
   return (
     <Stack.Navigator
@@ -237,9 +107,10 @@ export interface NavigationProps
   extends Partial<React.ComponentProps<typeof NavigationContainer>> {}
 
 export const AppNavigator = observer((props: NavigationProps) => {
-  const { userStore, themeStore, feedStore } = useStores()
+  const { authenticationStore: authStore, userStore, themeStore, feedStore } = useStores()
   const systemColorScheme = useColorScheme() // Initial system color scheme
   const [isInternetConnectState, setIsInternetConnectState] = useState<boolean>()
+  const [isInitializing, setIsInitializing] = useState(true) // To prevent initial route flicker
   const [isInternetConnected] = useInternetStatus()
   const [showToastTx] = useToast()
   const [_, setLocale] = useLocale()
@@ -260,6 +131,8 @@ export const AppNavigator = observer((props: NavigationProps) => {
 
     setStatusBarStyle(themeStore.isDark ? "light" : "dark", true)
     if (Platform.OS === "android") {
+      setStatusBarBackgroundColor(themeStore.colors("background"), true)
+      setStatusBarTranslucent(true)
       NavigationBar.setBackgroundColorAsync(themeStore.colors("background"))
       NavigationBar.setButtonStyleAsync(themeStore.isDark ? "light" : "dark")
     }
@@ -303,6 +176,37 @@ export const AppNavigator = observer((props: NavigationProps) => {
       handleNetworkChange(isInternetConnected)
     }
   }, [isInternetConnected])
+
+  // Handle user state changes
+  async function onAuthStateChanged(user: FirebaseAuthTypes.User | null) {
+    // Update authentication and user data
+    if (user) {
+      console.debug("onAuthStateChanged received valid user", { user })
+      authStore.setFirebaseUser(user)
+      // Don't load user data if email is not verified
+      if (user.emailVerified) {
+        console.debug("onAuthStateChanged user is email verified")
+        await userStore.loadUserWithId(user.uid)
+      }
+    } else {
+      console.debug("onAuthStateChanged received invalid user, invalidating session")
+      await authStore.invalidateSession()
+      userStore.invalidateSession()
+      feedStore.resetFeed()
+    }
+
+    // This is to prevent the initial route flicker when the app is first loaded and auth state refreshes
+    setIsInitializing(false)
+  }
+
+  useEffect(() => {
+    // onAuthStateChanged is fired upon app initialization as well
+    const unsubscribeAuthChange = auth().onAuthStateChanged(onAuthStateChanged)
+
+    return () => {
+      unsubscribeAuthChange()
+    }
+  }, [])
 
   const envMode = Constants.expoConfig?.extra?.gymrappEnvironment
 
@@ -360,6 +264,8 @@ export const AppNavigator = observer((props: NavigationProps) => {
   }
 
   useBackButtonHandler((routeName) => exitRoutes.includes(routeName))
+
+  if (isInitializing) return <LoadingScreen />
 
   return (
     <NavigationContainer

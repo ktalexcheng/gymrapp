@@ -42,7 +42,7 @@ admin.initializeApp()
 const firebaseApp = initializeApp(require(process.env.FIREBASE_WEB_CONFIG))
 const firebaseFunctionsClient = getFunctions(firebaseApp)
 console.log("Firebase project ID:", firebaseApp.options.projectId)
-console.log("Pause")
+console.log("Initiating Jest tests")
 
 jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock"),

@@ -126,6 +126,7 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
     borderWidth: 1,
     borderColor: themeStore.colors("border"),
     padding: spacing.small,
+    gap: spacing.small,
   }
 
   return (
@@ -156,7 +157,6 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
               labelTx="createNewGymScreen.gymNameLabel"
               placeholderTx="createNewGymScreen.gymNamePlaceholder"
               multiline={true}
-              // containerStyle={styles.formFieldTopMargin}
               value={gymName}
               RightAccessory={() => !!gymName && <Icon name="checkmark-circle" size={24} />}
             />
@@ -165,7 +165,6 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
               labelTx="createNewGymScreen.gymLocationLabel"
               placeholderTx="createNewGymScreen.gymLocationPlaceholder"
               multiline={true}
-              containerStyle={styles.formFieldTopMargin}
               value={gymAddress}
               // onChangeText={handleManualGymAddressChange}
               RightAccessory={() => !!gymAddress && <Icon name="checkmark-circle" size={24} />}

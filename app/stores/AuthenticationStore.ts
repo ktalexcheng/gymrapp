@@ -3,7 +3,6 @@ import crashlytics from "@react-native-firebase/crashlytics"
 import { GoogleSignin } from "@react-native-google-signin/google-signin"
 import { defaultAppLocale } from "app/utils/appLocale"
 import { logError } from "app/utils/logger"
-import * as storage from "app/utils/storage"
 import * as AppleAuthentication from "expo-apple-authentication"
 import Constants from "expo-constants"
 import * as Crypto from "expo-crypto"
@@ -181,7 +180,6 @@ export const AuthenticationStoreModel = types
       }
       self.firebaseUserCredential = undefined
       self.authToken = undefined
-      yield storage.remove("CURRENT_USER_ID_STORAGE_KEY")
     })
 
     // @ts-ignore
@@ -247,7 +245,6 @@ export const AuthenticationStoreModel = types
       self.isEmailVerified = firebaseUser.emailVerified
       refreshAuthToken()
       crashlytics().setUserId(firebaseUser.uid)
-      storage.saveString("CURRENT_USER_ID_STORAGE_KEY", firebaseUser.uid)
       self.isAuthenticating = false
     }
 
@@ -270,7 +267,10 @@ export const AuthenticationStoreModel = types
           email: firebaseUserCredential.user.email,
           emailVerified: firebaseUserCredential.user.emailVerified,
           photoURL: firebaseUserCredential.user.photoURL,
-          providerId: firebaseUserCredential.user.providerId,
+          // providerId on the user object is always "firebase", we want the providerId from the additionalUserInfo which will say "apple.com" or "google.com"
+          providerId:
+            firebaseUserCredential?.additionalUserInfo?.providerId ||
+            firebaseUserCredential.user.providerId,
         },
       }
       self.isEmailVerified = firebaseUserCredential.user.emailVerified
@@ -400,7 +400,6 @@ export const AuthenticationStoreModel = types
 
       const appleAuthAvailable = yield AppleAuthentication.isAvailableAsync()
       if (!appleAuthAvailable) {
-        // console.error("AuthenticationStore.signInWithApple error: Apple login is not available")
         catchAuthError("signInWithApple", "Apple login is not available")
         self.isAuthenticating = false
         return
@@ -422,23 +421,36 @@ export const AuthenticationStoreModel = types
           nonce: hashedNonce,
         })) as AppleAuthentication.AppleAuthenticationCredential
 
+        // See :https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_rest_api/authenticating_users_with_sign_in_with_apple
+        // When someone uses your app and Sign in with Apple for the first time, the identification servers return the user status. Subsequent attempts don’t return the user status.
+        // So we need to store all the user data at this point
+        let lastName, firstName, nickname
+        if (appleCredential) {
+          const { fullName } = appleCredential
+          lastName = fullName?.familyName
+          firstName = fullName?.givenName
+          nickname = fullName?.nickname
+        }
+
         const { identityToken } = appleCredential
         if (!identityToken) {
-          // console.error("AuthenticationStore.signInWithApple error: identityToken is null")
           catchAuthError("signInWithApple", "identityToken is null")
           return
         }
 
         const firebaseCredential = auth.AppleAuthProvider.credential(identityToken, nonce)
+        // This is technically the second time we are signing in with Apple
         const userCred = yield auth().signInWithCredential(firebaseCredential)
-        console.debug("AuthenticationStore.signInWithApple success:", !!userCred)
-
         setFirebaseUserCredential(userCred)
 
         if (userCred.additionalUserInfo.isNewUser) {
           const user = createUserFromFirebaseUserCred(userCred)
           getEnv<RootStoreDependencies>(self).userRepository.setUserId(user.userId)
-          getEnv<RootStoreDependencies>(self).userRepository.create(toJS(user))
+          getEnv<RootStoreDependencies>(self).userRepository.create({
+            ...toJS(user),
+            firstName: nickname ?? firstName ?? "",
+            lastName: lastName ?? "",
+          })
         }
       } catch (e) {
         // console.error("AuthenticationStore.signInWithApple error:", e)

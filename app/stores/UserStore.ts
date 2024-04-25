@@ -158,12 +158,6 @@ export const UserStoreModel = types
       }
     })
 
-    /**
-     * Creating a profile should usually be done right after signing up
-     * this is in case when a user's profile needs to be recreated
-     * e.g. when a user deletes their account and signs up again
-     * e.g. for testing purposes
-     */
     const createNewProfile = flow(function* (newUser: User) {
       self.isLoadingProfile = true
 

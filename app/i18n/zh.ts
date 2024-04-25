@@ -2,6 +2,8 @@ import { Translations } from "./en"
 
 const zh: Translations = {
   common: {
+    yes: "是",
+    no: "否",
     ok: "確定",
     cancel: "取消",
     clear: "清除",
@@ -167,7 +169,7 @@ const zh: Translations = {
     userHandleLabel: "用戶代號",
     newUserHandleAvailableMessage: "此用戶代號可用",
     personaTypeLabel: "你是教練嗎？",
-    uploadAvatarLabel: "設置你的頭像",
+    // uploadAvatarLabel: "設置你的頭像",
     uploadAvatarPlaceholder: "選擇頭像",
     availableAfterProfileCreatedMessage: "此功能將於你的個人資料完成啟用",
     myGymsLabel: "我的健身房",
@@ -183,7 +185,7 @@ const zh: Translations = {
     defaultRestTimeLabel: "預設休息時間",
     defaultRestTimeSelectorLabel: "選擇預設休息時間：",
     appAppearanceLabel: "應用程式主題",
-    saveProfileChanges: "儲存變更",
+    // saveProfileChanges: "儲存變更",
     discardAlertTitle: "捨棄變更？",
     discardAlertMessage: "你確定要捨棄所有變更嗎？你將失去所有未儲存的變更",
     alertDialogResume: "繼續編輯",
@@ -194,10 +196,10 @@ const zh: Translations = {
       firstNameMissingMessage: "請輸入你的名字",
       lastNameMissingMessage: "請輸入你的姓氏",
     },
-    backButtonDisabledMessage: "請使用螢幕頂部或底部的「捨棄」或「儲存」按鈕退出",
+    backButtonDisabledMessage: "請使用螢幕頂部的「捨棄」或「儲存」按鈕退出",
   },
-  addToMyGymsScreen: {
-    addToMyGymsTitle: "我的健身房",
+  manageMyGymsScreen: {
+    manageMyGymsTitle: "我的健身房",
   },
   userSettingsScreen: {
     accountControlsSectionLabel: "帳戶管理",

@@ -10,7 +10,6 @@ import { ArgType } from "reactotron-core-client"
 import { mst } from "reactotron-mst"
 
 import { goBack, navigate, resetRoot } from "app/navigators/navigationUtilities"
-import { clear } from "app/utils/storage"
 
 import { storage } from "app/services"
 import { Reactotron } from "./ReactotronClient"
@@ -58,37 +57,10 @@ reactotron.onCustomCommand({
   },
 })
 
-reactotron.onCustomCommand({
-  title: "Clear Async Storage",
-  description: "Remove all data stored in Async Storage",
-  command: "resetAsyncStorage",
-  handler: () => {
-    Reactotron.log("clear all data in Async Storage")
-    storage.clearAllData()
-  },
-})
-
-reactotron.onCustomCommand({
-  title: "Reset Root Store",
-  description: "Resets the MST store",
-  command: "resetStore",
-  handler: () => {
-    Reactotron.log("resetting store")
-    clear()
-  },
-})
-
-reactotron.onCustomCommand({
-  title: "Reset Navigation State",
-  description: "Resets the navigation state",
-  command: "resetNavigation",
-  handler: () => {
-    Reactotron.log("resetting navigation state")
-    resetRoot({ index: 0, routes: [] })
-  },
-})
-
 reactotron.onCustomCommand<[{ name: "route"; type: ArgType.String }]>({
+  title: "Navigate To Screen",
+  description: "Navigates to a screen by name.",
+  args: [{ name: "route", type: ArgType.String }],
   command: "navigateTo",
   handler: (args) => {
     const { route } = args ?? {}
@@ -99,9 +71,6 @@ reactotron.onCustomCommand<[{ name: "route"; type: ArgType.String }]>({
       Reactotron.log("Could not navigate. No route provided.")
     }
   },
-  title: "Navigate To Screen",
-  description: "Navigates to a screen by name.",
-  args: [{ name: "route", type: ArgType.String }],
 })
 
 reactotron.onCustomCommand({
@@ -111,6 +80,57 @@ reactotron.onCustomCommand({
   handler: () => {
     Reactotron.log("Going back")
     goBack()
+  },
+})
+
+reactotron.onCustomCommand({
+  title: "Get all Async Storage keys",
+  description: "Print all the keys stored in Async Storage",
+  command: "printAllAsyncStorageKeys",
+  handler: () => {
+    AsyncStorage.getAllKeys().then((keys) => {
+      Reactotron.log("All keys stored in AsyncStorage:", keys)
+      console.debug("All keys stored in AsyncStorage", keys)
+    })
+  },
+})
+
+reactotron.onCustomCommand({
+  title: "Print Async Storage value",
+  description: "Print the value stored in Async Storage",
+  command: "printAsyncStorageValue",
+  args: [{ name: "Key", type: ArgType.String }],
+  handler: (args) => {
+    const { Key } = args ?? {}
+    if (!Key) {
+      Reactotron.log("No key provided")
+      return
+    }
+    AsyncStorage.getItem(Key).then((value) => {
+      Reactotron.log("Async Storage key", Key, "has value:", value)
+      console.debug("Async Storage key", Key, "has value:", value)
+    })
+  },
+})
+
+reactotron.onCustomCommand({
+  title: "Clear Async Storage",
+  description:
+    "Remove all data stored in Async Storage (including root store snapshot and navigation state)",
+  command: "resetAsyncStorage",
+  handler: () => {
+    Reactotron.log("Clearing all data in Async Storage")
+    storage.clearAllData()
+  },
+})
+
+reactotron.onCustomCommand({
+  title: "Reset Navigation State",
+  description: "Resets the navigation state",
+  command: "resetNavigation",
+  handler: () => {
+    Reactotron.log("Resetting navigation state")
+    resetRoot({ index: 0, routes: [] })
   },
 })
 

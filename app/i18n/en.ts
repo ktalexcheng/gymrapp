@@ -1,5 +1,7 @@
 const en = {
   common: {
+    yes: "Yes",
+    no: "No",
     ok: "OK",
     cancel: "Cancel",
     clear: "Clear",
@@ -167,12 +169,12 @@ const en = {
     coachsCenterButtonLabel: "Coach's Center",
   },
   editProfileForm: {
-    editProfileTitle: "Your profile",
+    editProfileTitle: "Manage your profile",
     aboutYouSectionLabel: "About you",
     userHandleLabel: "User handle",
     newUserHandleAvailableMessage: "This user handle is available",
     personaTypeLabel: "Are you a coach?",
-    uploadAvatarLabel: "Set your avatar",
+    // uploadAvatarLabel: "Set your avatar",
     uploadAvatarPlaceholder: "Choose a picture",
     availableAfterProfileCreatedMessage:
       "This feature will be available after your profile is completed.",
@@ -189,7 +191,7 @@ const en = {
     defaultRestTimeLabel: "Default rest time",
     defaultRestTimeSelectorLabel: "Select default rest time:",
     appAppearanceLabel: "App appearance",
-    saveProfileChanges: "Save changes",
+    // saveProfileChanges: "Save changes",
     discardAlertTitle: "Discard changes?",
     discardAlertMessage: "There are unsaved changes. Are you sure you want to discard them?",
     alertDialogResume: "Keep editing",
@@ -201,11 +203,10 @@ const en = {
       firstNameMissingMessage: "Please enter your first name",
       lastNameMissingMessage: "Please enter your last name",
     },
-    backButtonDisabledMessage:
-      "Use the discard or save button at the top and bottom of the screen to exit",
+    backButtonDisabledMessage: "Use the discard or save button at the top of the screen to exit",
   },
-  addToMyGymsScreen: {
-    addToMyGymsTitle: "My gyms",
+  manageMyGymsScreen: {
+    manageMyGymsTitle: "My gyms",
   },
   userSettingsScreen: {
     accountControlsSectionLabel: "Account controls",

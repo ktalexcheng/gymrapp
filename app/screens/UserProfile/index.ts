@@ -1,5 +1,5 @@
-export * from "./AddToMyGymsScreen"
 export * from "./EditProfileForm"
+export * from "./ManageMyGymsScreen"
 export * from "./NotificationsScreen"
 export * from "./ProfileScreen"
 export * from "./ProfileVisitorViewScreen"

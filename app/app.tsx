@@ -19,22 +19,23 @@ import * as Device from "expo-device"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import * as Notifications from "expo-notifications"
-import React from "react"
-import { ViewStyle } from "react-native"
+import React, { useEffect, useState } from "react"
+import { Alert, AlertButton, TouchableOpacity, ViewStyle } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { RootSiblingParent } from "react-native-root-siblings"
 import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context"
 import { TamaguiProvider } from "tamagui"
 import Config from "./config"
 import { useNotification } from "./hooks"
-import "./i18n"
+import { translate } from "./i18n"
 import { AppNavigator } from "./navigators"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { LoadingScreen } from "./screens"
 import { ErrorBoundary } from "./screens/ErrorScreen/ErrorBoundary"
+import { api, storageKeys } from "./services"
 import { useInitialRootStore } from "./stores"
 import tamaguiConfig from "./tamagui.config"
-import { customFontsToLoad } from "./theme"
+import { customFontsToLoad, styles } from "./theme"
 import "./utils/ignoreWarnings"
 
 // Linking configuration
@@ -181,20 +182,78 @@ function App(props: AppProps) {
     initialNavigationState,
     onNavigationStateChange,
     isRestored: isNavigationStateRestored,
-  } = useNavigationPersistence()
+  } = useNavigationPersistence(storageKeys.MAIN_NAVIGATOR_STATE)
 
   const [areFontsLoaded] = useFonts(customFontsToLoad)
 
   useNotification()
 
+  const [updateLink, setUpdateLink] = useState<string>()
+  const [forceUpdate, setForceUpdate] = useState(false)
+  const [checkUpdateError, setCheckUpdateError] = useState(false)
+
+  function showUpdateAlert(updateLink: string, forceUpdate?: boolean) {
+    const alertButtons: AlertButton[] = [
+      {
+        text: translate("updateApp.update"),
+        onPress: () => {
+          Linking.openURL(updateLink)
+        },
+      },
+    ]
+
+    // Only when the update is not forced should the user be able to opt out
+    let alertTitle = translate("updateApp.updateAvailableTitle")
+    let alertMessage = translate("updateApp.updateAvailableMessage")
+    if (forceUpdate) {
+      alertTitle = translate("updateApp.forceUpdateTitle")
+      alertMessage = translate("updateApp.forceUpdateMessage")
+    } else {
+      alertButtons.push({
+        text: translate("common.cancel"),
+        onPress: () => {},
+        style: "cancel",
+      })
+    }
+
+    Alert.alert(alertTitle, alertMessage, alertButtons)
+  }
+
   // IMPORTANT: Make sure to test the app with and without useInitialRootStore to ensure
   // that your app works both with existing store snapshots and without (fresh install).
-  // TODO: Disabling store rehydration for now, as it's causing issues with the app not loading
-  // and troubles with app updates still hydrating with old possibly problematic store snapshots
-  // const rehydrated = true
-  // setTimeout(hideSplashScreen, 500)
-  const { rootStore, rehydrated } = useInitialRootStore(() => {
+  const { rehydrated } = useInitialRootStore(async (rootStore) => {
     // This runs after the root store has been initialized and rehydrated.
+    const { exerciseStore } = rootStore
+
+    // Check for updates
+    const checkForUpdates = async () => {
+      try {
+        setCheckUpdateError(false)
+
+        const updatesStatus = await api.checkForUpdates(exerciseStore.lastUpdated)
+        console.debug("AppNavigator.checkForUpdates response:", updatesStatus)
+
+        if (!updatesStatus) {
+          setCheckUpdateError(true)
+          return
+        }
+
+        if (!updatesStatus.updateAvailable) {
+          return
+        }
+
+        if (updatesStatus.forceUpdate) {
+          setForceUpdate(true)
+        }
+
+        setUpdateLink(updatesStatus.updateLink)
+        showUpdateAlert(updatesStatus.updateLink, updatesStatus.forceUpdate)
+      } catch (e) {
+        console.warn("AppNavigator.checkForUpdates failed:", e)
+        setCheckUpdateError(true)
+      }
+    }
+    await checkForUpdates()
 
     // If your initialization scripts run very fast, it's good to show the splash screen for just a bit longer to prevent flicker.
     // Slightly delaying splash screen hiding for better UX; can be customized or removed as needed,
@@ -203,13 +262,40 @@ function App(props: AppProps) {
     setTimeout(hideSplashScreen, 500)
   })
 
+  useEffect(() => {
+    if (checkUpdateError) {
+      Alert.alert(
+        translate("common.error.unknownErrorMessage"),
+        translate("updateApp.checkForUpdateErrorMessage"),
+        [
+          {
+            text: translate("common.ok"),
+            onPress: () => {},
+            style: "cancel",
+          },
+        ],
+      )
+    }
+  }, [checkUpdateError])
+
   // Before we show the app, we have to wait for our state to be ready.
   // In the meantime, don't render anything. This will be the background
   // color set in native by rootView's background color.
   // In iOS: application:didFinishLaunchingWithOptions:
   // In Android: https://stackoverflow.com/a/45838109/204044
   // You can replace with your own loading component if you wish.
-  if (!rehydrated || !isNavigationStateRestored || !areFontsLoaded) return <LoadingScreen />
+  if (forceUpdate) {
+    return (
+      <TouchableOpacity
+        style={styles.flex1}
+        onPress={() => showUpdateAlert(updateLink!, forceUpdate)}
+      >
+        <LoadingScreen promptMessageTx="updateApp.forceUpdateMessage" />
+      </TouchableOpacity>
+    )
+  } else if (!rehydrated || !isNavigationStateRestored || !areFontsLoaded) {
+    return <LoadingScreen />
+  }
 
   // otherwise, we're ready to render the app
   return (

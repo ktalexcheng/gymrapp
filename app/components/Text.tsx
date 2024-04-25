@@ -91,7 +91,7 @@ export const Text = observer((props: TextProps) => {
   const { themeStore } = useStores()
 
   const i18nText = tx && translate(tx, txOptions)
-  const content = i18nText || text || children
+  const content = i18nText ?? text ?? children
 
   const $baseStyle: StyleProp<TextStyle> = [
     $sizeStyles.sm,
