@@ -29,12 +29,13 @@ import { WorkoutSummaryCard } from "../FinishedWorkout"
 
 interface GymWorkoutsTabSceneProps {
   gymId: string
+  gymDetails: GymDetails
 }
 
 const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
   (props: GymWorkoutsTabSceneProps) => {
-    const { gymId } = props
-    const { gymStore, userStore } = useStores()
+    const { gymId, gymDetails } = props
+    const { gymStore, feedStore } = useStores()
     const [gymWorkouts, setGymWorkouts] = useState<IWorkoutSummaryModel[]>([])
     const [lastWorkoutId, setLastWorkoutId] = useState<WorkoutId>()
     const [noMoreWorkouts, setNoMoreWorkouts] = useState(false)
@@ -64,15 +65,21 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
       })
       setLastWorkoutId(newLastWorkoutId)
       setNoMoreWorkouts(noMoreItems)
-      setGymWorkouts((prev) => prev.concat(workouts))
 
+      // Fetch the users first to filter our workouts from invalid users
+      let validWorkouts = [...workouts]
       const byUserIds = workouts.map((workout) => workout.byUserId)
-
       for (const byUserId of byUserIds) {
         if (!gymMemberProfiles[byUserId]) {
-          const gymMember = await gymStore.getGymMember(gymId, byUserId)
-          const user = await userStore.getOtherUser(byUserId)
+          const user = await feedStore.fetchUserProfileToStore(byUserId)
+          // The user may have been deleted, so remove those workouts
+          if (!user) {
+            validWorkouts = validWorkouts.filter((workout) => workout.byUserId !== byUserId)
+            continue
+          }
 
+          // Get gym member profile which contains some additional gym-specific data of the member
+          const gymMember = await gymStore.getGymMember(gymId, byUserId)
           setGymMemberProfiles((prev) => ({
             ...prev,
             [byUserId]: {
@@ -83,6 +90,7 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
         }
       }
 
+      setGymWorkouts((prev) => prev.concat(validWorkouts))
       setLoadingWorkouts(false)
     }
 
@@ -93,26 +101,45 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
           if (!gymMemberProfiles[item.byUserId]) return null
 
           return (
-            <>
-              <WorkoutSummaryCard
-                workout={item}
-                workoutSource={WorkoutSource.OtherUser}
-                workoutId={item.workoutId}
-                byUser={gymMemberProfiles[item.byUserId]}
-              />
-            </>
+            <WorkoutSummaryCard
+              workout={item}
+              workoutSource={WorkoutSource.OtherUser}
+              workoutId={item.workoutId}
+              byUser={gymMemberProfiles[item.byUserId]}
+            />
           )
         }}
-        ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
+        // ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
         keyExtractor={(item) => item.workoutId}
         onEndReachedThreshold={0.5}
         onEndReached={loadMoreGymWorkouts}
+        ListHeaderComponent={() => {
+          if (gymWorkouts.length > 0) {
+            return (
+              <Text
+                preset="light"
+                size="xs"
+                textAlign="center"
+                tx="gymDetailsScreen.onlyPublicOrFollowingActivitiesMessage"
+              />
+            )
+          }
+
+          return null
+        }}
         ListEmptyComponent={() => {
           if (!loadingWorkouts) {
             return (
               <View style={styles.alignCenter}>
                 <Spacer type="vertical" size="medium" />
-                <Text tx="gymDetailsScreen.noActivityMessage" />
+                <Text
+                  textAlign="center"
+                  tx={
+                    gymDetails.gymWorkoutsCount > 0
+                      ? "gymDetailsScreen.onlyPublicOrFollowingActivitiesMessage"
+                      : "gymDetailsScreen.noActivityMessage"
+                  }
+                />
               </View>
             )
           }
@@ -234,12 +261,17 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
           keyExtractor={(item) => item.userId}
           onEndReachedThreshold={0.5}
           onEndReached={() => !noMoreMembers && loadMoreGymMembers()}
-          ListEmptyComponent={() => (
-            <View style={styles.alignCenter}>
-              <Spacer type="vertical" size="medium" />
-              <Text tx="gymDetailsScreen.noActivityMessage" />
-            </View>
-          )}
+          ListEmptyComponent={() => {
+            if (!loadingMembers)
+              return (
+                <View style={styles.alignCenter}>
+                  <Spacer type="vertical" size="medium" />
+                  <Text tx="gymDetailsScreen.noActivityMessage" />
+                </View>
+              )
+
+            return null
+          }}
           ListFooterComponent={() => {
             if (noMoreMembers && sortedGymMembers?.length > 0) {
               return (
@@ -250,7 +282,9 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
               )
             }
 
-            return <LoadingIndicator />
+            if (loadingMembers) return <LoadingIndicator />
+
+            return null
           }}
         />
       </>
@@ -281,7 +315,7 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
   ]
 
   const renderScene = SceneMap({
-    gymWorkouts: () => <GymWorkoutsTabScene gymId={gymId} />,
+    gymWorkouts: () => <GymWorkoutsTabScene gymId={gymId} gymDetails={gymDetails!} />,
     gymMembers: () => <GymMembersTabScene gymId={gymId} />,
   })
 

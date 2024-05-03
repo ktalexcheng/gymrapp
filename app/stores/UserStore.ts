@@ -95,8 +95,9 @@ export const UserStoreModel = types
     getUserPreference<T>(pref: keyof UserPreferences): T {
       const prefPath = `preferences.${pref}`
       const prefValue = self.user && getNestedField(self.user, prefPath)
-      // console.debug("UserStore.getUserPreference:", { pref, prefValue })
-      if (!prefValue) {
+
+      // Preferences values could be falsy (false, 0, ""), so check strictly if it is null or undefined
+      if ((prefValue ?? undefined) === undefined) {
         return DefaultUserPreferences[pref] as T
       }
       return prefValue as T
@@ -158,12 +159,6 @@ export const UserStoreModel = types
       }
     })
 
-    /**
-     * Creating a profile should usually be done right after signing up
-     * this is in case when a user's profile needs to be recreated
-     * e.g. when a user deletes their account and signs up again
-     * e.g. for testing purposes
-     */
     const createNewProfile = flow(function* (newUser: User) {
       self.isLoadingProfile = true
 

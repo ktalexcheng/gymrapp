@@ -78,13 +78,11 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     padding: spacing.extraSmall,
     overflow: "hidden",
+    marginVertical: spacing.extraSmall,
   },
   screenContainer: {
     flex: 1,
     padding: spacing.screenPadding,
-  },
-  formFieldTopMargin: {
-    marginTop: spacing.large,
   },
   disabled: {
     opacity: 0.5,
@@ -93,7 +91,8 @@ export const styles = StyleSheet.create({
     minHeight: 100,
   },
   menuPopoverContainer: {
-    padding: spacing.medium,
+    paddingVertical: spacing.small,
+    paddingHorizontal: spacing.small,
     width: 200,
     borderRadius: 10,
     borderWidth: 1,

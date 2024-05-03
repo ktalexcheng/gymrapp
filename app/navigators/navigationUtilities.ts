@@ -4,11 +4,11 @@ import {
   useNavigation,
 } from "@react-navigation/native"
 import { NativeStackNavigationProp } from "@react-navigation/native-stack"
+import { storage } from "app/services"
 import { useEffect, useRef, useState } from "react"
 import { BackHandler, Platform } from "react-native"
 import Config from "../config"
 import type { PersistNavigationConfig } from "../config/config.base"
-import * as storage from "../utils/storage"
 import { useIsMounted } from "../utils/useIsMounted"
 import type { AppStackParamList, NavigationProps } from "./AppNavigator"
 import { AuthStackParamList } from "./AuthNavigator"
@@ -115,7 +115,7 @@ function navigationRestoredDefaultState(persistNavigation: PersistNavigationConf
 /**
  * Custom hook for persisting navigation state.
  */
-export function useNavigationPersistence() {
+export function useNavigationPersistence(storageKey: string) {
   const [initialNavigationState, setInitialNavigationState] =
     useState<NavigationProps["initialState"]>()
   const isMounted = useIsMounted()
@@ -140,14 +140,13 @@ export function useNavigationPersistence() {
     routeNameRef.current = currentRouteName
 
     // Persist state to storage
-    storage.save("NAVIGATION_PERSISTENT_STORAGE_KEY", state)
+    // console.debug("onNavigationStateChange:", { state: JSON.stringify(state) })
+    storage.storeData(storageKey, state)
   }
 
   const restoreState = async () => {
     try {
-      const state = (await storage.load("NAVIGATION_PERSISTENT_STORAGE_KEY")) as
-        | NavigationProps["initialState"]
-        | null
+      const state = (await storage.getData(storageKey)) as NavigationProps["initialState"] | null
       if (state) setInitialNavigationState(state)
     } finally {
       if (isMounted()) setIsRestored(true)

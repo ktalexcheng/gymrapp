@@ -11,7 +11,6 @@ import {
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React, { useEffect } from "react"
-import { useAuthNavigation } from "./navigationUtilities"
 
 export type AuthStackParamList = {
   Welcome: undefined
@@ -29,22 +28,8 @@ export type AuthStackScreenProps<T extends keyof AuthStackParamList> = NativeSta
 const Stack = createNativeStackNavigator<AuthStackParamList>()
 
 export const AuthNavigator = observer(() => {
-  const authNavigation = useAuthNavigation()
   const { authenticationStore: authStore } = useStores()
   const [toastShowTx] = useToast()
-
-  useEffect(() => {
-    console.debug("AuthNavigator: Checking if pending verification")
-    if (authStore.isPendingVerification) {
-      console.debug(
-        "AuthNavigator: Authenticated but pending verification, redirecting to EmailVerificationScreen",
-      )
-      authNavigation.reset({
-        index: 0,
-        routes: [{ name: "EmailVerification", params: { email: authStore.email } }],
-      })
-    }
-  }, [authStore.isPendingVerification])
 
   useEffect(() => {
     if (authStore.authError) {
@@ -57,6 +42,7 @@ export const AuthNavigator = observer(() => {
       initialRouteName="Welcome"
       screenOptions={{
         headerShown: false,
+        headerBackButtonMenuEnabled: false,
       }}
     >
       <Stack.Screen name="Welcome" component={WelcomeScreen} />

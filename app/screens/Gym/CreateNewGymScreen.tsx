@@ -8,7 +8,7 @@ import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { logError } from "app/utils/logger"
 import React, { useEffect, useState } from "react"
-import { View, ViewStyle } from "react-native"
+import { TouchableOpacity, View, ViewStyle } from "react-native"
 
 interface CreateNewGymScreenProps extends MainStackScreenProps<"CreateNewGym"> {}
 
@@ -24,6 +24,7 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
   const [predictedPlaces, setPredictedPlaces] = useState<GoogleMapsPlacePrediction[]>()
   const [isCreatingGym, setIsCreatingGym] = useState(false)
   const userAppLocale = userStore.getUserPreference<AppLocale>("appLocale")
+  const [disableCreateGymButton, setDisableCreateGymButton] = useState(false)
 
   const isReadyForSubmission = !!gymName && !!gymAddress && !!gymPlaceId
 
@@ -61,7 +62,13 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
     return () => clearTimeout(getPredictionsTimeout)
   }, [searchInput, userLocation, isGettingUserLocation])
 
-  const selectGymFromPrediction = (place: GoogleMapsPlacePrediction) => {
+  const selectGymFromPrediction = async (place: GoogleMapsPlacePrediction) => {
+    setDisableCreateGymButton(false)
+
+    // Check if gym already exists
+    const gymExists = await gymStore.checkGymExists(place.place_id)
+    if (gymExists) setDisableCreateGymButton(true)
+
     setGymName(place.structured_formatting.main_text)
     setGymAddress(place.structured_formatting.secondary_text)
     setGymPlaceId(place.place_id)
@@ -73,7 +80,7 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
     }
 
     if (isPredicting) {
-      return <Text tx="createNewGymScreen.checkingGymExistsLabel" preset="formHelper" />
+      return <Text tx="createNewGymScreen.searchingForGymsLabel" preset="formHelper" />
     }
 
     if (predictedPlaces && predictedPlaces.length === 0) {
@@ -103,6 +110,7 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
     setGymName(undefined)
     setGymAddress(undefined)
     setGymPlaceId(undefined)
+    setDisableCreateGymButton(false)
   }
 
   const handleCreateNewGym = () => {
@@ -126,6 +134,16 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
     borderWidth: 1,
     borderColor: themeStore.colors("border"),
     padding: spacing.small,
+    gap: spacing.small,
+  }
+
+  const $gymAlreadyCreatedBanner: ViewStyle = {
+    backgroundColor: themeStore.colors("lightTint"),
+    padding: spacing.small,
+    alignItems: "center",
+    borderRadius: 8,
+    marginVertical: spacing.small,
+    justifyContent: "space-between",
   }
 
   return (
@@ -138,7 +156,7 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
       <RowView style={styles.justifyBetween}>
         <Button preset="text" tx="common.cancel" onPress={() => mainNavigator.goBack()} />
         <Button
-          disabled={!isReadyForSubmission}
+          disabled={!isReadyForSubmission || disableCreateGymButton}
           preset="text"
           tx="createNewGymScreen.createNewGymButtonLabel"
           onPress={handleCreateNewGym}
@@ -148,6 +166,21 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
       <Text tx="createNewGymScreen.howToCreateANewGymMessage" />
       <Spacer type="vertical" size="small" />
 
+      {disableCreateGymButton && (
+        <TouchableOpacity
+          onPress={() => mainNavigator.navigate("GymDetails", { gymId: gymPlaceId! })}
+        >
+          <RowView style={$gymAlreadyCreatedBanner}>
+            <RowView style={[styles.flex1, styles.alignCenter]}>
+              <Icon name="information-circle" size={24} />
+              <Spacer type="horizontal" size="small" />
+              <Text style={styles.flex1} tx="createNewGymScreen.gymAlreadyCreatedMessage" />
+            </RowView>
+            <Icon name="chevron-forward" size={24} />
+          </RowView>
+        </TouchableOpacity>
+      )}
+
       {isReadyForSubmission && (
         <>
           <View style={$readOnlySection}>
@@ -156,7 +189,6 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
               labelTx="createNewGymScreen.gymNameLabel"
               placeholderTx="createNewGymScreen.gymNamePlaceholder"
               multiline={true}
-              // containerStyle={styles.formFieldTopMargin}
               value={gymName}
               RightAccessory={() => !!gymName && <Icon name="checkmark-circle" size={24} />}
             />
@@ -165,7 +197,6 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
               labelTx="createNewGymScreen.gymLocationLabel"
               placeholderTx="createNewGymScreen.gymLocationPlaceholder"
               multiline={true}
-              containerStyle={styles.formFieldTopMargin}
               value={gymAddress}
               // onChangeText={handleManualGymAddressChange}
               RightAccessory={() => !!gymAddress && <Icon name="checkmark-circle" size={24} />}

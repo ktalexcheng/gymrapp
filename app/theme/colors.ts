@@ -1,5 +1,3 @@
-// TODO: write documentation for colors and palette in own markdown file and add links from here
-
 export interface Palette {
   neutral050: string
   neutral100: string
@@ -156,11 +154,11 @@ export const lightPalette: Palette = {
   primary800: "#8AB303",
   primary900: "#739A03",
 
-  secondary050: "#E0F2F2",
-  secondary100: "#B2E0E0",
-  secondary200: "#85CDCD",
-  secondary300: "#57BABA",
-  secondary400: "#2AA7A7",
+  secondary050: "#A9E6DB",
+  secondary100: "#76D2C4",
+  secondary200: "#4AB7AB",
+  secondary300: "#309C92",
+  secondary400: "#247D76",
   secondary500: "#1F5F5B",
   secondary600: "#1F5552",
   secondary700: "#1F4B49",
@@ -187,7 +185,7 @@ export const lightColors: Colors = {
   contentBackground: lightPalette.neutral200,
   border: lightPalette.neutral400,
   tint: lightPalette.secondary500,
-  lightTint: lightPalette.primary300,
+  lightTint: lightPalette.secondary400,
   actionable: lightPalette.secondary500,
   actionablePressed: lightPalette.secondary400,
   separator: lightPalette.neutral400,
@@ -231,11 +229,11 @@ export const darkPalette: Palette = {
   secondary200: "#1F4B49",
   secondary300: "#1F5552",
   secondary400: "#1F5F5B",
-  secondary500: "#2AA7A7",
-  secondary600: "#57BABA",
-  secondary700: "#85CDCD",
-  secondary800: "#B2E0E0",
-  secondary900: "#E0F2F2",
+  secondary500: "#247D76",
+  secondary600: "#309C92",
+  secondary700: "#4AB7AB",
+  secondary800: "#76D2C4",
+  secondary900: "#A9E6DB",
 
   angry100: "#C03403",
   angry500: "#F2D6CD",

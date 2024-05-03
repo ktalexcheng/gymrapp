@@ -1,15 +1,20 @@
 import { WorkoutSource } from "app/data/constants"
-import { User, UserId, WorkoutId } from "app/data/types"
+import { UserId, WorkoutId } from "app/data/types"
 import { useToast } from "app/hooks"
-import { IWorkoutCommentModel, IWorkoutInteractionModel, useStores } from "app/stores"
+import { translate, TxKeyPath } from "app/i18n"
+import { useMainNavigation } from "app/navigators/navigationUtilities"
+import { IUserModel, IWorkoutCommentModel, IWorkoutInteractionModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { formatDate } from "app/utils/formatDate"
+import { logError } from "app/utils/logger"
 import { BlurView } from "expo-blur"
 import * as Clipboard from "expo-clipboard"
+import { MessageSquareWarning } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useRef, useState } from "react"
 import {
   ActivityIndicator,
+  Alert,
   Keyboard,
   Platform,
   StyleProp,
@@ -26,22 +31,63 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated"
-import { Avatar, Button, Icon, RowView, Spacer, Text, TextField } from "../../components"
+import { Sheet } from "tamagui"
+import { Avatar, Button, Divider, Icon, RowView, Spacer, Text, TextField } from "../../components"
 
 const WorkoutCommentTile = (props: {
+  workoutId: WorkoutId
   byUserId: UserId
+  commentId: string
   comment: string
   commentDate: Date
   onLongPress: () => void
   selectedState?: boolean
+  alwaysShow?: boolean
 }) => {
-  const { byUserId, comment, commentDate, onLongPress, selectedState } = props
-  const { userStore, themeStore } = useStores()
-  const [user, setUser] = useState<User>()
+  const mainNavigation = useMainNavigation()
+  const { feedStore, userStore, themeStore } = useStores()
+  const {
+    workoutId,
+    byUserId,
+    commentId,
+    comment,
+    commentDate,
+    onLongPress,
+    selectedState,
+    alwaysShow,
+  } = props
+
+  const isFlagged = feedStore.isCommentFlagged(workoutId, commentId)
+
+  const [user, setUser] = useState<IUserModel>()
+  const [isHidden, setIsHidden] = useState(!alwaysShow && isFlagged)
 
   useEffect(() => {
-    userStore.getOtherUser(byUserId).then((user) => setUser(user))
+    feedStore.fetchUserProfileToStore(byUserId).then((user) => setUser(user))
   }, [])
+
+  useEffect(() => {
+    setIsHidden(!alwaysShow && isFlagged)
+  }, [isFlagged])
+
+  const showCommentIfHidden = () => {
+    if (!isHidden) return
+
+    Alert.alert(
+      translate("workoutCommentsPanel.showHiddenCommentTitle"),
+      translate("workoutCommentsPanel.showHiddenCommentMessage"),
+      [
+        {
+          text: translate("common.cancel"),
+          style: "cancel",
+        },
+        {
+          text: translate("common.yes"),
+          onPress: () => setIsHidden(false),
+        },
+      ],
+    )
+  }
 
   const $commentContainer: StyleProp<ViewStyle> = [
     {
@@ -59,22 +105,285 @@ const WorkoutCommentTile = (props: {
     alignItems: "center",
   }
 
+  const $skeletonDisplayName: ViewStyle = {
+    height: 20,
+    width: 100,
+    borderRadius: 10,
+    backgroundColor: themeStore.colors("contentBackground"),
+  }
+
   return (
-    <TouchableOpacity onLongPress={onLongPress}>
-      <RowView style={$commentContainer}>
-        <Avatar user={user} size="sm" />
-        <Spacer type="horizontal" size="small" />
-        <View style={styles.flex1}>
-          <RowView style={$commentHeader}>
-            <Text weight="bold" size="xs">
-              {user ? `${user.firstName} ${user.lastName}` : "..."}
-            </Text>
-            <Text size="xs">{formatDate(commentDate)}</Text>
-          </RowView>
-          <Text style={styles.flex1}>{comment}</Text>
-        </View>
-      </RowView>
+    <TouchableOpacity onPress={showCommentIfHidden} onLongPress={onLongPress}>
+      {isHidden ? (
+        <RowView style={$commentContainer}>
+          <Avatar user={undefined} size="sm" />
+          <Spacer type="horizontal" size="small" />
+          <Text preset="light" tx="workoutCommentsPanel.commentIsHiddenMessage" />
+        </RowView>
+      ) : (
+        <RowView style={$commentContainer}>
+          <TouchableOpacity
+            onPress={() => mainNavigation.navigate("ProfileVisitorView", { userId: byUserId })}
+          >
+            <Avatar user={user} size="sm" />
+          </TouchableOpacity>
+          <Spacer type="horizontal" size="small" />
+          <View style={styles.flex1}>
+            <RowView style={$commentHeader}>
+              {user ? (
+                <Text weight="bold" size="xs" text={`${user.firstName} ${user.lastName}`} />
+              ) : (
+                <View style={$skeletonDisplayName} />
+              )}
+              <Text size="xs">{formatDate(commentDate)}</Text>
+            </RowView>
+            <Text style={styles.flex1}>{comment}</Text>
+          </View>
+        </RowView>
+      )}
     </TouchableOpacity>
+  )
+}
+
+const reportCommentTypes: {
+  reasonId: string
+  labelTx: TxKeyPath
+}[] = [
+  {
+    reasonId: "spam",
+    labelTx: "workoutCommentsPanel.reportCommentReasonSpam",
+  },
+  {
+    reasonId: "harassment",
+    labelTx: "workoutCommentsPanel.reportCommentReasonHarassment",
+  },
+  {
+    reasonId: "misinformation",
+    labelTx: "workoutCommentsPanel.reportCommentReasonMisinformation",
+  },
+  {
+    reasonId: "illegal",
+    labelTx: "workoutCommentsPanel.reportCommentReasonIllegal",
+  },
+  {
+    reasonId: "other",
+    labelTx: "workoutCommentsPanel.reportCommentReasonOther",
+  },
+]
+
+type WorkoutCommentsReportSheetProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  workoutId: WorkoutId
+  selectedComment: IWorkoutCommentModel
+}
+
+const WorkoutCommentsReportSheet = (props: WorkoutCommentsReportSheetProps) => {
+  const { open, onOpenChange, workoutId, selectedComment } = props
+  const { feedStore, themeStore } = useStores()
+
+  // Form states
+  const [selectedReportReasons, setSelectedReportReasons] = useState<string[]>([])
+  const [otherReportReason, setOtherReportReason] = useState<string>()
+  const [isBlockUserSelected, setIsBlockUserSelected] = useState(false)
+
+  // Validation states
+  const [isNoReasonSelected, setIsNoReasonSelected] = useState(false)
+  const [isOtherReasonEmpty, setIsOtherReasonEmpty] = useState(false)
+
+  // Status states
+  const [isSendingReport, setIsSendingReport] = useState(false)
+  const [isReportSent, setIsReportSent] = useState(false)
+
+  const toggleReportReasonSelection = (reasonId: string) => {
+    if (selectedReportReasons.includes(reasonId)) {
+      setSelectedReportReasons(selectedReportReasons.filter((reason) => reason !== reasonId))
+    } else {
+      setSelectedReportReasons([...selectedReportReasons, reasonId])
+    }
+  }
+
+  const isReportReasonSelected = (reasonId: string) => {
+    return selectedReportReasons.includes(reasonId)
+  }
+
+  const validateReportForm = () => {
+    let isValid = true
+    setIsNoReasonSelected(false)
+    setIsOtherReasonEmpty(false)
+
+    if (selectedReportReasons.length === 0) {
+      setIsNoReasonSelected(true)
+      isValid = false
+    }
+
+    if (selectedReportReasons.includes("other") && !otherReportReason) {
+      setIsOtherReasonEmpty(true)
+      isValid = false
+    }
+
+    return isValid
+  }
+
+  const sendCommentReport = async () => {
+    if (!workoutId || !selectedComment || !validateReportForm()) return
+
+    setIsSendingReport(true)
+
+    try {
+      console.debug("WorkoutCommentsPanel.sendCommentReport sending report", {
+        workoutId,
+        selectedComment,
+        selectedReportReasons,
+        otherReportReason,
+      })
+
+      await feedStore.reportComment(
+        workoutId,
+        selectedComment,
+        selectedReportReasons,
+        otherReportReason,
+      )
+      if (isBlockUserSelected) {
+        await feedStore.blockUser(selectedComment.byUserId)
+      }
+    } catch (e) {
+      logError("WorkoutCommentsPanel.sendCommentReport error", e)
+    } finally {
+      setIsSendingReport(false)
+      setIsReportSent(true)
+    }
+  }
+
+  const $panelDraggableIndicator: ViewStyle = {
+    height: 5,
+    width: 40,
+    borderRadius: 5,
+    backgroundColor: themeStore.colors("actionable"),
+  }
+
+  const $reportCommentContainer: ViewStyle = {
+    padding: spacing.screenPadding,
+    backgroundColor: themeStore.colors("background"),
+  }
+
+  const $reportCommentTypesContainer: ViewStyle = {
+    padding: spacing.medium,
+    paddingRight: 0,
+  }
+
+  const $reportCommentType: ViewStyle = {
+    backgroundColor: themeStore.colors("background"),
+    alignItems: "center",
+    justifyContent: "space-between",
+  }
+
+  useEffect(() => {
+    if (isReportSent) {
+      setTimeout(() => {
+        // Reset form state
+        setSelectedReportReasons([])
+        setOtherReportReason(undefined)
+        setIsBlockUserSelected(false)
+        setIsReportSent(false)
+        onOpenChange(false)
+      }, 6000)
+    }
+  }, [isReportSent])
+
+  const renderReportCommentContent = () => {
+    if (isReportSent) {
+      return (
+        <View style={styles.centeredContainer}>
+          <Icon name="flag" size={40} color={themeStore.colors("actionable")} />
+          <Spacer type="vertical" size="large" />
+          <Text tx="workoutCommentsPanel.reportSentSuccessMessage" textAlign="center" />
+        </View>
+      )
+    }
+
+    return (
+      <Sheet.ScrollView showsVerticalScrollIndicator={false}>
+        <Text
+          preset="formLabel"
+          tx="workoutCommentsPanel.reportCommentTitle"
+          textColor={isNoReasonSelected ? themeStore.colors("danger") : undefined}
+        />
+        <Text preset="light" tx="workoutCommentsPanel.reportCommentMessage" />
+        <View style={$reportCommentTypesContainer}>
+          {reportCommentTypes.map((reportType, i) => (
+            <View key={reportType.reasonId}>
+              {i > 0 ? <Divider orientation="horizontal" spaceSize={spacing.medium} /> : null}
+              <TouchableOpacity onPress={() => toggleReportReasonSelection(reportType.reasonId)}>
+                <RowView style={$reportCommentType}>
+                  <Text
+                    tx={reportType.labelTx}
+                    textColor={
+                      isReportReasonSelected(reportType.reasonId)
+                        ? themeStore.colors("actionable")
+                        : undefined
+                    }
+                    weight={isReportReasonSelected(reportType.reasonId) ? "bold" : "normal"}
+                  />
+                  {isReportReasonSelected(reportType.reasonId) && (
+                    <Icon
+                      name="checkmark-sharp"
+                      size={20}
+                      color={themeStore.colors("actionable")}
+                    />
+                  )}
+                </RowView>
+              </TouchableOpacity>
+            </View>
+          ))}
+          {isReportReasonSelected("other") && (
+            <TextField
+              status={isOtherReasonEmpty ? "error" : undefined}
+              placeholderTx="workoutCommentsPanel.reportCommentReasonOtherPlaceholder"
+              value={otherReportReason}
+              onChangeText={setOtherReportReason}
+              containerStyle={{ marginTop: spacing.small }}
+            />
+          )}
+        </View>
+        <Spacer type="vertical" size="large" />
+        <RowView style={styles.alignCenter}>
+          <View style={styles.flex1}>
+            <Text preset="formLabel" tx="workoutCommentsPanel.blockUserPromptTitle" />
+            <Text preset="light" tx="workoutCommentsPanel.blockUserPromptMessage" />
+          </View>
+          <Icon
+            onPress={() => setIsBlockUserSelected(!isBlockUserSelected)}
+            name={isBlockUserSelected ? "checkbox-outline" : "square-outline"}
+            size={20}
+          />
+        </RowView>
+        <Spacer type="vertical" size="large" />
+        <Button
+          disabled={isSendingReport}
+          preset="dangerOutline"
+          tx="workoutCommentsPanel.reportConfirmButtonLabel"
+          RightAccessory={() =>
+            isSendingReport && (
+              <ActivityIndicator
+                size="small"
+                color={themeStore.colors("logo")}
+                style={{ paddingLeft: spacing.extraSmall }}
+              />
+            )
+          }
+          onPress={sendCommentReport}
+        />
+      </Sheet.ScrollView>
+    )
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange} dismissOnSnapToBottom={true}>
+      <Sheet.Overlay />
+      <Sheet.Handle alignSelf="center" style={$panelDraggableIndicator} />
+      <Sheet.Frame style={$reportCommentContainer}>{renderReportCommentContent()}</Sheet.Frame>
+    </Sheet>
   )
 }
 
@@ -101,7 +410,8 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
   const commentInputRef = useRef<TextInput>(null)
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [selectedComment, setSelectedComment] = useState<IWorkoutCommentModel>()
-  const [isCommentDeleteConfirmation, setIsCommentDeleteConfirmation] = useState(false)
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [showReportSheet, setShowReportSheet] = useState(false)
   const [toastShowTx] = useToast()
 
   const thisWorkoutInteraction = feedStore.getInteractionsForWorkout(workoutSource, workoutId)
@@ -152,7 +462,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
 
   const tapGestureHandler = Gesture.Tap().onEnd(() => {
     runOnJS(setSelectedComment)(undefined)
-    runOnJS(setIsCommentDeleteConfirmation)(false)
+    runOnJS(setShowDeleteConfirmation)(false)
     runOnJS(dismissKeyboard)()
   })
 
@@ -203,18 +513,17 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
   }
 
   const panelHeader = () => {
-    if (isCommentDeleteConfirmation) {
+    if (showDeleteConfirmation) {
       return (
         <RowView style={[$panelHeaderSelected, { backgroundColor: themeStore.colors("danger") }]}>
           <Text tx="workoutCommentsPanel.deleteCommentConfirmationMessage" />
-          <RowView style={styles.alignCenter}>
+          <RowView style={$panelHeaderActionButtons}>
             <Button
               preset="text"
               tx="common.cancel"
               textStyle={{ color: themeStore.colors("text") }}
-              onPress={() => setIsCommentDeleteConfirmation(false)}
+              onPress={() => setShowDeleteConfirmation(false)}
             />
-            <Spacer type="horizontal" size="medium" />
             <Icon
               name="trash-bin-outline"
               size={28}
@@ -223,7 +532,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
 
                 feedStore.removeCommentFromWorkout(workoutId, selectedComment.commentId)
                 setSelectedComment(undefined)
-                setIsCommentDeleteConfirmation(false)
+                setShowDeleteConfirmation(false)
               }}
             />
           </RowView>
@@ -232,7 +541,7 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
     } else if (selectedComment) {
       return (
         <RowView style={$panelHeaderSelected}>
-          <Text tx="common.selected" />
+          <Text tx="common.selected" textColor={themeStore.colors("actionableForeground")} />
           {panelHeaderActionButton()}
         </RowView>
       )
@@ -249,9 +558,25 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
 
   const panelHeaderActionButton = () => {
     return (
-      <RowView>
+      <RowView style={$panelHeaderActionButtons}>
+        {selectedComment?.byUserId !== userStore.userId && (
+          <MessageSquareWarning
+            color={themeStore.colors("danger")}
+            size={28}
+            onPress={() => setShowReportSheet(true)}
+          />
+        )}
+        {selectedComment?.byUserId === userStore.userId && (
+          <Icon
+            name="trash-bin-outline"
+            color={themeStore.colors("actionableForeground")}
+            size={28}
+            onPress={() => setShowDeleteConfirmation(true)}
+          />
+        )}
         <Icon
           name="clipboard-outline"
+          color={themeStore.colors("actionableForeground")}
           size={28}
           onPress={() => {
             if (!selectedComment) return
@@ -261,16 +586,6 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
             })
           }}
         />
-        {selectedComment?.byUserId === userStore.userId && (
-          <>
-            <Spacer type="horizontal" size="medium" />
-            <Icon
-              name="trash-bin-outline"
-              size={28}
-              onPress={() => setIsCommentDeleteConfirmation(true)}
-            />
-          </>
-        )}
       </RowView>
     )
   }
@@ -323,14 +638,31 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
 
   return (
     <View style={$container}>
+      <WorkoutCommentsReportSheet
+        open={showReportSheet}
+        onOpenChange={setShowReportSheet}
+        workoutId={workoutId}
+        selectedComment={selectedComment!}
+      />
       <BlurView
         style={$blurView}
         tint="dark"
         intensity={Platform.select({ android: 100, ios: 20 })}
         onTouchEnd={() => {
-          setSelectedComment(undefined)
-          setIsCommentDeleteConfirmation(false)
-          Keyboard.dismiss()
+          if (selectedComment) {
+            setSelectedComment(undefined)
+            setShowDeleteConfirmation(false)
+            Keyboard.dismiss()
+          } else {
+            panelTranslateY.value = withTiming(
+              PANEL_HIDDEN_Y_POSITION,
+              {
+                duration: 500,
+                easing: Easing.out(Easing.exp),
+              },
+              () => runOnJS(toggleShowCommentsPanel)(),
+            )
+          }
         }}
       />
       <GestureDetector gesture={panGestureHandler}>
@@ -345,7 +677,9 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
                   scrollEnabled={true}
                   renderItem={({ item }) => (
                     <WorkoutCommentTile
+                      workoutId={workoutId}
                       byUserId={item.byUserId}
+                      commentId={item.commentId}
                       comment={item.comment}
                       commentDate={item._createdAt as Date}
                       onLongPress={() => setSelectedComment(item)}
@@ -369,14 +703,14 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
         multiline={true}
         value={commentInput}
         onChangeText={setCommentInput}
-        textAlignVertical="center" // TODO: This is Android only, there seems to be no solution for vertically centering multiline text input on iOS
+        textAlignVertical="center" // This is Android only, there seems to be no solution for vertically centering multiline text input on iOS
         onContentSizeChange={(event) => {
           setCommentInputHeight(event.nativeEvent.contentSize.height)
         }}
         containerStyle={$commentInputContainerStyle}
         inputWrapperStyle={$commentInputWrapperStyle}
         style={[$commentInputStyle, commentInputHeightStyle()]}
-        LeftAccessory={(props) => <Avatar user={userStore.user} size="sm" {...props} />}
+        LeftAccessory={() => <Avatar user={userStore.user} size="sm" />}
         RightAccessory={commentSubmitButton}
       />
     </View>
@@ -400,6 +734,12 @@ const $panelHeader: ViewStyle = {
   height: 80,
   padding: spacing.screenPadding,
   alignItems: "center",
+}
+
+const $panelHeaderActionButtons: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.medium,
 }
 
 const $noCommentsContainer: ViewStyle = {

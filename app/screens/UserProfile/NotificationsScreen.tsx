@@ -1,9 +1,9 @@
 import { Avatar, Button, Divider, Icon, RowView, Screen, Text } from "app/components"
 import { WorkoutSource } from "app/data/constants"
-import { NotificationType, User } from "app/data/types"
+import { NotificationType } from "app/data/types"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
-import { IFollowRequestsModel, INotificationModel, useStores } from "app/stores"
+import { IFollowRequestsModel, INotificationModel, IUserModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { formatDate } from "app/utils/formatDate"
 import { formatName } from "app/utils/formatName"
@@ -11,20 +11,15 @@ import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
 import { FlatList, SectionList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 
-const FollowRequestTile = ({ followRequest }: { followRequest: IFollowRequestsModel }) => {
+type FollowRequestTileProps = {
+  followRequest: IFollowRequestsModel
+  userProfile: IUserModel
+}
+
+const FollowRequestTile = ({ followRequest, userProfile }: FollowRequestTileProps) => {
   const mainNavigation = useMainNavigation()
   const { userStore } = useStores()
-  const [isInitialized, setIsInitialized] = useState(false)
-  const [senderUser, setSenderUser] = useState<User>()
-
-  useEffect(() => {
-    if (isInitialized) return
-
-    userStore.getOtherUser(followRequest.requestedByUserId).then((senderUser) => {
-      setSenderUser(senderUser)
-      setIsInitialized(true)
-    })
-  }, [])
+  const senderUser = userProfile
 
   const acceptFollowRequest = () => {
     userStore.acceptFollowRequest(followRequest.requestId)
@@ -34,7 +29,7 @@ const FollowRequestTile = ({ followRequest }: { followRequest: IFollowRequestsMo
     userStore.declineFollowRequest(followRequest.requestId)
   }
 
-  if (!isInitialized || !senderUser) return null
+  if (!senderUser) return null
 
   return (
     <TouchableOpacity
@@ -58,39 +53,35 @@ const FollowRequestTile = ({ followRequest }: { followRequest: IFollowRequestsMo
   )
 }
 
-const NotificationTile = ({ notification }: { notification: INotificationModel }) => {
-  const mainNavigation = useMainNavigation()
-  const [isInitialized, setIsInitialized] = useState(false)
-  const { themeStore, userStore } = useStores()
-  const [senderUser, setSenderUser] = useState<User>()
-  const [message, setMessage] = useState("")
+type NotificationTileProps = {
+  notification: INotificationModel
+  userProfile: IUserModel
+}
 
-  useEffect(() => {
-    if (!isInitialized || !senderUser) {
-      userStore.getOtherUser(notification.senderUserId).then((senderUser) => {
-        setSenderUser(senderUser)
-        setIsInitialized(true)
-      })
-    } else {
-      let messageTx
-      switch (notification.notificationType) {
-        case NotificationType.Comment:
-          messageTx = "notificationsScreen.commentNotificationMessage"
-          break
-        case NotificationType.Like:
-          messageTx = "notificationsScreen.likeNotificationMessage"
-          break
-        case NotificationType.FollowRequest:
-          messageTx = "notificationsScreen.followRequestNotificationMessage"
-          break
-        case NotificationType.FollowAccepted:
-          messageTx = "notificationsScreen.followAcceptedNotificationMessage"
-          break
-      }
-      const senderDisplayName = formatName(senderUser.firstName, senderUser.lastName)
-      setMessage(translate(messageTx, { senderDisplayName }))
-    }
-  }, [isInitialized])
+const NotificationTile = ({ notification, userProfile }: NotificationTileProps) => {
+  const mainNavigation = useMainNavigation()
+  const { themeStore, userStore } = useStores()
+  const senderUser = userProfile
+
+  if (!senderUser) return null
+
+  let messageTx
+  switch (notification.notificationType) {
+    case NotificationType.Comment:
+      messageTx = "notificationsScreen.commentNotificationMessage"
+      break
+    case NotificationType.Like:
+      messageTx = "notificationsScreen.likeNotificationMessage"
+      break
+    case NotificationType.FollowRequest:
+      messageTx = "notificationsScreen.followRequestNotificationMessage"
+      break
+    case NotificationType.FollowAccepted:
+      messageTx = "notificationsScreen.followAcceptedNotificationMessage"
+      break
+  }
+  const senderDisplayName = formatName(senderUser.firstName, senderUser.lastName)
+  const message = translate(messageTx, { senderDisplayName })
 
   const handleOnPress = () => {
     if (!notification.isRead) {
@@ -153,7 +144,7 @@ const NotificationTile = ({ notification }: { notification: INotificationModel }
     backgroundColor: themeStore.colors("contentBackground"),
   }
 
-  if (!isInitialized || !senderUser)
+  if (!message || !senderUser)
     return (
       <RowView style={$skeletonGroup}>
         <View style={$skeletonAvatar} />
@@ -187,26 +178,66 @@ const NotificationTile = ({ notification }: { notification: INotificationModel }
 }
 
 export const NotificationsScreen = observer(() => {
-  const { userStore } = useStores()
-  const [isInitialized, setIsInitialized] = useState(false)
+  const { userStore, feedStore } = useStores()
+  const [isNotificationsLoaded, setIsNotificationsLoaded] = useState(false)
   const [newNotifications, setNewNotifications] = useState<INotificationModel[]>([])
   const [oldNotifications, setOldNotifications] = useState<INotificationModel[]>([])
   const [pendingFollowRequests, setPendingFollowRequests] = useState<IFollowRequestsModel[]>([])
   const [showFollowRequests, setShowFollowRequests] = useState(false)
+  // Consolidating all user profiles here and not in the individual tiles to allow filtering out invalid users
+  const [userProfiles, setUserProfiles] = useState<{ [userId: string]: IUserModel }>({})
 
   useEffect(() => {
     console.debug("NotificationsScreen.useEffect [] called")
-    if (isInitialized) {
-      setNewNotifications(userStore.newNotifications ?? [])
-      setOldNotifications(userStore.oldNotifications ?? [])
-      setPendingFollowRequests(userStore.pendingFollowRequests ?? [])
+    async function hydrateNotifications() {
+      // Get a list of all the user IDs that are in the notifications
+      const userIds = new Set([
+        ...userStore.newNotifications.map((notification) => notification.senderUserId),
+        ...userStore.oldNotifications.map((notification) => notification.senderUserId),
+        ...userStore.pendingFollowRequests.map((followRequest) => followRequest.requestedByUserId),
+      ])
+      console.debug("NotificationsScreen.useEffect [] hydrateNotifications()", {
+        newNotifications,
+        userIds,
+      })
+
+      // Fetch user profile and keep track of which user IDs are valid (i.e. the user profile was fetched successfully)
+      const validUserIds = new Set()
+      const _userProfiles = {}
+      for (const userId of userIds) {
+        const userProfile = await feedStore.fetchUserProfileToStore(userId)
+        if (userProfile) {
+          _userProfiles[userId] = userProfile
+          validUserIds.add(userId)
+        }
+      }
+      console.debug("NotificationsScreen.useEffect [] hydrateNotifications()", {
+        validUserIds,
+        _userProfiles,
+      })
+
+      // Filter out the invalid users
+      setNewNotifications(
+        userStore.newNotifications?.filter((n) => validUserIds.has(n.senderUserId)) ?? [],
+      )
+      setOldNotifications(
+        userStore.oldNotifications?.filter((n) => validUserIds.has(n.senderUserId)) ?? [],
+      )
+      setPendingFollowRequests(
+        userStore.pendingFollowRequests?.filter((r) => validUserIds.has(r.requestedByUserId)) ?? [],
+      )
+      setUserProfiles(_userProfiles)
+    }
+
+    if (isNotificationsLoaded) {
+      hydrateNotifications()
     } else {
       userStore.loadNotifications().then(() => {
-        setIsInitialized(true)
+        setIsNotificationsLoaded(true)
       })
     }
   }, [
-    isInitialized,
+    isNotificationsLoaded,
     userStore.newNotifications,
     userStore.oldNotifications,
     userStore.pendingFollowRequests,
@@ -249,7 +280,12 @@ export const NotificationsScreen = observer(() => {
             {showFollowRequests && (
               <FlatList
                 data={pendingFollowRequests}
-                renderItem={({ item }) => <FollowRequestTile followRequest={item} />}
+                renderItem={({ item }) => (
+                  <FollowRequestTile
+                    followRequest={item}
+                    userProfile={userProfiles[item.requestedByUserId]}
+                  />
+                )}
                 keyExtractor={(item) => item.requestId}
                 ItemSeparatorComponent={() => <Divider orientation="horizontal" />}
               />
@@ -258,7 +294,9 @@ export const NotificationsScreen = observer(() => {
               0 && <Text tx="notificationsScreen.noNotificationsMessage" />}
           </>
         )}
-        renderItem={({ item }) => <NotificationTile notification={item} />}
+        renderItem={({ item }) => (
+          <NotificationTile notification={item} userProfile={userProfiles[item.senderUserId]} />
+        )}
         renderSectionHeader={({ section: { title, data } }) =>
           data.length > 0 ? (
             <RowView style={[styles.alignCenter, styles.justifyBetween]}>

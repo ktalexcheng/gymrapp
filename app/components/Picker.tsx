@@ -61,6 +61,10 @@ export interface PickerProps {
    * Callback to deselect the current value
    */
   clearSelectionCallback?: () => void
+  /**
+   * Android only: Set the picker mode to "dialog" or "dropdown"
+   */
+  androidPickerMode?: "dialog" | "dropdown"
 }
 
 /**
@@ -81,6 +85,7 @@ export const Picker: FC<PickerProps> = observer(function Picker(props: PickerPro
     containerStyle: $containerStyleOverride,
     pickerStyle: $pickerStyleOverride,
     itemStyle: $itemStyleOverride,
+    androidPickerMode = "dialog",
   } = props
   const disabled = status === "disabled"
   const allowClearSelection = !!clearSelectionPlaceholderTx && !!clearSelectionCallback
@@ -122,6 +127,7 @@ export const Picker: FC<PickerProps> = observer(function Picker(props: PickerPro
       )}
 
       <RNPicker
+        mode={androidPickerMode}
         selectedValue={selectedValue}
         onValueChange={onValueChange}
         style={$pickerStyles}

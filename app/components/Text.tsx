@@ -1,8 +1,16 @@
+import { AppLocale } from "app/data/constants"
+import { useLocale } from "app/hooks"
 import { useStores } from "app/stores"
 import i18n from "i18n-js"
 import { observer } from "mobx-react-lite"
 import React from "react"
-import { Text as RNText, TextProps as RNTextProps, StyleProp, TextStyle } from "react-native"
+import {
+  Platform,
+  Text as RNText,
+  TextProps as RNTextProps,
+  StyleProp,
+  TextStyle,
+} from "react-native"
 import { TxKeyPath, translate } from "../i18n"
 import { typography } from "../theme"
 
@@ -89,9 +97,10 @@ export const Text = observer((props: TextProps) => {
   } = props
 
   const { themeStore } = useStores()
+  const [locale] = useLocale()
 
   const i18nText = tx && translate(tx, txOptions)
-  const content = i18nText || text || children
+  const content = i18nText ?? text ?? children
 
   const $baseStyle: StyleProp<TextStyle> = [
     $sizeStyles.sm,
@@ -114,13 +123,25 @@ export const Text = observer((props: TextProps) => {
 
     formLabel: [$baseStyle, $primaryWeightStyles.medium] as StyleProp<TextStyle>,
 
-    formHelper: [$baseStyle, $sizeStyles.sm, $primaryWeightStyles.normal] as StyleProp<TextStyle>,
+    formHelper: [$baseStyle, $sizeStyles.sm, $primaryWeightStyles.light] as StyleProp<TextStyle>,
 
     danger: [
       $baseStyle,
       $primaryWeightStyles.bold,
       { color: themeStore.colors("danger") },
     ] as StyleProp<TextStyle>,
+  }
+
+  switch (locale) {
+    case AppLocale.zh_TW:
+      // On Android, Chinese with medium weight looks the same as regular, so we use bold instead
+      if (Platform.OS === "android") {
+        $presets.heading = [$presets.heading, $secondaryWeightStyles.bold]
+        $presets.subheading = [$presets.subheading, $secondaryWeightStyles.bold]
+        $presets.formLabel = [$presets.formLabel, $primaryWeightStyles.bold]
+      }
+
+      break
   }
 
   const preset: Presets = props.preset && $presets[props.preset] ? props.preset : "default"

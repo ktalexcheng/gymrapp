@@ -18,11 +18,13 @@ const UserProfileStatTile: FC<{ labelTx: TxKeyPath; value: string }> = ({ labelT
 interface UserProfileStatsBarProps {
   user: IUserModel
   containerStyle?: ViewStyle
+  hideActivitesCount?: boolean
 }
 
 export const UserProfileStatsBar: FC<UserProfileStatsBarProps> = ({
   user,
   containerStyle: $containerStyleOverride,
+  hideActivitesCount = false,
 }: UserProfileStatsBarProps) => {
   const $containerStyle = [$userStatsRow, $containerStyleOverride]
 
@@ -30,7 +32,7 @@ export const UserProfileStatsBar: FC<UserProfileStatsBarProps> = ({
   // the isMapType() method from mobx-state-tree does not work properly
   // so we have to use a try/catch block to handle both cases
   let activitiesCount = 0
-  if (user?.workoutMetas) {
+  if (!hideActivitesCount && user?.workoutMetas) {
     try {
       activitiesCount = Array.from(user.workoutMetas.values()).length
     } catch {

@@ -28,15 +28,10 @@ export interface Workout extends baseMetadata {
   performedAtGymName?: string
 }
 
-// export interface Workout extends NewWorkout, baseMetadata {
-//   workoutId: WorkoutId
-//   // comments?: WorkoutComment[]
-//   // likedByUserIds?: UserId[]
-// }
-
 export interface WorkoutInteraction extends baseMetadata {
   workoutId: WorkoutId
   workoutByUserId: UserId
   comments?: WorkoutComment[]
   likedByUserIds?: UserId[]
+  reportedCommentIds?: Record<CommentId, number>
 }

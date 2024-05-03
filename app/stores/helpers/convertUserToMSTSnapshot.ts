@@ -45,7 +45,7 @@ export const convertUserToMSTSnapshot = (user: User) => {
   const convertedUser = convertFirestoreTimestampToDate(user)
 
   // Handle workoutMetas
-  if (convertedUser.workoutMetas) {
+  if (convertedUser?.workoutMetas) {
     // console.debug("convertUserToMSTModel(): Converting workoutMetas")
     const convertedWorkoutMetas = {}
 
@@ -62,7 +62,7 @@ export const convertUserToMSTSnapshot = (user: User) => {
   }
 
   // Handle personalRecords
-  if (convertedUser.exerciseHistory) {
+  if (convertedUser?.exerciseHistory) {
     // console.debug("convertUserToMSTModel(): Converting exerciseHistory")
     const convertedExerciseHistory = {}
 

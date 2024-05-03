@@ -162,7 +162,7 @@ const NewActivityButton = observer(() => {
 
   function resetWorkout() {
     setShowResetWorkoutDialog(false)
-    activeWorkoutStore.resetWorkout()
+    activeWorkoutStore.startNewWorkout(ActivityType.Gym)
     navigation.navigate("ActiveWorkout")
   }
 

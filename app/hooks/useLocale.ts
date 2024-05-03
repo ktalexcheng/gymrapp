@@ -1,9 +1,9 @@
 import { AppLocale } from "app/data/constants"
+import { storage, storageKeys } from "app/services"
 import * as Localization from "expo-localization"
 import i18n from "i18n-js"
 import { useEffect, useState } from "react"
 import { I18nManager } from "react-native"
-import * as storage from "../utils/storage"
 
 export function useLocale(): [
   locale: AppLocale,
@@ -12,12 +12,14 @@ export function useLocale(): [
 ] {
   const defaultLocale = Localization.getLocales()[0]
 
-  const [locale, _setLocale] = useState((defaultLocale?.languageCode || "en") as AppLocale)
+  const [locale, _setLocale] = useState(
+    (i18n.locale || defaultLocale?.languageCode || "en") as AppLocale,
+  )
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     storage
-      .loadString("APP_LOCALE_STORAGE_KEY")
+      .getData(storageKeys.APP_LOCALE, true)
       .then((locale) => {
         if (locale) {
           setLocale(locale as AppLocale)
@@ -36,13 +38,13 @@ export function useLocale(): [
     I18nManager.forceRTL(isRTL)
 
     storage
-      .saveString("APP_LOCALE_STORAGE_KEY", locale)
+      .storeData(storageKeys.APP_LOCALE, locale)
       .then(() => {
         _setLocale(locale)
       })
       .finally(() => setIsLoading(false))
   }
 
-  console.debug("useLocale():", { locale, setLocale, isLoading })
+  // console.debug("useLocale():", { locale, setLocale, isLoading })
   return [locale, setLocale, isLoading]
 }

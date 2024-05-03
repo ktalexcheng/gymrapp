@@ -1,6 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
-const APP_LAST_UPDATED_KEY = "gymrapp-app-last-updated"
+// This helps us manage the keys we use for AsyncStorage and share them across the app
+export const storageKeys = {
+  APP_LAST_UPDATED: "gymrapp-app-last-updated",
+  CURRENT_USER_ID: "user-id",
+  BUILD_VERSION: "build-version",
+  ROOT_STORE_STATE: "root-v1",
+  MAIN_NAVIGATOR_STATE: "navigation-state",
+  APP_LOCALE: "app-locale",
+}
 
 export class Storage {
   convertDateStringToDate(data: any) {
@@ -38,13 +46,16 @@ export class Storage {
     }
   }
 
-  async getData(key) {
+  async getData(key, asString = false) {
     let value
     try {
       value = await AsyncStorage.getItem(key)
-      console.debug("Storage.getData()", { key, value })
     } catch (e) {
       throw new Error("Error getting object: " + e)
+    }
+
+    if (asString) {
+      return value
     }
 
     let parsedValue
@@ -76,7 +87,7 @@ export class Storage {
 
   async setAppLastUpdated() {
     try {
-      await this.storeData(APP_LAST_UPDATED_KEY, new Date().getTime().toString())
+      await this.storeData(storageKeys.APP_LAST_UPDATED, new Date().getTime().toString())
     } catch (e) {
       throw new Error("Error setting app last updated time: " + e)
     }
@@ -84,7 +95,7 @@ export class Storage {
 
   async getAppLastUpdated(): Promise<number | null> {
     try {
-      const value = await this.getData(APP_LAST_UPDATED_KEY)
+      const value = await this.getData(storageKeys.APP_LAST_UPDATED)
       if (!value) return null
       return parseInt(value)
     } catch (e) {

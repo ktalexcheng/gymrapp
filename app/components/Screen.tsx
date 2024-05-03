@@ -1,7 +1,6 @@
 import { useHeaderHeight } from "@react-navigation/elements"
 import { useScrollToTop } from "@react-navigation/native"
 import { useStores } from "app/stores"
-import { StatusBar, StatusBarProps } from "expo-status-bar"
 import { observer } from "mobx-react-lite"
 import React, { useRef, useState } from "react"
 import {
@@ -42,13 +41,9 @@ interface BaseScreenProps {
    */
   backgroundColor?: string
   /**
-   * Override the default status bar behavior. Defaults to false.
-   */
-  overrideStatusBar?: boolean
-  /**
    * Status bar setting. Defaults to dark.
    */
-  statusBarStyle?: "light" | "dark"
+  // statusBarStyle?: "light" | "dark"
   /**
    * By how much should we offset the keyboard? Defaults to 0.
    */
@@ -56,7 +51,7 @@ interface BaseScreenProps {
   /**
    * Pass any additional props directly to the StatusBar component.
    */
-  StatusBarProps?: StatusBarProps
+  // StatusBarProps?: StatusBarProps
   /**
    * Pass any additional props directly to the KeyboardAvoidingView component.
    */
@@ -217,9 +212,8 @@ export const Screen = observer((props: ScreenProps) => {
     KeyboardAvoidingViewProps,
     keyboardOffset = 0,
     safeAreaEdges,
-    overrideStatusBar = false,
-    StatusBarProps,
-    statusBarStyle = "dark",
+    // StatusBarProps,
+    // statusBarStyle: $statusBarStyleOverride,
     isBusy = false,
   } = props
 
@@ -253,10 +247,12 @@ export const Screen = observer((props: ScreenProps) => {
     alignItems: "center",
   }
 
+  // const $statusBarStyle = $statusBarStyleOverride || (themeStore.isDark ? "light" : "dark")
+
   return (
     // <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
     <View style={[$containerStyle, $containerInsets]}>
-      {overrideStatusBar && <StatusBar style={statusBarStyle} {...StatusBarProps} />}
+      {/* <StatusBar style={$statusBarStyle} {...StatusBarProps} /> */}
 
       {isBusy && (
         <View style={$busyIndicator}>

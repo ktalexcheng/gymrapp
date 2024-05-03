@@ -19,23 +19,6 @@ export class UserRepository extends BaseRepository<User, UserId> {
     this.#userFollowsCollection = this.firestoreClient.collection(this.#userFollowsCollectionName)
   }
 
-  /**
-   * Retrieves the value of a property in the user document
-   * Primarily for sharing user properties across different stores (other than UserStore)
-   * @param propPath Dot-notation path to the property, e.g. "preferences.restTime"
-   * @returns Value of the property, or undefined if the property does not exist
-   */
-  // TODO: This is easy to create inconsistency between Firestore and MST
-  // Replace every call to this method with a parameter that takes the User object from MST instead
-  // async getUserProp(propPath: string): Promise<any> {
-  //   this.checkRepositoryInitialized()
-
-  //   const user = await this.get(this.#userId!, false)
-  //   if (!user) return undefined
-
-  //   return getNestedField(user, propPath)
-  // }
-
   setUserId(userId?: string): void {
     this.#userId = userId
   }
@@ -80,6 +63,7 @@ export class UserRepository extends BaseRepository<User, UserId> {
       }
     }
 
+    console.debug("UserRepository.update:", { id, _data, useSetMerge, isOffline })
     return await super.update(id ?? this.#userId!, _data, useSetMerge, isOffline)
   }
 
@@ -325,5 +309,72 @@ export class UserRepository extends BaseRepository<User, UserId> {
     console.debug("removeFromMyGyms updatedUser:", updatedUser)
     console.debug("removeFromMyGyms new cached data:", this.getCacheData(this.#userId!))
     return updatedUser
+  }
+
+  async getAllBlockedUsers(): Promise<UserId[]> {
+    this.checkRepositoryInitialized()
+
+    try {
+      const userFollowsDoc = await this.#userFollowsCollection.doc(this.#userId).get()
+      const blockedUserIds = userFollowsDoc.data()?.blockedUserIds ?? []
+      console.debug("UserRepository.getAllBlockedUsers blockedUserIds", blockedUserIds)
+      return blockedUserIds
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `getAllBlockedUsers error: ${e}`)
+    }
+  }
+
+  async blockUser(userIdToBlock: UserId): Promise<void> {
+    this.checkRepositoryInitialized()
+
+    const blockedUserIdsUpdate = {
+      blockedUserIds: firestore.FieldValue.arrayUnion(userIdToBlock),
+    }
+
+    const blockedByUserIdsUpdate = {
+      blockedByUserIds: firestore.FieldValue.arrayUnion(this.#userId),
+    }
+
+    try {
+      await this.firestoreClient.runTransaction(async (tx) => {
+        tx.set(this.#userFollowsCollection.doc(this.#userId), blockedUserIdsUpdate, {
+          mergeFields: ["blockedUserIds"],
+        })
+        tx.set(
+          this.#userFollowsCollection.doc(userIdToBlock).collection("blockedBy").doc("blockedBy"),
+          blockedByUserIdsUpdate,
+          { mergeFields: ["blockedByUserIds"] },
+        )
+      })
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `blockUser error: ${e}`)
+    }
+  }
+
+  async unblockUser(userIdToUnblock: UserId): Promise<void> {
+    this.checkRepositoryInitialized()
+
+    const blockedUserIdsUpdate = {
+      blockedUserIds: firestore.FieldValue.arrayRemove(userIdToUnblock),
+    }
+
+    const blockedByUserIdsUpdate = {
+      blockedByUserIds: firestore.FieldValue.arrayRemove(this.#userId),
+    }
+
+    try {
+      await this.firestoreClient.runTransaction(async (tx) => {
+        tx.set(this.#userFollowsCollection.doc(this.#userId), blockedUserIdsUpdate, {
+          mergeFields: ["blockedUserIds"],
+        })
+        tx.set(
+          this.#userFollowsCollection.doc(userIdToUnblock).collection("blockedBy").doc("blockedBy"),
+          blockedByUserIdsUpdate,
+          { mergeFields: ["blockedByUserIds"] },
+        )
+      })
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `unblockUser error: ${e}`)
+    }
   }
 }

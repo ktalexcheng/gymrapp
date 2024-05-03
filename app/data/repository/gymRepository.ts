@@ -11,7 +11,7 @@ export class GymRepository extends BaseRepository<GymDetails, GymId> {
   }
 
   delete(): never {
-    throw new RepositoryError(this.constructor.name, "Method not allowed.")
+    throw new RepositoryError(this.repositoryId, "Method not allowed.")
   }
 
   async getGymMembersByWorkoutsCount(

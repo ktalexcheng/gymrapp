@@ -15,7 +15,6 @@ interface WorkoutSummaryMenuProps {
   workoutSource: WorkoutSource
   workoutId: WorkoutId
   onBusyChange?: (isBusy: boolean) => void
-  // onWorkoutUpdated?: () => void
 }
 
 export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
@@ -23,9 +22,6 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
   const { feedStore, themeStore, workoutEditorStore } = useStores()
   const mainNavigation = useMainNavigation()
   const [menuOpen, setMenuOpen] = useState(false)
-  // const [workoutTitle, setWorkoutTitle] = useState<string>()
-  // const [workoutTitleError, setWorkoutTitleError] = useState(false)
-  // const [showEditTitleModal, setShowEditTitleModal] = useState(false)
 
   const workout = feedStore.getWorkout(workoutSource, workoutId)
 
@@ -56,28 +52,10 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
   }
 
   const goToEditWorkout = () => {
-    // if (!workout) return
-    // setWorkoutTitle(workout.workoutTitle)
-    // setMenuOpen(false)
-    // setShowEditTitleModal(true)
     setMenuOpen(false)
     workoutEditorStore.hydrateWithWorkout(workout)
     mainNavigation.navigate("EditWorkout")
   }
-
-  // const updateWorkoutTitle = () => {
-  //   if (workoutTitle) {
-  //     if (onBusyChange) onBusyChange(true)
-  //     feedStore.updateWorkout(workoutId, { workoutTitle }).then(() => {
-  //       if (onBusyChange) onBusyChange(false)
-  //       if (onWorkoutUpdated) onWorkoutUpdated()
-  //     })
-  //     setWorkoutTitleError(false)
-  //     setShowEditTitleModal(false)
-  //   } else {
-  //     setWorkoutTitleError(true)
-  //   }
-  // }
 
   const renderPopoverContent = () => {
     return (
@@ -100,35 +78,14 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
   if (!workout) return <LoadingScreen />
 
   return (
-    <>
-      {/* <Modal
-        visible={showEditTitleModal}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setShowEditTitleModal(false)}
-      >
-        <TextField
-          labelTx="workoutSummaryMenu.workoutTitleLabel"
-          status={workoutTitleError ? "error" : null}
-          value={workoutTitle}
-          onChangeText={setWorkoutTitle}
-          onSubmitEditing={updateWorkoutTitle}
-        />
-        <RowView style={styles.justifyAround}>
-          <Button preset="text" tx="common.cancel" onPress={() => setShowEditTitleModal(false)} />
-          <Button preset="text" tx="common.save" onPress={updateWorkoutTitle} />
-        </RowView>
-      </Modal> */}
+    <Popover placement="bottom-end" open={menuOpen} onOpenChange={(open) => setMenuOpen(open)}>
+      <Popover.Trigger>
+        <Icon name="ellipsis-vertical" size={24} />
+      </Popover.Trigger>
 
-      <Popover placement="bottom-end" open={menuOpen} onOpenChange={(open) => setMenuOpen(open)}>
-        <Popover.Trigger>
-          <Icon name="ellipsis-vertical" size={24} />
-        </Popover.Trigger>
-
-        <Popover.Content unstyled style={themeStore.styles("menuPopoverContainer")}>
-          <View style={styles.fullWidth}>{renderPopoverContent()}</View>
-        </Popover.Content>
-      </Popover>
-    </>
+      <Popover.Content unstyled style={themeStore.styles("menuPopoverContainer")}>
+        <View style={styles.fullWidth}>{renderPopoverContent()}</View>
+      </Popover.Content>
+    </Popover>
   )
 })

@@ -17,11 +17,6 @@ export interface WorkoutMeta {
   startTime: Date
 }
 
-// export interface UnregisteredUser extends baseMetadata {
-//   firstName: string
-//   lastName: string
-// }
-
 export interface ExerciseHistory {
   performedWorkoutIds: WorkoutId[]
   personalRecords: ExerciseRecord
@@ -31,8 +26,10 @@ export type UserId = string
 
 export interface User extends baseMetadata {
   userId: UserId
-  userHandle: string
-  _userHandleLower: string // internal use only, for case-insensitive search
+  appleUserId?: string
+  googleUserId?: string
+  userHandle?: string
+  _userHandleLower?: string // internal use only, for case-insensitive search
   email: string
   firstName: string
   lastName: string

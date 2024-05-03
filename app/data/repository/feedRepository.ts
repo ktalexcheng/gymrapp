@@ -1,6 +1,6 @@
 // Repository for feed data
 
-import { FeedItemId, UserFeedItem } from "../types"
+import { FeedItemId, UserFeedItem, WorkoutComment } from "../types"
 import { BaseRepository, RepositoryError } from "./baseRepository"
 
 export class FeedRepository extends BaseRepository<UserFeedItem, FeedItemId> {
@@ -16,10 +16,33 @@ export class FeedRepository extends BaseRepository<UserFeedItem, FeedItemId> {
   }
 
   create(): never {
-    throw new RepositoryError(this.constructor.name, "Method not allowed.")
+    throw new RepositoryError(this.repositoryId, "Method not allowed.")
   }
 
   delete(): never {
-    throw new RepositoryError(this.constructor.name, "Method not allowed.")
+    throw new RepositoryError(this.repositoryId, "Method not allowed.")
+  }
+
+  async reportComment(
+    workoutId: string,
+    comment: Partial<WorkoutComment>,
+    reasons: string[],
+    otherReason?: string,
+  ): Promise<void> {
+    const violationsCommentsColl = this.firestoreClient.collection(`violations/comments/reports`)
+    const reportData: any = {
+      reportedAt: new Date(),
+      workoutId,
+      commentId: comment.commentId,
+      comment,
+      reasons,
+    }
+    if (otherReason) reportData.otherReason = otherReason
+
+    try {
+      await violationsCommentsColl.add(reportData)
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `reportComment error: ${e}`)
+    }
   }
 }

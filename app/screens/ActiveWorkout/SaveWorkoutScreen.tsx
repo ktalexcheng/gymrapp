@@ -22,19 +22,6 @@ import React, { FC, useState } from "react"
 import { Alert, TouchableOpacity, ViewStyle } from "react-native"
 import { ExerciseSummary } from "../FinishedWorkout"
 
-// The values "" and "true" are a hacky way to represent boolean values in the Picker component
-// because the Picker component will convert all values to strings
-const workoutIsHiddenOptions = [
-  {
-    label: translate("workoutSettings.workoutVisibleToFeedLabel"),
-    value: "",
-  },
-  {
-    label: translate("workoutSettings.workoutHiddenLabel"),
-    value: "true",
-  },
-]
-
 export const SaveWorkoutScreen: FC = observer(() => {
   const mainNavigation = useMainNavigation()
   const { activeWorkoutStore, exerciseStore, feedStore, userStore, themeStore } = useStores()
@@ -44,6 +31,19 @@ export const SaveWorkoutScreen: FC = observer(() => {
   const [isSaving, setIsSaving] = useState(false)
   const [toastShowTx] = useToast()
   const [isInternetConnected] = useInternetStatus()
+
+  // The values "" and "true" are a hacky way to represent boolean values in the Picker component
+  // because the Picker component will convert all values to strings
+  const workoutIsHiddenOptions = [
+    {
+      label: translate("workoutSettings.workoutVisibleToFeedLabel"),
+      value: "",
+    },
+    {
+      label: translate("workoutSettings.workoutHiddenLabel"),
+      value: "true",
+    },
+  ]
 
   function resumeWorkout() {
     activeWorkoutStore.resumeWorkout()
@@ -178,6 +178,7 @@ export const SaveWorkoutScreen: FC = observer(() => {
       </TouchableOpacity>
       <Spacer type="vertical" size="medium" />
       <Picker
+        androidPickerMode="dropdown"
         labelTx="workoutSettings.setWorkoutVisibilityLabel"
         itemsList={workoutIsHiddenOptions}
         selectedValue={isHidden}

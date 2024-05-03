@@ -1,3 +1,5 @@
+import { Spacer, Text } from "app/components"
+import { TxKeyPath } from "app/i18n"
 import { useStores } from "app/stores"
 import { typography } from "app/theme"
 import { observer } from "mobx-react-lite"
@@ -10,7 +12,11 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated"
 
-export const LoadingScreen = observer(() => {
+type LoadingScreenProps = {
+  promptMessageTx?: TxKeyPath
+}
+
+export const LoadingScreen = observer(({ promptMessageTx }: LoadingScreenProps) => {
   const { themeStore } = useStores()
 
   const $logoText: TextStyle = {
@@ -60,6 +66,12 @@ export const LoadingScreen = observer(() => {
   return (
     <View style={$loadingScreen}>
       <Animated.Text style={$glowAnimation}>GYMRAPP</Animated.Text>
+      {promptMessageTx && (
+        <>
+          <Spacer type="vertical" size="small" />
+          <Text textAlign="center" preset="light" tx={promptMessageTx} />
+        </>
+      )}
     </View>
   )
 })

@@ -1,5 +1,7 @@
 const en = {
   common: {
+    yes: "Yes",
+    no: "No",
     ok: "OK",
     cancel: "Cancel",
     clear: "Clear",
@@ -32,6 +34,11 @@ const en = {
     user: "User",
     workouts: "Workouts",
     you: "You",
+    next: "Next",
+    finish: "Finish",
+    exit: "Exit",
+    block: "Block",
+    unblock: "Unblock",
     error: {
       networkErrorMessage: "Internet connection is not available",
       unknownErrorMessage: "Something went wrong",
@@ -80,6 +87,10 @@ const en = {
       "This is the app for gym rats. Track and share your progress with the community and celebrate your accomplishments.",
     getStartedButtonLabel: "Get started",
     appLocalePickerLabel: "Select your language",
+    agreeToTermsMessage1: "By continuing, you acknowledge that you understand and agree to our ",
+    termsOfService: "Terms of Service",
+    agreeToTermsMessage2: " and ",
+    privacyPolicy: "Privacy Policy",
   },
   errorScreen: {
     title: "This is awkward...",
@@ -153,6 +164,23 @@ const en = {
     emailVerifiedMessage: "Your email address has been verified.",
     continueButtonLabel: "Let's go!",
   },
+  createProfileScreen: {
+    hi: "Hi!",
+    welcomeMessage: "We're excited to have you here! Let's get started by setting up your profile.",
+    aboutYouTitle: "About you",
+    agreeToEulaMessage1: "To continue, you must agree to the terms of the ",
+    eula: "End User License Agreement (EULA)",
+    agreeCheckboxLabel: "I agree",
+    yourPreferencesTitle: "Your preferences",
+    yourFavoriteGymsTitle: "Where you workout",
+    confirmExitTitle: "Return to sign in?",
+    confirmExitMessage: "You're so close! Are you sure you want to return to sign in?",
+    creatingYourProfileMessage: "Creating your profile...",
+  },
+  onboardingSuccessScreen: {
+    onboardingSuccessTitle: "Welcome to GYMRAPP!",
+    onboardingSuccessMessage: "You are all set up and ready to go. Happy training!",
+  },
   feedScreen: {
     notFollowingAnyone: "Start following people to see their workouts here",
     noFeedItems: "Once your friends start working out, you'll see their workouts here",
@@ -167,15 +195,13 @@ const en = {
     coachsCenterButtonLabel: "Coach's Center",
   },
   editProfileForm: {
-    editProfileTitle: "Your profile",
+    editProfileTitle: "Manage your profile",
     aboutYouSectionLabel: "About you",
     userHandleLabel: "User handle",
     newUserHandleAvailableMessage: "This user handle is available",
     personaTypeLabel: "Are you a coach?",
-    uploadAvatarLabel: "Set your avatar",
+    // uploadAvatarLabel: "Set your avatar",
     uploadAvatarPlaceholder: "Choose a picture",
-    availableAfterProfileCreatedMessage:
-      "This feature will be available after your profile is completed.",
     myGymsLabel: "My gyms",
     myGymsDescription: "Add gyms you frequently visit to your favorites",
     addGymButtonLabel: "Add gym",
@@ -189,7 +215,7 @@ const en = {
     defaultRestTimeLabel: "Default rest time",
     defaultRestTimeSelectorLabel: "Select default rest time:",
     appAppearanceLabel: "App appearance",
-    saveProfileChanges: "Save changes",
+    // saveProfileChanges: "Save changes",
     discardAlertTitle: "Discard changes?",
     discardAlertMessage: "There are unsaved changes. Are you sure you want to discard them?",
     alertDialogResume: "Keep editing",
@@ -201,19 +227,32 @@ const en = {
       firstNameMissingMessage: "Please enter your first name",
       lastNameMissingMessage: "Please enter your last name",
     },
-    backButtonDisabledMessage:
-      "Use the discard or save button at the top and bottom of the screen to exit",
+    backButtonDisabledMessage: "Use the buttons on the top of the screen to exit",
   },
-  addToMyGymsScreen: {
-    addToMyGymsTitle: "My gyms",
+  manageMyGymsScreen: {
+    manageMyGymsTitle: "My gyms",
   },
   userSettingsScreen: {
     accountControlsSectionLabel: "Account controls",
     logoutAlertTitle: "Logout",
     logoutAlertMessage: "Are you sure you want to logout?",
+    deleteAccountPasswordPrompt: "Please verify your password to delete your account.",
     deleteAccountAlertTitle: "Delete account",
     deleteAccountAlertMessage:
-      "This will remove all user data. This action cannot be reversed. Are you sure?",
+      "This action will remove all of your data and cannot be reversed. Are you sure? For security, we will ask you to verify your identity.",
+    identityVerificationFailedTitle: "Identity verification failed",
+    identityVerificationFailedMessage:
+      "We could not verify your identity with the credentials provided. Please try again.",
+    identityMismatchMessage: "This is not the same account you signed in with. Please try again.",
+    tooManyFailedAttemptsMessage:
+      "There has been too many failed attempts. Please try again in a while.",
+    deleteFinalWarningTitle: "We'd hate to see you go!",
+    deleteFinalWarningMessage:
+      "This is the last chance to back out of your account deletion. Are you sure?",
+    accountAuthenticationTypeLabel: "Authenticated with ",
+    emailPassword: "email/password",
+    aboutGymrappSectionLabel: "About Gymrapp",
+    appVersionLabel: "App version",
   },
   newActivityScreen: {
     startNewWorkoutText: "Start new workout",
@@ -277,6 +316,9 @@ const en = {
     workoutVisibleToFeedLabel: "Visible to feed",
     workoutSummaryLabel: "Workout summary",
   },
+  workoutSummaryCard: {
+    invalidUserMessage: "Oops! This user no longer exists.",
+  },
   workoutSummaryScreen: {
     headerTitle: "Workout summary",
     commentInputPlaceholder: "Leave a comment...",
@@ -303,7 +345,25 @@ const en = {
     deleteWorkoutFailedMessage: "Failed to delete workout",
   },
   workoutCommentsPanel: {
+    commentIsHiddenMessage: "This comment has been hidden",
+    showHiddenCommentTitle: "Show potentially offensive comment?",
+    showHiddenCommentMessage:
+      "This comment has been reported by users as potentially offensive. Are you sure you want to see it?",
     deleteCommentConfirmationMessage: "Delete comment?",
+    reportCommentTitle: "Why are you reporting this comment?",
+    reportCommentMessage:
+      "Your anonymous report on this comment will be reviewed by our team for violation of our community guidelines.",
+    reportCommentReasonSpam: "Spam",
+    reportCommentReasonHarassment: "Harassment",
+    reportCommentReasonMisinformation: "Misinformation",
+    reportCommentReasonIllegal: "Illegal",
+    reportCommentReasonOther: "Other",
+    reportCommentReasonOtherPlaceholder: "Please share your concerns with us",
+    blockUserPromptTitle: "Do you want to block this user?",
+    blockUserPromptMessage: "You will no longer see each other's activities.",
+    reportConfirmButtonLabel: "Report this comment",
+    reportSentSuccessMessage:
+      "Thank you for raising your concern and making Gymrapp a better place. We will review this issue and take the appropriate actions.",
   },
   restTimerScreen: {
     headerTitle: "Rest timer",
@@ -342,7 +402,8 @@ const en = {
     setAsBlankLabel: "Set as blank",
     requiredFieldsMissingMessage: "Please fill out all required fields",
     exerciseName: "Exercise name",
-    addExerciseButton: "Create exercise",
+    createExerciseButton: "Create exercise",
+    createExerciseSuccessfullMessage: "Exercise created successfully",
   },
   exerciseEntrySettings: {
     restTimerEnabledLabel: "Enabled",
@@ -362,8 +423,9 @@ const en = {
     searchLabel: "Search for a gym",
     searchPlaceholder: "Enter gym name",
     createNewGymButtonLabel: "Create gym",
-    checkingGymExistsLabel: "Checking if gym exists...",
+    searchingForGymsLabel: "Searching for gym...",
     noGymsFoundLabel: "No gyms found around your area",
+    gymAlreadyCreatedMessage: "This gym has already been created. Tap to see it!",
   },
   userLocation: {
     gettingUserLocationLabel: "Getting current location...",
@@ -397,6 +459,8 @@ const en = {
     noMoreWorkoutsMessage: "That's all we have for now!",
     noMoreMembersMessage: "That's all the members at this gym!",
     noActivityMessage: "Be the first to workout here!",
+    onlyPublicOrFollowingActivitiesMessage:
+      "Only activities that are public or from people you follow will be visible.",
   },
   userSearch: {
     searchBarPlaceholder: "Search for a user",
@@ -420,6 +484,14 @@ const en = {
     noActivityHistoryMessage: "No activity history",
     userIsPrivateMessage: "This user is private",
     endOfUserActivityMessage: "That's all from this user!",
+    blockUserButtonLabel: "Block user",
+    blockUserAlertTitle: "Block {{userHandle}} ?",
+    blockUserAlertMessage:
+      "{{userHandle}} will no longer be able to see your profile and activities.",
+    unblockUserButtonLabel: "Unblock user",
+    unblockUserAlertTitle: "Unblock {{userHandle}} ?",
+    unblockUserAlertMessage: "{{userHandle}} will now be able to see your profile and activities.",
+    invalidUserMessage: "Oops! This user no longer exists.",
   },
   notificationsScreen: {
     notificationsTitle: "Notifications",

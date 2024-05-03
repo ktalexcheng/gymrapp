@@ -65,7 +65,7 @@ export class Api {
     this.firebaseFunctionsClient = config.firebaseFunctionsClient
   }
 
-  async checkForUpdates(exercisesLastUpdate: Date): Promise<{
+  async checkForUpdates(exercisesLastUpdate?: Date): Promise<{
     updateAvailable: boolean
     updateLink: string
     forceUpdate: boolean

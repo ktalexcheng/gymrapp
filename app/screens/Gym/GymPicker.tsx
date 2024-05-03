@@ -1,30 +1,23 @@
 import { Gym } from "app/data/types"
 import { useStores } from "app/stores"
-import { styles } from "app/theme"
+import { spacing, styles } from "app/theme"
 import { observer } from "mobx-react-lite"
-import React, { FC, useEffect, useState } from "react"
-import { View, ViewStyle } from "react-native"
+import React, { FC } from "react"
+import { TouchableOpacity, View, ViewStyle } from "react-native"
 import { Accordion } from "tamagui"
-import { Button, Icon, RowView, Spacer, Text } from "../../components"
+import { Icon, RowView, Spacer, Text } from "../../components"
 import { GymSearch } from "../Discover"
 
 interface GymPickerProps {
-  onGymSelected: (gym: Gym) => void
+  myGyms: Gym[]
+  onPressFavoriteGym: (gym: Gym) => void
+  onPressGymSearchResult: (gym: Gym) => void
+  MyGymsItemRightAccessory?: React.ComponentType<{ gym: Gym }>
 }
 
 export const GymPicker: FC<GymPickerProps> = observer((props: GymPickerProps) => {
-  const { onGymSelected } = props
-  const { userStore } = useStores()
-  const [myGyms, setMyGyms] = useState<Gym[]>()
-
-  useEffect(() => {
-    if (!userStore.isLoadingProfile) {
-      const _myGyms = userStore.getPropAsJS<Gym[]>("user.myGyms")
-      if (_myGyms) {
-        setMyGyms(_myGyms)
-      }
-    }
-  }, [userStore.user])
+  const { themeStore } = useStores()
+  const { myGyms, onPressFavoriteGym, onPressGymSearchResult, MyGymsItemRightAccessory } = props
 
   const renderMyGymsItem = () => {
     if (!myGyms?.length) {
@@ -35,13 +28,16 @@ export const GymPicker: FC<GymPickerProps> = observer((props: GymPickerProps) =>
       <>
         {myGyms.map((gym) => {
           return (
-            <Button
-              key={gym.gymId}
-              preset="text"
-              text={gym.gymName}
-              numberOfLines={1}
-              onPress={() => onGymSelected(gym)}
-            />
+            <RowView key={gym.gymId} style={$myGymItem}>
+              <TouchableOpacity style={styles.flex1} onPress={() => onPressFavoriteGym(gym)}>
+                <Text
+                  text={gym.gymName}
+                  numberOfLines={1}
+                  textColor={themeStore.colors("actionable")}
+                />
+              </TouchableOpacity>
+              {MyGymsItemRightAccessory && <MyGymsItemRightAccessory gym={gym} />}
+            </RowView>
           )
         })}
       </>
@@ -76,8 +72,9 @@ export const GymPicker: FC<GymPickerProps> = observer((props: GymPickerProps) =>
           </Accordion.Trigger>
           <Accordion.Content unstyled style={$gymSearchContainer}>
             <GymSearch
+              myGyms={myGyms}
               onPressGymResultOverride={(gym) => {
-                onGymSelected(gym)
+                onPressGymSearchResult(gym)
               }}
             />
           </Accordion.Content>
@@ -93,4 +90,13 @@ const $myGymsContainer: ViewStyle = {
 
 const $gymSearchContainer: ViewStyle = {
   height: "90%",
+}
+
+const $myGymItem: ViewStyle = {
+  flexDirection: "row",
+  width: "100%",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingVertical: spacing.small,
+  paddingHorizontal: spacing.small,
 }

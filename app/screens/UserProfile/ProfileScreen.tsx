@@ -56,7 +56,7 @@ const UserActivitiesTabScene: FC = observer(() => {
       }
       renderItem={renderWorkoutItem}
       showsVerticalScrollIndicator={false}
-      ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
+      // ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
       contentContainerStyle={styles.flexGrow}
       ListEmptyComponent={() => (
         <View style={styles.fillAndCenter}>

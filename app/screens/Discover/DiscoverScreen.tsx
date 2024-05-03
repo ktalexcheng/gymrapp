@@ -1,4 +1,5 @@
 import { Button, ButtonProps, RowView, Screen, Spacer, Text } from "app/components"
+import { Gym } from "app/data/types"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
@@ -39,23 +40,17 @@ export enum SearchCategory {
 }
 
 export const DiscoverScreen = observer(() => {
-  const { activeWorkoutStore } = useStores()
+  const { activeWorkoutStore, userStore } = useStores()
   const [searchCategory, setSearchCategory] = useState<SearchCategory>(SearchCategory.Users)
   const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress ? [] : ["top"]
+
+  const myGyms = userStore.getPropAsJS<Gym[]>("user.myGyms")
 
   return (
     <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={styles.screenContainer}>
       <Text tx="discoverScreen.discoverTitle" preset="screenTitle" />
       <Spacer type="vertical" size="small" />
       <RowView style={$buttonGroup} scrollable={true}>
-        {/* <CategoryButton
-          tx="discoverScreen.allCategoriesLabel"
-          selected={searchCategory === SearchCategory.All}
-          onPress={() => {
-            setSearchCategory(SearchCategory.All)
-            console.log("TODO: search all categories")
-          }}
-        /> */}
         <CategoryButton
           tx="discoverScreen.usersCategoryLabel"
           selected={searchCategory === SearchCategory.Users}
@@ -72,7 +67,7 @@ export const DiscoverScreen = observer(() => {
         {searchCategory === SearchCategory.Users ? (
           <UserSearch />
         ) : searchCategory === SearchCategory.Gyms ? (
-          <GymSearch />
+          <GymSearch myGyms={myGyms} />
         ) : null}
       </View>
     </Screen>

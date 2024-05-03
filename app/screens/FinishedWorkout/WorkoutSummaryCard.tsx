@@ -97,6 +97,16 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
       // paddingLeft: workout?.__isLocalOnly ? 20 : undefined,
     }
 
+    // If the user profile is not available yet, either it's fetching or it has been deleted,
+    // we do not show the card
+    // if (!byUser) return null
+    if (!byUser)
+      return (
+        <View style={themeStore.styles("listItemContainer")}>
+          <Text tx="workoutSummaryCard.invalidUserMessage" />
+        </View>
+      )
+
     return (
       <TouchableOpacity
         onPress={() =>
@@ -108,6 +118,7 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
           })
         }
       >
+        {/* <Text>{JSON.stringify(byUser)}</Text> */}
         <View style={themeStore.styles("listItemContainer")}>
           {workout?.__isLocalOnly && (
             <RowView style={$isLocalOnlyIndicator}>
