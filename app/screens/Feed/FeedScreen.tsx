@@ -17,7 +17,7 @@ export const FeedScreen = observer(function FeedScreen() {
   // UX improvement: Replacing feedItems in one action only once new data is ready
   // to prevent flickering during loading
   useEffect(() => {
-    if (!feedStore.isLoadingFeed && feedStore.feedListData.length > 0) {
+    if (!feedStore.isLoadingFeed) {
       setFeedItems(feedStore.feedListData)
     }
   }, [feedStore.isLoadingFeed, feedStore.feedListData])
@@ -57,7 +57,7 @@ export const FeedScreen = observer(function FeedScreen() {
           renderItem={renderFeedWorkoutItem}
           contentContainerStyle={styles.flexGrow}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
+          // ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
           ListFooterComponent={() => (
             <>
               {renderFeedFooterItem()}

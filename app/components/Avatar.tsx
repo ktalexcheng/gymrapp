@@ -1,12 +1,11 @@
 import { UserSearchResult } from "app/data/types"
 import { IUserModel, useStores } from "app/stores"
+import { Image } from "expo-image"
 import { observer } from "mobx-react-lite"
 import React, { useState } from "react"
 import {
-  Image,
   ImageErrorEventData,
   ImageStyle,
-  NativeSyntheticEvent,
   TextStyle,
   View,
   ViewProps,
@@ -42,6 +41,9 @@ export interface AvatarProps extends ViewProps {
   imageStyle?: ImageStyle
 }
 
+const blurhash =
+  "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj["
+
 export const Avatar = observer((props: AvatarProps) => {
   const { themeStore } = useStores()
   const {
@@ -52,7 +54,7 @@ export const Avatar = observer((props: AvatarProps) => {
     containerStyle: $containerStyleOverride,
     imageStyle: $imageStyleOverride,
   } = props
-  const [loadError, setLoadError] = useState<NativeSyntheticEvent<ImageErrorEventData>>()
+  const [loadError, setLoadError] = useState<ImageErrorEventData>()
 
   const placeholderImage = <Icon name="barbell" size={avatarSize[size] * 0.7} />
   const imageUrlToUse = imageUrl || user?.avatarUrl // imageUrl takes precedence over user.avatarUrl
@@ -92,13 +94,17 @@ export const Avatar = observer((props: AvatarProps) => {
   const renderAvatarImage = () => {
     if (loadError || !imageUrlToUse) {
       // console.debug("Avatar image load error or image URL undefined", { loadError, imageUrlToUse })
-      if (user) return renderUserInitialsText()
+      if (user?.firstName && user?.lastName) return renderUserInitialsText()
       else return placeholderImage
     }
 
     return (
       <Image
+        // defaultSource={require("assets/images/app-icon-all-512px.png")}
         source={{ uri: imageUrlToUse }}
+        placeholder={blurhash}
+        contentFit="cover"
+        transition={1000}
         style={[$image, $imageStyleOverride]}
         onError={(e) => setLoadError(e)}
       />

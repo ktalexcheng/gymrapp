@@ -13,10 +13,12 @@ import { Screen, Text } from "../../components"
 import { GymPicker } from "../Gym"
 
 export const WorkoutGymPickerScreen: FC = observer(() => {
-  const { activeWorkoutStore, gymStore } = useStores()
+  const { activeWorkoutStore, gymStore, userStore } = useStores()
   const mainNavigation = useMainNavigation()
   const [toastShowTx] = useToast()
   const [isBusy, setIsBusy] = useState(false)
+
+  const myGyms = userStore.getPropAsJS<Gym[]>("user.myGyms")
 
   async function checkProximityAndSetGym(gym: Gym) {
     setIsBusy(true)
@@ -53,9 +55,9 @@ export const WorkoutGymPickerScreen: FC = observer(() => {
     >
       <Text tx="activeWorkoutScreen.gymPickerScreenTitle" preset="heading" />
       <GymPicker
-        onGymSelected={(gym) => {
-          checkProximityAndSetGym(gym)
-        }}
+        myGyms={myGyms}
+        onPressFavoriteGym={(gym) => checkProximityAndSetGym(gym)}
+        onPressGymSearchResult={(gym) => checkProximityAndSetGym(gym)}
       />
     </Screen>
   )

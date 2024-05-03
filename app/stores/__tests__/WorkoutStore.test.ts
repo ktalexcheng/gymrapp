@@ -21,7 +21,7 @@ describe.skip("WorkoutStore tests", () => {
     }
 
     await rootStore.userStore.loadUserWithId(authUser.uid)
-    rootStore.feedStore.setUserId(authUser.uid)
+    rootStore.feedStore.initializeWithUserId(authUser.uid)
   })
 
   it("should appropriately label new records when saving a workout", async () => {

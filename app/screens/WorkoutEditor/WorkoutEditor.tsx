@@ -182,7 +182,7 @@ export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
     }
   }, [])
 
-  // @ts-ignore
+  // @ts-ignore: Not all paths return a value
   useEffect(() => {
     if (workoutStore.inProgress) {
       const intervalId = setInterval(() => {
@@ -232,24 +232,38 @@ export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
       workoutStore.endWorkout()
       mainNavigation.navigate("SaveWorkout")
     } else {
-      Alert.alert(
-        translate("editWorkoutScreen.editWorkoutWarningTitle"),
-        translate("editWorkoutScreen.editWorkoutWarningMessage"),
-        [
-          {
-            text: translate("common.cancel"),
-            style: "cancel",
-          },
-          {
-            text: translate("common.save"),
-            onPress: () => updateWorkout(),
-          },
-        ],
+      workoutEditorStore.cleanUpWorkout()
+      const allExerciseSummary = workoutEditorStore.getAllExerciseSummary(
+        toJS(userStore.user),
+        workoutEditorStore.workoutId,
       )
+      const isExerciseModified = workoutEditorStore.checkIsExerciseModified(
+        toJS(userStore.user),
+        allExerciseSummary,
+      )
+
+      if (isExerciseModified) {
+        Alert.alert(
+          translate("editWorkoutScreen.editWorkoutWarningTitle"),
+          translate("editWorkoutScreen.editWorkoutWarningMessage"),
+          [
+            {
+              text: translate("common.cancel"),
+              style: "cancel",
+            },
+            {
+              text: translate("common.save"),
+              onPress: () => updateWorkout(),
+            },
+          ],
+        )
+      } else {
+        updateWorkout()
+      }
     }
   }
 
-  async function updateWorkout() {
+  function updateWorkout() {
     if (userStore.user) {
       setIsBusy(true)
       workoutEditorStore
@@ -260,8 +274,11 @@ export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
           !isInternetConnected,
         )
         .then((updatedWorkout) => {
-          console.debug("WorkoutEditor.updateWorkout():", { updatedWorkout })
-          feedStore.addWorkoutToStore(WorkoutSource.User, updatedWorkout)
+          // If the workout update was aborted when prompted for confirmation, updatedWorkout will be undefined
+          if (updatedWorkout) {
+            console.debug("WorkoutEditor.updateWorkout():", { updatedWorkout })
+            feedStore.addWorkoutToStore(WorkoutSource.User, updatedWorkout)
+          }
           mainNavigation.goBack()
         })
         .finally(() => setIsBusy(false))

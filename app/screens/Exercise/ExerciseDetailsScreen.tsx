@@ -1,5 +1,5 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { RowView, Screen, Spacer, TabBar, Text } from "app/components"
+import { RowView, Screen, TabBar, Text } from "app/components"
 import { ExerciseVolumeType, WeightUnit, WorkoutSource } from "app/data/constants"
 import { RepsPersonalRecord, WorkoutId } from "app/data/types"
 import { useWeightUnitTx } from "app/hooks"
@@ -23,7 +23,8 @@ const WorkoutHistoryTabScene = (exerciseId: string) =>
       `user.exerciseHistory.${exerciseId}.performedWorkoutIds`,
     )
 
-    if (!exerciseHistory) return <Text tx="exerciseDetailsScreen.noExerciseHistoryFound" />
+    if (!exerciseHistory || exerciseHistory?.length === 0)
+      return <Text tx="exerciseDetailsScreen.noExerciseHistoryFound" />
 
     function getWorkoutData() {
       const workouts = feedStore.userWorkouts.filter(({ workoutId }) => {
@@ -52,7 +53,7 @@ const WorkoutHistoryTabScene = (exerciseId: string) =>
       <FlatList
         data={getWorkoutData()}
         renderItem={renderWorkoutItem}
-        ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
+        // ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
       />
     )
   })
@@ -67,7 +68,10 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
     const personalRecordsMap = userStore.getPropAsJS<IPersonalRecordsMapModelAsJS>(
       `user.exerciseHistory.${exerciseId}.personalRecords`,
     )
-    const personalRecords = personalRecordsMap && Object.fromEntries(personalRecordsMap.entries()) // Quick fix to convert Map to Object
+    const personalRecords =
+      personalRecordsMap &&
+      personalRecordsMap.size > 0 &&
+      Object.fromEntries(personalRecordsMap.entries()) // Quick fix to convert Map to Object
     const volumeType = exerciseStore.getExerciseVolumeType(exerciseId)
 
     const renderTimePersonalRecords = (personalRecords: IPersonalRecordsMapModel) => {

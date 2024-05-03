@@ -1,7 +1,8 @@
 import { Button, Icon, RowView, Search, Spacer, Text } from "app/components"
-import { GymSearchResult } from "app/data/types"
+import { Gym, GymSearchResult } from "app/data/types"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { api } from "app/services/api"
+import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { simplifyNumber } from "app/utils/formatNumber"
 import React, { FC } from "react"
@@ -10,10 +11,12 @@ import { TouchableOpacity, View, ViewStyle } from "react-native"
 interface GymSearchResultItemProps {
   gym: GymSearchResult
   onPressGymResultOverride?: (gym: GymSearchResult) => void
+  isFavorite: boolean
 }
 
 const GymSearchResultItem: FC<GymSearchResultItemProps> = (props: GymSearchResultItemProps) => {
-  const { gym, onPressGymResultOverride } = props
+  const { gym, onPressGymResultOverride, isFavorite = false } = props
+  const { themeStore } = useStores()
   const mainNavigator = useMainNavigation()
 
   const handlePress = () => {
@@ -27,6 +30,14 @@ const GymSearchResultItem: FC<GymSearchResultItemProps> = (props: GymSearchResul
   console.debug("GymSearchResultItem gym:", gym)
   return (
     <TouchableOpacity onPress={handlePress}>
+      {isFavorite && (
+        <Icon
+          name="heart"
+          size={30}
+          color={themeStore.colors("logo")}
+          style={$gymResultItemFavoriteIcon}
+        />
+      )}
       <RowView style={$gymResultItemContainer}>
         <View style={styles.alignCenter}>
           <Icon name="business" size={36} />
@@ -70,20 +81,27 @@ const GymSearchPromptComponent = () => {
     </View>
   )
 }
-
 interface GymSearchProps {
+  myGyms?: Gym[]
   onPressGymResultOverride?: (gym: GymSearchResult) => void
 }
 
 export const GymSearch: FC<GymSearchProps> = (props: GymSearchProps) => {
-  const { onPressGymResultOverride } = props
+  const { myGyms, onPressGymResultOverride } = props
   const searchCallback = (searchText: string) => {
     return api.searchGyms(searchText)
   }
 
-  const renderGymResultItem = ({ item }: { item: GymSearchResult }) => (
-    <GymSearchResultItem gym={item} onPressGymResultOverride={onPressGymResultOverride} />
-  )
+  const renderGymResultItem = ({ item }: { item: GymSearchResult }) => {
+    const isFavorite = myGyms?.some((gym) => gym.gymId === item.gymId)
+    return (
+      <GymSearchResultItem
+        isFavorite={isFavorite ?? false}
+        gym={item}
+        onPressGymResultOverride={onPressGymResultOverride}
+      />
+    )
+  }
 
   return (
     <Search
@@ -100,4 +118,11 @@ export const GymSearch: FC<GymSearchProps> = (props: GymSearchProps) => {
 const $gymResultItemContainer: ViewStyle = {
   paddingVertical: spacing.small,
   alignItems: "center",
+}
+
+const $gymResultItemFavoriteIcon: ViewStyle = {
+  position: "absolute",
+  top: 10,
+  left: 15,
+  zIndex: 1,
 }

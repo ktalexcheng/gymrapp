@@ -1,4 +1,5 @@
 import { ActivityId } from "app/data/types"
+import { roundToString } from "app/utils/formatNumber"
 import { logError } from "app/utils/logger"
 import { differenceInSeconds } from "date-fns"
 import { randomUUID } from "expo-crypto"
@@ -256,7 +257,7 @@ export const ActiveWorkoutStoreModel = types
         let setDescription = `${lastCompletedExercise.exerciseName}`
         switch (lastCompletedSet.volumeType) {
           case ExerciseVolumeType.Reps:
-            setDescription += ` ${lastCompletedSet.weight ?? 0} kg`
+            setDescription += ` ${roundToString(lastCompletedSet.weight, 2, false) ?? 0} kg`
             setDescription += ` x ${lastCompletedSet.reps}`
             if (lastCompletedSet.rpe) setDescription += ` @ RPE ${lastCompletedSet.rpe}`
             break
@@ -338,18 +339,6 @@ export const ActiveWorkoutStoreModel = types
     },
   }))
   .actions((self) => {
-    function resetWorkout() {
-      self.startTime = new Date()
-      self.lastSetCompletedTime = undefined
-      self.restTime = 0
-      // self.restTimeRemaining = 0
-      self.restTimeStartedAt = undefined
-      self.exercises = Exercises.create()
-      self.workoutTitle = translate("activeWorkoutScreen.newActiveWorkoutTitle")
-      self.performedAtGymId = null
-      self.performedAtGymName = null
-    }
-
     function cleanUpWorkout() {
       // Remove incompleted sets
       self.exercises.forEach((e) => {
@@ -545,8 +534,27 @@ export const ActiveWorkoutStoreModel = types
       return exercisesSummary
     }
 
+    function resetWorkout() {
+      self.stopRestTimer()
+      self.startTime = undefined
+      self.endTime = undefined
+      self.exercises = Exercises.create()
+      self.inProgress = false
+      self.restTime = 0
+      self.restTimeStartedAt = undefined
+      self.restTimeElapsed = 0
+      self.restTimeRunning = false
+      self.restTimeCompleted = false
+      self.lastSetCompletedTime = undefined
+      self.workoutTitle = translate("activeWorkoutScreen.newActiveWorkoutTitle")
+      self.activityId = undefined
+      self.performedAtGymId = null
+      self.performedAtGymName = null
+    }
+
     function startNewWorkout(activityId: ActivityId) {
       resetWorkout()
+      self.startTime = new Date()
       self.activityId = activityId
       self.inProgress = true
     }
@@ -710,6 +718,7 @@ export const WorkoutEditorStoreModel = ActiveWorkoutStoreModel.named("WorkoutEdi
     workoutId: types.maybe(types.string),
     isHidden: true, // for safety, default to true
   })
+
   .actions((self) => {
     function hydrateWithWorkout(workout: IWorkoutSummaryModel) {
       try {
@@ -731,6 +740,36 @@ export const WorkoutEditorStoreModel = ActiveWorkoutStoreModel.named("WorkoutEdi
       }
     }
 
+    const checkIsExerciseModified = (
+      user: IUserModelSnapshot,
+      newAllExerciseSummary: ExercisePerformed[],
+    ) => {
+      // If sets performed are modified in any way, we will flag the workout as edited
+      const originalExercises = self.originalWorkout.exercises.reduce(
+        (acc, e) => ({
+          ...acc,
+          [e.exerciseId]: {
+            exerciseId: e.exerciseId,
+            setsPerformed: e.setsPerformed,
+          },
+        }),
+        {},
+      )
+      const updatedExercises = newAllExerciseSummary.reduce(
+        (acc, e) => ({
+          ...acc,
+          [e.exerciseId]: {
+            exerciseId: e.exerciseId,
+            setsPerformed: e.setsPerformed,
+          },
+        }),
+        {},
+      )
+      const isExerciseModified = !lodash.isEqual(toJS(originalExercises), toJS(updatedExercises))
+
+      return isExerciseModified
+    }
+
     const updateWorkout = flow(function* updateWorkout(
       isHidden: boolean,
       user: IUserModelSnapshot,
@@ -747,33 +786,9 @@ export const WorkoutEditorStoreModel = ActiveWorkoutStoreModel.named("WorkoutEdi
       }
 
       self.cleanUpWorkout()
-
-      const { workoutRepository } = getEnv<RootStoreDependencies>(self)
-      const privateAccount = user.privateAccount
       const allExerciseSummary = self.getAllExerciseSummary(user, self.workoutId)
-
-      // If sets performed are modified in any way, we will flag the workout as edited
-      const originalExercises = self.originalWorkout.exercises.reduce(
-        (acc, e) => ({
-          ...acc,
-          [e.exerciseId]: {
-            exerciseId: e.exerciseId,
-            setsPerformed: e.setsPerformed,
-          },
-        }),
-        {},
-      )
-      const updatedExercises = allExerciseSummary.reduce(
-        (acc, e) => ({
-          ...acc,
-          [e.exerciseId]: {
-            exerciseId: e.exerciseId,
-            setsPerformed: e.setsPerformed,
-          },
-        }),
-        {},
-      )
-      const isExerciseModified = !lodash.isEqual(toJS(originalExercises), toJS(updatedExercises))
+      const isExerciseModified = checkIsExerciseModified(user, allExerciseSummary)
+      const privateAccount = user.privateAccount
 
       const updatedWorkout = {
         ...toJS(self.originalWorkout),
@@ -782,10 +797,10 @@ export const WorkoutEditorStoreModel = ActiveWorkoutStoreModel.named("WorkoutEdi
         isHidden,
         workoutTitle: self.workoutTitle,
         exercises: allExerciseSummary,
-        // isEdited: self.originalWorkout.isEdited || isExerciseModified, // Once a workout is edited, it remains edited
-        isEdited: false, // TODO: Only for dev
+        isEdited: self.originalWorkout.isEdited || isExerciseModified, // Once a workout is edited, it remains edited
       }
 
+      const { workoutRepository } = getEnv<RootStoreDependencies>(self)
       if (updatePersonalRecords) {
         yield workoutRepository.saveWorkout(updatedWorkout, isOffline)
       } else {
@@ -797,6 +812,7 @@ export const WorkoutEditorStoreModel = ActiveWorkoutStoreModel.named("WorkoutEdi
 
     return {
       hydrateWithWorkout,
+      checkIsExerciseModified,
       updateWorkout,
     }
   })

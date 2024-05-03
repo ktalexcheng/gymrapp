@@ -1,6 +1,3 @@
-// TODO: write documentation about fonts and typography along with guides on how to add custom fonts in own
-// markdown file and add links from here
-
 import {
   LexendExa_700Bold as lexendExaBold,
   LexendExa_300Light as lexendExaLight,

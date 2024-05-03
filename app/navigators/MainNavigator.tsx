@@ -30,7 +30,7 @@ import { OnboardingNavigator } from "./OnboardingNavigator"
 import { useMainNavigation } from "./navigationUtilities"
 
 export type MainStackParamList = {
-  Loading: undefined
+  Splash: undefined
   HomeTabNavigator: undefined
   NewWorkout: undefined
   ActiveWorkout: undefined
@@ -136,29 +136,25 @@ export const MainNavigator = observer(function MainNavigator() {
     }
   }
 
-  const navigateToHomeIfNeeded = useCallback(() => {
+  const initializeToHome = useCallback(() => {
     // The root navigator is MainNavigator, so we need to get the state of routes[0]
     // If profile is complete and there is nothing in the navigator stack (i.e. MainNavigator not yet initialized to initialRouteName)
-    // or the navigator is on "Loading" (i.e. the user has just logged in),
+    // or the navigator is on "Splash" (i.e. the user has just logged in and MainNavigator mounted for the first time),
     // then we navigate to "HomeTabNavigator"
     const navigationState = mainNavigation.getState()
     const mainNavigatorState = navigationState.routes[0].state // Undefined if MainNavigator not yet initialized
     const currentScreenName =
       mainNavigatorState?.index && mainNavigatorState.routes[mainNavigatorState.index].name
-    const isOnboarding = currentScreenName === "OnboardingNavigator"
-    const isOnLoading = currentScreenName === "Loading"
-    console.debug("MainNavigator navigateToHome: checking if we need to exit onboarding", {
+    const isOnInitialScreen = currentScreenName === "Splash"
+    console.debug("MainNavigator.initializeToHome()", {
       navigationState,
       mainNavigatorState,
       currentScreenName,
-      isOnboarding,
-      isOnLoading,
+      isOnInitialScreen,
     })
 
-    if (!currentScreenName || isOnboarding || isOnLoading) {
-      console.debug(
-        "MainNavigator navigateToHome: Profile is complete, navigating to HomeTabNavigator",
-      )
+    if (mainNavigatorState === undefined || isOnInitialScreen) {
+      console.debug("MainNavigator.initializeToHome(): navigating to HomeTabNavigator")
       mainNavigation.reset({
         index: 0,
         routes: [{ name: "HomeTabNavigator" }],
@@ -196,23 +192,27 @@ export const MainNavigator = observer(function MainNavigator() {
 
     // If user is authenticated and profile is complete, then we can initialize the app
     // but this should only be done once
+    console.debug("MainNavigator.useEffect", { isInitialized })
     if (!isInitialized && authStore.userId) {
       exerciseStore.getAllExercises().then(() => {
         if (userStore.user) exerciseStore.applyUserSettings(userStore.user)
       })
       activityStore.getAllActivities()
-      feedStore.setUserId(authStore.userId)
+      feedStore.initializeWithUserId(authStore.userId)
 
-      // If navigation is stuck at "Loading", or user just completed onboarding, or the stack is empty, then navigate to "HomeTabNavigator"
-      navigateToHomeIfNeeded()
+      // If navigation is at initial "Splash" screen, or the stack is empty, then navigate to "HomeTabNavigator"
+      initializeToHome()
 
       setIsInitialized(true)
     }
   }, [isInitialized, authStore.userId, userStore.isLoadingProfile, userStore.profileIncomplete])
 
   return (
-    <MainStack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Loading">
-      <MainStack.Screen name="Loading" component={LoadingScreen} />
+    <MainStack.Navigator
+      screenOptions={{ headerShown: false, headerBackButtonMenuEnabled: false }}
+      initialRouteName="Splash"
+    >
+      <MainStack.Screen name="Splash" component={LoadingScreen} />
       <MainStack.Screen name="OnboardingNavigator" component={OnboardingNavigator} />
       <MainStack.Screen name="HomeTabNavigator" component={HomeTabNavigator} />
 
@@ -236,7 +236,15 @@ export const MainNavigator = observer(function MainNavigator() {
           }}
           component={ExercisePickerScreen}
         />
-        <MainStack.Screen name="CreateExercise" component={CreateExerciseScreen} />
+        <MainStack.Screen
+          name="CreateExercise"
+          component={CreateExerciseScreen}
+          options={{
+            headerShown: true,
+            headerBackTitleVisible: false,
+            title: translate("createExerciseScreen.createExerciseTitle"),
+          }}
+        />
         <MainStack.Screen
           name="RestTimer"
           options={{

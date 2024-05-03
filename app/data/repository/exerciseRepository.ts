@@ -7,14 +7,14 @@ export class ExerciseRepository extends BaseRepository<Exercise, ExerciseId> {
   }
 
   create(): never {
-    throw new RepositoryError(this.constructor.name, "Method not allowed.")
+    throw new RepositoryError(this.repositoryId, "Method not allowed.")
   }
 
   update(): never {
-    throw new RepositoryError(this.constructor.name, "Method not allowed.")
+    throw new RepositoryError(this.repositoryId, "Method not allowed.")
   }
 
   delete(): never {
-    throw new RepositoryError(this.constructor.name, "Method not allowed.")
+    throw new RepositoryError(this.repositoryId, "Method not allowed.")
   }
 }

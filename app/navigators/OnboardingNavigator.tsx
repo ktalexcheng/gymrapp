@@ -1,9 +1,10 @@
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
-import { CreateProfileScreen } from "app/screens"
+import { CreateProfileScreen, OnboardingSuccessScreen } from "app/screens"
 import React from "react"
 
 export type OnboardingStackParamList = {
   CreateProfile: undefined
+  OnboardingSuccess: undefined
 }
 
 export type OnboardingStackScreenProps<T extends keyof OnboardingStackParamList> =
@@ -15,9 +16,10 @@ export const OnboardingNavigator = () => {
   return (
     <OnboardingStack.Navigator
       initialRouteName="CreateProfile"
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, headerBackButtonMenuEnabled: false }}
     >
       <OnboardingStack.Screen name="CreateProfile" component={CreateProfileScreen} />
+      <OnboardingStack.Screen name="OnboardingSuccess" component={OnboardingSuccessScreen} />
     </OnboardingStack.Navigator>
   )
 }

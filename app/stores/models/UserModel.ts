@@ -6,14 +6,10 @@ import { withSetPropAction } from "../helpers/withSetPropAction"
 import { MetadataModel } from "./MetadataModel"
 import { PersonalRecordModel } from "./PersonalRecordModel"
 
-const GymModel = types.compose(
-  "GymModel",
-  MetadataModel,
-  types.model({
-    gymId: types.identifier,
-    gymName: types.string,
-  }),
-)
+const GymModel = types.model("GymModel", {
+  gymId: types.identifier,
+  gymName: types.string,
+})
 
 export const ExerciseSettingsModel = types
   .model("ExerciseSettingsModel", {
@@ -50,7 +46,7 @@ export const WorkoutMetaModel = types.model("WorkoutMetaModel", {
 const PersonalRecordsMapModel = types.map(
   types.model({
     reps: types.identifierNumber,
-    // TODO: This is different to the schema in Firebase and will require conversion
+    // This is different to the schema in Firebase and will require conversion
     // Firebase schema is [reps]: record[], but this is not possible with MST
     records: types.array(PersonalRecordModel),
   }),

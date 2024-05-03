@@ -1,14 +1,16 @@
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth"
 import crashlytics from "@react-native-firebase/crashlytics"
-import { GoogleSignin } from "@react-native-google-signin/google-signin"
-import { defaultAppLocale } from "app/utils/appLocale"
+import { GoogleSignin, User as GoogleSigninUser } from "@react-native-google-signin/google-signin"
+import { translate } from "app/i18n"
 import { logError } from "app/utils/logger"
 import * as AppleAuthentication from "expo-apple-authentication"
 import Constants from "expo-constants"
 import * as Crypto from "expo-crypto"
+import i18n from "i18n-js"
 import { toJS } from "mobx"
-import { Instance, SnapshotOut, flow, getEnv, types } from "mobx-state-tree"
-import { AuthErrorType } from "../data/constants"
+import { flow, getEnv, Instance, SnapshotOut, types } from "mobx-state-tree"
+import { Alert } from "react-native"
+import { AppLocale, AuthErrorType } from "../data/constants"
 import { User } from "../data/types"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
@@ -28,7 +30,7 @@ function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.User
     providerId: firebaseUserCred.additionalUserInfo?.providerId ?? "",
     avatarUrl: firebaseUserCred.user?.photoURL ?? "",
     preferences: {
-      appLocale: defaultAppLocale(),
+      appLocale: i18n.locale as AppLocale,
     },
   } as User
 }
@@ -62,10 +64,16 @@ export const AuthenticationStoreModel = types
   }))
   .views((self) => ({
     get isAuthenticated() {
-      return !!self.authToken && self.isEmailVerified
+      // For providers other than email/password (e.g. Google, Apple), we assume the user is authenticated
+      return (
+        !!self.authToken &&
+        (self.firebaseUserCredential?.user?.providerId !== "password" ||
+          (self.firebaseUserCredential?.user?.providerId === "password" && self.isEmailVerified))
+      )
     },
     get isPendingVerification() {
-      return !!self.authToken && !self.isEmailVerified
+      // Email verification is only required for email/password users
+      return self.firebaseUserCredential?.user?.providerId === "password" && !self.isEmailVerified
     },
     get userId() {
       return self.firebaseUserCredential?.user?.uid ?? null
@@ -87,6 +95,24 @@ export const AuthenticationStoreModel = types
     },
   }))
   .actions(withSetPropAction)
+  // Declaring these actions separately so that they can be used in other actions
+  .actions((self) => {
+    const resetAuthError = () => {
+      self.authError = ""
+    }
+
+    const resetAuthStore = () => {
+      resetAuthError()
+      self.firebaseUserCredential = undefined
+      self.authToken = undefined
+      self.isEmailVerified = false
+    }
+
+    return {
+      resetAuthError,
+      resetAuthStore,
+    }
+  })
   .actions((self) => {
     function catchAuthError(caller, error) {
       // console.error("AuthenticationStore.catchAuthError:", { caller, error })
@@ -165,24 +191,7 @@ export const AuthenticationStoreModel = types
       self.newLastName = lastName
     }
 
-    function resetAuthError() {
-      self.authError = ""
-    }
-
-    const invalidateSession = flow(function* () {
-      resetAuthError()
-      if (auth().currentUser) {
-        try {
-          yield auth().signOut()
-        } catch (e) {
-          catchAuthError("invalidateSession error:", e)
-        }
-      }
-      self.firebaseUserCredential = undefined
-      self.authToken = undefined
-    })
-
-    // @ts-ignore
+    // @ts-ignore: Not all paths return a value, but we don't need a return value
     const refreshAuthToken = flow(function* () {
       self.isAuthenticating = true
       try {
@@ -193,10 +202,10 @@ export const AuthenticationStoreModel = types
           self.authToken = token
         } else {
           console.debug("AuthenticationStore.refreshAuthToken received invalid token:", token)
-          yield invalidateSession()
+          self.resetAuthStore()
         }
       } catch (e) {
-        if (e) yield invalidateSession()
+        if (e) self.resetAuthStore()
         console.debug(
           "AuthenticationStore.refreshAuthToken failed to refresh token, invaliding session:",
           e,
@@ -206,11 +215,12 @@ export const AuthenticationStoreModel = types
       }
     })
 
-    // @ts-ignore
+    // @ts-ignore: Not all paths return a value, but we don't need a return value
     const checkEmailVerified = flow(function* () {
       self.isAuthenticating = true
       try {
         yield auth().currentUser?.reload()
+        console.debug("AuthenticationStore.checkEmailVerified() currentUser:", auth().currentUser)
         self.isEmailVerified = auth().currentUser?.emailVerified ?? false
         yield refreshAuthToken()
       } catch (e) {
@@ -223,10 +233,11 @@ export const AuthenticationStoreModel = types
     // This is specifically to only overwrite the user property of firebaseUserCredential
     // because for some reason that is what onAuthStateChanged() returns
     function setFirebaseUser(firebaseUser: FirebaseAuthTypes.User) {
-      self.isAuthenticating = true
       if (!firebaseUser) {
         throw new Error("AuthenticationStore.setFirebaseUser error: invalid firebaseUser")
       }
+
+      self.isAuthenticating = true
       self.firebaseUserCredential = {
         user: {
           uid: firebaseUser.uid,
@@ -234,14 +245,13 @@ export const AuthenticationStoreModel = types
           email: firebaseUser.email,
           emailVerified: firebaseUser.emailVerified,
           photoURL: firebaseUser.photoURL,
-          providerId: firebaseUser.providerId,
+          providerId: firebaseUser.providerData[0].providerId,
         },
       }
-      console.debug("AuthenticationStore.setFirebaseUser firebaseUser:", firebaseUser)
-      console.debug(
-        "AuthenticationStore.setFirebaseUser firebaseUserCredential:",
-        self.firebaseUserCredential,
-      )
+      console.debug("AuthenticationStore.setFirebaseUser", {
+        firebaseUser,
+        firebaseUserCredential: self.firebaseUserCredential,
+      })
       self.isEmailVerified = firebaseUser.emailVerified
       refreshAuthToken()
       crashlytics().setUserId(firebaseUser.uid)
@@ -280,29 +290,19 @@ export const AuthenticationStoreModel = types
 
     const logout = flow(function* () {
       self.isAuthenticating = true
-      yield invalidateSession()
+      if (auth().currentUser) {
+        try {
+          yield auth().signOut()
+          self.resetAuthStore()
+        } catch (e) {
+          catchAuthError("logout error:", e)
+        }
+      }
       self.isAuthenticating = false
     })
 
-    // @ts-ignore
-    const deleteAccount = flow(function* () {
-      if (!self.userId) return
-
-      resetAuthError()
-      self.isAuthenticating = true
-      try {
-        yield getEnv<RootStoreDependencies>(self).userRepository.delete(self.userId)
-        yield auth().currentUser?.delete() // Also signs user out
-        yield invalidateSession()
-      } catch (error) {
-        catchAuthError("deleteAccount", error)
-      } finally {
-        self.isAuthenticating = false
-      }
-    })
-
     const signInWithEmail = flow(function* () {
-      resetAuthError()
+      self.resetAuthStore()
       if (emailIsInvalid(self.loginEmail) || passwordIsWeak(self.loginPassword)) return
 
       self.isAuthenticating = true
@@ -325,15 +325,26 @@ export const AuthenticationStoreModel = types
       }
     })
 
-    // @ts-ignore
+    // @ts-ignore: Not all paths return a value, but we don't need a return value
     const signUpWithEmail = flow(function* () {
-      resetAuthError()
+      self.resetAuthStore()
       if (emailIsInvalid(self.loginEmail) || passwordIsWeak(self.loginPassword)) return
 
       self.isAuthenticating = true
 
       try {
-        yield auth().createUserWithEmailAndPassword(self.loginEmail, self.loginPassword)
+        const userCred = yield auth().createUserWithEmailAndPassword(
+          self.loginEmail,
+          self.loginPassword,
+        )
+        const user = createUserFromFirebaseUserCred(userCred) // This will be missing first name and last name
+        getEnv<RootStoreDependencies>(self).userRepository.setUserId(user.userId)
+        yield getEnv<RootStoreDependencies>(self).userRepository.create({
+          ...toJS(user),
+          firstName: self.newFirstName,
+          lastName: self.newLastName,
+        })
+        console.debug("AuthenticationStore.signUpWithEmail created new user:", user)
 
         // IMPORTANT: Firebase Dynamic Links had to be set up for this to work on iOS (it works without Dynamic Links on Android)
         // but Dynamic Links are deprecated by Firebase and will be removed by August 25, 2025
@@ -350,8 +361,14 @@ export const AuthenticationStoreModel = types
       }
     })
 
+    const getGoogleCredential = async () => {
+      // Get the users ID token
+      const googleCredential = await GoogleSignin.signIn()
+      return googleCredential
+    }
+
     const signInWithGoogle = flow(function* () {
-      resetAuthError()
+      self.resetAuthStore()
       self.isAuthenticating = true
       console.debug("AuthenticationStore.signInWithGoogle called")
 
@@ -369,12 +386,9 @@ export const AuthenticationStoreModel = types
       }
 
       try {
-        // Get the users ID token
-        const { idToken } = yield GoogleSignin.signIn()
-        // Create a Google credential with the token
-        const googleCredential = auth.GoogleAuthProvider.credential(idToken)
-        // Sign-in the user with the credential
-        const userCred = yield auth().signInWithCredential(googleCredential)
+        const googleCredential = yield getGoogleCredential()
+        const firebaseCredential = auth.GoogleAuthProvider.credential(googleCredential.idToken)
+        const userCred = yield auth().signInWithCredential(firebaseCredential)
         console.debug("AuthenticationStore.signInWithGoogle success:", !!userCred)
 
         setFirebaseUserCredential(userCred)
@@ -382,7 +396,10 @@ export const AuthenticationStoreModel = types
         if (userCred.additionalUserInfo.isNewUser) {
           const user = createUserFromFirebaseUserCred(userCred)
           getEnv<RootStoreDependencies>(self).userRepository.setUserId(user.userId)
-          yield getEnv<RootStoreDependencies>(self).userRepository.create(toJS(user))
+          yield getEnv<RootStoreDependencies>(self).userRepository.create({
+            ...toJS(user),
+            googleUserId: googleCredential.user.id,
+          })
           console.debug("AuthenticationStore.signInWithGoogle created new user:", user)
         }
       } catch (error) {
@@ -394,8 +411,28 @@ export const AuthenticationStoreModel = types
       return null
     })
 
+    // Apple login requires a nonce for authentication
+    // This is shared between signInWithApple and getAppleCredential
+    const nonce = Math.random().toString(36).substring(2, 10)
+
+    const getAppleCredential = async () => {
+      const state = Math.random().toString(36).substring(2, 15)
+      const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, nonce)
+      const appleCredential = (await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        state,
+        nonce: hashedNonce,
+      })) as AppleAuthentication.AppleAuthenticationCredential
+      console.debug("AuthenticationStore.getAppleCredential appleCredential:", appleCredential)
+
+      return appleCredential
+    }
+
     const signInWithApple = flow(function* () {
-      resetAuthError()
+      self.resetAuthStore()
       self.isAuthenticating = true
 
       const appleAuthAvailable = yield AppleAuthentication.isAvailableAsync()
@@ -406,24 +443,12 @@ export const AuthenticationStoreModel = types
       }
 
       try {
-        const state = Math.random().toString(36).substring(2, 15)
-        const nonce = Math.random().toString(36).substring(2, 10)
-        const hashedNonce = yield Crypto.digestStringAsync(
-          Crypto.CryptoDigestAlgorithm.SHA256,
-          nonce,
-        )
-        const appleCredential = (yield AppleAuthentication.signInAsync({
-          requestedScopes: [
-            AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-            AppleAuthentication.AppleAuthenticationScope.EMAIL,
-          ],
-          state,
-          nonce: hashedNonce,
-        })) as AppleAuthentication.AppleAuthenticationCredential
+        const appleCredential = yield getAppleCredential()
+        console.debug("AuthenticationStore.signInWithApple appleCredential:", appleCredential)
 
-        // See :https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_rest_api/authenticating_users_with_sign_in_with_apple
-        // When someone uses your app and Sign in with Apple for the first time, the identification servers return the user status. Subsequent attempts don’t return the user status.
-        // So we need to store all the user data at this point
+        // See: https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_rest_api/authenticating_users_with_sign_in_with_apple
+        // When someone uses your app and Sign in with Apple for the first time, the identification servers return the user status.
+        // Subsequent attempts don’t return the user status. So we need to store all the user data at this point
         let lastName, firstName, nickname
         if (appleCredential) {
           const { fullName } = appleCredential
@@ -448,8 +473,11 @@ export const AuthenticationStoreModel = types
           getEnv<RootStoreDependencies>(self).userRepository.setUserId(user.userId)
           getEnv<RootStoreDependencies>(self).userRepository.create({
             ...toJS(user),
+            // When the user deletes their account and logs in again, these fields will not be available
+            email: user.email ?? "",
             firstName: nickname ?? firstName ?? "",
             lastName: lastName ?? "",
+            appleUserId: appleCredential.user,
           })
         }
       } catch (e) {
@@ -462,6 +490,122 @@ export const AuthenticationStoreModel = types
       return null
     })
 
+    // @ts-ignore: Not all paths return a value, but we don't need a return value
+    const deleteAccount = flow(function* (password?: string) {
+      if (!self.userId) return
+
+      self.isAuthenticating = true
+      // try {
+      //   yield getEnv<RootStoreDependencies>(self).userRepository.delete(self.userId)
+      // } catch (e) {
+      //   logError(e, "AuthenticationStore.deleteAccount() error deleting user document")
+      // }
+
+      try {
+        // Auth delete requires recent sign-in, here we reauthenticate the user
+        // console.debug("AuthenticationStore.deleteAccount()", {
+        //   providerId: self.providerId,
+        //   currentUser: auth().currentUser,
+        //   password,
+        // })
+        let userCred: FirebaseAuthTypes.UserCredential
+        let googleCredential: GoogleSigninUser
+        let googleFirebaseCredential: FirebaseAuthTypes.AuthCredential
+        let appleCredential: AppleAuthentication.AppleAuthenticationCredential
+        let appleFirebaseCredential: FirebaseAuthTypes.AuthCredential
+        switch (self.providerId) {
+          case "google.com":
+            googleCredential = yield getGoogleCredential()
+            googleFirebaseCredential = auth.GoogleAuthProvider.credential(googleCredential.idToken)
+            userCred = yield auth().currentUser?.reauthenticateWithCredential(
+              googleFirebaseCredential,
+            )
+
+            break
+          case "apple.com":
+            appleCredential = yield getAppleCredential()
+            appleFirebaseCredential = auth.AppleAuthProvider.credential(
+              appleCredential.identityToken,
+              nonce,
+            )
+            userCred = yield auth().currentUser?.reauthenticateWithCredential(
+              appleFirebaseCredential,
+            )
+
+            break
+          case "password":
+            console.debug("AuthenticationStore.deleteAccount()", { email: self.email, password })
+            userCred = yield auth().currentUser?.reauthenticateWithCredential(
+              auth.EmailAuthProvider.credential(self.email, password!),
+            )
+
+            break
+          default:
+            throw new Error("AuthenticationStore.deleteAccount() error: unknown providerId")
+        }
+
+        console.debug("AuthenticationStore.deleteAccount()", { userCred })
+        Alert.alert(
+          translate("userSettingsScreen.deleteFinalWarningTitle"),
+          translate("userSettingsScreen.deleteFinalWarningMessage"),
+          [
+            {
+              text: translate("common.cancel"),
+              style: "cancel",
+            },
+            {
+              text: translate("common.delete"),
+              style: "destructive",
+              onPress: () => {
+                // Delete also signs user out so no need to call logout()
+                auth()
+                  .currentUser?.delete()
+                  .then(() => {
+                    console.debug("AuthenticationStore.deleteAccount() account is deleted")
+                    self.resetAuthStore()
+                  })
+              },
+            },
+          ],
+        )
+      } catch (e: any) {
+        console.debug("AuthenticationStore.deleteAccount() error:", e)
+        if (
+          [
+            "auth/requires-recent-login",
+            "auth/invalid-credential",
+            "auth/user-mismatch",
+            "auth/too-many-requests",
+          ].includes(e?.code)
+        ) {
+          let errorMessage = translate("userSettingsScreen.identityVerificationFailedMessage")
+          switch (e?.code) {
+            case "auth/user-mismatch":
+              errorMessage = translate("userSettingsScreen.identityMismatchMessage")
+              break
+            case "auth/too-many-requests":
+              errorMessage = translate("userSettingsScreen.tooManyFailedAttemptsMessage")
+              break
+          }
+
+          Alert.alert(
+            translate("userSettingsScreen.identityVerificationFailedTitle"),
+            errorMessage,
+            [
+              {
+                text: translate("common.ok"),
+                style: "cancel",
+              },
+            ],
+          )
+        } else {
+          catchAuthError("deleteAccount", e)
+        }
+      }
+
+      self.isAuthenticating = false
+    })
+
     return {
       emailIsInvalid,
       passwordIsWeak,
@@ -469,8 +613,6 @@ export const AuthenticationStoreModel = types
       setLoginPassword,
       setNewFirstName,
       setNewLastName,
-      resetAuthError,
-      invalidateSession,
       refreshAuthToken,
       checkEmailVerified,
       setFirebaseUser,

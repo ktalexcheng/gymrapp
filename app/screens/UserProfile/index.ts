@@ -1,4 +1,3 @@
-export * from "./EditProfileForm"
 export * from "./ManageMyGymsScreen"
 export * from "./NotificationsScreen"
 export * from "./ProfileScreen"

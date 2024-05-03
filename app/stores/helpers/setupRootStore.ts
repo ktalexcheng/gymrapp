@@ -24,7 +24,7 @@ export async function setupRootStore(rootStore: RootStore) {
 
   try {
     // Anytime a new build is detected, we'll want to clear out the old state
-    const lastKnownBuildVersion = await storage.getData(storageKeys.BUILD_VERSION)
+    const lastKnownBuildVersion = await storage.getData(storageKeys.BUILD_VERSION, true)
     console.debug("setupRootStore: Checking build version", {
       lastKnownBuildVersion,
       thisBuildVersion,

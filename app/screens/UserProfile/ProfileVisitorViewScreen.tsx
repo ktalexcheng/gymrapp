@@ -3,6 +3,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import {
   Avatar,
   Button,
+  Icon,
   LoadingIndicator,
   RowView,
   Screen,
@@ -10,24 +11,68 @@ import {
   Text,
   ThemedRefreshControl,
 } from "app/components"
+import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
 import { IUserModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { formatDate } from "app/utils/formatDate"
 import { formatName } from "app/utils/formatName"
+import { HeartCrack } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
-import React, { FC, useEffect, useState } from "react"
-import { FlatList, View, ViewStyle } from "react-native"
+import React, { FC, useCallback, useEffect, useState } from "react"
+import { Alert, FlatList, View, ViewStyle } from "react-native"
+import { Popover } from "tamagui"
 import { WorkoutSummaryCard } from "../FinishedWorkout"
 import { UserProfileStatsBar } from "./UserProfileStatsBar"
+
+type ProfileVisitorViewScreenMenuProps = {
+  userIsBlocked: boolean
+  onBlockUserPress: () => void
+  onUnblockUserPress: () => void
+}
+
+const ProfileVisitorViewScreenMenu = observer((props: ProfileVisitorViewScreenMenuProps) => {
+  const { userIsBlocked, onBlockUserPress, onUnblockUserPress } = props
+  const { themeStore } = useStores()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  return (
+    <Popover
+      placement="bottom-end"
+      open={isMenuOpen}
+      onOpenChange={(open) => setIsMenuOpen(open)}
+      offset={-25}
+    >
+      <Popover.Trigger>
+        <Icon name="ellipsis-vertical" size={24} />
+      </Popover.Trigger>
+
+      <Popover.Content unstyled style={themeStore.styles("menuPopoverContainer")}>
+        <View>
+          <Button
+            preset="menuItem"
+            textStyle={{ color: themeStore.colors("danger") }}
+            tx={
+              userIsBlocked
+                ? "profileVisitorViewScreen.unblockUserButtonLabel"
+                : "profileVisitorViewScreen.blockUserButtonLabel"
+            }
+            onPress={userIsBlocked ? onUnblockUserPress : onBlockUserPress}
+          />
+        </View>
+      </Popover.Content>
+    </Popover>
+  )
+})
+
 interface ProfileVisitorViewScreenProps
   extends NativeStackScreenProps<MainStackParamList, "ProfileVisitorView"> {}
 
 export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = observer(
   ({ navigation, route }: ProfileVisitorViewScreenProps) => {
     const otherUserId = route.params.userId
-    const { userStore, feedStore } = useStores()
+    const { userStore, feedStore, themeStore } = useStores()
     const [otherUser, setOtherUser] = useState<IUserModel>(
       feedStore.otherUserProfiles.get(otherUserId),
     )
@@ -37,6 +82,8 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
     const [isFollowing, setIsFollowing] = useState(false)
     const [isFollowRequested, setIsFollowRequested] = useState(false)
     const [isProcessingFollowRequest, setIsProcessingFollowRequest] = useState(false)
+    const [isBlocked, setIsBlocked] = useState(false)
+    const [isInvalidUser, setIsInvalidUser] = useState(false)
 
     // Derived states
     let otherUserIsPrivate, otherUserMeta, isEndOfFeed, otherUserFeed
@@ -48,6 +95,7 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
     }
 
     const isLoadingFeed = feedStore.isLoadingOtherUserWorkouts
+    const isUserBlocked = feedStore.isUserBlocked(otherUserId)
 
     // Listen to user document changes for following status updates
     useEffect(() => {
@@ -67,9 +115,13 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
       if (!otherUser) {
         console.debug("ProfileVisitorViewScreen: Fetching other user")
         setIsLoadingOtherUser(true)
-        userStore
-          .getOtherUser(otherUserId)
+        feedStore
+          .fetchUserProfileToStore(otherUserId)
           .then((user) => {
+            if (!user) {
+              setIsInvalidUser(true)
+              return
+            }
             setOtherUser(user)
             refreshFeed()
           })
@@ -81,16 +133,63 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
         })
         navigation.setOptions({ title: otherUser.userHandle })
       }
-    }, [otherUser])
+
+      setIsBlocked(isUserBlocked)
+    }, [otherUser, isUserBlocked])
+
+    const onBlockUserPress = () => {
+      Alert.alert(
+        translate("profileVisitorViewScreen.blockUserAlertTitle", {
+          userHandle: otherUser.userHandle,
+        }),
+        translate("profileVisitorViewScreen.blockUserAlertMessage", {
+          userHandle: otherUser.userHandle,
+        }),
+        [
+          {
+            text: translate("common.cancel"),
+            style: "cancel",
+          },
+          {
+            text: translate("common.block"),
+            onPress: () => feedStore.blockUser(otherUserId),
+            style: "destructive",
+          },
+        ],
+      )
+    }
+
+    const onUnblockUserPress = () => {
+      Alert.alert(
+        translate("profileVisitorViewScreen.unblockUserAlertTitle", {
+          userHandle: otherUser.userHandle,
+        }),
+        translate("profileVisitorViewScreen.unblockUserAlertMessage", {
+          userHandle: otherUser.userHandle,
+        }),
+        [
+          {
+            text: translate("common.cancel"),
+            style: "cancel",
+          },
+          {
+            text: translate("common.unblock"),
+            onPress: () => feedStore.unblockUser(otherUserId),
+          },
+        ],
+      )
+    }
 
     // Handles relationship validation before fetching feed
-    const refreshFeed = async () => {
+    const refreshFeed = useCallback(async () => {
+      if (isUserBlocked) return
+
       const _isFollowing = await updateFollowStatus()
 
       if (otherUserIsPrivate === false || (otherUserIsPrivate === true && _isFollowing)) {
         await feedStore.refreshOtherUserWorkouts(otherUserId)
       }
-    }
+    }, [isUserBlocked])
 
     const updateFollowStatus = async () => {
       const _isFollowing = await userStore.isFollowingUser(otherUserId)
@@ -108,6 +207,10 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
     }
 
     const renderFollowUnfollowButton = () => {
+      if (isBlocked) {
+        return <Button tx="common.unblock" preset="dangerOutline" onPress={onUnblockUserPress} />
+      }
+
       if (isProcessingFollowRequest) {
         return <Button disabled={true} tx="common.loading" />
       }
@@ -162,39 +265,56 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
 
       return (
         <>
-          <RowView>
-            <Avatar user={otherUser} size="lg" />
-            <Spacer type="horizontal" size="medium" />
-            <View>
-              <Text preset="subheading">{formatName(otherUser.firstName, otherUser.lastName)}</Text>
-              <RowView>
-                <Text preset="formLabel" tx="profileVisitorViewScreen.dateJoinedLabel" />
-                <Spacer type="horizontal" size="small" />
-                <Text preset="formLabel">
-                  {otherUser._createdAt ? formatDate(otherUser._createdAt, "MMM dd, yyyy") : ""}
+          <RowView style={styles.justifyBetween}>
+            <RowView style={styles.flex1}>
+              <Avatar user={otherUser} size="lg" />
+              <Spacer type="horizontal" size="medium" />
+              <View style={styles.flex1}>
+                <Text preset="subheading" numberOfLines={1}>
+                  {formatName(otherUser.firstName, otherUser.lastName)}
                 </Text>
-              </RowView>
-            </View>
+                <RowView style={styles.flex1}>
+                  <Text preset="formLabel" tx="profileVisitorViewScreen.dateJoinedLabel" />
+                  <Spacer type="horizontal" size="small" />
+                  <Text preset="formLabel" numberOfLines={1}>
+                    {otherUser._createdAt ? formatDate(otherUser._createdAt, "MMM dd, yyyy") : ""}
+                  </Text>
+                </RowView>
+              </View>
+            </RowView>
+            <ProfileVisitorViewScreenMenu
+              userIsBlocked={isBlocked}
+              onBlockUserPress={onBlockUserPress}
+              onUnblockUserPress={onUnblockUserPress}
+            />
           </RowView>
-          <UserProfileStatsBar user={otherUser} containerStyle={$userProfileStatsBar} />
+          <UserProfileStatsBar
+            user={otherUser}
+            containerStyle={$userProfileStatsBar}
+            hideActivitesCount={!otherUserFeed?.length}
+          />
           {renderFollowUnfollowButton()}
           <Spacer type="vertical" size="medium" />
         </>
       )
     }
 
-    return (
-      <Screen
-        safeAreaEdges={["bottom"]}
-        contentContainerStyle={styles.screenContainer}
-        preset="fixed"
-        isBusy={isLoadingOtherUser}
-      >
+    const renderContent = () => {
+      if (isInvalidUser)
+        return (
+          <View style={styles.fillAndCenter}>
+            <HeartCrack size={56} color={themeStore.colors("logo")} />
+            <Spacer type="vertical" size="medium" />
+            <Text tx="profileVisitorViewScreen.invalidUserMessage" />
+          </View>
+        )
+
+      return (
         <FlatList
           refreshControl={
             <ThemedRefreshControl refreshing={isLoadingFeed} onRefresh={refreshFeed} />
           }
-          data={otherUserFeed}
+          data={!isBlocked && otherUserFeed}
           renderItem={({ item }) => {
             return <WorkoutSummaryCard {...item} byUser={otherUser} />
           }}
@@ -218,7 +338,7 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
 
             return null
           }}
-          ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
+          // ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
           ListHeaderComponent={profileHeaderComponent()}
           ListFooterComponent={() => {
             if (isEndOfFeed && otherUserFeed?.length > 0) {
@@ -244,6 +364,17 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
           onEndReachedThreshold={0.5}
           onEndReached={loadMoreWorkouts}
         />
+      )
+    }
+
+    return (
+      <Screen
+        safeAreaEdges={["bottom"]}
+        contentContainerStyle={styles.screenContainer}
+        preset="fixed"
+        isBusy={isLoadingOtherUser}
+      >
+        {renderContent()}
       </Screen>
     )
   },

@@ -54,15 +54,13 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
       if (_workout) {
         setWorkout(_workout)
       } else {
-        console.debug(
-          "WorkoutSummaryScreen.getWorkoutAndUser: workout not found in FeedStore, fetching...",
-        )
-        console.debug("TODO: feedStore.fetchSingleWorkout") // TODO
+        // This should not be possible
+        throw new Error("Workout not found in FeedStore")
       }
       if (workoutSource === WorkoutSource.User) {
         setWorkoutByUser(userStore.user)
       } else {
-        userStore.getOtherUser(workoutByUserId).then((user) => {
+        feedStore.fetchUserProfileToStore(workoutByUserId).then((user) => {
           if (user) setWorkoutByUser(user)
         })
       }
@@ -218,7 +216,6 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                   <Spacer type="vertical" size="small" />
                   <TouchableOpacity
                     onPress={() =>
-                      // @ts-ignore
                       mainNavigation.navigate("GymDetails", { gymId: workout.performedAtGymId })
                     }
                   >

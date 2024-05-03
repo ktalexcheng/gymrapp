@@ -95,7 +95,7 @@ const AppStack = observer(() => {
 
   return (
     <Stack.Navigator
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, headerBackButtonMenuEnabled: false }}
       initialRouteName={setInitialRouteName()}
     >
       {setStackScreen()}
@@ -107,7 +107,13 @@ export interface NavigationProps
   extends Partial<React.ComponentProps<typeof NavigationContainer>> {}
 
 export const AppNavigator = observer((props: NavigationProps) => {
-  const { authenticationStore: authStore, userStore, themeStore, feedStore } = useStores()
+  const {
+    authenticationStore: authStore,
+    userStore,
+    themeStore,
+    feedStore,
+    activeWorkoutStore,
+  } = useStores()
   const systemColorScheme = useColorScheme() // Initial system color scheme
   const [isInternetConnectState, setIsInternetConnectState] = useState<boolean>()
   const [isInitializing, setIsInitializing] = useState(true) // To prevent initial route flicker
@@ -180,19 +186,18 @@ export const AppNavigator = observer((props: NavigationProps) => {
   // Handle user state changes
   async function onAuthStateChanged(user: FirebaseAuthTypes.User | null) {
     // Update authentication and user data
+    console.debug("onAuthStateChanged triggered", { user })
     if (user) {
-      console.debug("onAuthStateChanged received valid user", { user })
+      console.debug("onAuthStateChanged received valid user")
       authStore.setFirebaseUser(user)
-      // Don't load user data if email is not verified
-      if (user.emailVerified) {
-        console.debug("onAuthStateChanged user is email verified")
-        await userStore.loadUserWithId(user.uid)
-      }
+      console.debug("onAuthStateChanged user is email verified")
+      await userStore.loadUserWithId(user.uid)
     } else {
       console.debug("onAuthStateChanged received invalid user, invalidating session")
-      await authStore.invalidateSession()
+      authStore.resetAuthStore()
       userStore.invalidateSession()
       feedStore.resetFeed()
+      activeWorkoutStore.resetWorkout()
     }
 
     // This is to prevent the initial route flicker when the app is first loaded and auth state refreshes

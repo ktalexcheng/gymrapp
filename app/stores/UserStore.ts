@@ -95,8 +95,9 @@ export const UserStoreModel = types
     getUserPreference<T>(pref: keyof UserPreferences): T {
       const prefPath = `preferences.${pref}`
       const prefValue = self.user && getNestedField(self.user, prefPath)
-      // console.debug("UserStore.getUserPreference:", { pref, prefValue })
-      if (!prefValue) {
+
+      // Preferences values could be falsy (false, 0, ""), so check strictly if it is null or undefined
+      if ((prefValue ?? undefined) === undefined) {
         return DefaultUserPreferences[pref] as T
       }
       return prefValue as T

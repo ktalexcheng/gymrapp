@@ -11,6 +11,7 @@ import { Instance, SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tr
 import { convertUserToMSTSnapshot } from "./helpers/convertUserToMSTSnapshot"
 import { convertWorkoutToMSTSnapshot } from "./helpers/convertWorkoutToMSTSnapshot"
 import { RootStoreDependencies } from "./helpers/useStores"
+import { withSetPropAction } from "./helpers/withSetPropAction"
 import {
   MetadataModel,
   PersonalRecordModel,
@@ -111,12 +112,35 @@ const WorkoutCommentModel = types.compose(
   }),
 )
 
-const WorkoutInteractionModel = types
+const convertWorkoutInteractionToMSTSnapshot = (snapshot: any) => {
+  const converted = { ...snapshot }
+
+  if (converted?.reportedCommentIds) {
+    const reportedCommentIds = {}
+    for (const [commentId, count] of Object.entries(converted.reportedCommentIds)) {
+      reportedCommentIds[commentId] = {
+        commentId,
+        count,
+      }
+    }
+    converted.reportedCommentIds = reportedCommentIds
+  }
+
+  return converted
+}
+
+const _WorkoutInteractionModel = types
   .model("WorkoutInteractionModel", {
     workoutId: types.identifier,
     workoutByUserId: types.string,
     likedByUserIds: types.array(types.string),
     comments: types.array(WorkoutCommentModel),
+    reportedCommentIds: types.map(
+      types.model({
+        commentId: types.identifier,
+        count: types.number,
+      }),
+    ),
   })
   .actions((self) => ({
     addComment(workoutComment: IWorkoutCommentModel) {
@@ -132,6 +156,21 @@ const WorkoutInteractionModel = types
       self.likedByUserIds.remove(likedByUserId)
     },
   }))
+
+const WorkoutInteractionModel = types.snapshotProcessor(_WorkoutInteractionModel, {
+  preProcessor: (snapshot: any) => {
+    if (snapshot.isMSTInterface) return snapshot
+
+    try {
+      return convertWorkoutInteractionToMSTSnapshot(snapshot)
+    } catch {
+      return snapshot
+    }
+  },
+  postProcessor: (snapshot) => {
+    return { ...snapshot, isMSTInterface: true }
+  },
+})
 
 export type IRepsExerciseSummaryModel = SnapshotOrInstance<typeof RepsExerciseSummaryModel>
 export type ITimeExerciseSummaryModel = SnapshotOrInstance<typeof TimeExerciseSummaryModel>
@@ -154,6 +193,7 @@ export const FeedStoreModel = types
     isLoadingOtherUserWorkouts: false,
     lastFeedRefresh: types.maybe(types.Date),
     userId: types.maybeNull(types.string),
+    blockedUserIds: types.array(types.string),
     oldestFeedItemId: types.maybe(types.string),
     noMoreFeedItems: false,
     workoutInteractions: types.map(WorkoutInteractionModel),
@@ -217,6 +257,11 @@ export const FeedStoreModel = types
           }
         })
         .filter((w) => w !== undefined)
+        .filter(
+          (w) =>
+            workoutSource === WorkoutSource.User || self.otherUserProfiles.has(w.workout.byUserId),
+        )
+        .filter((w) => !self.blockedUserIds.includes(w?.byUser?.userId))
         .sort((a, b) => b.workout.startTime.getTime() - a.workout.startTime.getTime())
 
       return workouts
@@ -305,8 +350,20 @@ export const FeedStoreModel = types
       getOtherUserWorkoutsListData(otherUserId: UserId) {
         return getAllWorkoutsListData(WorkoutSource.OtherUser, otherUserId)
       },
+      isUserBlocked(userId: UserId) {
+        return self.blockedUserIds.includes(userId)
+      },
+      isCommentFlagged(workoutId: WorkoutId, commentId: CommentId) {
+        const interactions = self.workoutInteractions.get(workoutId)
+        const reportedCount = interactions?.reportedCommentIds?.get(commentId)?.count ?? 0
+        return reportedCount > 0
+      },
+      getOtherUser(userId: string) {
+        return self.otherUserProfiles.get(userId)
+      },
     }
   })
+  .actions(withSetPropAction)
   .actions((self) => {
     function checkInitialized() {
       if (!self.userId) {
@@ -316,8 +373,13 @@ export const FeedStoreModel = types
       return true
     }
 
-    function setUserId(userId: UserId) {
+    function initializeWithUserId(userId: UserId) {
       self.userId = userId
+
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      userRepository.getAllBlockedUsers().then((blockedUsers) => {
+        self.setProp("blockedUserIds", blockedUsers)
+      })
     }
 
     function resetFeed() {
@@ -413,7 +475,6 @@ export const FeedStoreModel = types
 
         if (!workoutMetasMap || !workoutIds || workoutIds.length === 0) {
           console.debug("FeedStore.loadUserWorkouts empty workoutMetas")
-          self.isLoadingUserWorkouts = false
           return
         }
 
@@ -423,7 +484,6 @@ export const FeedStoreModel = types
 
         if (!workouts) {
           console.debug("FeedStore.loadUserWorkouts no workouts found")
-          self.isLoadingUserWorkouts = false
           return
         }
 
@@ -444,9 +504,10 @@ export const FeedStoreModel = types
         addWorkoutToStore(WorkoutSource.User, ...localWorkouts)
 
         console.debug("FeedStore.loadUserWorkouts done")
-        self.isLoadingUserWorkouts = false
       } catch (e) {
         logError(e, "FeedStore.loadUserWorkouts error")
+      } finally {
+        self.isLoadingUserWorkouts = false
       }
     })
 
@@ -458,6 +519,7 @@ export const FeedStoreModel = types
         self.workouts.delete(workoutId)
         const workoutMeta = self.userWorkoutMetas.find((w) => w.workoutId === workoutId)
         if (workoutMeta) {
+          console.debug("FeedStore.deleteWorkout() removing from userWorkoutMetas", { workoutMeta })
           self.userWorkoutMetas.remove(workoutMeta)
         }
       } catch (e) {
@@ -476,13 +538,21 @@ export const FeedStoreModel = types
     const fetchUserProfileToStore = flow(function* (userId: UserId) {
       const { userRepository } = getEnv<RootStoreDependencies>(self)
       if (!self.otherUserProfiles.has(userId)) {
+        let user
         try {
-          const user = yield userRepository.get(userId)
-          self.otherUserProfiles.put(convertUserToMSTSnapshot(user))
+          user = yield userRepository.get(userId)
+          if (!user) return
+
+          const userSnapshot = convertUserToMSTSnapshot(user)
+          self.otherUserProfiles.put(userSnapshot)
         } catch (e) {
-          logError(e, "FeedStore.fetchUserProfileToStore error")
+          logError(e, "FeedStore.fetchUserProfileToStore error", { userId, user })
         }
       }
+
+      const userProfile = self.otherUserProfiles.get(userId)
+      console.debug("FeedStore.fetchUserProfileToStore() ", { userId, userProfile })
+      return userProfile
     })
 
     const loadMoreFeedItems = flow(function* () {
@@ -693,8 +763,55 @@ export const FeedStoreModel = types
       return uploadedWorkoutIds
     })
 
+    const blockUser = flow(function* (userIdToBlock: UserId) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield userRepository.blockUser(userIdToBlock)
+        self.blockedUserIds.push(userIdToBlock)
+      } catch (e) {
+        logError(e, "FeedStore.blockUser error")
+      }
+    })
+
+    const unblockUser = flow(function* (userIdToUnblock: UserId) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield userRepository.unblockUser(userIdToUnblock)
+        self.blockedUserIds.remove(userIdToUnblock)
+      } catch (e) {
+        logError(e, "FeedStore.unblockUser error")
+      }
+    })
+
+    const reportComment = flow(function* (
+      workoutId: WorkoutId,
+      comment: IWorkoutCommentModel,
+      reasons: string[],
+      otherReason?: string,
+    ) {
+      const { feedRepository, workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield feedRepository.reportComment(
+          workoutId,
+          {
+            commentId: comment.commentId,
+            byUserId: comment.byUserId,
+            comment: comment.comment,
+          },
+          reasons,
+          otherReason,
+        )
+
+        yield workoutInteractionRepository.update(workoutId, {
+          [`reportedCommentIds.${comment.commentId}`]: firestore.FieldValue.increment(1),
+        })
+      } catch (e) {
+        logError(e, "FeedStore.reportComment error")
+      }
+    })
+
     return {
-      setUserId,
+      initializeWithUserId,
       resetFeed,
       addWorkoutToStore,
       refreshWorkout,
@@ -710,5 +827,9 @@ export const FeedStoreModel = types
       loadMoreOtherUserWorkouts,
       refreshOtherUserWorkouts,
       syncLocalUserWorkouts,
+      blockUser,
+      unblockUser,
+      reportComment,
+      fetchUserProfileToStore,
     }
   })

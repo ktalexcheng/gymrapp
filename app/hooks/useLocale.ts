@@ -12,7 +12,9 @@ export function useLocale(): [
 ] {
   const defaultLocale = Localization.getLocales()[0]
 
-  const [locale, _setLocale] = useState((defaultLocale?.languageCode || "en") as AppLocale)
+  const [locale, _setLocale] = useState(
+    (i18n.locale || defaultLocale?.languageCode || "en") as AppLocale,
+  )
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {

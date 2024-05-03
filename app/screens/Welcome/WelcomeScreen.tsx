@@ -1,12 +1,14 @@
 import { Button, Icon, PickerModal, RowView, Screen, Spacer, Text } from "app/components"
 import { AppLocaleLabelValuePairs } from "app/data/constants"
 import { useLocale } from "app/hooks"
+import { translate } from "app/i18n"
 import { useAuthNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
+import * as Linking from "expo-linking"
 import { observer } from "mobx-react-lite"
 import React from "react"
-import { View, ViewStyle } from "react-native"
+import { TextStyle, View, ViewStyle } from "react-native"
 
 export const WelcomeScreen = observer(() => {
   const authNavigation = useAuthNavigation()
@@ -40,13 +42,31 @@ export const WelcomeScreen = observer(() => {
         <Text tx="welcomeScreen.welcomeTitle" preset="subheading" />
         <Text tx="welcomeScreen.welcomeMessage" preset="default" />
         <Spacer type="vertical" size="massive" />
+        <Text size="xs" textColor={themeStore.colors("textDim")}>
+          {translate("welcomeScreen.agreeToTermsMessage1")}
+          <Text
+            size="xs"
+            textColor={themeStore.colors("textDim")}
+            style={$textUnderline}
+            tx="welcomeScreen.termsOfService"
+            onPress={() => Linking.openURL("http://gymrapp.com/legal/terms")}
+          />
+          {translate("welcomeScreen.agreeToTermsMessage2")}
+          <Text
+            size="xs"
+            textColor={themeStore.colors("textDim")}
+            style={$textUnderline}
+            tx="welcomeScreen.privacyPolicy"
+            onPress={() => Linking.openURL("http://gymrapp.com/legal/privacy")}
+          />
+        </Text>
+        <Spacer type="vertical" size="small" />
         <Button
           tx="welcomeScreen.getStartedButtonLabel"
           preset="default"
           style={$button}
           onPress={() => authNavigation.navigate("SignIn")}
         />
-        <Spacer type="vertical" size="large" />
       </View>
     </Screen>
   )
@@ -72,4 +92,8 @@ const $localeSelector: ViewStyle = {
 
 const $localeSelectorContainer: ViewStyle = {
   minWidth: "20%",
+}
+
+const $textUnderline: TextStyle = {
+  textDecorationLine: "underline",
 }
