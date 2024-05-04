@@ -14,7 +14,8 @@ export type MenuListItemProps = {
   disabled?: boolean
   required?: boolean
   itemId: string
-  itemNameLabelTx: TxKeyPath
+  itemNameLabelTx?: TxKeyPath
+  itemNameLabel?: string
   itemDescriptionLabelTx?: TxKeyPath
   currentValue: any
   currentValueFormatted?: any
@@ -38,6 +39,7 @@ export const MenuListItem = observer((props: MenuListItemProps) => {
     required = false,
     itemId,
     itemNameLabelTx,
+    itemNameLabel,
     itemDescriptionLabelTx,
     currentValue,
     currentValueFormatted,
@@ -66,7 +68,7 @@ export const MenuListItem = observer((props: MenuListItemProps) => {
     return (
       <RowView style={[$container, disabled && styles.disabled]}>
         <RowView style={$preferenceLabelContainer}>
-          <Text tx={itemNameLabelTx} preset="formLabel" />
+          <Text tx={itemNameLabelTx} text={itemNameLabel} preset="formLabel" />
           {required && <Text text="*" preset="formLabel" />}
           {TooltipComponent && (
             <>

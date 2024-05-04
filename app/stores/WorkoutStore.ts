@@ -605,7 +605,7 @@ export const ActiveWorkoutStoreModel = types
           startTime: self.startTime,
           endTime: self.endTime,
           exercises: allExerciseSummary,
-          workoutTitle: self.workoutTitle,
+          workoutTitle: self.workoutTitle || translate("activeWorkoutScreen.newActiveWorkoutTitle"),
           activityId: self.activityId,
           performedAtGymId: self.performedAtGymId ?? null,
           performedAtGymName: self.performedAtGymName ?? null,
@@ -795,7 +795,7 @@ export const WorkoutEditorStoreModel = ActiveWorkoutStoreModel.named("WorkoutEdi
         _modifiedAt: new Date(), // Repository should handle this field, but we set it here for offline use
         userIsPrivate: privateAccount,
         isHidden,
-        workoutTitle: self.workoutTitle,
+        workoutTitle: self.workoutTitle || translate("activeWorkoutScreen.newActiveWorkoutTitle"),
         exercises: allExerciseSummary,
         isEdited: self.originalWorkout.isEdited || isExerciseModified, // Once a workout is edited, it remains edited
       }

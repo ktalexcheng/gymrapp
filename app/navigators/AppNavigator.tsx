@@ -75,7 +75,7 @@ const AppStack = observer(() => {
   }, [authStore.isAuthenticated])
 
   const setStackScreen = useCallback(() => {
-    if (__DEV__ && Config.persistNavigation === "dev") {
+    if (__DEV__ && authStore.isAuthenticated && Config.persistNavigation === "dev") {
       // For development, we will put all screens in the stack to support state persistence
       // In production, we will only have the appropriate screen based on the user's authentication state
       return (

@@ -1,3 +1,4 @@
+export * from "./ManageExerciseSettingsScreen"
 export * from "./ManageMyGymsScreen"
 export * from "./NotificationsScreen"
 export * from "./ProfileScreen"

@@ -2,6 +2,7 @@ import { Translations } from "./en"
 
 const zh: Translations = {
   common: {
+    default: "預設",
     yes: "是",
     no: "否",
     ok: "確定",
@@ -195,7 +196,6 @@ const zh: Translations = {
     userHandleLabel: "使用者代號",
     newUserHandleAvailableMessage: "此使用者代號可用",
     personaTypeLabel: "你是教練嗎？",
-    // uploadAvatarLabel: "設置你的頭像",
     uploadAvatarPlaceholder: "選擇頭像",
     myGymsLabel: "我的健身房",
     myGymsDescription: "將你經常去的健身房加到你的最愛",
@@ -210,7 +210,6 @@ const zh: Translations = {
     defaultRestTimeLabel: "預設休息時間",
     defaultRestTimeSelectorLabel: "選擇預設休息時間：",
     appAppearanceLabel: "應用程式主題",
-    // saveProfileChanges: "儲存變更",
     discardAlertTitle: "捨棄變更？",
     discardAlertMessage: "你確定要捨棄所有變更嗎？你將失去所有未儲存的變更",
     alertDialogResume: "繼續編輯",
@@ -222,9 +221,17 @@ const zh: Translations = {
       lastNameMissingMessage: "請輸入你的姓氏",
     },
     backButtonDisabledMessage: "請使用畫面頂部的按鈕退出",
+    exerciseSettingsLabel: "動作偏好設定",
   },
   manageMyGymsScreen: {
     manageMyGymsTitle: "我的健身房",
+  },
+  manageExerciseSettingsScreen: {
+    manageExerciseSettingsTitle: "動作偏好設定",
+    notSetLabel: "未設定",
+    autoRestTimeLabel: "自動休息時間",
+    weightUnitLabel: "重量單位",
+    addExerciseSettingsLabel: "新增設定",
   },
   userSettingsScreen: {
     accountControlsSectionLabel: "帳戶管理",

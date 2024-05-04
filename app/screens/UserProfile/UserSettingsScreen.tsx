@@ -223,6 +223,15 @@ export const UserSettingsScreen = observer(function () {
               overrideOnPress: () => mainNavigation.navigate("ManageMyGyms"),
             },
           },
+          // {
+          //   positionIndex: 1,
+          //   menuListItemProps: {
+          //     itemId: "exerciseSettings",
+          //     itemNameLabelTx: "editProfileForm.exerciseSettingsLabel",
+          //     currentValue: null,
+          //     overrideOnPress: () => mainNavigation.navigate("ManageExerciseSettings"),
+          //   },
+          // },
         ]}
       />
 

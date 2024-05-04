@@ -185,7 +185,7 @@ export const lightColors: Colors = {
   contentBackground: lightPalette.neutral200,
   border: lightPalette.neutral400,
   tint: lightPalette.secondary500,
-  lightTint: lightPalette.secondary400,
+  lightTint: lightPalette.secondary200,
   actionable: lightPalette.secondary500,
   actionablePressed: lightPalette.secondary400,
   separator: lightPalette.neutral400,

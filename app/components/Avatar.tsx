@@ -11,7 +11,6 @@ import {
   ViewProps,
   ViewStyle,
 } from "react-native"
-import { Icon } from "./Icon"
 import { Text } from "./Text"
 
 export interface AvatarProps extends ViewProps {
@@ -41,8 +40,7 @@ export interface AvatarProps extends ViewProps {
   imageStyle?: ImageStyle
 }
 
-const blurhash =
-  "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj["
+const defaultBlurhash = "L47LC~kA8-owj[agj@j@0Baz?,V^"
 
 export const Avatar = observer((props: AvatarProps) => {
   const { themeStore } = useStores()
@@ -56,7 +54,7 @@ export const Avatar = observer((props: AvatarProps) => {
   } = props
   const [loadError, setLoadError] = useState<ImageErrorEventData>()
 
-  const placeholderImage = <Icon name="barbell" size={avatarSize[size] * 0.7} />
+  // const placeholderImage = <Icon name="barbell" size={avatarSize[size] * 0.7} />
   const imageUrlToUse = imageUrl || user?.avatarUrl // imageUrl takes precedence over user.avatarUrl
 
   const $avatarContainer: ViewStyle = {
@@ -73,6 +71,7 @@ export const Avatar = observer((props: AvatarProps) => {
     width: avatarSize[size],
     height: avatarSize[size],
     resizeMode: "cover",
+    backgroundColor,
   }
 
   const $text: TextStyle = {
@@ -92,17 +91,16 @@ export const Avatar = observer((props: AvatarProps) => {
   }
 
   const renderAvatarImage = () => {
-    if (loadError || !imageUrlToUse) {
-      // console.debug("Avatar image load error or image URL undefined", { loadError, imageUrlToUse })
-      if (user?.firstName && user?.lastName) return renderUserInitialsText()
-      else return placeholderImage
+    if (loadError || (!imageUrlToUse && user?.firstName && user?.lastName)) {
+      console.debug("Avatar image load error or image URL undefined", { loadError, imageUrlToUse })
+      return renderUserInitialsText()
     }
 
+    console.debug("Avatar image rendering", { imageUrlToUse, blurhash: user?.avatarBlurhash })
     return (
       <Image
-        // defaultSource={require("assets/images/app-icon-all-512px.png")}
-        source={{ uri: imageUrlToUse }}
-        placeholder={blurhash}
+        source={imageUrlToUse && { uri: imageUrlToUse }}
+        placeholder={user?.avatarBlurhash}
         contentFit="cover"
         transition={1000}
         style={[$image, $imageStyleOverride]}

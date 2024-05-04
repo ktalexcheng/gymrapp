@@ -12,6 +12,7 @@ import {
   ExercisePickerScreen,
   GymDetailsScreen,
   LoadingScreen,
+  ManageExerciseSettingsScreen,
   ManageMyGymsScreen,
   NotificationsScreen,
   ProfileVisitorViewScreen,
@@ -23,6 +24,7 @@ import {
 } from "app/screens"
 import { INotificationModel, useStores } from "app/stores"
 import { logError } from "app/utils/logger"
+import { toJS } from "mobx"
 import { observer } from "mobx-react-lite"
 import React, { useCallback, useEffect, useState } from "react"
 import { HomeTabNavigator } from "./HomeTabNavigator"
@@ -46,6 +48,7 @@ export type MainStackParamList = {
   ExerciseDetails: { exerciseId: string }
   UserSettings: undefined
   ManageMyGyms: undefined
+  ManageExerciseSettings: undefined
   Notifications: undefined
   WorkoutSummary: {
     workoutSource: WorkoutSource
@@ -73,6 +76,7 @@ export const MainNavigator = observer(function MainNavigator() {
     activityStore,
     exerciseStore,
     feedStore,
+    activeWorkoutStore,
   } = useStores()
   const mainNavigation = useMainNavigation()
   const [isInitialized, setIsInitialized] = useState(false)
@@ -194,8 +198,9 @@ export const MainNavigator = observer(function MainNavigator() {
     // but this should only be done once
     console.debug("MainNavigator.useEffect", { isInitialized })
     if (!isInitialized && authStore.userId) {
+      // Load all exercises and apply user settings
       exerciseStore.getAllExercises().then(() => {
-        if (userStore.user) exerciseStore.applyUserSettings(userStore.user)
+        if (userStore.user) exerciseStore.applyUserSettings(toJS(userStore.user))
       })
       activityStore.getAllActivities()
       feedStore.initializeWithUserId(authStore.userId)
@@ -206,6 +211,16 @@ export const MainNavigator = observer(function MainNavigator() {
       setIsInitialized(true)
     }
   }, [isInitialized, authStore.userId, userStore.isLoadingProfile, userStore.profileIncomplete])
+
+  // This is to always apply the user's latest exercise specific settings to exercises
+  // but only when there is no active workout in progress, or it could override local settings
+  // that have not been saved to the server yet
+  useEffect(() => {
+    if (userStore.user && !activeWorkoutStore.inProgress) {
+      console.debug("MainNavigator.useEffect: applying user settings to exercises")
+      exerciseStore.applyUserSettings(toJS(userStore.user))
+    }
+  }, [exerciseStore.allExercises, userStore.user, activeWorkoutStore.inProgress])
 
   return (
     <MainStack.Navigator
@@ -311,6 +326,15 @@ export const MainNavigator = observer(function MainNavigator() {
           options={{
             headerShown: true,
             title: translate("manageMyGymsScreen.manageMyGymsTitle"),
+            headerBackTitleVisible: false,
+          }}
+        />
+        <MainStack.Screen
+          name="ManageExerciseSettings"
+          component={ManageExerciseSettingsScreen}
+          options={{
+            headerShown: true,
+            title: translate("manageExerciseSettingsScreen.manageExerciseSettingsTitle"),
             headerBackTitleVisible: false,
           }}
         />

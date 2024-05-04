@@ -38,6 +38,7 @@ export interface User extends baseMetadata {
   providerId: string
   preferences: UserPreferences
   avatarUrl?: string
+  avatarBlurhash?: string
   workoutMetas?: Record<WorkoutId, WorkoutMeta>
   exerciseHistory?: Record<ExerciseId, ExerciseHistory>
   followersCount?: number
@@ -50,4 +51,5 @@ export interface UserSearchResult {
   firstName: string
   lastName: string
   avatarUrl?: string
+  avatarBlurhash?: string
 }

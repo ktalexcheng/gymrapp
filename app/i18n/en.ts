@@ -1,5 +1,6 @@
 const en = {
   common: {
+    default: "Default",
     yes: "Yes",
     no: "No",
     ok: "OK",
@@ -200,7 +201,6 @@ const en = {
     userHandleLabel: "User handle",
     newUserHandleAvailableMessage: "This user handle is available",
     personaTypeLabel: "Are you a coach?",
-    // uploadAvatarLabel: "Set your avatar",
     uploadAvatarPlaceholder: "Choose a picture",
     myGymsLabel: "My gyms",
     myGymsDescription: "Add gyms you frequently visit to your favorites",
@@ -215,7 +215,6 @@ const en = {
     defaultRestTimeLabel: "Default rest time",
     defaultRestTimeSelectorLabel: "Select default rest time:",
     appAppearanceLabel: "App appearance",
-    // saveProfileChanges: "Save changes",
     discardAlertTitle: "Discard changes?",
     discardAlertMessage: "There are unsaved changes. Are you sure you want to discard them?",
     alertDialogResume: "Keep editing",
@@ -228,9 +227,17 @@ const en = {
       lastNameMissingMessage: "Please enter your last name",
     },
     backButtonDisabledMessage: "Use the buttons on the top of the screen to exit",
+    exerciseSettingsLabel: "Exercise settings",
   },
   manageMyGymsScreen: {
     manageMyGymsTitle: "My gyms",
+  },
+  manageExerciseSettingsScreen: {
+    manageExerciseSettingsTitle: "Exercise settings",
+    notSetLabel: "Not set",
+    autoRestTimeLabel: "Rest timer",
+    weightUnitLabel: "Weight unit",
+    addExerciseSettingsLabel: "Add a setting",
   },
   userSettingsScreen: {
     accountControlsSectionLabel: "Account controls",

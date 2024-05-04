@@ -5,7 +5,7 @@ import { toJS } from "mobx"
 import { SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
-import { ExerciseSettingsModel, IUserModel } from "./models"
+import { ExerciseSettingsModel, IUserModelSnapshot } from "./models"
 
 export const ExerciseModel = types
   .model({
@@ -49,19 +49,25 @@ export const ExerciseStoreModel = types
     getExerciseVolumeType(exerciseId: string) {
       return self.allExercises.get(exerciseId)?.volumeType
     },
+    get allExercisesArray() {
+      return Array.from(self.allExercises.values())
+    },
   }))
   .actions(withSetPropAction)
   .actions((self) => {
-    const applyUserSettings = flow(function* (user: IUserModel) {
+    const applyUserSettings = flow(function* (user: IUserModelSnapshot) {
       self.isLoading = true
 
       const exerciseSettings = user.preferences?.exerciseSpecificSettings as ExerciseSettings
 
       // Update exercises with user settings
+      console.debug("ExerciseStre.applyUserSettings() exerciseSettings", exerciseSettings)
       if (exerciseSettings) {
-        Object.entries(exerciseSettings).forEach(([exerciseId, settings]) => {
+        // @ts-ignore: TS does not recognize the mobx map type
+        for (const [exerciseId, settings] of exerciseSettings) {
+          console.debug("ExerciseStore.applyUserSettings()", { exerciseId, settings })
           self.allExercises.get(exerciseId)?.setProp("exerciseSettings", settings)
-        })
+        }
       }
 
       self.isLoading = false

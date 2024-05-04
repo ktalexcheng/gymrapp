@@ -74,6 +74,7 @@ export const UserModel = types.snapshotProcessor(
       myGyms: types.array(GymModel),
       preferences: UserPreferencesModel,
       avatarUrl: types.maybeNull(types.string),
+      avatarBlurhash: types.maybeNull(types.string),
       workoutMetas: types.map(WorkoutMetaModel),
       exerciseHistory: types.map(ExerciseHistoryModel),
       followersCount: types.maybeNull(types.number),
