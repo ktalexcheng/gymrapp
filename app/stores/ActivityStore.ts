@@ -18,8 +18,10 @@ const ActivityStoreModel = types
   .model("ActivityStore")
   .props({
     allActivities: types.map(ActivityModel),
-    isLoading: true,
   })
+  .volatile(() => ({
+    isLoading: true,
+  }))
   .actions((self) => ({
     getAllActivities: flow(function* () {
       self.isLoading = true

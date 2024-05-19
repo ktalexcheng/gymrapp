@@ -33,10 +33,12 @@ export const UserStoreModel = types
   .props({
     userId: types.maybeNull(types.string),
     user: types.maybe(UserModel),
-    isLoadingProfile: true,
     notifications: types.array(NotificationModel),
     followRequests: types.array(FollowRequestsModel),
   })
+  .volatile(() => ({
+    isLoadingProfile: true,
+  }))
   .actions(withSetPropAction)
   .views((self) => ({
     get profileIncomplete() {

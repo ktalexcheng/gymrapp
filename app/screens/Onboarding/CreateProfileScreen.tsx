@@ -162,7 +162,7 @@ export const CreateProfileScreen = observer(() => {
                     // textColor={themeStore.colors("textDim")}
                     style={$textUnderline}
                     tx="createProfileScreen.eula"
-                    onPress={() => Linking.openURL("http://gymrapp.com/legal/eula")}
+                    onPress={() => Linking.openURL("https://gymrapp.com/legal/eula")}
                   />
                 </Text>
                 <RowView style={styles.alignCenter}>

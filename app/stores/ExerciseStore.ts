@@ -31,8 +31,10 @@ export const ExerciseStoreModel = types
   .props({
     allExercises: types.map(ExerciseModel),
     lastUpdated: types.maybe(types.Date),
-    isLoading: true,
   })
+  .volatile(() => ({
+    isLoading: true,
+  }))
   .views((self) => ({
     getPropEnumValues(propName: keyof Exercise) {
       const arr = Array.from(self.allExercises.values())

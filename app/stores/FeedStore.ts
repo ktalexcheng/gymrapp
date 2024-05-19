@@ -188,9 +188,6 @@ export type IWorkoutInteractionModel = SnapshotOrInstance<typeof WorkoutInteract
 export const FeedStoreModel = types
   .model("FeedStoreModel")
   .props({
-    isLoadingFeed: false,
-    isLoadingUserWorkouts: false,
-    isLoadingOtherUserWorkouts: false,
     lastFeedRefresh: types.maybe(types.Date),
     userId: types.maybeNull(types.string),
     blockedUserIds: types.array(types.string),
@@ -210,6 +207,11 @@ export const FeedStoreModel = types
       }),
     ),
   })
+  .volatile(() => ({
+    isLoadingFeed: false,
+    isLoadingUserWorkouts: false,
+    isLoadingOtherUserWorkouts: false,
+  }))
   .views((self) => {
     function getAllWorkoutMetas(workoutSource: WorkoutSource, otherUserId?: UserId) {
       let workoutMetas

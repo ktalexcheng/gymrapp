@@ -38,7 +38,6 @@ function createUserFromFirebaseUserCred(firebaseUserCred: FirebaseAuthTypes.User
 export const AuthenticationStoreModel = types
   .model("AuthenticationStore")
   .props({
-    isAuthenticating: false,
     // This is a partial implementation of FirebaseAuthTypes.UserCredential, only what we need
     firebaseUserCredential: types.maybe(
       types.model("FirebaseUserCredentialModel", {
@@ -56,6 +55,7 @@ export const AuthenticationStoreModel = types
     isEmailVerified: false,
   })
   .volatile(() => ({
+    isAuthenticating: false,
     loginEmail: "",
     loginPassword: "",
     newFirstName: "",

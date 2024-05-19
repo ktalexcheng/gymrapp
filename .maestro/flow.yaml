@@ -1,0 +1,10 @@
+appId: com.gymrapp.dev
+---
+- launchApp
+- runFlow:
+    when:
+      visible:
+        text: "Welcome to GYMRAPP"
+    commands:
+      - tapOn:
+          text: "Get started"

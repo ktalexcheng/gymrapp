@@ -13,7 +13,7 @@ export const ActiveWorkoutOverlay = () => {
   const $containerTopInset = useSafeAreaInsetsStyle(["top"], "margin")
 
   // Using MobX observer and useEffect will not work for some reason
-  // @ts-ignore
+  // @ts-ignore: Not all paths return a value
   useEffect(() => {
     if (activeWorkoutStore.inProgress) {
       const intervalId = setInterval(() => {
@@ -43,7 +43,7 @@ export const ActiveWorkoutOverlay = () => {
     <TouchableOpacity onPress={goToActiveWorkout}>
       <View style={[$containerTopInset, $activeActivityOverlay]}>
         <RowView style={[styles.alignCenter, styles.justifyBetween]}>
-          <View style={styles.flex4}>
+          <View style={styles.flex1}>
             <Text
               preset="light"
               textColor={themeStore.colors("actionableForeground")}
@@ -56,11 +56,7 @@ export const ActiveWorkoutOverlay = () => {
               text={activeWorkoutStore.workoutTitle}
             />
           </View>
-          <Text
-            style={styles.flex1}
-            text={timeElapsed}
-            textColor={themeStore.colors("actionableForeground")}
-          />
+          <Text text={timeElapsed} textColor={themeStore.colors("actionableForeground")} />
         </RowView>
       </View>
     </TouchableOpacity>

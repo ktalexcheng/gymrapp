@@ -299,7 +299,6 @@ const $tabBarLabel: TextStyle = {
   fontSize: 12,
   fontFamily: typography.primary.medium,
   lineHeight: 16,
-  flex: 1,
 }
 
 // const $modalButton: ViewStyle = {

@@ -5,8 +5,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    name: isDev ? "Gymrapp (Dev)" : "Gymrapp",
-    slug: isDev ? "gymrapp-dev" : "gymrapp",
+    name: isDev ? "Gymrapp (Dev)" : "Gymrapp", // This is the name that appears on the home screen
+    slug: "gymrapp", // This is the name of the project on Expo
     scheme: "gymrapp",
     version: "0.1.0",
     orientation: "portrait",
@@ -26,7 +26,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // Only using app.json for versionCode and buildNumber since we are using "appVersionSource" = "local" in EAS
       ...config.android,
       permissions: ["android.permission.USE_EXACT_ALARM"],
-      googleServicesFile: process.env.GOOGLE_SERVICES_JSON,
+      googleServicesFile: isDev
+        ? process.env.GOOGLE_SERVICES_JSON_TEST
+        : process.env.GOOGLE_SERVICES_JSON,
       icon: "./assets/images/app-icon-android-legacy.png",
       package: isDev ? "com.gymrapp.dev" : "com.gymrapp",
       adaptiveIcon: {
@@ -74,7 +76,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // Only using app.json for versionCode and buildNumber since we are using "appVersionSource" = "local" in EAS
       ...config.ios,
       usesAppleSignIn: true,
-      googleServicesFile: process.env.GOOGLE_SERVICES_PLIST,
+      googleServicesFile: isDev
+        ? process.env.GOOGLE_SERVICES_PLIST_TEST
+        : process.env.GOOGLE_SERVICES_PLIST,
       icon: "./assets/images/app-icon-ios.png",
       supportsTablet: true,
       bundleIdentifier: isDev ? "com.gymrapp.dev" : "com.gymrapp",
@@ -127,7 +131,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         projectId: "f5644dcf-c1f4-47a8-b64c-712e94371abb",
       },
       gymrappEnvironment: process.env.GYMRAPP_ENVIRONMENT,
-      googleOauthClientId: process.env.GOOGLE_CLIENT_ID, // Required for react-native-google-signin
+      googleOauthClientId: isDev ? process.env.GOOGLE_CLIENT_ID_TEST : process.env.GOOGLE_CLIENT_ID, // Required for react-native-google-signin
     },
     owner: "ktalexcheng",
   }

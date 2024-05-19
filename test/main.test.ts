@@ -134,10 +134,12 @@ describe.skip("Main test suite", () => {
 
   afterEach(async () => {
     // Delete test user and all other test users
+    const promises: Promise<void>[] = []
     for (const testUserStore of testRootStores.values()) {
       console.debug("Cleaning up test user:", testUserStore.userStore.user)
-      await testUserCleanup(testUserStore.userStore.userId!)
+      promises.push(testUserCleanup(testUserStore.userStore.userId!))
     }
+    return Promise.all(promises)
   })
 
   describe("Integration tests", () => {
@@ -160,7 +162,7 @@ describe.skip("Main test suite", () => {
       const expectFeedItems = async () => {
         await feedStoreTestUser2.refreshFeedItems()
         // expect(feedStoreTestUser2.feedItems.length).toBe(1)
-        expect(feedStoreTestUser2.feedWorkouts.length).toBe(1)
+        expect(feedStoreTestUser2.feedWorkoutMetas.length).toBe(1)
       }
 
       return retryExpectAsync(expectFeedItems, retryDelay, maxRetries)

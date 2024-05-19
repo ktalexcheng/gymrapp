@@ -49,7 +49,7 @@ export const WelcomeScreen = observer(() => {
             textColor={themeStore.colors("textDim")}
             style={$textUnderline}
             tx="welcomeScreen.termsOfService"
-            onPress={() => Linking.openURL("http://gymrapp.com/legal/terms")}
+            onPress={() => Linking.openURL("https://gymrapp.com/legal/terms")}
           />
           {translate("welcomeScreen.agreeToTermsMessage2")}
           <Text
@@ -57,7 +57,7 @@ export const WelcomeScreen = observer(() => {
             textColor={themeStore.colors("textDim")}
             style={$textUnderline}
             tx="welcomeScreen.privacyPolicy"
-            onPress={() => Linking.openURL("http://gymrapp.com/legal/privacy")}
+            onPress={() => Linking.openURL("https://gymrapp.com/legal/privacy")}
           />
         </Text>
         <Spacer type="vertical" size="small" />
