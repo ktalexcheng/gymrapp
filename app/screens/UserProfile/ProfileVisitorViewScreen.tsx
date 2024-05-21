@@ -24,16 +24,18 @@ import React, { FC, useCallback, useEffect, useState } from "react"
 import { Alert, FlatList, View, ViewStyle } from "react-native"
 import { Popover } from "tamagui"
 import { WorkoutSummaryCard } from "../FinishedWorkout"
+import { ReportAbusePanel } from "../ReportAbuse"
 import { UserProfileStatsBar } from "./UserProfileStatsBar"
 
 type ProfileVisitorViewScreenMenuProps = {
   userIsBlocked: boolean
   onBlockUserPress: () => void
   onUnblockUserPress: () => void
+  onReportUserPress: () => void
 }
 
 const ProfileVisitorViewScreenMenu = observer((props: ProfileVisitorViewScreenMenuProps) => {
-  const { userIsBlocked, onBlockUserPress, onUnblockUserPress } = props
+  const { userIsBlocked, onBlockUserPress, onUnblockUserPress, onReportUserPress } = props
   const { themeStore } = useStores()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -48,7 +50,22 @@ const ProfileVisitorViewScreenMenu = observer((props: ProfileVisitorViewScreenMe
         <Icon name="ellipsis-vertical" size={24} />
       </Popover.Trigger>
 
-      <Popover.Content unstyled style={themeStore.styles("menuPopoverContainer")}>
+      <Popover.Content
+        unstyled
+        style={themeStore.styles("menuPopoverContainer")}
+        animation={[
+          "quick",
+          {
+            opacity: {
+              overshootClamping: true,
+            },
+          },
+        ]}
+        // eslint-disable-next-line react-native/no-inline-styles
+        enterStyle={{ y: -10, opacity: 0 }}
+        // eslint-disable-next-line react-native/no-inline-styles
+        exitStyle={{ y: -10, opacity: 0 }}
+      >
         <View>
           <Button
             preset="menuItem"
@@ -58,7 +75,23 @@ const ProfileVisitorViewScreenMenu = observer((props: ProfileVisitorViewScreenMe
                 ? "profileVisitorViewScreen.unblockUserButtonLabel"
                 : "profileVisitorViewScreen.blockUserButtonLabel"
             }
-            onPress={userIsBlocked ? onUnblockUserPress : onBlockUserPress}
+            onPress={() => {
+              if (userIsBlocked) {
+                onUnblockUserPress()
+              } else {
+                onBlockUserPress()
+              }
+              setIsMenuOpen(false)
+            }}
+          />
+          <Button
+            preset="menuItem"
+            textStyle={{ color: themeStore.colors("danger") }}
+            tx="profileVisitorViewScreen.reportUserLabel"
+            onPress={() => {
+              onReportUserPress()
+              setIsMenuOpen(false)
+            }}
           />
         </View>
       </Popover.Content>
@@ -84,6 +117,7 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
     const [isProcessingFollowRequest, setIsProcessingFollowRequest] = useState(false)
     const [isBlocked, setIsBlocked] = useState(false)
     const [isInvalidUser, setIsInvalidUser] = useState(false)
+    const [isShowReportAbusePanel, setIsShowReportAbusePanel] = useState(false)
 
     // Derived states
     let otherUserIsPrivate, otherUserMeta, isEndOfFeed, otherUserFeed
@@ -286,6 +320,7 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
               userIsBlocked={isBlocked}
               onBlockUserPress={onBlockUserPress}
               onUnblockUserPress={onUnblockUserPress}
+              onReportUserPress={() => setIsShowReportAbusePanel(true)}
             />
           </RowView>
           <UserProfileStatsBar
@@ -368,14 +403,31 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
     }
 
     return (
-      <Screen
-        safeAreaEdges={["bottom"]}
-        contentContainerStyle={styles.screenContainer}
-        preset="fixed"
-        isBusy={isLoadingOtherUser}
-      >
-        {renderContent()}
-      </Screen>
+      <>
+        <Screen
+          safeAreaEdges={["bottom"]}
+          contentContainerStyle={styles.screenContainer}
+          preset="fixed"
+          isBusy={isLoadingOtherUser}
+        >
+          {renderContent()}
+        </Screen>
+        {isShowReportAbusePanel && (
+          <ReportAbusePanel
+            open={isShowReportAbusePanel}
+            onOpenChange={setIsShowReportAbusePanel}
+            onSubmitReport={async (reasons, otherReason, blockUser) => {
+              await feedStore.reportUser(otherUserId, reasons, otherReason)
+              if (blockUser) {
+                await feedStore.blockUser(otherUserId)
+              }
+            }}
+            txPanelTitle="profileVisitorViewScreen.reportUserTitle"
+            txPanelMessage="profileVisitorViewScreen.reportUserMessage"
+            txConfirmReportButtonLabel="profileVisitorViewScreen.confirmReportUserButtonLabel"
+          />
+        )}
+      </>
     )
   },
 )

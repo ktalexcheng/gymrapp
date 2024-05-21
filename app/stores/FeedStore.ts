@@ -1,5 +1,10 @@
 import firestore from "@react-native-firebase/firestore"
-import { ExerciseSource, ExerciseVolumeType, WorkoutSource } from "app/data/constants"
+import {
+  ExerciseSource,
+  ExerciseVolumeType,
+  ReportAbuseTypes,
+  WorkoutSource,
+} from "app/data/constants"
 import { CommentId, ExerciseId, UserId, WorkoutComment, WorkoutId } from "app/data/types"
 import { api } from "app/services/api"
 import { getNestedField } from "app/utils/getNestedField"
@@ -788,7 +793,7 @@ export const FeedStoreModel = types
     const reportComment = flow(function* (
       workoutId: WorkoutId,
       comment: IWorkoutCommentModel,
-      reasons: string[],
+      reasons: ReportAbuseTypes[],
       otherReason?: string,
     ) {
       const { feedRepository, workoutInteractionRepository } = getEnv<RootStoreDependencies>(self)
@@ -812,6 +817,19 @@ export const FeedStoreModel = types
       }
     })
 
+    const reportUser = flow(function* (
+      userId: UserId,
+      reasons: ReportAbuseTypes[],
+      otherReason?: string,
+    ) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield userRepository.reportUser(userId, reasons, otherReason)
+      } catch (e) {
+        logError(e, "FeedStore.reportUser error")
+      }
+    })
+
     return {
       initializeWithUserId,
       resetFeed,
@@ -832,6 +850,7 @@ export const FeedStoreModel = types
       blockUser,
       unblockUser,
       reportComment,
+      reportUser,
       fetchUserProfileToStore,
     }
   })

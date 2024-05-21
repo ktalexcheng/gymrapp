@@ -377,4 +377,20 @@ export class UserRepository extends BaseRepository<User, UserId> {
       throw new RepositoryError(this.repositoryId, `unblockUser error: ${e}`)
     }
   }
+
+  async reportUser(userId: string, reasons: string[], otherReason?: string): Promise<void> {
+    const violationsUsersColl = this.firestoreClient.collection(`violations/users/reports`)
+    const reportData: any = {
+      reportedAt: new Date(),
+      userId,
+      reasons,
+    }
+    if (otherReason) reportData.otherReason = otherReason
+
+    try {
+      await violationsUsersColl.add(reportData)
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `reportComment error: ${e}`)
+    }
+  }
 }

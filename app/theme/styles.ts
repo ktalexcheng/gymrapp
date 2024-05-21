@@ -83,6 +83,7 @@ export const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
     padding: spacing.screenPadding,
+    overflow: "hidden",
   },
   disabled: {
     opacity: 0.5,
@@ -91,6 +92,7 @@ export const styles = StyleSheet.create({
     minHeight: 100,
   },
   menuPopoverContainer: {
+    marginTop: spacing.small,
     paddingVertical: spacing.small,
     paddingHorizontal: spacing.small,
     width: 200,

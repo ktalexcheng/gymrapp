@@ -22,11 +22,11 @@ import { Alert, BackHandler, View } from "react-native"
 import { AboutYouForm, UserPreferencesMenu } from "./components"
 
 export const UserSettingsScreen = observer(function () {
-  const { themeStore, authenticationStore: authStore } = useStores()
+  const { authenticationStore: authStore } = useStores()
   const mainNavigation = useMainNavigation()
   const [loginPassword, setLoginPassword] = useState("")
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  // const [isBusy, setIsBusy] = useState(false)
+  const [isBusy, setIsBusy] = useState(false)
   const {
     userProfile,
     setUserProfile,
@@ -146,7 +146,10 @@ export const UserSettingsScreen = observer(function () {
         {
           text: translate("userSettingsScreen.logoutAlertTitle"),
           style: "destructive",
-          onPress: () => authStore.logout(),
+          onPress: () => {
+            setIsBusy(true)
+            authStore.logout().finally(() => setIsBusy(false))
+          },
         },
       ],
     )
@@ -165,7 +168,7 @@ export const UserSettingsScreen = observer(function () {
       preset="scroll"
       safeAreaEdges={["bottom"]}
       contentContainerStyle={styles.screenContainer}
-      isBusy={isSaving}
+      isBusy={isSaving || isBusy}
     >
       <Modal
         animationType="slide"

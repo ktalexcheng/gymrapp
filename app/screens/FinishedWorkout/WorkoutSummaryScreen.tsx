@@ -289,7 +289,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
   return (
     <Screen
       safeAreaEdges={["bottom"]}
-      contentContainerStyle={$screenContentContainer}
+      contentContainerStyle={styles.screenContainer}
       isBusy={isLoading}
       preset="fixed" // Important because WorkoutCommentsPanel contains a FlatList, we do not want to nest FlatList in plain ScrollViews
     >
@@ -297,12 +297,6 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
     </Screen>
   )
 })
-
-const $screenContentContainer: ViewStyle = {
-  flex: 1,
-  padding: spacing.screenPadding,
-  overflow: "hidden", // Hides the overflow of the comments panel at the bottom
-}
 
 const $menuButton: ViewStyle = {
   marginTop: spacing.tiny,

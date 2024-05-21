@@ -25,12 +25,10 @@ import { AboutYouForm, UserPreferencesMenu } from "../UserProfile/components"
 
 export const CreateProfileScreen = observer(() => {
   const onboardingNavigation = useNavigation<NativeStackNavigationProp<OnboardingStackParamList>>()
-  const { authenticationStore: authStore, themeStore, userStore } = useStores()
+  const { authenticationStore: authStore, themeStore } = useStores()
   const flatListRef = createRef<FlatList>()
   const [parentLayout, setParentLayout] = useState<{ width: number; height: number }>()
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
-  const [backButtonDisabled, setBackButtonDisabled] = useState(false)
-  const [nextButtonDisabled, setNextButtonDisabled] = useState(false)
 
   // createProfile page state
   const [isAgreeToEula, setIsAgreeToEula] = useState(false)
@@ -295,7 +293,6 @@ export const CreateProfileScreen = observer(() => {
       <RowView style={$pageIndicatorContent}>
         <View style={styles.flex1}>
           <Button
-            disabled={backButtonDisabled}
             preset="text"
             LeftAccessory={() =>
               !isFirstPage && (
@@ -323,7 +320,6 @@ export const CreateProfileScreen = observer(() => {
         </RowView>
         <View style={styles.flex1}>
           <Button
-            disabled={nextButtonDisabled}
             preset="text"
             RightAccessory={() =>
               !isLastPage && (

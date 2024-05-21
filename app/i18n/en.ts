@@ -27,6 +27,7 @@ const en = {
     activities: "Activities",
     followers: "Followers",
     following: "Following",
+    comment: "Comment",
     comments: "Comments",
     copiedToClipboard: "Copied to clipboard",
     selected: "Selected",
@@ -57,6 +58,26 @@ const en = {
       dark: "Dark",
       auto: "Auto",
     },
+  },
+  reportAbuse: {
+    reasons: {
+      spam: "Spam",
+      harassment: "Harassment",
+      misinformation: "Misinformation",
+      impersonation: "Impersonation",
+      illegal: "Illegal activity",
+      scam: "Scam or fraud",
+      violence: "Threat or violence",
+      personal: "I just don't like it",
+      other: "Other",
+      otherPlaceholder: "Please share your concerns with us",
+    },
+    blockUserPromptTitle: "Do you want to block this user?",
+    blockUserPromptMessage: "You will no longer see each other's activities.",
+    reportSentSuccessMessage:
+      "Thank you for raising your concern and making Gymrapp a better place. We will review this issue and take the appropriate actions.",
+    invalidFormMessage: "Please select at least one reason",
+    invalidOtherReasonMessage: "Please provide a reason",
   },
   notification: {
     restTime: {
@@ -360,17 +381,7 @@ const en = {
     reportCommentTitle: "Why are you reporting this comment?",
     reportCommentMessage:
       "Your anonymous report on this comment will be reviewed by our team for violation of our community guidelines.",
-    reportCommentReasonSpam: "Spam",
-    reportCommentReasonHarassment: "Harassment",
-    reportCommentReasonMisinformation: "Misinformation",
-    reportCommentReasonIllegal: "Illegal",
-    reportCommentReasonOther: "Other",
-    reportCommentReasonOtherPlaceholder: "Please share your concerns with us",
-    blockUserPromptTitle: "Do you want to block this user?",
-    blockUserPromptMessage: "You will no longer see each other's activities.",
-    reportConfirmButtonLabel: "Report this comment",
-    reportSentSuccessMessage:
-      "Thank you for raising your concern and making Gymrapp a better place. We will review this issue and take the appropriate actions.",
+    confirmReportCommentButtonLabel: "Report this comment",
   },
   restTimerScreen: {
     headerTitle: "Rest timer",
@@ -499,6 +510,11 @@ const en = {
     unblockUserAlertTitle: "Unblock {{userHandle}} ?",
     unblockUserAlertMessage: "{{userHandle}} will now be able to see your profile and activities.",
     invalidUserMessage: "Oops! This user no longer exists.",
+    reportUserLabel: "Report user",
+    reportUserTitle: "Why are you reporting this user?",
+    reportUserMessage:
+      "Your anonymous report on this user will be reviewed by our team for violation of our community guidelines.",
+    confirmReportUserButtonLabel: "Report this user",
   },
   notificationsScreen: {
     notificationsTitle: "Notifications",

@@ -30,6 +30,7 @@ const zh: Translations = {
     followers: "追蹤者",
     following: "追蹤中",
     comments: "評論",
+    comment: "評論",
     copiedToClipboard: "已複製到剪貼簿",
     selected: "已選取",
     discard: "捨棄",
@@ -58,6 +59,26 @@ const zh: Translations = {
       dark: "暗色",
       auto: "自動",
     },
+  },
+  reportAbuse: {
+    reasons: {
+      spam: "垃圾訊息",
+      harassment: "騷擾",
+      misinformation: "假消息",
+      impersonation: "仿冒身份",
+      illegal: "非法行為",
+      scam: "詐騙行為",
+      violence: "暴力或危險行為",
+      personal: "我不喜歡這則訊息",
+      other: "其他",
+      otherPlaceholder: "請與我們分享你的顧慮",
+    },
+    blockUserPromptTitle: "你想要封鎖這位使用者嗎？",
+    blockUserPromptMessage: "你們將不會再看到彼此的任何動態",
+    reportSentSuccessMessage:
+      "感謝你的舉發，協助我們共同維護並改進 Gymrapp ，我們將會進行調查並採取適應的處置。",
+    invalidFormMessage: "請選擇至少一個舉發原因",
+    invalidOtherReasonMessage: "請填寫其他原因",
   },
   notification: {
     restTime: {
@@ -345,17 +366,7 @@ const zh: Translations = {
     reportCommentTitle: "請告訴我們舉發此則評論的原因",
     reportCommentMessage:
       "你的匿名舉發將會經由我們的團隊審查，以確認此則評論是否違反我們的社群規範",
-    reportCommentReasonSpam: "垃圾訊息",
-    reportCommentReasonHarassment: "騷擾",
-    reportCommentReasonMisinformation: "誤導訊息",
-    reportCommentReasonIllegal: "非法訊息",
-    reportCommentReasonOther: "其他",
-    reportCommentReasonOtherPlaceholder: "請與我們分享你的顧慮",
-    blockUserPromptTitle: "你想要封鎖這位使用者嗎？",
-    blockUserPromptMessage: "你們將不會再看到彼此的任何動態",
-    reportConfirmButtonLabel: "舉發此則評論",
-    reportSentSuccessMessage:
-      "感謝你的舉發，協助我們共同維護並改進 Gymrapp ，我們將會進行調查並採取適應的處置。",
+    confirmReportCommentButtonLabel: "舉發此則評論",
   },
   restTimerScreen: {
     headerTitle: "休息計時器",
@@ -480,6 +491,10 @@ const zh: Translations = {
     unblockUserAlertTitle: "解除封鎖 {{userHandle}} ?",
     unblockUserAlertMessage: "{{userHandle}} 將可再看到你的帳戶以及活動資訊",
     invalidUserMessage: "糟糕！這位用戶已不存在",
+    reportUserLabel: "舉發使用者",
+    reportUserTitle: "請告訴我們舉發此使用者的原因",
+    reportUserMessage: "你的匿名舉發將會經由我們的團隊審查，以確認此使用者是否違反我們的社群規範",
+    confirmReportUserButtonLabel: "舉發此使用者",
   },
   notificationsScreen: {
     notificationsTitle: "通知",

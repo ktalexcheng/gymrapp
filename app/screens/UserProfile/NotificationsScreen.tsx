@@ -180,6 +180,7 @@ const NotificationTile = ({ notification, userProfile }: NotificationTileProps) 
 export const NotificationsScreen = observer(() => {
   const { userStore, feedStore } = useStores()
   const [isNotificationsLoaded, setIsNotificationsLoaded] = useState(false)
+  const [isReady, setIsReady] = useState(false)
   const [newNotifications, setNewNotifications] = useState<INotificationModel[]>([])
   const [oldNotifications, setOldNotifications] = useState<INotificationModel[]>([])
   const [pendingFollowRequests, setPendingFollowRequests] = useState<IFollowRequestsModel[]>([])
@@ -230,7 +231,7 @@ export const NotificationsScreen = observer(() => {
     }
 
     if (isNotificationsLoaded) {
-      hydrateNotifications()
+      hydrateNotifications().then(() => setIsReady(true))
     } else {
       userStore.loadNotifications().then(() => {
         setIsNotificationsLoaded(true)
@@ -248,7 +249,7 @@ export const NotificationsScreen = observer(() => {
   }
 
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$container}>
+    <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$container} isBusy={!isReady}>
       <Text tx="notificationsScreen.notificationsTitle" preset="screenTitle" />
       <SectionList
         sections={[

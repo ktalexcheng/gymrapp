@@ -10,6 +10,7 @@ import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { Icon, RowView, Spacer, Text } from "app/components"
 import { AppColorScheme, AppLocale } from "app/data/constants"
+import { useInternetStatus, useLocale, useToast } from "app/hooks"
 import { LoadingScreen } from "app/screens"
 import { spacing } from "app/theme"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
@@ -22,8 +23,6 @@ import {
 } from "expo-status-bar"
 import { observer } from "mobx-react-lite"
 import React, { useCallback, useEffect, useState } from "react"
-
-import { useInternetStatus, useLocale, useToast } from "app/hooks"
 import { Platform, StyleProp, ViewStyle, useColorScheme } from "react-native"
 import Config from "../config"
 import { useStores } from "../stores"

@@ -83,7 +83,22 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
         <Icon name="ellipsis-vertical" size={24} />
       </Popover.Trigger>
 
-      <Popover.Content unstyled style={themeStore.styles("menuPopoverContainer")}>
+      <Popover.Content
+        unstyled
+        style={themeStore.styles("menuPopoverContainer")}
+        animation={[
+          "quick",
+          {
+            opacity: {
+              overshootClamping: true,
+            },
+          },
+        ]}
+        // eslint-disable-next-line react-native/no-inline-styles
+        enterStyle={{ y: -10, opacity: 0 }}
+        // eslint-disable-next-line react-native/no-inline-styles
+        exitStyle={{ y: -10, opacity: 0 }}
+      >
         <View style={styles.fullWidth}>{renderPopoverContent()}</View>
       </Popover.Content>
     </Popover>

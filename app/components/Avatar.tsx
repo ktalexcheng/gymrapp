@@ -40,8 +40,6 @@ export interface AvatarProps extends ViewProps {
   imageStyle?: ImageStyle
 }
 
-const defaultBlurhash = "L47LC~kA8-owj[agj@j@0Baz?,V^"
-
 export const Avatar = observer((props: AvatarProps) => {
   const { themeStore } = useStores()
   const {

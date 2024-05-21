@@ -168,7 +168,22 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
           <Icon name="ellipsis-vertical" size={24} />
         </Popover.Trigger>
 
-        <Popover.Content unstyled style={themeStore.styles("menuPopoverContainer")}>
+        <Popover.Content
+          unstyled
+          style={themeStore.styles("menuPopoverContainer")}
+          animation={[
+            "quick",
+            {
+              opacity: {
+                overshootClamping: true,
+              },
+            },
+          ]}
+          // eslint-disable-next-line react-native/no-inline-styles
+          enterStyle={{ y: -10, opacity: 0 }}
+          // eslint-disable-next-line react-native/no-inline-styles
+          exitStyle={{ y: -10, opacity: 0 }}
+        >
           {renderPopoverContent()}
         </Popover.Content>
       </Popover>
