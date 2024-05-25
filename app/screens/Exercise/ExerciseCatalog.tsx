@@ -1,10 +1,35 @@
 import { ExerciseSource } from "app/data/constants"
+import { TxKeyPath } from "app/i18n"
+import { spacing } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
 import { SectionList, TouchableOpacity, View, ViewStyle } from "react-native"
 import { Route, TabView } from "react-native-tab-view"
 import { Icon, RowView, Spacer, TabBar, Text } from "../../components"
 import { IExerciseModel, useStores } from "../../stores"
+
+type ExerciseTagProps = {
+  txTag?: TxKeyPath
+  tag?: string
+  backgroundColor?: string
+}
+
+const ExerciseTag = observer(({ txTag, tag, backgroundColor }: ExerciseTagProps) => {
+  const { themeStore } = useStores()
+
+  const $tagContainer: ViewStyle = {
+    backgroundColor: backgroundColor || themeStore.colors("contentBackground"),
+    borderRadius: 4,
+    padding: spacing.tiny,
+    marginRight: spacing.tiny,
+  }
+
+  return (
+    <View style={$tagContainer}>
+      <Text size="xxs" tx={txTag} text={tag} />
+    </View>
+  )
+})
 
 interface ExerciseListProps extends ExerciseCatalogProps {
   sectionsData: {
@@ -44,6 +69,12 @@ const ExerciseList: FC<ExerciseListProps> = (props: ExerciseListProps) => {
                   <Spacer type="horizontal" size="tiny" />
                 </>
               )}
+              <ExerciseTag
+                txTag={`volumeType.${item.volumeType?.toLowerCase()}` as TxKeyPath}
+                backgroundColor={
+                  item.volumeType === "Time" ? themeStore.palette("secondary500") : undefined
+                }
+              />
               <Text size="md">{item.exerciseName}</Text>
             </RowView>
           </TouchableOpacity>

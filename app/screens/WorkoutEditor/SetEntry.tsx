@@ -411,7 +411,9 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   }
 
   const renderPreviousSetText = () => {
-    if (!setFromLastWorkout) return "-"
+    // If the reps is 0, probably the volume type switched from Time to Reps
+    // and reps 0 was used to save the previous Time set, we need to ignore it
+    if (!setFromLastWorkout || !setFromLastWorkout.reps) return "-"
 
     const prevWeight = new Weight(setFromLastWorkout.weight)
 

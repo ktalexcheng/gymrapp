@@ -59,6 +59,10 @@ const en = {
       auto: "Auto",
     },
   },
+  volumeType: {
+    reps: "Reps",
+    time: "Time",
+  },
   reportAbuse: {
     reasons: {
       spam: "Spam",
@@ -423,6 +427,8 @@ const en = {
     recordsHeaderRepsLabel: "Reps",
     recordsHeaderTimeLabel: "Time",
     noExerciseHistoryFound: "No exercise history found.",
+    volumeTypeUpdatedMessage:
+      "The volume type for this exercise has been updated, so your previous records may not be displayed. When you log a new workout with the updated exercise, your new records will be shown.",
   },
   createExerciseScreen: {
     createExerciseTitle: "Create an exercise",

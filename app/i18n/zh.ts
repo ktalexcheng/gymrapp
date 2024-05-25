@@ -60,6 +60,10 @@ const zh: Translations = {
       auto: "自動",
     },
   },
+  volumeType: {
+    reps: "次數",
+    time: "時間",
+  },
   reportAbuse: {
     reasons: {
       spam: "垃圾訊息",
@@ -408,6 +412,8 @@ const zh: Translations = {
     recordsHeaderRepsLabel: "次數",
     recordsHeaderTimeLabel: "時間",
     noExerciseHistoryFound: "找不到動作歷史記錄。",
+    volumeTypeUpdatedMessage:
+      "此動作的計次類型已變更，因此你之前的記錄可能不會再顯示。當你使用更新後的動作紀錄新的訓練後，你的新紀錄將會再次顯示。",
   },
   createExerciseScreen: {
     createExerciseTitle: "建立新的動作",
@@ -415,7 +421,7 @@ const zh: Translations = {
     activityType: "動作類型",
     exerciseCat1: "分類",
     exerciseCat2: "子分類 (可選)",
-    volumeType: "次數類型",
+    volumeType: "計次類型",
     setAsBlankLabel: "設為空白",
     requiredFieldsMissingMessage: "請填寫所有必填欄位",
     exerciseName: "動作名稱",

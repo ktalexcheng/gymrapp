@@ -75,40 +75,82 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
     const volumeType = exerciseStore.getExerciseVolumeType(exerciseId)
 
     const renderTimePersonalRecords = (personalRecords: IPersonalRecordsMapModel) => {
-      if (!personalRecords?.[0]) return null
+      if (!personalRecords?.[0]) {
+        return <Text tx="exerciseDetailsScreen.volumeTypeUpdatedMessage" preset="light" />
+      }
 
       const sortedTimeRecords = personalRecords[0].records.sort((a, b) => b.time - a.time)
 
-      return sortedTimeRecords.map((record, i) => {
-        const recordTime = formatSecondsAsTime(record.time)
-
-        return (
-          <RowView key={`${exerciseId}_${i}`} style={$recordItem}>
-            <Text style={$recordsDateColumn}>{formatDate(record.datePerformed)}</Text>
-            <Text style={$recordsTimeColumn}>{recordTime}</Text>
+      return (
+        <>
+          <RowView style={$recordItem}>
+            <Text
+              style={$recordsDateColumn}
+              preset="bold"
+              tx="exerciseDetailsScreen.recordsHeaderDateLabel"
+            />
+            <Text style={$recordsTimeColumn} preset="bold">
+              {translate("exerciseDetailsScreen.recordsHeaderTimeLabel")}
+            </Text>
           </RowView>
-        )
-      })
+          {sortedTimeRecords.map((record, i) => {
+            const recordTime = formatSecondsAsTime(record.time)
+
+            return (
+              <RowView key={`${exerciseId}_${i}`} style={$recordItem}>
+                <Text style={$recordsDateColumn}>{formatDate(record.datePerformed)}</Text>
+                <Text style={$recordsTimeColumn}>{recordTime}</Text>
+              </RowView>
+            )
+          })}
+        </>
+      )
     }
 
     const renderRepsPersonalRecords = (personalRecords: IPersonalRecordsMapModel) => {
-      if (!personalRecords) return null
+      // Create a copy and and remove key 0 from personalRecords
+      // to handle cases where the exercise volume type switch from "Time" to "Reps"
+      const repsPersonalRecords = { ...personalRecords } as IPersonalRecordsMapModel
+      delete repsPersonalRecords?.[0]
+      if (!repsPersonalRecords || !Object.keys(repsPersonalRecords).length) {
+        return <Text tx="exerciseDetailsScreen.volumeTypeUpdatedMessage" preset="light" />
+      }
 
-      return Object.entries(personalRecords).map(([reps, recordModel]) => {
-        const recordsCount = recordModel.records.length
-        const bestRecord = recordModel.records[recordsCount - 1] as RepsPersonalRecord
-        const weight = new Weight(bestRecord.weight)
-
-        return (
-          <RowView key={`${exerciseId}_${reps}`} style={$recordItem}>
-            <Text style={$recordsDateColumn}>{formatDate(bestRecord.datePerformed)}</Text>
-            <Text style={$recordsRepsColumn}>{reps}</Text>
-            <Text style={$recordsWeightColumn}>
-              {weight.getFormattedWeightInUnit(userWeightUnit, 1)}
+      return (
+        <>
+          <RowView style={$recordItem}>
+            <Text
+              style={$recordsDateColumn}
+              preset="bold"
+              tx="exerciseDetailsScreen.recordsHeaderDateLabel"
+            />
+            <Text
+              style={$recordsRepsColumn}
+              preset="bold"
+              tx="exerciseDetailsScreen.recordsHeaderRepsLabel"
+            />
+            <Text style={$recordsWeightColumn} preset="bold">
+              {translate("exerciseDetailsScreen.recordsHeaderWeightLabel") +
+                ` (${translate(weightUnitTx)})`}
             </Text>
           </RowView>
-        )
-      })
+          {Object.entries(repsPersonalRecords).map(([reps, recordModel]) => {
+            const recordsCount = recordModel.records.length
+            const bestRecord = recordModel.records[recordsCount - 1] as RepsPersonalRecord
+            const weight = new Weight(bestRecord.weight)
+
+            return (
+              <RowView key={`${exerciseId}_${reps}`} style={$recordItem}>
+                <Text style={$recordsDateColumn}>{formatDate(bestRecord.datePerformed)}</Text>
+                <Text style={$recordsRepsColumn}>{reps}</Text>
+                <Text style={$recordsWeightColumn}>
+                  {weight.getFormattedWeightInUnit(userWeightUnit, 1)}
+                </Text>
+              </RowView>
+            )
+          })}
+        </>
+      )
     }
 
     const renderPersonalRecords = () => {
@@ -128,45 +170,18 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
       return null
     }
 
-    const renderHeaders = () => {
-      switch (volumeType) {
-        case ExerciseVolumeType.Reps:
-          return (
-            <>
-              <Text
-                style={$recordsRepsColumn}
-                preset="bold"
-                tx="exerciseDetailsScreen.recordsHeaderRepsLabel"
-              />
-              <Text style={$recordsWeightColumn} preset="bold">
-                {translate("exerciseDetailsScreen.recordsHeaderWeightLabel") +
-                  ` (${translate(weightUnitTx)})`}
-              </Text>
-            </>
-          )
-        case ExerciseVolumeType.Time:
-          return (
-            <Text style={$recordsTimeColumn} preset="bold">
-              {translate("exerciseDetailsScreen.recordsHeaderTimeLabel")}
-            </Text>
-          )
-      }
-
-      return null
-    }
-
     if (!personalRecords) return <Text tx="exerciseDetailsScreen.noExerciseHistoryFound" />
 
     return (
       <View>
-        <RowView style={$recordItem}>
+        {/* <RowView style={$recordItem}>
           <Text
             style={$recordsDateColumn}
             preset="bold"
             tx="exerciseDetailsScreen.recordsHeaderDateLabel"
           />
           {renderHeaders()}
-        </RowView>
+        </RowView> */}
         {renderPersonalRecords()}
       </View>
     )
