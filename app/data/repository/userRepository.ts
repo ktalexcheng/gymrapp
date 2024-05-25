@@ -3,8 +3,16 @@ import storage, { FirebaseStorageTypes } from "@react-native-firebase/storage"
 import { api } from "app/services/api"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { UserErrorType } from "../constants"
-import { FollowRequest, Gym, GymDetails, User, UserId } from "../types"
-import { BaseRepository, RepositoryError } from "./baseRepository"
+import {
+  FollowRequest,
+  Gym,
+  GymDetails,
+  User,
+  UserFollowers,
+  UserFollowing,
+  UserId,
+} from "../types"
+import { BaseRepository, FirebaseSnapshotType, RepositoryError } from "./baseRepository"
 
 export class UserRepository extends BaseRepository<User, UserId> {
   #userId?: string
@@ -136,7 +144,7 @@ export class UserRepository extends BaseRepository<User, UserId> {
   async isFollowingUser(followeeUserId: UserId): Promise<boolean> {
     this.checkRepositoryInitialized()
 
-    console.debug("UserRepository.isFollowingUser:", { userId: this.#userId, followeeUserId })
+    // console.debug("UserRepository.isFollowingUser:", { userId: this.#userId, followeeUserId })
     const userFollowingDocRef = this.#userFollowsCollection
       .doc(this.#userId)
       .collection(this.#userFollowingCollectionName)
@@ -247,6 +255,38 @@ export class UserRepository extends BaseRepository<User, UserId> {
       await followRequestsCollection.doc(requestId).update({ isAccepted: true, isDeclined: false })
     } catch (e) {
       throw new RepositoryError(this.repositoryId, `acceptFollowRequest error: ${e}`)
+    }
+  }
+
+  async removeFollower(followerUserId: UserId): Promise<void> {
+    console.debug("UserRepository.removeFollower called")
+    this.checkRepositoryInitialized()
+
+    const userFollowersCollection = this.#userFollowsCollection
+      .doc(this.#userId)
+      .collection(this.#userFollowersCollectionName)
+
+    try {
+      await userFollowersCollection.doc(followerUserId).delete()
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `removeFollower error: ${e}`)
+    }
+  }
+
+  async addFollower(followerUserId: UserId): Promise<void> {
+    console.debug("UserRepository.addFollower called")
+    this.checkRepositoryInitialized()
+
+    const userFollowersCollection = this.#userFollowsCollection
+      .doc(this.#userId)
+      .collection(this.#userFollowersCollectionName)
+
+    try {
+      await userFollowersCollection.doc(followerUserId).set({
+        followDate: firestore.FieldValue.serverTimestamp(),
+      })
+    } catch (e) {
+      throw new RepositoryError(this.repositoryId, `addFollower error: ${e}`)
     }
   }
 
@@ -392,5 +432,43 @@ export class UserRepository extends BaseRepository<User, UserId> {
     } catch (e) {
       throw new RepositoryError(this.repositoryId, `reportComment error: ${e}`)
     }
+  }
+
+  async getAllUserFollowers(
+    userId: UserId,
+    lastDocSnapshot?: FirebaseSnapshotType,
+  ): Promise<{
+    ids: UserId[]
+    docData: UserFollowing[]
+    hasMore: boolean
+    lastDocSnapshot?: FirebaseSnapshotType
+  }> {
+    return await this.getByFilter<UserFollowers>(
+      {
+        limit: 50,
+        orderBy: [{ field: "followDate", direction: "desc" }],
+        afterSnapshot: lastDocSnapshot,
+      },
+      this.#userFollowsCollection.doc(userId).collection(this.#userFollowersCollectionName),
+    )
+  }
+
+  async getAllUserFollowing(
+    userId: UserId,
+    lastDocSnapshot?: FirebaseSnapshotType,
+  ): Promise<{
+    ids: UserId[]
+    docData: UserFollowing[]
+    hasMore: boolean
+    lastDocSnapshot?: FirebaseSnapshotType
+  }> {
+    return await this.getByFilter<UserFollowing>(
+      {
+        limit: 50,
+        orderBy: [{ field: "followDate", direction: "desc" }],
+        afterSnapshot: lastDocSnapshot,
+      },
+      this.#userFollowsCollection.doc(userId).collection(this.#userFollowingCollectionName),
+    )
   }
 }

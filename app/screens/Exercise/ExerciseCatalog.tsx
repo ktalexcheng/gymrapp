@@ -164,7 +164,15 @@ export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: Exerci
   }
 
   const renderTabBar = (props) => {
-    return <TabBar tabIndex={tabIndex} setTabIndex={setTabIndex} {...props} />
+    return (
+      <TabBar
+        tabIndex={tabIndex}
+        setTabIndex={setTabIndex}
+        scrollEnabled={true}
+        dynamicTabWidth={true}
+        {...props}
+      />
+    )
   }
 
   if (!routes) return null

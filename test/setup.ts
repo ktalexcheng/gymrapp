@@ -1,8 +1,7 @@
 import * as admin from "firebase-admin"
 import { initializeApp } from "firebase/app"
 import { getFunctions, httpsCallable } from "firebase/functions"
-// require("dotenv").config({ path: ".env.local" })
-require("dotenv").config({ path: ".env.local" })
+require("dotenv").config({ path: ".env.development" })
 
 declare const tron // eslint-disable-line @typescript-eslint/no-unused-vars
 

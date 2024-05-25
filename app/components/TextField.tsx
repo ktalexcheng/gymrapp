@@ -10,7 +10,7 @@ import {
   View,
   ViewStyle,
 } from "react-native"
-import { isRTL, translate } from "../i18n"
+import { translate } from "../i18n"
 import { spacing, typography } from "../theme"
 import { Text, TextProps } from "./Text"
 
@@ -180,7 +180,7 @@ export const TextField = observer(
     const $inputStyles: StyleProp<TextStyle> = [
       $inputStyle,
       disabled && { color: themeStore.colors("textDim") },
-      isRTL && { textAlign: "right" as TextStyle["textAlign"] },
+      // isRTL && { textAlign: "right" as TextStyle["textAlign"] },
       TextInputProps.multiline && { height: "auto" },
       $inputStyleOverride,
     ]

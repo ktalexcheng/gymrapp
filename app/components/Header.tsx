@@ -9,7 +9,7 @@ import {
   View,
   ViewStyle,
 } from "react-native"
-import { isRTL, translate } from "../i18n"
+import { translate } from "../i18n"
 import { spacing } from "../theme"
 import { ExtendedEdge, useSafeAreaInsetsStyle } from "../utils/useSafeAreaInsetsStyle"
 import { CustomIcon, CustomIconTypes } from "./CustomIcon"
@@ -258,7 +258,7 @@ function HeaderAction(props: HeaderActionProps) {
         color={iconColor}
         onPress={onPress}
         containerStyle={[$actionIconContainer, { backgroundColor }]}
-        style={isRTL ? { transform: [{ rotate: "180deg" }] } : {}}
+        // style={isRTL ? { transform: [{ rotate: "180deg" }] } : {}}
       />
     )
   }

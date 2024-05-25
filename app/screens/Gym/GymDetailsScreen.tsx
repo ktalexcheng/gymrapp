@@ -320,15 +320,7 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
   })
 
   const renderTabBar = (props) => {
-    const $tabBarStyle: ViewStyle = {
-      marginBottom: spacing.tiny,
-    }
-
-    return (
-      <View style={$tabBarStyle}>
-        <TabBar tabIndex={tabIndex} setTabIndex={setTabIndex} {...props} />
-      </View>
-    )
+    return <TabBar tabIndex={tabIndex} setTabIndex={setTabIndex} {...props} />
   }
 
   useEffect(() => {

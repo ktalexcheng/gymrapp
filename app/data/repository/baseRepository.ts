@@ -38,24 +38,25 @@ type CacheData<T> = { timestamp: number } & (CacheDataSingle<T> | CacheDataMany<
 interface RepositoryCache<T> extends Map<string, CacheData<T>> {}
 
 type FirebaseCollectionType =
-  FirebaseFirestoreTypes.CollectionReference<FirebaseFirestoreTypes.DocumentReference>
-type FirebaseSnapshotType =
+  FirebaseFirestoreTypes.CollectionReference<FirebaseFirestoreTypes.DocumentData>
+export type FirebaseSnapshotType =
   FirebaseFirestoreTypes.DocumentSnapshot<FirebaseFirestoreTypes.DocumentData>
-type FirebaseDocumentReferenceType =
-  FirebaseFirestoreTypes.DocumentReference<FirebaseFirestoreTypes.DocumentData>
-type FirebaseQueryType = FirebaseFirestoreTypes.QuerySnapshot<FirebaseDocumentReferenceType>
+// type FirebaseDocumentReferenceType =
+//   FirebaseFirestoreTypes.DocumentReference<FirebaseFirestoreTypes.DocumentData>
+type FirebaseQueryType = FirebaseFirestoreTypes.QuerySnapshot<FirebaseFirestoreTypes.DocumentData>
 
-interface FilterOptions {
-  orderByField?: keyof FirebaseDocumentReferenceType | FirebaseFirestoreTypes.FieldPath
-  orderDirection?: "asc" | "desc"
-  limit?: number
-  afterValue?: string | FirebaseFirestoreTypes.FieldPath
-  beforeValue?: string | FirebaseFirestoreTypes.FieldPath
+export interface FilterOptions {
   whereConditions?: [
-    keyof FirebaseDocumentReferenceType | FirebaseFirestoreTypes.FieldPath,
+    string | number | FirebaseFirestoreTypes.FieldPath,
     FirebaseFirestoreTypes.WhereFilterOp,
     any,
   ][]
+  limit?: number
+  orderBy?: {
+    field: string | number | FirebaseFirestoreTypes.FieldPath
+    direction: "asc" | "desc"
+  }[]
+  afterSnapshot?: FirebaseSnapshotType
 }
 
 // Note: Removing the field rename feature for now, adds complexity and not sure if it's needed
@@ -290,60 +291,57 @@ export class BaseRepository<T extends FirebaseFirestoreTypes.DocumentData, D ext
     }
   }
 
-  async getByFilter(options: FilterOptions): Promise<T[]> {
-    const {
-      orderByField,
-      orderDirection,
-      limit = 20,
-      afterValue,
-      beforeValue,
-      whereConditions,
-    } = options
+  async getByFilter<DocDataType>(
+    options: FilterOptions,
+    collection?: FirebaseCollectionType,
+  ): Promise<{
+    ids: string[]
+    docData: DocDataType[]
+    hasMore: boolean
+    lastDocSnapshot?: FirebaseSnapshotType
+  }> {
     this.checkRepositoryInitialized()
 
-    // if (!orderByField && !limit && (!afterFieldValue || !beforeFieldValue) && !whereConditions) {
-    //   throw new RepositoryError(
-    //     this.#repositoryId,
-    //     'At least one filter condition must be provided for getByFilter() method'
-    //   );
-    // }
+    const { whereConditions, limit = 20, orderBy, afterSnapshot } = options
 
-    // Always default to a limit of 10 to prevent accidental large queries
-    let query = this.#firestoreCollection!.limit(limit)
-    if (orderByField) {
-      const direction = orderDirection ?? "asc"
-      query = query
-        .orderBy(orderByField, direction)
-        .orderBy(firestore.FieldPath.documentId(), direction)
-    }
-    if (afterValue) {
-      query = query.startAfter(afterValue)
-    }
-    if (beforeValue) {
-      query = query.endBefore(beforeValue)
-    }
+    // Always default to a limit of 20 to prevent accidental large queries
+    let query = (collection ?? this.#firestoreCollection)!.limit(limit)
     if (whereConditions) {
       for (const whereCond of whereConditions) {
         query = query.where(...whereCond)
       }
     }
+    if (orderBy) {
+      for (const o of orderBy) {
+        query = query.orderBy(o.field, o.direction)
+      }
+    }
+    if (afterSnapshot) {
+      query = query.startAfter(afterSnapshot)
+    }
 
     try {
       const snapshot = await query.get()
-      const allData: T[] = []
+      const ids: D[] = []
+      const docData: DocDataType[] = []
       snapshot.forEach((doc) => {
-        const data = this._processDocumentSnapshot(doc)
-        allData.push(data)
+        const data = this._processDocumentSnapshot(doc) as any
+        docData.push(data)
+        ids.push(doc.id as D)
       })
 
-      return allData
+      return {
+        ids,
+        docData,
+        hasMore: snapshot.size === limit,
+        lastDocSnapshot: snapshot.docs[snapshot.docs.length - 1],
+      }
     } catch (e) {
       logError(e, "Error getting document by filter:", {
-        orderByField,
-        orderDirection,
+        whereConditions,
         limit,
-        afterValue,
-        beforeValue,
+        orderBy,
+        afterSnapshot,
       })
       throw new RepositoryError(this.#repositoryId, `Error getting documents by filter: ${e}`)
     }

@@ -1,24 +1,26 @@
 import { useStores } from "app/stores"
-import { spacing } from "app/theme"
+import { spacing, typography } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { Animated, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
-import { Route, TabBarProps } from "react-native-tab-view"
+import { TabBar as RNTabBar, TabBarProps as RNTabBarProps, Route } from "react-native-tab-view"
 import { RowView } from "./RowView"
 
-export type CustomTabBarProps<T extends Route> = TabBarProps<T> & {
+export type CustomTabBarProps<T extends Route> = RNTabBarProps<T> & {
   tabIndex: number
   setTabIndex: (i: number) => void
 }
 
-export const TabBar: FC<CustomTabBarProps<Route>> = observer((props) => {
+// CustomTabBar is not used -- I'm not sure why I implemented this initially instead of
+// customizing the TabBar component from react-native-tab-view
+export const CustomTabBar: FC<CustomTabBarProps<Route>> = observer((props) => {
   const { themeStore } = useStores()
   const inputRange = props.navigationState.routes.map((_, i) => i)
   const tabIndex = props.tabIndex
   const setTabIndex = props.setTabIndex
 
   return (
-    <RowView scrollable={true} style={$tabBarContainer}>
+    <RowView scrollable={props.scrollEnabled} style={$tabBarContainer}>
       {props.navigationState.routes.map((route, i) => {
         const opacity = props.position.interpolate({
           inputRange,
@@ -44,12 +46,40 @@ export const TabBar: FC<CustomTabBarProps<Route>> = observer((props) => {
                 setTabIndex(i)
               }}
             >
-              <Animated.Text style={[$tabText, $tabTextColor]}>{route.title}</Animated.Text>
+              <Animated.Text style={[$tabLabel, $tabTextColor]}>{route.title}</Animated.Text>
             </TouchableOpacity>
           </View>
         )
       })}
     </RowView>
+  )
+})
+
+export type TabBarProps<T extends Route> = RNTabBarProps<T> & {
+  dynamicTabWidth?: boolean
+}
+
+export const TabBar = observer((props: TabBarProps<Route>) => {
+  const { themeStore } = useStores()
+
+  const $tabContainer: ViewStyle = {
+    backgroundColor: themeStore.colors("background"),
+    marginBottom: spacing.small,
+  }
+
+  const $tabItem: ViewStyle = {
+    ...$tabItemBase,
+    width: props.dynamicTabWidth ? "auto" : undefined,
+  }
+
+  return (
+    <RNTabBar
+      style={$tabContainer}
+      tabStyle={$tabItem}
+      indicatorStyle={{ backgroundColor: themeStore.colors("text") }}
+      labelStyle={$tabLabel}
+      {...props}
+    />
   )
 })
 
@@ -68,6 +98,15 @@ const $tabBarItem: ViewStyle = {
   height: 40,
 }
 
-const $tabText: Animated.AnimatedProps<TextStyle> = {
+const $tabItemBase: ViewStyle = {
+  minHeight: 0,
+  paddingVertical: spacing.extraSmall,
+  paddingHorizontal: spacing.medium,
+}
+
+const $tabLabel: TextStyle = {
+  fontFamily: typography.primary.normal,
+  textTransform: "none",
   fontSize: 16,
+  lineHeight: 24,
 }

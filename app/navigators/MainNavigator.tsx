@@ -18,6 +18,7 @@ import {
   ProfileVisitorViewScreen,
   RestTimerScreen,
   SaveWorkoutScreen,
+  UserConnectionsScreen,
   UserSettingsScreen,
   WorkoutGymPickerScreen,
   WorkoutSummaryScreen,
@@ -60,6 +61,7 @@ export type MainStackParamList = {
   CreateNewGym: { searchString?: string }
   GymDetails: { gymId: string }
   ProfileVisitorView: { userId: string }
+  UserConnections: { userId: string; userHandle: string }
 }
 
 export type MainStackScreenProps<T extends keyof MainStackParamList> = NativeStackScreenProps<
@@ -96,8 +98,6 @@ export const MainNavigator = observer(function MainNavigator() {
           } else {
             userStore.setUserFromFirebase(snapshot.data() as User)
           }
-          // Once we start listening to the user document, we can stop showing the loading screen
-          userStore.setProp("isLoadingProfile", false)
         },
         (e) => logError(e, "MainNavigator.userSubscriber.onSnapshot error"),
       )
@@ -349,6 +349,15 @@ export const MainNavigator = observer(function MainNavigator() {
           headerBackTitleVisible: false,
         }}
         component={ProfileVisitorViewScreen}
+      />
+      <MainStack.Screen
+        name="UserConnections"
+        options={{
+          headerShown: true,
+          title: "",
+          headerBackTitleVisible: false,
+        }}
+        component={UserConnectionsScreen}
       />
     </MainStack.Navigator>
   )

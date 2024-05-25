@@ -140,6 +140,7 @@ export const UserStoreModel = types
     function invalidateSession() {
       self.userId = null
       self.user = undefined
+      self.isLoadingProfile = false
 
       const { userRepository, privateExerciseRepository, feedRepository, notificationRepository } =
         getEnv<RootStoreDependencies>(self)
@@ -184,11 +185,16 @@ export const UserStoreModel = types
 
     const followUser = flow(function* (followeeUserId: string) {
       // const { userRepository } = getEnv<RootStoreDependencies>(self)
+      let status = "unknown"
+      let requestId
       try {
-        yield api.requestFollowOtherUser(followeeUserId)
+        const response = yield api.requestFollowOtherUser(followeeUserId)
+        status = response.status
+        requestId = response.requestId
       } catch (e) {
         logError(e, "UserStore.followUser error")
       }
+      return { status, requestId }
     })
 
     const unfollowUser = flow(function* (followeeUserId: string) {
@@ -237,6 +243,24 @@ export const UserStoreModel = types
         yield api.acceptFollowRequest(followRequestId)
       } catch (e) {
         logError(e, "UserStore.acceptFollowRequest error")
+      }
+    })
+
+    const removeFollower = flow(function* (followerId: string) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield userRepository.removeFollower(followerId)
+      } catch (e) {
+        logError(e, "UserStore.removeFollower error")
+      }
+    })
+
+    const addFollower = flow(function* (followerId: string) {
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        yield userRepository.addFollower(followerId)
+      } catch (e) {
+        logError(e, "UserStore.addFollower error")
       }
     })
 
@@ -432,6 +456,8 @@ export const UserStoreModel = types
       cancelFollowRequest,
       declineFollowRequest,
       acceptFollowRequest,
+      removeFollower,
+      addFollower,
       setNotifications,
       setFollowRequests,
       loadNotifications,

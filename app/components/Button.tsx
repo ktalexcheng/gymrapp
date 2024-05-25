@@ -11,6 +11,7 @@ import {
   ViewStyle,
 } from "react-native"
 import { spacing, typography } from "../theme"
+import { LoadingIndicator } from "./LoadingIndicator"
 import { Text, TextProps } from "./Text"
 
 type Presets =
@@ -79,6 +80,10 @@ export interface ButtonProps extends PressableProps {
    * Children components.
    */
   children?: React.ReactNode
+  /**
+   * Indicate if the process is ongoing and disable the button.
+   */
+  isBusy?: boolean
 }
 
 /**
@@ -100,6 +105,7 @@ export const Button = observer((props: ButtonProps) => {
     children,
     RightAccessory,
     LeftAccessory,
+    isBusy,
     ...rest
   } = props
 
@@ -109,8 +115,8 @@ export const Button = observer((props: ButtonProps) => {
     default: [
       $baseViewStyle,
       {
-        borderWidth: 1,
-        borderColor: themeStore.palette("neutral400"),
+        // borderWidth: 1,
+        // borderColor: themeStore.palette("neutral400"),
         backgroundColor: themeStore.palette("neutral100"),
       },
     ] as StyleProp<ViewStyle>,
@@ -125,7 +131,10 @@ export const Button = observer((props: ButtonProps) => {
       { backgroundColor: themeStore.palette("neutral800") },
     ] as StyleProp<ViewStyle>,
 
-    text: [$baseViewStyle, { backgroundColor: null }] as StyleProp<ViewStyle>,
+    text: [
+      $baseViewStyle,
+      { backgroundColor: null, paddingHorizontal: null, paddingVertical: null, minHeight: 44 },
+    ] as StyleProp<ViewStyle>,
 
     menuItem: [
       $baseViewStyle,
@@ -156,7 +165,7 @@ export const Button = observer((props: ButtonProps) => {
     dangerText: [$baseTextStyle, { color: themeStore.colors("danger") }],
   }
 
-  const $pressedViewPresets: Record<Presets, StyleProp<ViewStyle>> = {
+  const $pressedViewPresets: Record<Presets, ViewStyle> = {
     default: { backgroundColor: themeStore.palette("neutral200") },
     filled: { backgroundColor: themeStore.palette("neutral400") },
     reversed: { backgroundColor: themeStore.palette("neutral700") },
@@ -194,10 +203,27 @@ export const Button = observer((props: ButtonProps) => {
       !!pressed && [$pressedTextPresets[preset], $pressedTextStyleOverride],
     ]
   }
+  // Show an opaque overlay of the pressed state when the button is busy
+  const $isBusyOverlay: StyleProp<ViewStyle> = [
+    $viewPresets[preset],
+    $viewStyleOverride,
+    $pressedViewPresets[preset],
+    $pressedViewStyleOverride,
+    {
+      position: "absolute",
+      opacity: 0.8,
+      zIndex: 100,
+    },
+  ]
 
   return (
     <View>
-      <Pressable style={$viewStyle} accessibilityRole="button" {...rest}>
+      {isBusy && (
+        <View style={$isBusyOverlay}>
+          <LoadingIndicator />
+        </View>
+      )}
+      <Pressable disabled={isBusy} style={$viewStyle} accessibilityRole="button" {...rest}>
         {(state) => (
           <>
             {!!LeftAccessory && (
@@ -225,12 +251,13 @@ export const Button = observer((props: ButtonProps) => {
 })
 
 const $baseViewStyle: ViewStyle = {
-  minHeight: 44,
-  borderRadius: 24,
+  // minHeight: 44,
+  borderRadius: 8,
   justifyContent: "center",
   alignItems: "center",
   flexDirection: "row",
-  padding: spacing.tiny,
+  paddingVertical: spacing.extraSmall,
+  paddingHorizontal: spacing.medium,
   marginVertical: spacing.tiny,
   overflow: "hidden",
 }

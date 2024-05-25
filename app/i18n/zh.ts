@@ -211,6 +211,21 @@ const zh: Translations = {
     noActivityHistory: "紀錄你的首個訓練，即可看到你的訓練記錄！",
     coachsCenterButtonLabel: "教練中心",
   },
+  userConnectionsScreen: {
+    followers: {
+      removeFollowerButtonLabel: "移除追蹤者",
+      undoRemoveFollowerButtonLabel: "復原",
+    },
+    following: {
+      followingButtonLabel: "追蹤中",
+      unfollowButtonLabel: "取消追蹤",
+      confirmUnfollowTitle: "取消追蹤 {{userHandle}}?",
+      confirmUnfollowMessage:
+        "你將不會再看到 {{userHandle}} 的訓練記錄。若欲恢復追蹤，則需要再次送出追蹤邀請。你確定嗎？",
+      followButtonLabel: "追蹤",
+      pendingLabel: "已邀請",
+    },
+  },
   editProfileForm: {
     editProfileTitle: "你的個人資料",
     aboutYouSectionLabel: "關於你",
@@ -476,10 +491,9 @@ const zh: Translations = {
   profileVisitorViewScreen: {
     dateJoinedLabel: "加入日期",
     followButtonLabel: "追蹤",
-    followBackButtonLabeL: "已追蹤",
     unfollowButtonLabel: "取消追蹤",
     followRequestSentMessage: "已送出追蹤邀請",
-    followRequestAcceptedMessage: "你已拒绝此使用者的追蹤邀請",
+    followRequestAcceptedMessage: "你已接受此使用者的追蹤邀請",
     followRequestRejectedMessage: "你已拒绝此使用者的追蹤邀請",
     noActivityHistoryMessage: "沒有活動紀錄",
     userIsPrivateMessage: "此使用者為私人帳戶",

@@ -216,6 +216,21 @@ const en = {
     noActivityHistory: "Log your first workout to see your activity history!",
     coachsCenterButtonLabel: "Coach's Center",
   },
+  userConnectionsScreen: {
+    followers: {
+      removeFollowerButtonLabel: "Remove",
+      undoRemoveFollowerButtonLabel: "Undo",
+    },
+    following: {
+      followingButtonLabel: "Following",
+      unfollowButtonLabel: "Unfollow",
+      confirmUnfollowTitle: "Unfollow {{userHandle}}?",
+      confirmUnfollowMessage:
+        "You will no longer see their activities in your feed. To follow again, you will need to send a new follow request. Are you sure?",
+      followButtonLabel: "Follow",
+      pendingLabel: "Pending",
+    },
+  },
   editProfileForm: {
     editProfileTitle: "Manage your profile",
     aboutYouSectionLabel: "About you",
@@ -494,7 +509,6 @@ const en = {
   profileVisitorViewScreen: {
     dateJoinedLabel: "Date joined",
     followButtonLabel: "Follow",
-    followBackButtonLabeL: "Follow back",
     unfollowButtonLabel: "Unfollow",
     followRequestSentMessage: "Follow request sent",
     followRequestAcceptedMessage: "You have rejected this user's follow request",

@@ -79,9 +79,9 @@ export class Api {
         exercisesLastUpdate,
       }
       console.debug("checkForUpdates current app version:", requestData)
-      const response = await this.firebaseFunctionsClient.httpsCallable("appCheckForUpdates")(
-        requestData,
-      )
+      const response = await this.firebaseFunctionsClient.httpsCallable<any, any>(
+        "appCheckForUpdates",
+      )(requestData)
 
       console.debug("checkForUpdates response:", response)
       return response.data
@@ -180,7 +180,7 @@ export class Api {
     lastWorkoutId?: WorkoutId,
   ): Promise<{ lastWorkoutId: WorkoutId; noMoreItems: boolean; workouts: Workout[] }> {
     try {
-      const response = await this.firebaseFunctionsClient.httpsCallable(
+      const response = await this.firebaseFunctionsClient.httpsCallable<any, any>(
         "workoutGetOtherUserWorkouts",
       )({
         userId,
@@ -202,14 +202,16 @@ export class Api {
     lastFeedItemId?: FeedItemId,
   ): Promise<{ lastFeedItemId: FeedItemId; noMoreItems: boolean; workouts: Workout[] }> {
     try {
-      const reponse = await this.firebaseFunctionsClient.httpsCallable("workoutGetFeedWorkouts")({
+      const response = await this.firebaseFunctionsClient.httpsCallable<any, any>(
+        "workoutGetFeedWorkouts",
+      )({
         lastFeedItemId,
       })
 
       return {
-        lastFeedItemId: reponse.data.lastFeedItemId,
-        noMoreItems: reponse.data.noMoreItems,
-        workouts: convertFirestoreTimestampToDate(reponse.data.workouts),
+        lastFeedItemId: response.data.lastFeedItemId,
+        noMoreItems: response.data.noMoreItems,
+        workouts: convertFirestoreTimestampToDate(response.data.workouts),
       }
     } catch (e) {
       logError(e, "getFeedWorkouts error")
@@ -222,7 +224,9 @@ export class Api {
     lastWorkoutId?: WorkoutId,
   ): Promise<{ lastWorkoutId: WorkoutId; noMoreItems: boolean; workouts: IWorkoutSummaryModel[] }> {
     try {
-      const response = await this.firebaseFunctionsClient.httpsCallable("workoutGetGymWorkouts")({
+      const response = await this.firebaseFunctionsClient.httpsCallable<any, any>(
+        "workoutGetGymWorkouts",
+      )({
         gymId,
         lastWorkoutId,
       })
@@ -282,11 +286,13 @@ export class Api {
     userHandle: string,
   ): Promise<"success" | UserErrorType.UserHandleAlreadyTakenError> {
     try {
-      const reponse = await this.firebaseFunctionsClient.httpsCallable("userUpdateUserHandle")({
+      const response = await this.firebaseFunctionsClient.httpsCallable<any, any>(
+        "userUpdateUserHandle",
+      )({
         userHandle,
       })
-      console.debug("updateUserHandle response:", reponse)
-      return reponse.data.status
+      console.debug("updateUserHandle response:", response)
+      return response.data.status
     } catch (e) {
       logError(e, "updateUserHandle error")
       throw e

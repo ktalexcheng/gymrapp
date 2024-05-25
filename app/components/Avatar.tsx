@@ -90,11 +90,11 @@ export const Avatar = observer((props: AvatarProps) => {
 
   const renderAvatarImage = () => {
     if (loadError || (!imageUrlToUse && user?.firstName && user?.lastName)) {
-      console.debug("Avatar image load error or image URL undefined", { loadError, imageUrlToUse })
+      // console.debug("Avatar image load error or image URL undefined", { loadError, imageUrlToUse })
       return renderUserInitialsText()
     }
 
-    console.debug("Avatar image rendering", { imageUrlToUse, blurhash: user?.avatarBlurhash })
+    // console.debug("Avatar image rendering", { imageUrlToUse, blurhash: user?.avatarBlurhash })
     return (
       <Image
         source={imageUrlToUse && { uri: imageUrlToUse }}

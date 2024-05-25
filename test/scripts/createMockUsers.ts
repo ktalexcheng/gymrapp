@@ -45,16 +45,21 @@ describe("create mock users", () => {
 
     // Create user document
     for (const user of mockUserData) {
+      const userId = "MOCK-" + user.GUID
       const userHandle =
         user.EmailAddress.match(/^([\w.-]{1,30})@/)?.[1] || user.EmailAddress.slice(0, 30)
+
+      // Randomly decide if a user is private
+      const privateAccount = Math.random() < 0.5
+
       await userRepository.create({
-        userId: "MOCK-" + user.GUID,
+        userId,
         userHandle,
         _userHandleLower: userHandle.toLowerCase(),
         firstName: user.GivenName,
         lastName: user.Surname,
         email: user.EmailAddress,
-        privateAccount: false,
+        privateAccount,
         providerId: "mock",
         preferences: {
           appLocale: AppLocale.en_US,

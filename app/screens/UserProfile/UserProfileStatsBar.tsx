@@ -1,9 +1,10 @@
 import { RowView, Spacer, Text } from "app/components"
 import { TxKeyPath } from "app/i18n"
+import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { IUserModel } from "app/stores"
 import { simplifyNumber } from "app/utils/formatNumber"
 import React, { FC } from "react"
-import { View, ViewStyle } from "react-native"
+import { TouchableOpacity, View, ViewStyle } from "react-native"
 
 const UserProfileStatTile: FC<{ labelTx: TxKeyPath; value: string }> = ({ labelTx, value }) => {
   return (
@@ -26,6 +27,8 @@ export const UserProfileStatsBar: FC<UserProfileStatsBarProps> = ({
   containerStyle: $containerStyleOverride,
   hideActivitesCount = false,
 }: UserProfileStatsBarProps) => {
+  const mainNavigation = useMainNavigation()
+
   const $containerStyle = [$userStatsRow, $containerStyleOverride]
 
   // user.workoutMetas could be a MST model or a plain object
@@ -47,8 +50,26 @@ export const UserProfileStatsBar: FC<UserProfileStatsBarProps> = ({
   return (
     <RowView style={$containerStyle}>
       <UserProfileStatTile labelTx="common.activities" value={simplifyNumber(activitiesCount)!} />
-      <UserProfileStatTile labelTx="common.followers" value={simplifyNumber(followersCount)!} />
-      <UserProfileStatTile labelTx="common.following" value={simplifyNumber(followingCount)!} />
+      <TouchableOpacity
+        onPress={() =>
+          mainNavigation.navigate("UserConnections", {
+            userId: user.userId,
+            userHandle: user.userHandle,
+          })
+        }
+      >
+        <UserProfileStatTile labelTx="common.followers" value={simplifyNumber(followersCount)!} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() =>
+          mainNavigation.navigate("UserConnections", {
+            userId: user.userId,
+            userHandle: user.userHandle,
+          })
+        }
+      >
+        <UserProfileStatTile labelTx="common.following" value={simplifyNumber(followingCount)!} />
+      </TouchableOpacity>
     </RowView>
   )
 }

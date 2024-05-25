@@ -18,6 +18,7 @@ import { convertWorkoutToMSTSnapshot } from "./helpers/convertWorkoutToMSTSnapsh
 import { RootStoreDependencies } from "./helpers/useStores"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 import {
+  IUserModel,
   MetadataModel,
   PersonalRecordModel,
   RepsPersonalRecordModel,
@@ -830,6 +831,94 @@ export const FeedStoreModel = types
       }
     })
 
+    let lastUserFollowerDoc: any = null
+    let hasMoreUserFollowers = true
+    const getMoreUserFollowers = flow(function* (userId: string, refresh?: boolean) {
+      console.debug("FeedStore.getMoreUserFollowers called", {
+        lastUserFollowerDoc,
+        hasMoreUserFollowers,
+        userId,
+        refresh,
+      })
+      if (refresh) {
+        lastUserFollowerDoc = null
+        hasMoreUserFollowers = true
+      }
+
+      const userProfiles: IUserModel = []
+      if (hasMoreUserFollowers) {
+        const { userRepository } = getEnv<RootStoreDependencies>(self)
+        try {
+          const { ids, hasMore, lastDocSnapshot } = yield userRepository.getAllUserFollowers(
+            userId,
+            lastUserFollowerDoc,
+          )
+          hasMoreUserFollowers = hasMore
+          lastUserFollowerDoc = lastDocSnapshot
+
+          for (const id of ids) {
+            yield fetchUserProfileToStore(id).then((profile) => userProfiles.push(profile))
+          }
+
+          console.debug("FeedStore.getMoreUserFollowers returning", {
+            lastUserFollowerDoc,
+            hasMoreUserFollowers,
+            userId,
+            refresh,
+          })
+          return { userProfiles, hasMore }
+        } catch (e) {
+          logError(e, "UserStore.getAllUserFollowers error")
+        }
+      }
+
+      return { userProfiles: [], hasMore: false }
+    })
+
+    let lastUserFollowingDoc: any = null
+    let hasMoreUserFollowing = true
+    const getMoreUserFollowing = flow(function* (userId: string, refresh?: boolean) {
+      console.debug("FeedStore.getMoreUserFollowing called", {
+        lastUserFollowingDoc,
+        hasMoreUserFollowing,
+        userId,
+        refresh,
+      })
+      if (refresh) {
+        lastUserFollowingDoc = null
+        hasMoreUserFollowing = true
+      }
+
+      const userProfiles: IUserModel = []
+      if (hasMoreUserFollowing) {
+        const { userRepository } = getEnv<RootStoreDependencies>(self)
+        try {
+          const { ids, hasMore, lastDocSnapshot } = yield userRepository.getAllUserFollowing(
+            userId,
+            lastUserFollowingDoc,
+          )
+          hasMoreUserFollowing = hasMore
+          lastUserFollowingDoc = lastDocSnapshot
+
+          for (const id of ids) {
+            yield fetchUserProfileToStore(id).then((profile) => userProfiles.push(profile))
+          }
+
+          console.debug("FeedStore.getMoreUserFollowing returning", {
+            lastUserFollowingDoc,
+            hasMoreUserFollowing,
+            userId,
+            refresh,
+          })
+          return { userProfiles, hasMore }
+        } catch (e) {
+          logError(e, "UserStore.getMoreUserFollowing error")
+        }
+      }
+
+      return { userProfiles: [], hasMore: false }
+    })
+
     return {
       initializeWithUserId,
       resetFeed,
@@ -852,5 +941,7 @@ export const FeedStoreModel = types
       reportComment,
       reportUser,
       fetchUserProfileToStore,
+      getMoreUserFollowing,
+      getMoreUserFollowers,
     }
   })
