@@ -87,6 +87,7 @@ export const WorkoutSummaryModel = types.snapshotProcessor(
       endTime: types.Date,
       exercises: types.array(ExerciseSummaryModel),
       workoutTitle: types.string,
+      workoutNotes: types.maybeNull(types.string),
       activityId: types.string,
       performedAtGymId: types.maybeNull(types.string),
       performedAtGymName: types.maybeNull(types.string),

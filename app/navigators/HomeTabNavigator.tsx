@@ -1,28 +1,25 @@
 import { BottomTabScreenProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs"
+import { Button, Icon, Modal, Spacer, Text } from "app/components"
 import { ActivityType } from "app/data/constants"
+import { DiscoverScreen } from "app/features/Discover"
+import { ExerciseManagerScreen } from "app/features/Exercises"
+import { FeedScreen } from "app/features/Feed"
+import { ProfileScreen } from "app/features/UserProfile"
+import { ActiveWorkoutOverlay } from "app/features/Workout"
+import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
+import { spacing, typography } from "app/theme"
+import { FilePlus2, LayoutTemplate } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
-import { TextStyle, TouchableOpacity, ViewStyle } from "react-native"
-import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Button, Icon, Modal, Spacer, Text } from "../components"
-import { translate } from "../i18n"
-import {
-  ActiveWorkoutOverlay,
-  DiscoverScreen,
-  ExerciseManagerScreen,
-  FeedScreen,
-  ProfileScreen,
-} from "../screens"
-import { spacing, typography } from "../theme"
+import { Platform, StyleProp, TextStyle, View, ViewStyle } from "react-native"
+import { Popover } from "tamagui"
 
 export type TabParamList = {
   Feed: undefined
   Discover: undefined
   NewActivity: undefined
-  // Upcoming: undefined
-  // We are putting the exercise manager in place of the "Upcoming" tab for now
   Exercises: undefined
   Profile: undefined
 }
@@ -43,77 +40,6 @@ const BottomTab = createBottomTabNavigator<TabParamList>()
 const EmptyActivityScreen = () => {
   return null
 }
-
-// IMPORTANT: This is temporarily disabled and we might revisit this later
-// const NewActivityButton = () => {
-//   const navigation = useMainNavigation()
-//   const { themeStore } = useStores()
-//   const [modalVisible, setModalVisible] = useState(false)
-//   const $bottomContainerInsets = useSafeAreaInsetsStyle(["bottom"], "margin")
-
-//   function navigateToNewWorkout() {
-//     setModalVisible(false)
-//     navigation.navigate("NewWorkout")
-//   }
-
-//   function navigateToExerciseManager() {
-//     setModalVisible(false)
-//     navigation.navigate("ExerciseManager")
-//   }
-
-//   const $centerButton: ViewStyle = {
-//     bottom: 40,
-//     height: 80,
-//     width: 80,
-//     borderRadius: 80,
-//     backgroundColor: themeStore.colors("actionable"),
-//     alignItems: "center",
-//     justifyContent: "center",
-//   }
-
-//   const $centerButtonLabel: TextStyle = {
-//     fontSize: 12,
-//     fontFamily: typography.primary.medium,
-//     color: themeStore.colors("actionableForeground"),
-//     lineHeight: 16,
-//   }
-
-//   const $activityButtonsContainer: ViewStyle = {
-//     flex: 1,
-//     bottom: 110,
-//     justifyContent: "flex-end",
-//     backgroundColor: themeStore.colors("blurBackground"),
-//   }
-
-//   return (
-//     <>
-//       <TouchableOpacity onPress={() => setModalVisible(true)} style={$centerButton}>
-//         <Icon name="add" color={themeStore.colors("actionableForeground")} size={30} />
-//         <Text style={$centerButtonLabel}>{translate("tabNavigator.activityTab")}</Text>
-//       </TouchableOpacity>
-
-//       <Modal
-//         transparent={true}
-//         visible={modalVisible}
-//         animationType="fade"
-//         onRequestClose={() => setModalVisible(false)}
-//       >
-//         <View style={[$activityButtonsContainer, $bottomContainerInsets]}>
-//           <Button
-//             style={$modalButton}
-//             tx="tabNavigator.startWorkout"
-//             onPress={navigateToNewWorkout}
-//           />
-//           <Button
-//             style={$modalButton}
-//             tx="tabNavigator.manageExercises"
-//             onPress={navigateToExerciseManager}
-//           />
-//         </View>
-//       </Modal>
-//     </>
-//   )
-// }
 
 type ResetWorkoutDialogProps = {
   visible: boolean
@@ -166,6 +92,10 @@ const NewActivityButton = observer(() => {
     navigation.navigate("ActiveWorkout")
   }
 
+  function manageTemplates() {
+    navigation.navigate("TemplateManager")
+  }
+
   const $centerButton: ViewStyle = {
     bottom: 40,
     height: 80,
@@ -183,13 +113,76 @@ const NewActivityButton = observer(() => {
     lineHeight: 16,
   }
 
+  const $sheetContent: ViewStyle = {
+    backgroundColor: themeStore.colors("background"),
+    padding: spacing.screenPadding,
+    gap: spacing.extraSmall,
+  }
+
+  const $buttonLeftAcc: ViewStyle = { position: "absolute", left: spacing.small }
+
+  const $button: ViewStyle = {
+    minHeight: 60,
+  }
+
   return (
     <>
-      <TouchableOpacity onPress={startNewWorkout} style={$centerButton}>
-        <Icon name="add" color={themeStore.colors("actionableForeground")} size={30} />
-        <Text style={$centerButtonLabel}>{translate("tabNavigator.activityTab")}</Text>
-      </TouchableOpacity>
+      <Popover>
+        <Popover.Trigger>
+          {/* <TouchableOpacity style={$centerButton} onPress={() => onSheetOpenChange(true)}> */}
+          <View style={$centerButton}>
+            <Icon name="add" color={themeStore.colors("actionableForeground")} size={30} />
+            <Text style={$centerButtonLabel}>{translate("tabNavigator.activityTab")}</Text>
+          </View>
+          {/* </TouchableOpacity> */}
+        </Popover.Trigger>
 
+        <Popover.Adapt when="xs" platform="touch">
+          <Popover.Sheet
+            modal={true}
+            snapPoints={[50]}
+            snapPointsMode="percent"
+            dismissOnSnapToBottom={true}
+            dismissOnOverlayPress={true}
+            position={0}
+            defaultPosition={0}
+          >
+            <Popover.Sheet.Frame style={{ backgroundColor: themeStore.colors("background") }}>
+              <Popover.Adapt.Contents />
+            </Popover.Sheet.Frame>
+            <Popover.Sheet.Overlay
+            // animation="lazy"
+            // enterStyle={$overlayOpacity}
+            // exitStyle={$overlayOpacity}
+            />
+          </Popover.Sheet>
+        </Popover.Adapt>
+
+        <Popover.Content>
+          <View style={$sheetContent}>
+            <Popover.Close asChild>
+              <Button
+                style={$button}
+                LeftAccessory={() => (
+                  <FilePlus2 style={$buttonLeftAcc} color={themeStore.colors("actionable")} />
+                )}
+                tx="tabNavigator.startNewWorkoutLabel"
+                onPress={startNewWorkout}
+              />
+            </Popover.Close>
+            <Popover.Close asChild>
+              <Button
+                style={$button}
+                LeftAccessory={() => (
+                  <LayoutTemplate style={$buttonLeftAcc} color={themeStore.colors("actionable")} />
+                )}
+                tx="tabNavigator.manageTemplatesLabel"
+                onPress={manageTemplates}
+              />
+            </Popover.Close>
+          </View>
+        </Popover.Content>
+      </Popover>
       <ResetWorkoutDialog
         visible={showResetWorkoutDialog}
         onResume={resumeWorkout}
@@ -201,13 +194,23 @@ const NewActivityButton = observer(() => {
 })
 
 export const HomeTabNavigator = observer(() => {
-  const { bottom } = useSafeAreaInsets()
   const { activeWorkoutStore, themeStore } = useStores()
 
-  const $tabBar: ViewStyle = {
-    backgroundColor: themeStore.colors("background"),
-    borderTopColor: themeStore.colors("transparent"),
-  }
+  const $tabBar: StyleProp<ViewStyle> = [
+    {
+      backgroundColor: themeStore.colors("background"),
+      borderTopColor: themeStore.colors("transparent"),
+      elevation: 0, // Remove the shadow on Android
+    },
+    Platform.select({
+      ios: {
+        marginBottom: spacing.small,
+      },
+      android: {
+        paddingBottom: spacing.small,
+      },
+    }),
+  ]
 
   return (
     <>
@@ -216,11 +219,7 @@ export const HomeTabNavigator = observer(() => {
         screenOptions={{
           headerShown: false,
           tabBarHideOnKeyboard: true,
-          tabBarStyle: [$tabBar, { height: bottom + 60 }],
-          tabBarActiveTintColor: themeStore.colors("text"),
-          tabBarInactiveTintColor: themeStore.colors("text"),
-          tabBarLabelStyle: $tabBarLabel,
-          tabBarItemStyle: $tabBarItem,
+          tabBarStyle: $tabBar,
         }}
       >
         <BottomTab.Screen
@@ -290,20 +289,3 @@ export const HomeTabNavigator = observer(() => {
     </>
   )
 })
-
-const $tabBarItem: ViewStyle = {
-  paddingTop: spacing.small,
-}
-
-const $tabBarLabel: TextStyle = {
-  fontSize: 12,
-  fontFamily: typography.primary.medium,
-  lineHeight: 16,
-}
-
-// const $modalButton: ViewStyle = {
-//   margin: spacing.extraSmall,
-//   borderRadius: 20,
-//   padding: spacing.extraLarge,
-//   alignItems: "center",
-// }

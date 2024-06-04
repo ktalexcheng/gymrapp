@@ -1,5 +1,5 @@
 import { WeightUnit } from "app/data/constants"
-import { ExerciseId } from "app/data/types"
+import { ExerciseId, ExerciseSettingsType } from "app/data/types"
 import { TxKeyPath } from "app/i18n"
 import { useStores } from "app/stores"
 import { useExerciseSetting } from "./useExerciseSetting"
@@ -14,7 +14,7 @@ export const useWeightUnitTx = (exerciseId?: ExerciseId) => {
 
   let weightUnit
   if (exerciseId) {
-    ;[weightUnit] = useExerciseSetting(exerciseId, "weightUnit")
+    ;[weightUnit] = useExerciseSetting(exerciseId, ExerciseSettingsType.WeightUnit)
   } else {
     weightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
   }

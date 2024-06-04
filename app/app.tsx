@@ -14,6 +14,9 @@ import auth from "@react-native-firebase/auth"
 import firestore from "@react-native-firebase/firestore"
 import functions from "@react-native-firebase/functions"
 import fbStorage from "@react-native-firebase/storage"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { LoadingScreen } from "app/features/common/LoadingScreen"
+import { ErrorBoundary } from "app/features/Error"
 import Constants from "expo-constants"
 import * as Device from "expo-device"
 import { useFonts } from "expo-font"
@@ -30,8 +33,6 @@ import { useNotification } from "./hooks"
 import { translate } from "./i18n"
 import { AppNavigator } from "./navigators"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
-import { LoadingScreen } from "./screens"
-import { ErrorBoundary } from "./screens/ErrorScreen/ErrorBoundary"
 import { api, storageKeys } from "./services"
 import { useInitialRootStore } from "./stores"
 import tamaguiConfig from "./tamagui.config"
@@ -169,6 +170,8 @@ if (__DEV__) {
   }
 }
 
+const queryClient = new QueryClient()
+
 interface AppProps {
   hideSplashScreen: () => Promise<void>
 }
@@ -304,12 +307,14 @@ function App(props: AppProps) {
         <RootSiblingParent>
           <SafeAreaProvider initialMetrics={initialWindowMetrics}>
             <ErrorBoundary catchErrors={Config.catchErrors}>
-              <AppNavigator
-                linking={linking}
-                fallback={<LoadingScreen />}
-                initialState={initialNavigationState}
-                onStateChange={onNavigationStateChange}
-              />
+              <QueryClientProvider client={queryClient}>
+                <AppNavigator
+                  linking={linking}
+                  fallback={<LoadingScreen />}
+                  initialState={initialNavigationState}
+                  onStateChange={onNavigationStateChange}
+                />
+              </QueryClientProvider>
             </ErrorBoundary>
           </SafeAreaProvider>
         </RootSiblingParent>

@@ -3,8 +3,11 @@ import { WorkoutId } from "./workout.types"
 
 // ExerciseSet type specific to each ExerciseVolumeType
 interface BaseExerciseSetPerformed {
+  setId: string
+  setOrder: number
   setType: ExerciseSetType
   isCompleted: boolean
+  isNewRecord?: boolean
 }
 export interface RepsExerciseSetPerformed extends BaseExerciseSetPerformed {
   volumeType: ExerciseVolumeType.Reps
@@ -18,7 +21,7 @@ export interface TimeExerciseSetPerformed extends BaseExerciseSetPerformed {
 }
 export type ExerciseSetPerformed = RepsExerciseSetPerformed | TimeExerciseSetPerformed
 
-// PersonalRecord type specifici to each ExerciseVolumeType
+// PersonalRecord type specific to each ExerciseVolumeType
 // Using Weight and Reps type alias for clarity
 export type Weight = number
 export type Reps = number
@@ -67,10 +70,15 @@ export interface TimeExercisePerformed extends BaseExercisePerformed {
 export type ExercisePerformed = RepsExercisePerformed | TimeExercisePerformed
 
 // Other exercise related types
+export enum ExerciseSettingsType {
+  AutoRestTimerEnabled = "autoRestTimerEnabled",
+  RestTime = "restTime",
+  WeightUnit = "weightUnit",
+}
 export interface ExerciseSettings {
-  autoRestTimerEnabled?: boolean
-  restTime?: number // In seconds
-  weightUnit?: WeightUnit
+  [ExerciseSettingsType.AutoRestTimerEnabled]?: boolean
+  [ExerciseSettingsType.RestTime]?: number // In seconds
+  [ExerciseSettingsType.WeightUnit]?: WeightUnit
 }
 
 export interface NewExercise {

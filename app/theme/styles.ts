@@ -78,7 +78,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     padding: spacing.extraSmall,
     overflow: "hidden",
-    marginVertical: spacing.extraSmall,
+    marginBottom: spacing.small,
   },
   screenContainer: {
     flex: 1,
@@ -88,16 +88,19 @@ export const styles = StyleSheet.create({
   disabled: {
     opacity: 0.5,
   },
+  invisible: {
+    opacity: 0,
+  },
   screenTitleMinHeight: {
     minHeight: 100,
   },
   menuPopoverContainer: {
-    marginTop: spacing.small,
+    // marginTop: spacing.small,
     paddingVertical: spacing.small,
     paddingHorizontal: spacing.small,
-    width: 200,
+    minWidth: 150,
     borderRadius: 10,
-    borderWidth: 1,
+    // borderWidth: 1,
   },
   menuItemContainer: {
     width: "100%",

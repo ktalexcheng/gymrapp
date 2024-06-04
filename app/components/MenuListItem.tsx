@@ -2,7 +2,7 @@ import { TxKeyPath } from "app/i18n"
 import { styles } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React, { useState } from "react"
-import { TouchableOpacity, ViewStyle } from "react-native"
+import { StyleProp, TouchableOpacity, TouchableOpacityProps, ViewStyle } from "react-native"
 import { Button } from "./Button"
 import { Icon } from "./Icon"
 import { Modal } from "./Modal"
@@ -10,7 +10,7 @@ import { RowView } from "./RowView"
 import { Spacer } from "./Spacer"
 import { Text } from "./Text"
 
-export type MenuListItemProps = {
+export interface MenuListItemProps extends TouchableOpacityProps {
   disabled?: boolean
   required?: boolean
   itemId: string
@@ -20,7 +20,6 @@ export type MenuListItemProps = {
   currentValue: any
   currentValueFormatted?: any
   TooltipComponent?: React.ComponentType
-  overrideOnPress?: () => void
   OverrideRightAccessory?: React.ComponentType
   onValueChange?: (value: any) => void
   /**
@@ -31,6 +30,8 @@ export type MenuListItemProps = {
     selectedValue: any
     onSelectionChange: (value: any) => void
   }>
+  minHeight?: number
+  textColor?: string
 }
 
 export const MenuListItem = observer((props: MenuListItemProps) => {
@@ -44,19 +45,25 @@ export const MenuListItem = observer((props: MenuListItemProps) => {
     currentValue,
     currentValueFormatted,
     TooltipComponent,
-    overrideOnPress,
+    onPress: overrideOnPress,
     OverrideRightAccessory,
     onValueChange,
     PickerComponent,
+    minHeight,
+    textColor,
+    ...rest
   } = props
 
   const [showModal, setShowModal] = useState(false)
   const [selectedValue, setSelectedValue] = useState<any>(currentValue)
 
-  const $container: ViewStyle = {
-    alignItems: "center",
-    justifyContent: "space-between",
-  }
+  const $container: StyleProp<ViewStyle> = [
+    {
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    minHeight !== undefined && { minHeight },
+  ]
 
   const $preferenceLabelContainer: ViewStyle = {
     flex: 1,
@@ -68,7 +75,12 @@ export const MenuListItem = observer((props: MenuListItemProps) => {
     return (
       <RowView style={[$container, disabled && styles.disabled]}>
         <RowView style={$preferenceLabelContainer}>
-          <Text tx={itemNameLabelTx} text={itemNameLabel} preset="formLabel" />
+          <Text
+            tx={itemNameLabelTx}
+            text={itemNameLabel}
+            preset="formLabel"
+            textColor={textColor}
+          />
           {required && <Text text="*" preset="formLabel" />}
           {TooltipComponent && (
             <>
@@ -91,7 +103,7 @@ export const MenuListItem = observer((props: MenuListItemProps) => {
 
   if (overrideOnPress) {
     return (
-      <TouchableOpacity key={itemId} disabled={disabled} onPress={overrideOnPress}>
+      <TouchableOpacity key={itemId} disabled={disabled} onPress={overrideOnPress} {...rest}>
         <MenuListItemDisplay currentValueFormatted={currentValueFormatted ?? currentValue} />
       </TouchableOpacity>
     )
@@ -114,7 +126,12 @@ export const MenuListItem = observer((props: MenuListItemProps) => {
   // })
   return (
     <>
-      <TouchableOpacity key={itemId} disabled={disabled} onPress={() => setShowModal(true)}>
+      <TouchableOpacity
+        key={itemId}
+        disabled={disabled}
+        onPress={() => setShowModal(true)}
+        {...rest}
+      >
         <MenuListItemDisplay currentValueFormatted={currentValueFormatted ?? currentValue} />
       </TouchableOpacity>
 

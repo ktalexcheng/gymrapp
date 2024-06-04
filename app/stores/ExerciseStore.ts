@@ -60,7 +60,10 @@ export const ExerciseStoreModel = types
     const applyUserSettings = flow(function* (user: IUserModelSnapshot) {
       self.isLoading = true
 
-      const exerciseSettings = user.preferences?.exerciseSpecificSettings as ExerciseSettings
+      const exerciseSettings = user.preferences?.exerciseSpecificSettings as Record<
+        string,
+        ExerciseSettings
+      >
 
       // Update exercises with user settings
       console.debug("ExerciseStre.applyUserSettings() exerciseSettings", exerciseSettings)

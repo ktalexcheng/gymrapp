@@ -12,7 +12,7 @@ import { useEffect, useState } from "react"
 export const useExerciseSetting = <T>(
   exerciseId: ExerciseId,
   settingName: keyof ExerciseSettings,
-): [settingValue: T] => {
+): T => {
   const { exerciseStore, userStore } = useStores()
 
   const exerciseSpecificSetting =
@@ -33,5 +33,5 @@ export const useExerciseSetting = <T>(
     })
   }, [settingValue])
 
-  return [exerciseSetting]
+  return exerciseSetting
 }

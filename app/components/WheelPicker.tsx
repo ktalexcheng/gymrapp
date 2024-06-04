@@ -56,7 +56,7 @@ const ExoticWheelPickerFlat = forwardRef<WheelPickerRef, WheelPickerProps>(
 
     const renderItem = (item: ListItem, index: number) => {
       return (
-        <View key={index} style={$itemContainer}>
+        <View key={`wheelPicker_${item.value}_${index}`} style={$itemContainer}>
           <Text style={$pickerItemText}>{item.label}</Text>
         </View>
       )

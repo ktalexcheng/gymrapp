@@ -10,8 +10,8 @@ import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { Icon, RowView, Spacer, Text } from "app/components"
 import { AppColorScheme, AppLocale } from "app/data/constants"
+import { LoadingScreen } from "app/features/common/LoadingScreen"
 import { useInternetStatus, useLocale, useToast } from "app/hooks"
-import { LoadingScreen } from "app/screens"
 import { spacing } from "app/theme"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
 import Constants from "expo-constants"
@@ -112,6 +112,7 @@ export const AppNavigator = observer((props: NavigationProps) => {
     themeStore,
     feedStore,
     activeWorkoutStore,
+    workoutEditorStore,
   } = useStores()
   const systemColorScheme = useColorScheme() // Initial system color scheme
   const [isInternetConnectState, setIsInternetConnectState] = useState<boolean>()
@@ -197,6 +198,7 @@ export const AppNavigator = observer((props: NavigationProps) => {
       userStore.invalidateSession()
       feedStore.resetFeed()
       activeWorkoutStore.resetWorkout()
+      workoutEditorStore.resetWorkout()
     }
 
     // This is to prevent the initial route flicker when the app is first loaded and auth state refreshes

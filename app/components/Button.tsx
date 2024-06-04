@@ -117,13 +117,13 @@ export const Button = observer((props: ButtonProps) => {
       {
         // borderWidth: 1,
         // borderColor: themeStore.palette("neutral400"),
-        backgroundColor: themeStore.palette("neutral100"),
+        backgroundColor: themeStore.palette("neutral200"),
       },
     ] as StyleProp<ViewStyle>,
 
     filled: [
       $baseViewStyle,
-      { backgroundColor: themeStore.palette("neutral300") },
+      { backgroundColor: themeStore.palette("neutral400") },
     ] as StyleProp<ViewStyle>,
 
     reversed: [
@@ -133,7 +133,12 @@ export const Button = observer((props: ButtonProps) => {
 
     text: [
       $baseViewStyle,
-      { backgroundColor: null, paddingHorizontal: null, paddingVertical: null, minHeight: 44 },
+      {
+        backgroundColor: null,
+        paddingHorizontal: null,
+        paddingVertical: null,
+        minHeight: 44,
+      },
     ] as StyleProp<ViewStyle>,
 
     menuItem: [
@@ -217,36 +222,33 @@ export const Button = observer((props: ButtonProps) => {
   ]
 
   return (
-    <View>
-      {isBusy && (
-        <View style={$isBusyOverlay}>
-          <LoadingIndicator />
-        </View>
+    <Pressable disabled={isBusy} style={$viewStyle} accessibilityRole="button" {...rest}>
+      {(state) => (
+        <>
+          {isBusy && (
+            <View style={$isBusyOverlay}>
+              <LoadingIndicator />
+            </View>
+          )}
+
+          {!!LeftAccessory && <LeftAccessory style={$leftAccessoryStyle} pressableState={state} />}
+
+          <Text
+            tx={tx}
+            text={text}
+            numberOfLines={numberOfLines}
+            txOptions={txOptions}
+            style={$textStyle(state)}
+          >
+            {children}
+          </Text>
+
+          {!!RightAccessory && (
+            <RightAccessory style={$rightAccessoryStyle} pressableState={state} />
+          )}
+        </>
       )}
-      <Pressable disabled={isBusy} style={$viewStyle} accessibilityRole="button" {...rest}>
-        {(state) => (
-          <>
-            {!!LeftAccessory && (
-              <LeftAccessory style={$leftAccessoryStyle} pressableState={state} />
-            )}
-
-            <Text
-              tx={tx}
-              text={text}
-              numberOfLines={numberOfLines}
-              txOptions={txOptions}
-              style={$textStyle(state)}
-            >
-              {children}
-            </Text>
-
-            {!!RightAccessory && (
-              <RightAccessory style={$rightAccessoryStyle} pressableState={state} />
-            )}
-          </>
-        )}
-      </Pressable>
-    </View>
+    </Pressable>
   )
 })
 

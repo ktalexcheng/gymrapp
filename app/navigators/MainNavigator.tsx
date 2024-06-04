@@ -2,27 +2,31 @@ import firestore from "@react-native-firebase/firestore"
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { WorkoutSource } from "app/data/constants"
 import { FollowRequest, User } from "app/data/types"
-import { translate } from "app/i18n"
+import { CreateExerciseScreen, ExerciseDetailsScreen } from "app/features/Exercises"
+import { CreateNewGymScreen, GymDetailsScreen } from "app/features/Gyms"
 import {
-  ActiveWorkoutScreen,
-  CreateExerciseScreen,
-  CreateNewGymScreen,
-  EditWorkoutScreen,
-  ExerciseDetailsScreen,
-  ExercisePickerScreen,
-  GymDetailsScreen,
-  LoadingScreen,
   ManageExerciseSettingsScreen,
   ManageMyGymsScreen,
   NotificationsScreen,
   ProfileVisitorViewScreen,
-  RestTimerScreen,
-  SaveWorkoutScreen,
   UserConnectionsScreen,
   UserSettingsScreen,
+} from "app/features/UserProfile"
+import {
+  ActiveWorkoutScreen,
+  EditWorkoutScreen,
+  RestTimerScreen,
+  SaveWorkoutScreen,
   WorkoutGymPickerScreen,
-  WorkoutSummaryScreen,
-} from "app/screens"
+} from "app/features/Workout"
+import { WorkoutSummaryScreen } from "app/features/WorkoutSummary"
+import {
+  EditTemplateScreen,
+  TemplateDetailsScreen,
+  TemplateManagerScreen,
+} from "app/features/WorkoutTemplates"
+import { LoadingScreen } from "app/features/common"
+import { translate } from "app/i18n"
 import { INotificationModel, useStores } from "app/stores"
 import { logError } from "app/utils/logger"
 import { toJS } from "mobx"
@@ -36,16 +40,18 @@ export type MainStackParamList = {
   Splash: undefined
   HomeTabNavigator: undefined
   NewWorkout: undefined
+  StartWorkoutWithTemplate: undefined
+  TemplateManager: undefined
+  EditTemplate?: {
+    workoutTemplateId: string
+  }
+  TemplateDetails: { workoutTemplateId: string }
   ActiveWorkout: undefined
   EditWorkout: undefined
   SaveWorkout: undefined
   WorkoutGymPicker: undefined
-  ExercisePicker: {
-    mode: "active" | "editor"
-  }
   CreateExercise: undefined
   RestTimer: undefined
-  // ExerciseManager: undefined
   ExerciseDetails: { exerciseId: string }
   UserSettings: undefined
   ManageMyGyms: undefined
@@ -231,6 +237,28 @@ export const MainNavigator = observer(function MainNavigator() {
       <MainStack.Screen name="OnboardingNavigator" component={OnboardingNavigator} />
       <MainStack.Screen name="HomeTabNavigator" component={HomeTabNavigator} />
 
+      <MainStack.Group
+        screenOptions={{
+          headerShown: true,
+          headerBackButtonMenuEnabled: false,
+          headerBackTitleVisible: false,
+        }}
+      >
+        <MainStack.Screen
+          options={{
+            headerTitle: translate("templateManagerScreen.screenTitle"),
+          }}
+          name="TemplateManager"
+          component={TemplateManagerScreen}
+        />
+        <MainStack.Screen
+          options={{ headerShown: false }}
+          name="EditTemplate"
+          component={EditTemplateScreen}
+        />
+        <MainStack.Screen name="TemplateDetails" component={TemplateDetailsScreen} />
+      </MainStack.Group>
+
       <MainStack.Group>
         <MainStack.Screen
           name="ActiveWorkout"
@@ -242,15 +270,6 @@ export const MainNavigator = observer(function MainNavigator() {
         <MainStack.Screen name="EditWorkout" component={EditWorkoutScreen} />
         <MainStack.Screen name="SaveWorkout" component={SaveWorkoutScreen} />
         <MainStack.Screen name="WorkoutGymPicker" component={WorkoutGymPickerScreen} />
-        <MainStack.Screen
-          name="ExercisePicker"
-          options={{
-            headerShown: true,
-            title: translate("exercisePickerScreen.headerTitle"),
-            headerBackTitleVisible: false,
-          }}
-          component={ExercisePickerScreen}
-        />
         <MainStack.Screen
           name="CreateExercise"
           component={CreateExerciseScreen}
@@ -272,10 +291,6 @@ export const MainNavigator = observer(function MainNavigator() {
       </MainStack.Group>
 
       <MainStack.Group>
-        {/* <MainStack.Screen
-          name="ExerciseManager"
-          component={ExerciseManagerScreen}
-        /> */}
         <MainStack.Screen
           name="ExerciseDetails"
           options={{

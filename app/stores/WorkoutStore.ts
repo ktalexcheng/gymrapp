@@ -1,17 +1,28 @@
-import { ActivityId } from "app/data/types"
+import {
+  ActivityType,
+  ExerciseSetType,
+  ExerciseSource,
+  ExerciseVolumeType,
+  REST_TIMER_CHANNEL_ID,
+} from "app/data/constants"
+import { WorkoutTemplate } from "app/data/repository"
+import {
+  ActivityId,
+  ExercisePerformed,
+  Gym,
+  RepsExercisePerformed,
+  TimeExercisePerformed,
+} from "app/data/types"
+import { translate } from "app/i18n"
 import { roundToString } from "app/utils/formatNumber"
+import { formatSecondsAsTime } from "app/utils/formatTime"
 import { logError } from "app/utils/logger"
 import { differenceInSeconds } from "date-fns"
 import { randomUUID } from "expo-crypto"
 import * as Notifications from "expo-notifications"
 import lodash from "lodash"
 import { IKeyValueMap, toJS } from "mobx"
-import { SnapshotOrInstance, destroy, flow, getEnv, types } from "mobx-state-tree"
-import { ExerciseSetType, ExerciseSource, ExerciseVolumeType } from "../../app/data/constants"
-import { translate } from "../../app/i18n"
-import { REST_TIMER_CHANNEL_ID } from "../data/constants"
-import { ExercisePerformed, Gym, RepsExercisePerformed, TimeExercisePerformed } from "../data/types"
-import { formatSecondsAsTime } from "../utils/formatTime"
+import { Instance, SnapshotOrInstance, destroy, flow, getEnv, types } from "mobx-state-tree"
 import { IExerciseModel } from "./ExerciseStore"
 import { IWorkoutSummaryModel } from "./FeedStore"
 import { RootStoreDependencies } from "./helpers/useStores"
@@ -24,6 +35,7 @@ import {
   ITimeSetPerformedModel,
   IUserModelSnapshot,
   RepsSetPerformedModel,
+  SetPropType,
   TimeSetPerformedModel,
 } from "./models"
 
@@ -79,9 +91,12 @@ export const ActiveWorkoutStoreModel = types
     restTimeCompleted: false,
     lastSetCompletedTime: types.maybe(types.Date),
     workoutTitle: translate("activeWorkoutScreen.newActiveWorkoutTitle"),
+    workoutNotes: types.maybeNull(types.string),
     activityId: types.maybe(types.string),
     performedAtGymId: types.maybeNull(types.string),
     performedAtGymName: types.maybeNull(types.string),
+    workoutTemplateId: types.maybeNull(types.string),
+    isHydrating: false,
   })
   .views((self) => ({
     get isAllSetsCompleted() {
@@ -100,8 +115,7 @@ export const ActiveWorkoutStoreModel = types
       return true
     },
     get isEmptyWorkout() {
-      // If there is at least one completed set, then the workout is not empty
-      return !self.exercises.some((e) => e.setsPerformed.some((s) => s.isCompleted))
+      return self.exercises.length === 0
     },
     get timeElapsed() {
       if (!self.startTime) return -1
@@ -109,7 +123,7 @@ export const ActiveWorkoutStoreModel = types
       return differenceInSeconds(new Date(), self.startTime)
     },
     get timeElapsedFormatted() {
-      if (!self.startTime) return "00:00"
+      if (!self.startTime) return "00:00:00"
 
       const duration = differenceInSeconds(new Date(), self.startTime)
       return formatSecondsAsTime(duration, true)
@@ -609,6 +623,7 @@ export const ActiveWorkoutStoreModel = types
           activityId: self.activityId,
           performedAtGymId: self.performedAtGymId ?? null,
           performedAtGymName: self.performedAtGymName ?? null,
+          workoutTemplateId: self.workoutTemplateId ?? null,
         } as IWorkoutSummaryModel
         // console.debug("ActiveWorkoutStore.saveWorkout newWorkout:", newWorkout)
 
@@ -693,6 +708,62 @@ export const ActiveWorkoutStoreModel = types
       })
     }
 
+    function updateExerciseNotes(exerciseOrder: number, notes: string) {
+      const exercise = self.exercises[exerciseOrder]
+      if (!exercise) {
+        console.warn("ActiveWorkoutStore.updateExerciseNotes: exercise not found")
+        return
+      }
+
+      exercise.setProp("exerciseNotes", notes)
+    }
+
+    function updateSetValues(
+      exerciseOrder: number,
+      setOrder: number,
+      prop: SetPropType | "isCompleted",
+      value: number | boolean | null,
+    ) {
+      const exercise = self.exercises[exerciseOrder]
+      if (!exercise) {
+        console.warn("ActiveWorkoutStore.updateSetValues: exercise not found")
+        return
+      }
+
+      const set = exercise.setsPerformed[setOrder]
+      if (!set) {
+        console.warn("ActiveWorkoutStore.updateSetValues: set not found")
+        return
+      }
+
+      if (prop === "isCompleted") {
+        set.setProp("isCompleted", value as boolean)
+      } else {
+        set.updateSetValues(prop, value)
+      }
+    }
+
+    function hydrateWithTemplate(template: WorkoutTemplate) {
+      self.isHydrating = true
+      try {
+        self.workoutTitle = template.workoutTemplateName
+        self.activityId = ActivityType.Gym
+        self.workoutTemplateId = template.workoutTemplateId
+        // toJS() to convert from model instance to snapshot is necessary to avoid issues with MST
+        // as any just because I don't want to handle the type issue and we can guarantee the template is the right type
+        template.exercises.forEach((e) => {
+          addExercise(toJS(e) as any)
+          e.sets.forEach((s) => {
+            addSet(e.exerciseOrder, toJS(s) as any)
+          })
+        })
+      } catch (e) {
+        logError(e, "WorkoutEditorStore.hydrateWithWorkout error")
+      } finally {
+        self.isHydrating = false
+      }
+    }
+
     return {
       resetWorkout,
       cleanUpWorkout,
@@ -707,6 +778,9 @@ export const ActiveWorkoutStoreModel = types
       removeExercise,
       addSet,
       removeSet,
+      updateExerciseNotes,
+      updateSetValues,
+      hydrateWithTemplate,
     }
   })
 
@@ -718,9 +792,9 @@ export const WorkoutEditorStoreModel = ActiveWorkoutStoreModel.named("WorkoutEdi
     workoutId: types.maybe(types.string),
     isHidden: true, // for safety, default to true
   })
-
   .actions((self) => {
     function hydrateWithWorkout(workout: IWorkoutSummaryModel) {
+      self.isHydrating = true
       try {
         self.originalWorkout = workout
         // self.inProgress = false
@@ -737,6 +811,8 @@ export const WorkoutEditorStoreModel = ActiveWorkoutStoreModel.named("WorkoutEdi
         self.exercises = toJS(workout.exercises)
       } catch (e) {
         logError(e, "WorkoutEditorStore.hydrateWithWorkout error")
+      } finally {
+        self.isHydrating = false
       }
     }
 
@@ -816,3 +892,6 @@ export const WorkoutEditorStoreModel = ActiveWorkoutStoreModel.named("WorkoutEdi
       updateWorkout,
     }
   })
+
+export interface IActiveWorkoutStoreModel extends Instance<typeof ActiveWorkoutStoreModel> {}
+export interface IWorkoutEditorStoreModel extends Instance<typeof WorkoutEditorStoreModel> {}

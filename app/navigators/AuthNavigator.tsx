@@ -1,13 +1,13 @@
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { AuthErrorTxKey } from "app/data/constants"
-import { useToast } from "app/hooks"
 import {
   EmailVerificationScreen,
   EmailVerifiedScreen,
   SignInScreen,
   SignUpScreen,
-  WelcomeScreen,
-} from "app/screens"
+} from "app/features/Onboarding"
+import { WelcomeScreen } from "app/features/Welcome"
+import { useToast } from "app/hooks"
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React, { useEffect } from "react"

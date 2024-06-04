@@ -1,5 +1,5 @@
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
-import { CreateProfileScreen, OnboardingSuccessScreen } from "app/screens"
+import { CreateProfileScreen, OnboardingSuccessScreen } from "app/features/Onboarding"
 import React from "react"
 
 export type OnboardingStackParamList = {
