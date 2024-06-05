@@ -27,6 +27,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
 
   const mainNavigation = useMainNavigation()
   const { feedStore, userStore, themeStore } = useStores()
+
   const [workout, setWorkout] = useState<IWorkoutSummaryModel>()
   const [workoutByUser, setWorkoutByUser] = useState<IUserModel>()
   const [isInitialized, setIsInitialized] = useState(false)

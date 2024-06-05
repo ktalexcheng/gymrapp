@@ -27,7 +27,7 @@ import { Alert, AlertButton, TouchableOpacity, ViewStyle } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { RootSiblingParent } from "react-native-root-siblings"
 import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context"
-import { TamaguiProvider } from "tamagui"
+import { PortalProvider, TamaguiProvider } from "tamagui"
 import Config from "./config"
 import { useNotification } from "./hooks"
 import { translate } from "./i18n"
@@ -304,20 +304,22 @@ function App(props: AppProps) {
   return (
     <GestureHandlerRootView style={$gestureHandlerRootView}>
       <TamaguiProvider config={tamaguiConfig}>
-        <RootSiblingParent>
-          <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-            <ErrorBoundary catchErrors={Config.catchErrors}>
-              <QueryClientProvider client={queryClient}>
-                <AppNavigator
-                  linking={linking}
-                  fallback={<LoadingScreen />}
-                  initialState={initialNavigationState}
-                  onStateChange={onNavigationStateChange}
-                />
-              </QueryClientProvider>
-            </ErrorBoundary>
-          </SafeAreaProvider>
-        </RootSiblingParent>
+        <PortalProvider shouldAddRootHost>
+          <RootSiblingParent>
+            <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+              <ErrorBoundary catchErrors={Config.catchErrors}>
+                <QueryClientProvider client={queryClient}>
+                  <AppNavigator
+                    linking={linking}
+                    fallback={<LoadingScreen />}
+                    initialState={initialNavigationState}
+                    onStateChange={onNavigationStateChange}
+                  />
+                </QueryClientProvider>
+              </ErrorBoundary>
+            </SafeAreaProvider>
+          </RootSiblingParent>
+        </PortalProvider>
       </TamaguiProvider>
     </GestureHandlerRootView>
   )

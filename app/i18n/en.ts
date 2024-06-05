@@ -323,6 +323,7 @@ const en = {
     sets: "Sets",
   },
   templateDetailsScreen: {
+    screenTitle: "Template details",
     startWorkoutButtonLabel: "Start workout",
     editTemplateButtonLabel: "Edit template",
   },

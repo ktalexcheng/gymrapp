@@ -249,8 +249,8 @@ export const NotificationsScreen = observer(() => {
   }
 
   return (
-    <Screen safeAreaEdges={["top", "bottom"]} contentContainerStyle={$container} isBusy={!isReady}>
-      <Text tx="notificationsScreen.notificationsTitle" preset="screenTitle" />
+    <Screen safeAreaEdges={["bottom"]} contentContainerStyle={$container} isBusy={!isReady}>
+      <Text tx="notificationsScreen.notificationsTitle" preset="heading" />
       <SectionList
         sections={[
           {

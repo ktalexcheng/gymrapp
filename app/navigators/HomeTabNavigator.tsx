@@ -1,5 +1,5 @@
 import { BottomTabScreenProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import { Button, Icon, Modal, Spacer, Text } from "app/components"
+import { Button, Icon, Modal, Sheet, Spacer, Text } from "app/components"
 import { ActivityType } from "app/data/constants"
 import { DiscoverScreen } from "app/features/Discover"
 import { ExerciseManagerScreen } from "app/features/Exercises"
@@ -13,8 +13,7 @@ import { spacing, typography } from "app/theme"
 import { FilePlus2, LayoutTemplate } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
-import { Platform, StyleProp, TextStyle, View, ViewStyle } from "react-native"
-import { Popover } from "tamagui"
+import { Platform, StyleProp, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 
 export type TabParamList = {
   Feed: undefined
@@ -70,9 +69,12 @@ const ResetWorkoutDialog: FC<ResetWorkoutDialogProps> = function ResetWorkoutDia
 const NewActivityButton = observer(() => {
   const navigation = useMainNavigation()
   const { themeStore, activeWorkoutStore } = useStores()
+
   const [showResetWorkoutDialog, setShowResetWorkoutDialog] = useState(false)
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   const startNewWorkout = () => {
+    setIsSheetOpen(false)
     if (activeWorkoutStore.inProgress) {
       setShowResetWorkoutDialog(true)
     } else {
@@ -93,6 +95,7 @@ const NewActivityButton = observer(() => {
   }
 
   function manageTemplates() {
+    setIsSheetOpen(false)
     navigation.navigate("TemplateManager")
   }
 
@@ -127,62 +130,38 @@ const NewActivityButton = observer(() => {
 
   return (
     <>
-      <Popover>
-        <Popover.Trigger>
-          {/* <TouchableOpacity style={$centerButton} onPress={() => onSheetOpenChange(true)}> */}
-          <View style={$centerButton}>
-            <Icon name="add" color={themeStore.colors("actionableForeground")} size={30} />
-            <Text style={$centerButtonLabel}>{translate("tabNavigator.activityTab")}</Text>
-          </View>
-          {/* </TouchableOpacity> */}
-        </Popover.Trigger>
+      <TouchableOpacity style={$centerButton} onPress={() => setIsSheetOpen(true)}>
+        <Icon name="add" color={themeStore.colors("actionableForeground")} size={30} />
+        <Text style={$centerButtonLabel}>{translate("tabNavigator.activityTab")}</Text>
+      </TouchableOpacity>
 
-        <Popover.Adapt when="xs" platform="touch">
-          <Popover.Sheet
-            modal={true}
-            snapPoints={[50]}
-            snapPointsMode="percent"
-            dismissOnSnapToBottom={true}
-            dismissOnOverlayPress={true}
-            position={0}
-            defaultPosition={0}
-          >
-            <Popover.Sheet.Frame style={{ backgroundColor: themeStore.colors("background") }}>
-              <Popover.Adapt.Contents />
-            </Popover.Sheet.Frame>
-            <Popover.Sheet.Overlay
-            // animation="lazy"
-            // enterStyle={$overlayOpacity}
-            // exitStyle={$overlayOpacity}
-            />
-          </Popover.Sheet>
-        </Popover.Adapt>
+      <Sheet
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+        snapPoints={[50]}
+        snapPointsMode="percent"
+        defaultPosition={0}
+      >
+        <View style={$sheetContent}>
+          <Button
+            style={$button}
+            LeftAccessory={() => (
+              <FilePlus2 style={$buttonLeftAcc} color={themeStore.colors("actionable")} />
+            )}
+            tx="tabNavigator.startNewWorkoutLabel"
+            onPress={startNewWorkout}
+          />
+          <Button
+            style={$button}
+            LeftAccessory={() => (
+              <LayoutTemplate style={$buttonLeftAcc} color={themeStore.colors("actionable")} />
+            )}
+            tx="tabNavigator.manageTemplatesLabel"
+            onPress={manageTemplates}
+          />
+        </View>
+      </Sheet>
 
-        <Popover.Content>
-          <View style={$sheetContent}>
-            <Popover.Close asChild>
-              <Button
-                style={$button}
-                LeftAccessory={() => (
-                  <FilePlus2 style={$buttonLeftAcc} color={themeStore.colors("actionable")} />
-                )}
-                tx="tabNavigator.startNewWorkoutLabel"
-                onPress={startNewWorkout}
-              />
-            </Popover.Close>
-            <Popover.Close asChild>
-              <Button
-                style={$button}
-                LeftAccessory={() => (
-                  <LayoutTemplate style={$buttonLeftAcc} color={themeStore.colors("actionable")} />
-                )}
-                tx="tabNavigator.manageTemplatesLabel"
-                onPress={manageTemplates}
-              />
-            </Popover.Close>
-          </View>
-        </Popover.Content>
-      </Popover>
       <ResetWorkoutDialog
         visible={showResetWorkoutDialog}
         onResume={resumeWorkout}

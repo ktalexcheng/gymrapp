@@ -314,6 +314,7 @@ const zh: Translations = {
     sets: "組數",
   },
   templateDetailsScreen: {
+    screenTitle: "課表內容",
     startWorkoutButtonLabel: "開始訓練",
     editTemplateButtonLabel: "編輯課表",
   },

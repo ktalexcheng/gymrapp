@@ -256,7 +256,13 @@ export const MainNavigator = observer(function MainNavigator() {
           name="EditTemplate"
           component={EditTemplateScreen}
         />
-        <MainStack.Screen name="TemplateDetails" component={TemplateDetailsScreen} />
+        <MainStack.Screen
+          options={{
+            headerTitle: translate("templateDetailsScreen.screenTitle"),
+          }}
+          name="TemplateDetails"
+          component={TemplateDetailsScreen}
+        />
       </MainStack.Group>
 
       <MainStack.Group>
@@ -355,7 +361,15 @@ export const MainNavigator = observer(function MainNavigator() {
         />
       </MainStack.Group>
 
-      <MainStack.Screen name="Notifications" component={NotificationsScreen} />
+      <MainStack.Screen
+        options={{
+          headerShown: true,
+          title: translate("notificationsScreen.notificationsTitle"),
+          headerBackTitleVisible: false,
+        }}
+        name="Notifications"
+        component={NotificationsScreen}
+      />
       <MainStack.Screen
         name="ProfileVisitorView"
         options={{

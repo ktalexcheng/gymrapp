@@ -219,11 +219,15 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
 
     return (
       <Popover trigger={<EllipsisVertical color={themeStore.colors("foreground")} />}>
-        {renderPopoverContent()}
+        <View style={$menuContainer}>{renderPopoverContent()}</View>
       </Popover>
     )
   },
 )
+
+const $menuContainer: ViewStyle = {
+  width: 160,
+}
 
 const $menuItemContainer: ViewStyle = {
   width: "100%",

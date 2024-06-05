@@ -33,7 +33,7 @@ const PopoverContainer = observer((props: PopoverContainerProps) => {
 
   // derived state
   // abstraction from the library's placement enum to our own
-  const placement = _PopoverPlacement[_placement ?? PopoverPlacement.Bottom]
+  const placement = _PopoverPlacement[_placement ?? PopoverPlacement.BottomEnd]
 
   const contextValue = {
     onOpenChange: setIsOpen,
@@ -68,11 +68,11 @@ const PopoverContainer = observer((props: PopoverContainerProps) => {
   )
 })
 
+// react-native-popover-view only has a "bottom" placement
+// that corrects for the position on the screen (to not overflow)
+// we have no use case for any other placements yet
 export enum PopoverPlacement {
-  Top = _PopoverPlacement.TOP,
-  Bottom = _PopoverPlacement.BOTTOM,
-  Left = _PopoverPlacement.LEFT,
-  Right = _PopoverPlacement.RIGHT,
+  BottomEnd = _PopoverPlacement.BOTTOM,
 }
 
 interface PopoverCloseProps extends TouchableOpacityProps {}
@@ -88,14 +88,14 @@ const PopoverClose = (props: PopoverCloseProps) => {
     throw new Error("The child of Popover.Close must have an onPress prop")
   }
 
-  const ChildrenWithClose = React.cloneElement(props.children as any, {
+  const ChildWithClose = React.cloneElement(child as any, {
     onPress: () => {
       context.onOpenChange(false)
       child.props.onPress()
     },
   })
 
-  return ChildrenWithClose
+  return ChildWithClose
 }
 
 export const Popover = Object.assign(PopoverContainer, { Close: PopoverClose })
