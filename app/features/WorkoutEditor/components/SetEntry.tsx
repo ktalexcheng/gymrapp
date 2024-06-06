@@ -167,7 +167,7 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
 const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const { exercise, exerciseSettings, set, onChangeSetValue, onCompleteSet, onRemoveSet } = props
   const { exerciseId } = exercise
-  const { setOrder } = set
+  const { setOrder, isCompleted } = set
 
   const { themeStore } = useStores()
 
@@ -204,7 +204,7 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   }
 
   const copyPreviousSet = () => {
-    if (!setFromLastWorkout) return
+    if (!setFromLastWorkout || isCompleted) return
 
     setTime(setFromLastWorkout.time ?? null)
   }
@@ -292,7 +292,7 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const { exercise, exerciseSettings, set, onChangeSetValue, onCompleteSet, onRemoveSet } = props
   const { exerciseId } = exercise
-  const { setOrder } = set
+  const { setOrder, isCompleted } = set
 
   const { themeStore } = useStores()
 
@@ -433,7 +433,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   }
 
   const copyPreviousSet = () => {
-    if (!setFromLastWorkout) return
+    if (!setFromLastWorkout || isCompleted) return
 
     // RPE will not be copied as it should be set by the user
     // If weight was null in the previous set, ignore it as well
