@@ -16,7 +16,7 @@ export const DiscardEmptyWorkoutModal: FC<DiscardEmptyWorkoutModalProps> = obser
       <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onCancel}>
         <Text tx="activeWorkoutScreen.noExercisesAddedMessage" />
         <Spacer type="vertical" size="medium" />
-        <Button preset="text" tx="common.ok" onPress={onCancel} />
+        <Button preset="text" tx="common.cancel" onPress={onCancel} />
         <Button preset="dangerText" tx="activeWorkoutScreen.discardWorkout" onPress={onDiscard} />
       </Modal>
     )
