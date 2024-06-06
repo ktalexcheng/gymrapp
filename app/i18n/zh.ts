@@ -23,6 +23,7 @@ const zh: Translations = {
       inputPlaceholder: "搜尋任何東西",
       moreCharactersRequiredMessage: "請輸入至少 3 個字符",
       isSearchingMessage: "正在搜尋...",
+      searchResults: "搜尋結果：",
       noResultsFoundMessage: "找不到任何結果",
       notWhatYouAreLookingForMessage: "不是你要找的嗎？",
     },

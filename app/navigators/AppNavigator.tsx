@@ -9,21 +9,16 @@ import firestore from "@react-native-firebase/firestore"
 import { DarkTheme, DefaultTheme, NavigationContainer } from "@react-navigation/native"
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
 import { Icon, RowView, Spacer, Text } from "app/components"
+import { useLocale } from "app/context"
 import { AppColorScheme, AppLocale } from "app/data/constants"
 import { LoadingScreen } from "app/features/common/LoadingScreen"
-import { useInternetStatus, useLocale, useToast } from "app/hooks"
+import { useInternetStatus, useToast } from "app/hooks"
 import { spacing } from "app/theme"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
 import Constants from "expo-constants"
-import * as NavigationBar from "expo-navigation-bar"
-import {
-  setStatusBarBackgroundColor,
-  setStatusBarStyle,
-  setStatusBarTranslucent,
-} from "expo-status-bar"
 import { observer } from "mobx-react-lite"
 import React, { useCallback, useEffect, useState } from "react"
-import { Platform, StyleProp, ViewStyle, useColorScheme } from "react-native"
+import { StyleProp, ViewStyle, useColorScheme } from "react-native"
 import Config from "../config"
 import { useStores } from "../stores"
 import { darkColors, lightColors } from "../theme/colors"
@@ -67,7 +62,9 @@ export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStack
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = observer(() => {
-  const { authenticationStore: authStore } = useStores()
+  const { authenticationStore: authStore, themeStore, userStore } = useStores()
+  const { setLocale } = useLocale()
+  const systemColorScheme = useColorScheme() // Initial system color scheme
 
   const setInitialRouteName = useCallback(() => {
     return authStore.isAuthenticated ? "MainNavigator" : "AuthNavigator"
@@ -92,6 +89,25 @@ const AppStack = observer(() => {
     )
   }, [authStore.isAuthenticated])
 
+  useEffect(() => {
+    themeStore.setProp("systemColorScheme", systemColorScheme as AppColorScheme)
+
+    // Only sync user theme and locale preferences when the user is authenticated
+    if (authStore.isAuthenticated && userStore.user) {
+      const userLocale = userStore.getUserPreference<AppLocale>("appLocale")
+      const userColorScheme = userStore.getUserPreference<AppColorScheme>("appColorScheme")
+
+      console.debug("AppNavigator.useEffect updating user locale and color scheme:", {
+        userLocale,
+        userColorScheme,
+      })
+      setLocale(userLocale)
+      themeStore.setAppColorScheme(userColorScheme)
+    } else {
+      themeStore.setAppColorScheme(AppColorScheme.Auto)
+    }
+  }, [authStore.isAuthenticated, userStore.user, systemColorScheme])
+
   return (
     <Stack.Navigator
       screenOptions={{ headerShown: false, headerBackButtonMenuEnabled: false }}
@@ -114,41 +130,10 @@ export const AppNavigator = observer((props: NavigationProps) => {
     activeWorkoutStore,
     workoutEditorStore,
   } = useStores()
-  const systemColorScheme = useColorScheme() // Initial system color scheme
   const [isInternetConnectState, setIsInternetConnectState] = useState<boolean>()
   const [isInitializing, setIsInitializing] = useState(true) // To prevent initial route flicker
   const [isInternetConnected] = useInternetStatus()
   const [showToastTx] = useToast()
-  const [_, setLocale] = useLocale()
-
-  const userLocale = userStore.getUserPreference<AppLocale>("appLocale")
-  const userColorScheme = userStore.getUserPreference<AppColorScheme>("appColorScheme")
-
-  // Set initial theme and react to system and user preference changes
-  useEffect(() => {
-    console.debug("AppNavigator.useEffect colorScheme change:", {
-      systemColorScheme,
-      userColorScheme,
-    })
-
-    // Update theme store
-    themeStore.setProp("systemColorScheme", systemColorScheme)
-    themeStore.setProp("appColorScheme", userColorScheme)
-
-    setStatusBarStyle(themeStore.isDark ? "light" : "dark", true)
-    if (Platform.OS === "android") {
-      setStatusBarBackgroundColor(themeStore.colors("background"), true)
-      setStatusBarTranslucent(true)
-      NavigationBar.setBackgroundColorAsync(themeStore.colors("background"))
-      NavigationBar.setButtonStyleAsync(themeStore.isDark ? "light" : "dark")
-    }
-  }, [systemColorScheme, userColorScheme])
-
-  // Set app locale
-  useEffect(() => {
-    console.debug("AppNavigator.useEffect userLocale change:", { userLocale })
-    setLocale(userLocale)
-  }, [userLocale])
 
   useEffect(() => {
     const handleNetworkChange = (newIsInternetConnected: boolean) => {

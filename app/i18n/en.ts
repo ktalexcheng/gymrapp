@@ -21,6 +21,7 @@ const en = {
       inputPlaceholder: "Search for something",
       moreCharactersRequiredMessage: "Enter at least 3 characters",
       isSearchingMessage: "Searching...",
+      searchResults: "Search results:",
       noResultsFoundMessage: "No results found",
       notWhatYouAreLookingForMessage: "Not what you are looking for?",
     },

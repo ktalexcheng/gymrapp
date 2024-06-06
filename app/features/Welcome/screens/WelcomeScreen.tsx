@@ -1,6 +1,6 @@
 import { Button, Icon, PickerModal, RowView, Screen, Spacer, Text } from "app/components"
+import { useLocale } from "app/context"
 import { AppLocaleLabelValuePairs } from "app/data/constants"
-import { useLocale } from "app/hooks"
 import { translate } from "app/i18n"
 import { useAuthNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
@@ -13,7 +13,7 @@ import { TextStyle, View, ViewStyle } from "react-native"
 export const WelcomeScreen = observer(() => {
   const authNavigation = useAuthNavigation()
   const { themeStore } = useStores()
-  const [locale, setLocale, isLoadingLocale] = useLocale()
+  const { locale, setLocale } = useLocale()
 
   // Use the locale as key to force re-render when locale changes
   return (
@@ -21,7 +21,6 @@ export const WelcomeScreen = observer(() => {
       key={`welcomeScreen_${locale}`}
       safeAreaEdges={["top", "bottom"]}
       contentContainerStyle={$container}
-      isBusy={isLoadingLocale}
     >
       <RowView style={[styles.alignCenter, styles.justifyFlexEnd]}>
         <Icon name="globe-outline" size={20} />

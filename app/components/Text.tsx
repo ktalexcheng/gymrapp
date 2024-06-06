@@ -1,5 +1,5 @@
+import { useLocale } from "app/context"
 import { AppLocale } from "app/data/constants"
-import { useLocale } from "app/hooks"
 import { useStores } from "app/stores"
 import i18n from "i18n-js"
 import { observer } from "mobx-react-lite"
@@ -97,7 +97,7 @@ export const Text = observer((props: TextProps) => {
   } = props
 
   const { themeStore } = useStores()
-  const [locale] = useLocale()
+  const { locale } = useLocale()
 
   const i18nText = tx && translate(tx, txOptions)
   const content = i18nText ?? text ?? children

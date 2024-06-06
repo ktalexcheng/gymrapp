@@ -1,5 +1,6 @@
 import { Divider, Icon, Picker, RestTimePicker, Text } from "app/components"
 import { MenuListItem, MenuListItemProps } from "app/components/"
+import { useLocale } from "app/context"
 import {
   AppColorSchemeLabelValuePairs,
   AppLocaleLabel,
@@ -7,7 +8,6 @@ import {
   WeightUnit,
 } from "app/data/constants"
 import { UserPreferences } from "app/data/types"
-import { useLocale } from "app/hooks"
 import { translate, TxKeyPath } from "app/i18n"
 import { spacing } from "app/theme"
 import { formatSecondsAsTime } from "app/utils/formatTime"
@@ -36,7 +36,7 @@ export const UserPreferencesMenu = (props: UserPreferencesMenuProps) => {
   } = props
   // Form input values
   const { weightUnit, autoRestTimerEnabled, restTime, appColorScheme, appLocale } = userPreferences
-  const [_, setLocale] = useLocale()
+  const { setLocale } = useLocale()
 
   const onPreferenceChange = (preferenceId: keyof UserPreferences, value: any) => {
     onUserPreferencesChange({ ...userPreferences, [preferenceId]: value })

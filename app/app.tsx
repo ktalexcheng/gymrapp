@@ -29,6 +29,7 @@ import { RootSiblingParent } from "react-native-root-siblings"
 import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context"
 import { PortalProvider, TamaguiProvider } from "tamagui"
 import Config from "./config"
+import { LocaleProvider } from "./context"
 import { useNotification } from "./hooks"
 import { translate } from "./i18n"
 import { AppNavigator } from "./navigators"
@@ -309,12 +310,14 @@ function App(props: AppProps) {
             <SafeAreaProvider initialMetrics={initialWindowMetrics}>
               <ErrorBoundary catchErrors={Config.catchErrors}>
                 <QueryClientProvider client={queryClient}>
-                  <AppNavigator
-                    linking={linking}
-                    fallback={<LoadingScreen />}
-                    initialState={initialNavigationState}
-                    onStateChange={onNavigationStateChange}
-                  />
+                  <LocaleProvider>
+                    <AppNavigator
+                      linking={linking}
+                      fallback={<LoadingScreen />}
+                      initialState={initialNavigationState}
+                      onStateChange={onNavigationStateChange}
+                    />
+                  </LocaleProvider>
                 </QueryClientProvider>
               </ErrorBoundary>
             </SafeAreaProvider>

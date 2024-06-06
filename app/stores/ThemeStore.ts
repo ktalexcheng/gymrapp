@@ -1,3 +1,4 @@
+import { AppColorScheme } from "app/data/constants"
 import {
   Colors,
   Palette,
@@ -7,20 +8,30 @@ import {
   lightColors,
   lightPalette,
 } from "app/theme"
+import * as NavigationBar from "expo-navigation-bar"
+import {
+  setStatusBarBackgroundColor,
+  setStatusBarStyle,
+  setStatusBarTranslucent,
+} from "expo-status-bar"
 import { types } from "mobx-state-tree"
-import { StyleProp } from "react-native"
+import { Platform, StyleProp } from "react-native"
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
 export const ThemeStoreModel = types
   .model("ThemeStoreModel", {
-    systemColorScheme: types.optional(types.enumeration(["light", "dark"]), "dark"),
-    appColorScheme: types.maybe(types.enumeration(["light", "dark", "auto"])),
+    systemColorScheme: types.optional(
+      types.enumeration([AppColorScheme.Light, AppColorScheme.Dark]),
+      AppColorScheme.Dark,
+    ),
+    appColorScheme: types.maybe(types.enumeration(Object.values(AppColorScheme))),
   })
   .views((self) => ({
     get isDark() {
-      if (self.appColorScheme !== "auto") return self.appColorScheme === "dark"
+      if (self.appColorScheme !== AppColorScheme.Auto)
+        return self.appColorScheme === AppColorScheme.Dark
 
-      return self.systemColorScheme === "dark"
+      return self.systemColorScheme === AppColorScheme.Dark
     },
   }))
   .views((self) => ({
@@ -62,3 +73,18 @@ export const ThemeStoreModel = types
     },
   }))
   .actions(withSetPropAction)
+  .actions((self) => ({
+    setAppColorScheme(colorScheme: AppColorScheme) {
+      self.appColorScheme = colorScheme
+      const statusBarForeground = self.isDark ? AppColorScheme.Light : AppColorScheme.Dark
+
+      // Update the status bar and navigation bar colors
+      setStatusBarStyle(statusBarForeground, true)
+      if (Platform.OS === "android") {
+        setStatusBarBackgroundColor(self.colors("background"), true)
+        setStatusBarTranslucent(true)
+        NavigationBar.setBackgroundColorAsync(self.colors("background"))
+        NavigationBar.setButtonStyleAsync(statusBarForeground)
+      }
+    },
+  }))

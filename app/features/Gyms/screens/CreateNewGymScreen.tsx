@@ -9,6 +9,7 @@ import { spacing, styles } from "app/theme"
 import { logError } from "app/utils/logger"
 import React, { useEffect, useState } from "react"
 import { TouchableOpacity, View, ViewStyle } from "react-native"
+import { PredictedPlacesItem } from "../components/PredictedPlacesItem"
 
 interface CreateNewGymScreenProps extends MainStackScreenProps<"CreateNewGym"> {}
 
@@ -90,12 +91,12 @@ export const CreateNewGymScreen = ({ route }: CreateNewGymScreenProps) => {
     if (predictedPlaces && predictedPlaces.length > 0) {
       return (
         <>
+          <Text tx="common.search.searchResults" />
+          <Spacer type="vertical" size="small" />
           {predictedPlaces.map((place) => (
-            <Button
+            <PredictedPlacesItem
               key={place.place_id}
-              preset="text"
-              text={place.structured_formatting.main_text}
-              numberOfLines={2}
+              place={place}
               onPress={() => selectGymFromPrediction(place)}
             />
           ))}

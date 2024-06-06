@@ -1,3 +1,4 @@
+import { useLocale } from "app/context"
 import {
   AppColorScheme,
   AppLocale,
@@ -11,7 +12,6 @@ import { useStores } from "app/stores"
 import { logError } from "app/utils/logger"
 import { toJS } from "mobx"
 import { Dispatch, SetStateAction, useEffect, useState } from "react"
-import { useLocale } from "./useLocale"
 import { useToast } from "./useToast"
 
 const useUserHandleEdit = (
@@ -81,7 +81,7 @@ export const useUserProfileEdit = (): {
   const initialUser = toJS(userStore.user)
 
   // Utility hooks
-  const [locale] = useLocale()
+  const { locale } = useLocale()
   const [toastShowTx] = useToast()
 
   // Internal state
