@@ -20,13 +20,13 @@ export const styles = StyleSheet.create({
     padding: spacing.large,
     margin: spacing.large,
     borderRadius: 20,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    // shadowOffset: {
+    //   width: 0,
+    //   height: 2,
+    // },
+    // shadowOpacity: 0.25,
+    // shadowRadius: 4,
+    // elevation: 5,
   },
   // eslint-disable-next-line react-native/no-color-literals
   transparentBackground: {

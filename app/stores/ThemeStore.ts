@@ -54,8 +54,8 @@ export const ThemeStoreModel = types
         },
         modalContent: {
           ...appStyles.modalContent,
-          backgroundColor: self.colors("contentBackground"),
-          shadowColor: self.colors("foreground"),
+          backgroundColor: self.colors("elevatedBackground"),
+          // shadowColor: self.colors("foreground"),
         },
         menuPopoverContainer: {
           ...appStyles.menuPopoverContainer,

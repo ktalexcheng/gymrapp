@@ -72,6 +72,10 @@ export interface Colors {
    */
   contentBackground: string
   /**
+   * The default color of the background for elevated content like a modal.
+   */
+  elevatedBackground: string
+  /**
    * The default border color.
    */
   border: string
@@ -183,6 +187,7 @@ export const lightColors: Colors = {
   textDim: lightPalette.neutral400,
   background: lightPalette.neutral050,
   contentBackground: lightPalette.neutral200,
+  elevatedBackground: lightPalette.neutral300,
   border: lightPalette.neutral400,
   tint: lightPalette.secondary500,
   lightTint: lightPalette.secondary200,
@@ -253,6 +258,7 @@ export const darkColors: Colors = {
   textDim: darkPalette.neutral200,
   background: darkPalette.neutral050,
   contentBackground: darkPalette.neutral100,
+  elevatedBackground: darkPalette.neutral200,
   border: darkPalette.neutral200,
   tint: darkPalette.primary500,
   lightTint: darkPalette.primary100,
