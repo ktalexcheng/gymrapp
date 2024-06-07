@@ -16,19 +16,12 @@ import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
-import { format, milliseconds } from "date-fns"
+import { format } from "date-fns"
 import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
-import { FlatList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import { FlatList, processColor, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import { BarChart } from "react-native-charts-wrapper"
 import { SceneMap, TabView } from "react-native-tab-view"
-import { DomainPropType, DomainTuple } from "victory-core"
-import {
-  VictoryAxis,
-  VictoryBar,
-  VictoryChart,
-  VictoryLabel,
-  VictoryZoomContainer,
-} from "victory-native"
 import { UserProfileStatsBar } from "./components/UserProfileStatsBar"
 
 const UserActivitiesTabScene: FC = observer(() => {
@@ -72,127 +65,171 @@ const UserActivitiesTabScene: FC = observer(() => {
 
 type WeeklyWorkoutChartProps = {
   // data is a map of week start date (in milliseconds) to number of workouts
-  data: Map<number, number>
+  chartData: { weekStartDate: number; workoutsCount: number }[]
 }
 
-type VictoryDomainType = {
-  x?: DomainTuple
-  y?: DomainTuple
-}
+/**
+ * This was a test using victory-native-xl but it didn't support pan/zoom yet
+ * so we switched to react-native-charts-wrapper, keeping this code for reference
+ */
+// const WeeklyWorkoutChart = observer(({ data }: WeeklyWorkoutChartProps) => {
+//   const { themeStore } = useStores()
+//   const fontMgr = useFonts({
+//     primary: Object.values(typography.primary).map((f) => customFontsToLoad[f]),
+//   })
+//   if (!fontMgr) return <LoadingIndicator />
+//   const font = matchFont(
+//     {
+//       fontFamily: "primary",
+//       fontSize: 12,
+//       fontWeight: "normal",
+//     },
+//     fontMgr,
+//   )
 
-const WeeklyWorkoutChart: FC<WeeklyWorkoutChartProps> = observer(({ data }) => {
+//   const barChartData = [...data.entries()].map(([key, value]) => {
+//     return { weekStartDate: key, workoutsCount: value }
+//   })
+//   barChartData.sort((a, b) => a.weekStartDate - b.weekStartDate)
+//   const lastDataIdx = barChartData.length - 1
+
+//   if (barChartData.length === 0) return <LoadingIndicator />
+
+//   const getXTickValues = () => {
+//     return barChartData.map((d) => d.weekStartDate)
+//   }
+
+//   const getYTickValues = () => {
+//     // render at least 7 ticks on Y axis, or the max value of workoutsCount
+//     const tickValuesY: number[] = []
+//     const maxY = Math.max(7, ...barChartData.map((d) => d.workoutsCount))
+//     for (let i = 0; i <= maxY; i++) {
+//       tickValuesY.push(i)
+//     }
+//     return tickValuesY
+//   }
+
+//   return (
+//     <View style={{ height: 200 }}>
+//       <CartesianChart
+//         data={barChartData}
+//         xKey={"weekStartDate"}
+//         yKeys={["workoutsCount"]}
+//         domain={{
+//           x: [
+//             barChartData[lastDataIdx - 13].weekStartDate,
+//             barChartData[lastDataIdx].weekStartDate,
+//           ],
+//           y: [0, Math.max(7, ...barChartData.map((d) => d.workoutsCount))],
+//         }}
+//         domainPadding={{ left: spacing.large, right: spacing.large, top: spacing.large }}
+//         axisOptions={{
+//           font,
+//           lineColor: {
+//             grid: {
+//               x: themeStore.colors("background"),
+//               y: themeStore.colors("foreground"),
+//             },
+//             frame: themeStore.colors("foreground"),
+//           },
+//           labelColor: themeStore.colors("foreground"),
+//           tickValues: {
+//             x: getXTickValues(),
+//             y: getYTickValues(),
+//           },
+//           formatXLabel: (x) => format(x, "MM/dd"),
+//           formatYLabel: (y) => y.toString(),
+//         }}
+//       >
+//         {({ points, chartBounds }) => (
+//           // 👇 and we'll use the Line component to render a line path.
+//           <Bar
+//             points={points.workoutsCount}
+//             chartBounds={chartBounds}
+//             color={themeStore.colors("actionable")}
+//             roundedCorners={{ topLeft: 4, topRight: 4 }}
+//           />
+//         )}
+//       </CartesianChart>
+//     </View>
+//   )
+// })
+
+const WeeklyWorkoutChart = observer(({ chartData }: WeeklyWorkoutChartProps) => {
   const { themeStore } = useStores()
 
-  // Constant for date arithmetics
-  const weekAsMilliseconds = milliseconds({ weeks: 1 })
-
-  // data parameter contains the entire data set, but we only want to show the visible data
-  const dataKeys = [...data.keys()]
-  // Construct zoom domain
-  // We want to show a T-8 weeks window of data
-  // If there is < 8 weeks of data, we need still need to set
-  // zoom domain to T-8 weeks for proper bar spacing
-  const maxX = Math.max(...dataKeys)
-  const maxXMinus8Weeks = maxX - weekAsMilliseconds * 8
-  const maxY = Math.max(7, ...data.values())
-  // Domain having the same value for left/right bounds will result in a warning,
-  // (this happens when there is only one data point)
-  // also, we need to pad the domain by a week on both ends to show the first and last bar
-  const entireDomain: DomainPropType = {
-    x: [Math.min(maxXMinus8Weeks, dataKeys[0]) - weekAsMilliseconds, maxX + weekAsMilliseconds],
-    y: [0, maxY],
-  }
-  const initialZoomDomain: DomainPropType = {
-    x: [maxXMinus8Weeks - weekAsMilliseconds, maxX + weekAsMilliseconds],
-    y: [0, maxY],
-  }
-  const [zoomedDomain, setZoomDomain] = useState<VictoryDomainType>(initialZoomDomain)
-
-  const filterData = (minX, maxX) => {
-    return [...data.entries()].filter(([key]) => {
-      return key >= minX && key <= maxX
-    })
+  const barChartdata = {
+    dataSets: [
+      {
+        label: translate("profileScreen.dashboardWeeklyWorkoutsTitle"), // This is required but only affects legends
+        values: chartData.map(({ workoutsCount }) => ({
+          y: workoutsCount,
+        })),
+        config: {
+          color: processColor(themeStore.colors("actionable")),
+          valueTextColor: processColor(themeStore.colors("actionableForeground")),
+          valueTextSize: 12,
+          highlightEnabled: false,
+          valueFormatter: chartData.map((d) => d.workoutsCount.toFixed(0)),
+        },
+      },
+    ],
+    config: {
+      barWidth: 0.7,
+    },
   }
 
-  const getVisibleData = () => {
-    const visibleData = filterData(zoomedDomain.x?.[0], zoomedDomain.x?.[1])
-    const barChartData = visibleData.map(([key, value]) => {
-      return { weekStartDate: key, workoutsCount: value }
-    })
-    return barChartData
+  const legend = {
+    enabled: false,
   }
 
-  const handleZoomDomainChange = (domain: { x: DomainTuple; y: DomainTuple }) => {
-    // Updated zoomed domain for Y axis to match the max value of visible data
-    const visibleData = filterData(domain.x[0], domain.x[1])
-    const maxY = Math.max(7, ...visibleData.map(([, value]) => value))
-    const updatedZoomDomain = {
-      x: domain.x,
-      y: [domain.y[0], maxY] as DomainTuple,
-    }
-    setZoomDomain(updatedZoomDomain)
+  const xAxis = {
+    valueFormatter: chartData.map((d) => format(d.weekStartDate, "MM/dd")),
+    position: "BOTTOM",
+    // labelRotationAngle: -45, // labels get cut off when rotated and visibleRange is set on BarChart
+    drawLabels: true,
+    drawGridLines: false,
+    granularity: 1,
+    granularityEnabled: true,
   }
 
-  const getXTickValues = () => {
-    const tickValuesX = getVisibleData().map((d) => d.weekStartDate)
-    return tickValuesX
+  const yAxis = {
+    left: {
+      granularity: 1,
+      granularityEnabled: true,
+      axisMinimum: 0,
+      axisMaximum: Math.max(7, ...chartData.map((d) => d.workoutsCount)),
+      // limitLines can be used to set weekly target
+      // limitLines: [
+      //   {
+      //     limit: 4,
+      //     lineWidth: 2,
+      //   },
+      // ],
+    },
+    right: {
+      enabled: false,
+    },
   }
 
-  const getYTickValues = () => {
-    const tickValuesY: number[] = []
-    if (!zoomedDomain?.y?.[1]) return tickValuesY
-
-    for (let i = 0; i <= (zoomedDomain.y[1] as number); i++) {
-      tickValuesY.push(i)
-    }
-    return tickValuesY
-  }
-
-  // Note: VictoryAxis and VictoryBar throws a warning when there is only 1 x-axis domain value
   return (
-    <VictoryChart
-      domain={entireDomain}
-      containerComponent={
-        <VictoryZoomContainer
-          responsive={false}
-          allowPan={true}
-          allowZoom={false}
-          zoomDomain={zoomedDomain}
-          onZoomDomainChange={handleZoomDomainChange}
-        />
-      }
-    >
-      <VictoryAxis
-        tickFormat={(x: number) => format(x, "MM/dd")}
-        tickValues={getXTickValues()}
-        tickLabelComponent={<VictoryLabel angle={-45} dy={-spacing.tiny} dx={-spacing.tiny * 4} />}
-        style={{
-          axis: { stroke: themeStore.colors("foreground") },
-          tickLabels: { fill: themeStore.colors("foreground") },
-        }}
+    <View style={styles.flex1}>
+      <BarChart
+        // eslint-disable-next-line react-native/no-inline-styles
+        style={{ height: 200 }}
+        legend={legend}
+        xAxis={xAxis}
+        yAxis={yAxis}
+        data={barChartdata}
+        drawValueAboveBar={false}
+        touchEnabled={true}
+        dragEnabled={true}
+        doubleTapToZoomEnabled={false}
+        dragDecelerationEnabled={false}
+        visibleRange={{ x: { min: 8, max: 8 } }}
+        zoom={{ scaleX: 1, scaleY: 1, xValue: chartData.length, yValue: 0 }} // Set initial view to end of data
       />
-      <VictoryAxis
-        dependentAxis
-        tickValues={getYTickValues()}
-        style={{
-          axis: { stroke: themeStore.colors("foreground") },
-          tickLabels: { fill: themeStore.colors("foreground") },
-        }}
-      />
-      <VictoryBar
-        data={getVisibleData()}
-        x="weekStartDate"
-        y="workoutsCount"
-        labels={({ datum }) => datum.workoutsCount}
-        labelComponent={<VictoryLabel dy={20} />}
-        style={{
-          data: { fill: themeStore.colors("tint") },
-          labels: { fill: themeStore.colors("actionableForeground") },
-        }}
-        barWidth={24}
-        cornerRadius={4}
-      />
-    </VictoryChart>
+    </View>
   )
 })
 
@@ -207,21 +244,27 @@ const DashboardTabScene: FC = observer(() => {
       </View>
     )
 
+  const data = [...feedStore.weeklyWorkoutsCount.entries()].map(
+    ([weekStartDate, workoutsCount]) => ({
+      weekStartDate,
+      workoutsCount,
+    }),
+  )
+  data.sort((a, b) => a.weekStartDate - b.weekStartDate)
+
   return (
     <>
       <Text preset="subheading" tx="profileScreen.dashboardWeeklyWorkoutsTitle" />
-      <WeeklyWorkoutChart data={feedStore.weeklyWorkoutsCount} />
+      <WeeklyWorkoutChart chartData={data} />
     </>
   )
 })
-
-// interface ProfileScreenProps extends NativeStackScreenProps<TabScreenProps<"Profile">> {}
 
 export const ProfileScreen = observer(function ProfileScreen() {
   const mainNavigation = useMainNavigation()
   const { userStore, feedStore, activeWorkoutStore, themeStore } = useStores()
   const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress ? [] : ["top"]
-  const [tabIndex, setTabIndex] = useState(0)
+  const [tabIndex, setTabIndex] = useState(1) // TODO: DEBUG ONLY
 
   useEffect(() => {
     console.debug("ProfileScreen mounted")
@@ -311,11 +354,6 @@ export const ProfileScreen = observer(function ProfileScreen() {
             </View>
           </RowView>
           <UserProfileStatsBar user={userStore.user} containerStyle={$userProfileStatsBar} />
-          {/* <RowView style={$coachsCenterRow}>
-            <TouchableOpacity style={[$coachsCenterButton, $coachsCenterButtonStatus]}>
-              <Text tx="profileScreen.coachsCenterButtonLabel"></Text>
-            </TouchableOpacity>
-          </RowView> */}
           <View style={$tabViewContainer}>
             <TabView
               navigationState={{ index: tabIndex, routes }}
@@ -350,6 +388,4 @@ const $userDisplayName: ViewStyle = {
 
 const $tabViewContainer: ViewStyle = {
   flex: 1,
-  // justifyContent: "center",
-  // alignItems: "center",
 }

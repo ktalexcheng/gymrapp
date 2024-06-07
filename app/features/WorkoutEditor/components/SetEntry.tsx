@@ -240,7 +240,7 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     borderRadius: 4,
     borderColor: isNullTime ? themeStore.colors("error") : themeStore.colors("border"),
   }
-  console.debug("TimeSetEntry time", time)
+
   return (
     <>
       <Modal

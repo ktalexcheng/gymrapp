@@ -241,6 +241,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
     }
 
     const onFinishWorkout = () => {
+      workoutStore.endWorkout()
       mainNavigation.navigate("SaveWorkout")
     }
 

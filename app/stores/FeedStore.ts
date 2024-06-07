@@ -9,7 +9,7 @@ import { CommentId, ExerciseId, UserId, WorkoutComment, WorkoutId } from "app/da
 import { api } from "app/services/api"
 import { getNestedField } from "app/utils/getNestedField"
 import { logError } from "app/utils/logger"
-import { getTime, startOfWeek } from "date-fns"
+import { getTime, milliseconds, startOfWeek } from "date-fns"
 import { randomUUID } from "expo-crypto"
 import { toJS } from "mobx"
 import { Instance, SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
@@ -278,8 +278,10 @@ export const FeedStoreModel = types
 
     return {
       get weeklyWorkoutsCount() {
-        const workouts = Array.from(self.userWorkoutMetas.values())
         const _weeklyWorkoutsCount = new Map<number, number>()
+        if (self.userWorkoutMetas.length === 0) return _weeklyWorkoutsCount
+
+        const workouts = Array.from(self.userWorkoutMetas.values())
         workouts.forEach((w) => {
           // Find start of week (Monday)
           const weekStart = startOfWeek(w.startTime, {
@@ -296,6 +298,23 @@ export const FeedStoreModel = types
             (_weeklyWorkoutsCount.get(weekStartTime) ?? 0) + 1,
           )
         })
+
+        // Fill out missing weeks
+        const currentWeek = getTime(startOfWeek(new Date(), { weekStartsOn: 1 }))
+        const minWeek = Math.min(...Array.from(_weeklyWorkoutsCount.keys()))
+        const maxWeek = Math.max(...Array.from(_weeklyWorkoutsCount.keys()), currentWeek)
+        const weekAsMilliseconds = milliseconds({ weeks: 1 })
+        console.debug("FeedStore.weeklyWorkoutsCount", {
+          minWeek,
+          maxWeek,
+          weekAsMilliseconds,
+        })
+        for (let i = minWeek; i <= maxWeek; i += weekAsMilliseconds) {
+          if (!_weeklyWorkoutsCount.has(i)) {
+            console.debug("FeedStore.weeklyWorkoutsCount filling missing week", i)
+            _weeklyWorkoutsCount.set(i, 0)
+          }
+        }
 
         return _weeklyWorkoutsCount
       },
