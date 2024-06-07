@@ -74,7 +74,8 @@ export const AboutYouForm = (props: AboutYouFormProps) => {
   }
 
   return (
-    <View style={$formFieldGap}>
+    // Set background color so it covers up anything from the parent component when avoiding keyboard
+    <View style={[$formFieldGap, { backgroundColor: themeStore.colors("background") }]}>
       <View style={$avatar}>
         <View>
           <Icon
