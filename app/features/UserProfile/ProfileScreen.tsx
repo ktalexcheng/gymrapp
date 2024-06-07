@@ -199,6 +199,7 @@ const WeeklyWorkoutChart = observer(({ chartData }: WeeklyWorkoutChartProps) => 
       granularityEnabled: true,
       axisMinimum: 0,
       axisMaximum: Math.max(7, ...chartData.map((d) => d.workoutsCount)),
+      drawGridLines: false,
       // limitLines can be used to set weekly target
       // limitLines: [
       //   {
@@ -264,7 +265,7 @@ export const ProfileScreen = observer(function ProfileScreen() {
   const mainNavigation = useMainNavigation()
   const { userStore, feedStore, activeWorkoutStore, themeStore } = useStores()
   const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress ? [] : ["top"]
-  const [tabIndex, setTabIndex] = useState(1) // TODO: DEBUG ONLY
+  const [tabIndex, setTabIndex] = useState(0)
 
   useEffect(() => {
     console.debug("ProfileScreen mounted")
