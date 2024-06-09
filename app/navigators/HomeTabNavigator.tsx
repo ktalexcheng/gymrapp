@@ -179,6 +179,7 @@ export const HomeTabNavigator = observer(() => {
     {
       backgroundColor: themeStore.colors("background"),
       borderTopColor: themeStore.colors("transparent"),
+      marginTop: spacing.screenPadding,
       elevation: 0, // Remove the shadow on Android
     },
     Platform.select({
@@ -199,6 +200,7 @@ export const HomeTabNavigator = observer(() => {
           headerShown: false,
           tabBarHideOnKeyboard: true,
           tabBarStyle: $tabBar,
+          tabBarLabelStyle: { fontSize: 12 },
         }}
       >
         <BottomTab.Screen

@@ -87,7 +87,7 @@ export const FeedScreen = observer(function FeedScreen() {
   }
 
   return (
-    <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={styles.screenContainer}>
+    <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={styles.tabScreenContainer}>
       {/* {__DEV__ && (
         <Button
           text="Test crash"

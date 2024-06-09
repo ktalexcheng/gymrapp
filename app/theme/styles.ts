@@ -85,6 +85,13 @@ export const styles = StyleSheet.create({
     padding: spacing.screenPadding,
     overflow: "hidden",
   },
+  tabScreenContainer: {
+    flex: 1,
+    paddingTop: spacing.screenPadding,
+    paddingLeft: spacing.screenPadding,
+    paddingRight: spacing.screenPadding,
+    overflow: "hidden",
+  },
   disabled: {
     opacity: 0.5,
   },

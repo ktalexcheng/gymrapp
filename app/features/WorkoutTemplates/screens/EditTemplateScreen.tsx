@@ -94,6 +94,10 @@ export const EditTemplateScreen = observer((props: EditTemplateScreenProps) => {
     workoutStore.removeExercise(exerciseOrder)
   }
 
+  const onReorderExercise = (from: number, to: number) => {
+    workoutStore.reorderExercise(from, to)
+  }
+
   const onChangeSetValue = (
     exerciseOrder: number,
     setOrder: number,
@@ -121,7 +125,11 @@ export const EditTemplateScreen = observer((props: EditTemplateScreenProps) => {
   }
 
   return (
-    <Screen safeAreaEdges={["top"]} contentContainerStyle={styles.screenContainer} preset="fixed">
+    <Screen
+      safeAreaEdges={["top", "bottom"]}
+      contentContainerStyle={styles.screenContainer}
+      preset="fixed"
+    >
       <CreateNewTemplateHeader
         workoutTitle={workoutStore.workoutTitle}
         onChangeWorkoutTitle={onChangeWorkoutTitle}
@@ -138,6 +146,7 @@ export const EditTemplateScreen = observer((props: EditTemplateScreenProps) => {
         onChangeExerciseNotes={onChangeExerciseNotes}
         onAddExercise={onAddExercise}
         onRemoveExercise={onRemoveExercise}
+        onReorderExercise={onReorderExercise}
         onChangeSetValue={onChangeSetValue}
         onAddSet={onAddSet}
         onRemoveSet={onRemoveSet}

@@ -222,11 +222,13 @@ const WeeklyWorkoutChart = observer(({ chartData }: WeeklyWorkoutChartProps) => 
         xAxis={xAxis}
         yAxis={yAxis}
         data={barChartdata}
+        chartDescription={{ text: "" }}
         drawValueAboveBar={false}
         touchEnabled={true}
         dragEnabled={true}
         doubleTapToZoomEnabled={false}
-        dragDecelerationEnabled={false}
+        dragDecelerationEnabled={true}
+        dragDecelerationFrictionCoef={0.9}
         visibleRange={{ x: { min: 8, max: 8 } }}
         zoom={{ scaleX: 1, scaleY: 1, xValue: chartData.length, yValue: 0 }} // Set initial view to end of data
       />
@@ -323,7 +325,7 @@ export const ProfileScreen = observer(function ProfileScreen() {
   return (
     <Screen
       safeAreaEdges={safeAreaEdges}
-      contentContainerStyle={$screenContentContainer}
+      contentContainerStyle={styles.tabScreenContainer}
       isBusy={userStore.isLoadingProfile}
     >
       {!userStore.isLoadingProfile && (
@@ -368,12 +370,6 @@ export const ProfileScreen = observer(function ProfileScreen() {
     </Screen>
   )
 })
-
-const $screenContentContainer: ViewStyle = {
-  flex: 1,
-  paddingVertical: spacing.large,
-  paddingHorizontal: spacing.large,
-}
 
 const $userAvatarRow: ViewStyle = {
   justifyContent: "space-between",

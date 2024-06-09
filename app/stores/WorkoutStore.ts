@@ -764,6 +764,21 @@ export const ActiveWorkoutStoreModel = types
       }
     }
 
+    function reorderExercise(fromIndex: number, toIndex: number) {
+      // Create a copy and move element in array
+      const from = self.exercises.at(fromIndex)
+      // @ts-ignore: It works, but TS doesn't like it
+      const exercisesCopy = self.exercises.toSpliced(fromIndex, 1).toSpliced(toIndex, 0, from)
+
+      // Update exerciseOrder
+      exercisesCopy.forEach((e, i) => {
+        e.exerciseOrder = i
+      })
+
+      // @ts-ignore: It works, but TS doesn't like it
+      self.exercises = exercisesCopy
+    }
+
     return {
       resetWorkout,
       cleanUpWorkout,
@@ -781,6 +796,7 @@ export const ActiveWorkoutStoreModel = types
       updateExerciseNotes,
       updateSetValues,
       hydrateWithTemplate,
+      reorderExercise,
     }
   })
 

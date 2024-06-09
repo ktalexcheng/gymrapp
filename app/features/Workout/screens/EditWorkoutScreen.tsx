@@ -40,6 +40,10 @@ export const EditWorkoutScreen = observer(() => {
     workoutStore.removeExercise(exerciseOrder)
   }
 
+  const onReorderExercise = (from: number, to: number) => {
+    workoutStore.reorderExercise(from, to)
+  }
+
   const onChangeSetValue = (
     exerciseOrder: number,
     setOrder: number,
@@ -136,6 +140,7 @@ export const EditWorkoutScreen = observer(() => {
         onChangeExerciseNotes={onChangeExerciseNotes}
         onAddExercise={onAddExercise}
         onRemoveExercise={onRemoveExercise}
+        onReorderExercise={onReorderExercise}
         onChangeSetValue={onChangeSetValue}
         onAddSet={onAddSet}
         onRemoveSet={onRemoveSet}

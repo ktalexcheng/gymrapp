@@ -15,11 +15,15 @@ import { WorkoutEditorV2Props } from "./WorkoutEditor"
 
 type ExerciseEntryProps = Omit<WorkoutEditorV2Props, "allExercises" | "onAddExerciseNavigateTo"> & {
   exercise: IExercisePerformedModel
+  isPlaceholder?: boolean
+  onExerciseNameLongPress?: () => void
 }
 
 export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEntryProps) => {
   const {
     exercise,
+    isPlaceholder,
+    onExerciseNameLongPress,
     enableExerciseSettingsMenuItems,
     onChangeExerciseSettings,
     onChangeExerciseNotes,
@@ -87,10 +91,15 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
     })
   }
 
+  const $exercise: ViewStyle = {
+    marginTop: spacing.medium,
+    opacity: isPlaceholder ? 0.5 : 1,
+  }
+
   return (
     <View style={$exercise}>
       <RowView style={styles.justifyBetween}>
-        <TouchableOpacity onPress={navigateToExerciseDetails}>
+        <TouchableOpacity onPress={navigateToExerciseDetails} onLongPress={onExerciseNameLongPress}>
           <Text preset="bold">{"#" + (exerciseOrder + 1) + " " + exerciseName}</Text>
         </TouchableOpacity>
 
@@ -183,10 +192,6 @@ const $timeColumn: ViewStyle = {
 const $isCompletedColumn: ViewStyle = {
   flex: 1,
   alignItems: "center",
-}
-
-const $exercise: ViewStyle = {
-  marginTop: spacing.medium,
 }
 
 const $exerciseSetsHeader: ViewStyle = {

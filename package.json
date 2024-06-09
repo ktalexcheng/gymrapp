@@ -23,7 +23,8 @@
     "expo:start": "expo start",
     "expo:android": "expo start --android",
     "expo:ios": "expo start --ios",
-    "expo:web": "expo start --web"
+    "expo:web": "expo start --web",
+    "postinstall": "patch-package"
   },
   "overrides": {
     "react-error-overlay": "6.0.9"
@@ -83,6 +84,7 @@
     "react": "18.2.0",
     "react-native": "0.74.2",
     "react-native-charts-wrapper": "^0.6.0",
+    "react-native-draggable-flatlist": "^4.0.1",
     "react-native-gesture-handler": "~2.16.1",
     "react-native-pager-view": "6.3.0",
     "react-native-popover-view": "^5.1.8",
@@ -132,7 +134,7 @@
     "jest-expo": "~51.0.1",
     "metro-react-native-babel-preset": "^0.77.0",
     "metro-source-map": "^0.80.2",
-    "patch-package": "6.4.7",
+    "patch-package": "^8.0.0",
     "postinstall-prepare": "1.0.1",
     "prettier": "2.6.2",
     "query-string": "^7.0.1",

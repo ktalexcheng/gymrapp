@@ -23,7 +23,7 @@ export const ExerciseManagerScreen: FC<ExerciseManagerScreenProps> = observer(()
   return (
     // Note that tab press does not work properly when a debugger is attached
     // See: https://github.com/satya164/react-native-tab-view/issues/703
-    <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={$screenContainer}>
+    <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={styles.flex1}>
       <RowView style={[styles.alignCenter, styles.justifyBetween, $screenTitleContainer]}>
         <Text preset="screenTitle" tx="exerciseManagerScreen.exerciseManagerTitle" />
         <Spacer type="vertical" size="small" />
@@ -40,11 +40,6 @@ export const ExerciseManagerScreen: FC<ExerciseManagerScreenProps> = observer(()
     </Screen>
   )
 })
-
-const $screenContainer: ViewStyle = {
-  flex: 1,
-  paddingBottom: spacing.screenPadding,
-}
 
 const $screenTitleContainer: ViewStyle = {
   paddingTop: spacing.screenPadding,

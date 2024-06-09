@@ -78,7 +78,7 @@ export const ManageExerciseSettingsScreen = observer(() => {
   // )
 
   return (
-    <Screen safeAreaEdges={["bottom"]} contentContainerStyle={styles.screenContainer}>
+    <Screen safeAreaEdges={["bottom"]} contentContainerStyle={styles.tabScreenContainer}>
       <RowView style={[styles.alignCenter, styles.justifyBetween]}>
         <Text tx="manageExerciseSettingsScreen.manageExerciseSettingsTitle" preset="subheading" />
         {/* <Button

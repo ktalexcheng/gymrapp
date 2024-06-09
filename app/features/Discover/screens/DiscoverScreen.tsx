@@ -47,7 +47,7 @@ export const DiscoverScreen = observer(() => {
   const myGyms = userStore.getPropAsJS<Gym[]>("user.myGyms")
 
   return (
-    <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={styles.screenContainer}>
+    <Screen safeAreaEdges={safeAreaEdges} contentContainerStyle={styles.tabScreenContainer}>
       <Text tx="discoverScreen.discoverTitle" preset="screenTitle" />
       <Spacer type="vertical" size="small" />
       <RowView style={$buttonGroup} scrollable={true}>
