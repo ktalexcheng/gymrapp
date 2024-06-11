@@ -1,4 +1,4 @@
-import { Button, Divider, PopoverTMG as Popover } from "app/components"
+import { Divider, PopoverTMG as Popover, PopoverMenuItem } from "app/components"
 import { WorkoutSource } from "app/data/constants"
 import { WorkoutId } from "app/data/types"
 import { LoadingScreen } from "app/features/common"
@@ -71,21 +71,17 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
         <View style={styles.fullWidth}>
           {enabledActionItems.includes(WorkoutSummaryActions.EditWorkout) && (
             <Popover.Close>
-              <Button
-                preset="menuItem"
-                tx="workoutSummaryMenu.editWorkoutButtonLabel"
+              <PopoverMenuItem
+                itemNameLabelTx="workoutSummaryMenu.editWorkoutButtonLabel"
                 onPress={goToEditWorkout}
               />
             </Popover.Close>
           )}
           {enabledActionItems.includes(WorkoutSummaryActions.SaveAsTemplate) && (
             <Popover.Close asChild>
-              <Button
-                preset="menuItem"
-                tx="workoutSummaryMenu.saveAsTemplateButtonLabel"
-                onPress={() => {
-                  setShowSaveAsTemplateModal(true)
-                }}
+              <PopoverMenuItem
+                itemNameLabelTx="workoutSummaryMenu.saveAsTemplateButtonLabel"
+                onPress={() => setShowSaveAsTemplateModal(true)}
               />
             </Popover.Close>
           )}
@@ -93,10 +89,9 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
             <>
               <Divider orientation="horizontal" spaceSize={spacing.extraSmall} />
               <Popover.Close>
-                <Button
-                  preset="menuItem"
-                  tx="common.delete"
-                  textStyle={{ color: themeStore.colors("danger") }}
+                <PopoverMenuItem
+                  itemNameLabelTx="common.delete"
+                  textColor={themeStore.colors("danger")}
                   onPress={showDeleteConfirmationAlert}
                 />
               </Popover.Close>

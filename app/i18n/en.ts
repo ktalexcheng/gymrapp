@@ -3,6 +3,8 @@ const en = {
     default: "Default",
     yes: "Yes",
     no: "No",
+    on: "On",
+    off: "Off",
     ok: "OK",
     cancel: "Cancel",
     clear: "Clear",

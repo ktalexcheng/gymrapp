@@ -78,7 +78,7 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
   const newExerciseFormData: MenuListItemProps[] = [
     {
       required: true,
-      itemId: "exerciseName",
+      key: "exerciseName",
       itemNameLabelTx: "createExerciseScreen.exerciseName",
       currentValue: exerciseName,
       currentValueFormatted: exerciseName,
@@ -93,7 +93,7 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
     },
     {
       required: true,
-      itemId: "activityName",
+      key: "activityName",
       itemNameLabelTx: "createExerciseScreen.activityType",
       currentValue: activityName,
       currentValueFormatted: activityName,
@@ -110,7 +110,7 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
     },
     {
       required: true,
-      itemId: "exerciseCat1",
+      key: "exerciseCat1",
       itemNameLabelTx: "createExerciseScreen.exerciseCat1",
       currentValue: exerciseCat1,
       currentValueFormatted: exerciseCat1,
@@ -126,7 +126,7 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
       ),
     },
     {
-      itemId: "exerciseCat2",
+      key: "exerciseCat2",
       itemNameLabelTx: "createExerciseScreen.exerciseCat2",
       currentValue: exerciseCat2,
       currentValueFormatted: exerciseCat2,
@@ -145,7 +145,7 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
     },
     {
       required: true,
-      itemId: "volumeType",
+      key: "volumeType",
       itemNameLabelTx: "createExerciseScreen.volumeType",
       currentValue: volumeType,
       currentValueFormatted: volumeType,
@@ -174,7 +174,7 @@ export const CreateExerciseScreen: FC<CreateExerciseScreenProps> = () => {
       <Spacer type="vertical" size="massive" />
       {newExerciseFormData.map((exerciseDetails, i) => {
         return (
-          <View key={exerciseDetails.itemId}>
+          <View key={exerciseDetails.key}>
             {i > 0 && <Divider orientation="horizontal" spaceSize={12} lineWidth={0} />}
             <MenuListItem {...exerciseDetails} />
           </View>

@@ -3,6 +3,7 @@ import {
   Icon,
   PickerModal,
   Popover,
+  PopoverMenuItem,
   RestTimePicker,
   RowView,
   Spacer,
@@ -10,39 +11,17 @@ import {
 } from "app/components"
 import { WeightUnit } from "app/data/constants"
 import { ExerciseSettings, ExerciseSettingsType } from "app/data/types"
+import { useWeightUnitTx } from "app/hooks"
 import { useExerciseSetting } from "app/hooks/useExerciseSetting"
+import { translate } from "app/i18n"
 import { IExercisePerformedModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { formatSecondsAsTime } from "app/utils/formatTime"
 import { EllipsisVertical } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
-import { Platform, TouchableOpacity, TouchableOpacityProps, View, ViewStyle } from "react-native"
+import { Platform, View, ViewStyle } from "react-native"
 import { Switch } from "tamagui"
-
-type MenuItemProps = TouchableOpacityProps & {
-  closeMenu?: boolean
-}
-
-const MenuItem = (props: MenuItemProps) => {
-  const { onPress, closeMenu = false, children } = props
-
-  const BaseMenuItem = () => (
-    <TouchableOpacity style={$menuItemContainer} onPress={onPress}>
-      {children}
-    </TouchableOpacity>
-  )
-
-  if (closeMenu) {
-    return (
-      <Popover.Close>
-        <BaseMenuItem />
-      </Popover.Close>
-    )
-  }
-
-  return <BaseMenuItem />
-}
 
 export type ExerciseSettingsProps = {
   exercise: IExercisePerformedModel
@@ -71,6 +50,7 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
       exerciseId,
       ExerciseSettingsType.WeightUnit,
     )
+    const weightUnitTx = useWeightUnitTx(exerciseId)
     const restTimerEnabledSetting = useExerciseSetting<boolean>(
       exerciseId,
       ExerciseSettingsType.AutoRestTimerEnabled,
@@ -166,52 +146,47 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
                   setPage("")
                 }}
               />
-              <View style={styles.fullWidth}>
-                {Object.values(WeightUnit).map((item, index) => (
-                  <MenuItem
-                    key={`exerciseSettingsMenu_${item}_${index}`}
-                    onPress={() => updateWeightUnit(item)}
-                  >
-                    <RowView style={styles.alignCenter}>
-                      <View style={$checkmarkContainer}>
-                        {weightUnitSetting === item ? (
-                          <Icon name="checkmark-sharp" size={16} />
-                        ) : null}
-                      </View>
-                      <Text>{WeightUnit[item]}</Text>
-                    </RowView>
-                  </MenuItem>
-                ))}
-              </View>
+              {Object.values(WeightUnit).map((item, index) => (
+                <PopoverMenuItem
+                  key={`exerciseSettingsMenu_${item}_${index}`}
+                  itemNameLabel={WeightUnit[item]}
+                  onPress={() => updateWeightUnit(item)}
+                  OverrideRightAccessory={() =>
+                    weightUnitSetting === item && <Icon name="checkmark-sharp" size={16} />
+                  }
+                />
+              ))}
             </>
           )
         default:
           return (
             <>
               {isSettingEnabled(ExerciseSettingsType.AutoRestTimerEnabled) && (
-                <MenuItem
-                  onPress={() => {
-                    setPage("timer")
-                  }}
-                >
-                  <Text tx="exerciseEntrySettings.restTimeLabel" />
-                </MenuItem>
+                <PopoverMenuItem
+                  itemNameLabelTx="exerciseEntrySettings.restTimeLabel"
+                  currentValue={
+                    restTimerEnabledSetting ? translate("common.on") : translate("common.off")
+                  }
+                  onPress={() => setPage("timer")}
+                />
               )}
               {isSettingEnabled(ExerciseSettingsType.WeightUnit) && (
-                <MenuItem
+                <PopoverMenuItem
+                  itemNameLabelTx="exerciseEntrySettings.weightUnitLabel"
+                  currentValue={translate(weightUnitTx)}
                   onPress={() => {
                     setPage("weightUnit")
                   }}
-                >
-                  <Text tx="exerciseEntrySettings.weightUnitLabel" />
-                </MenuItem>
+                />
               )}
               {enableExerciseSettingsMenuItems?.length > 0 && (
                 <Divider orientation="horizontal" spaceSize={spacing.extraSmall} />
               )}
-              <MenuItem onPress={removeExercise}>
-                <Text preset="danger" tx="exerciseEntrySettings.removeExerciseLabel" />
-              </MenuItem>
+              <PopoverMenuItem
+                itemNameLabelTx="exerciseEntrySettings.removeExerciseLabel"
+                textColor={themeStore.colors("danger")}
+                onPress={removeExercise}
+              />
             </>
           )
       }
@@ -227,14 +202,4 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
 
 const $menuContainer: ViewStyle = {
   width: 160,
-}
-
-const $menuItemContainer: ViewStyle = {
-  width: "100%",
-  alignItems: "flex-start",
-  paddingVertical: spacing.small,
-}
-
-const $checkmarkContainer = {
-  width: 30,
 }

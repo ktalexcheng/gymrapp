@@ -3,7 +3,7 @@ import { spacing } from "app/theme"
 import { EllipsisVertical } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
 
-import { Divider, MenuListItem, Popover } from "app/components"
+import { Divider, Popover, PopoverMenuItem } from "app/components"
 import React from "react"
 import { View, ViewStyle } from "react-native"
 
@@ -20,26 +20,18 @@ export const TemplateCatalogItemMenu = observer((props: TemplateCatalogItemMenuP
     <View style={$container}>
       <Popover trigger={<EllipsisVertical color={themeStore.colors("text")} />}>
         <Popover.Close>
-          <MenuListItem
-            minHeight={40}
-            itemId="editTemplateButton"
+          <PopoverMenuItem
             itemNameLabelTx="templateManagerScreen.listItemMenu.editTemplateButtonLabel"
-            currentValue={undefined}
             onPress={onEditTemplate}
-            OverrideRightAccessory={() => undefined}
           />
         </Popover.Close>
 
-        <Divider orientation="horizontal" spaceSize={spacing.extraSmall} />
+        <Divider orientation="horizontal" spaceSize={spacing.tiny} />
         <Popover.Close>
-          <MenuListItem
-            minHeight={40}
-            textColor={themeStore.colors("danger")}
-            itemId="deleteTemplateButton"
+          <PopoverMenuItem
             itemNameLabelTx="templateManagerScreen.listItemMenu.deleteTemplateButtonLabel"
-            currentValue={undefined}
+            textColor={themeStore.colors("danger")}
             onPress={onDeleteTemplate}
-            OverrideRightAccessory={() => undefined}
           />
         </Popover.Close>
       </Popover>

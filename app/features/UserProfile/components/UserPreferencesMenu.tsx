@@ -44,7 +44,7 @@ export const UserPreferencesMenu = (props: UserPreferencesMenuProps) => {
 
   const preferencesData: MenuListItemProps[] = [
     {
-      itemId: "privateAccount",
+      key: "privateAccount",
       itemNameLabelTx: "editProfileForm.privateAccountTitle",
       // preferenceDescriptionLabelTx: "editProfileForm.privateAccountDescription",
       currentValue: privateAccount,
@@ -62,7 +62,7 @@ export const UserPreferencesMenu = (props: UserPreferencesMenuProps) => {
       ),
     },
     {
-      itemId: "weightUnit",
+      key: "weightUnit",
       itemNameLabelTx: "editProfileForm.weightUnitLabel",
       currentValue: weightUnit,
       currentValueFormatted: translate(("common." + weightUnit) as TxKeyPath),
@@ -81,7 +81,7 @@ export const UserPreferencesMenu = (props: UserPreferencesMenuProps) => {
       ),
     },
     {
-      itemId: "autoRestTimer",
+      key: "autoRestTimer",
       itemNameLabelTx: "editProfileForm.autoRestTimerLabel",
       currentValue: autoRestTimerEnabled,
       currentValueFormatted: autoRestTimerEnabled
@@ -98,7 +98,7 @@ export const UserPreferencesMenu = (props: UserPreferencesMenuProps) => {
       ),
     },
     {
-      itemId: "defaultRestTime",
+      key: "defaultRestTime",
       itemNameLabelTx: "editProfileForm.defaultRestTimeLabel",
       currentValue: restTime,
       currentValueFormatted: formatSecondsAsTime(restTime),
@@ -111,7 +111,7 @@ export const UserPreferencesMenu = (props: UserPreferencesMenuProps) => {
       ),
     },
     {
-      itemId: "appColorScheme",
+      key: "appColorScheme",
       itemNameLabelTx: "editProfileForm.appAppearanceLabel",
       currentValue: appColorScheme,
       currentValueFormatted: translate(`common.colorScheme.${appColorScheme}`),
@@ -127,7 +127,7 @@ export const UserPreferencesMenu = (props: UserPreferencesMenuProps) => {
       ),
     },
     {
-      itemId: "appLocale",
+      key: "appLocale",
       itemNameLabelTx: "editProfileForm.appLocaleLabel",
       currentValue: appLocale,
       currentValueFormatted: AppLocaleLabel[appLocale],
@@ -159,7 +159,7 @@ export const UserPreferencesMenu = (props: UserPreferencesMenuProps) => {
       <View>
         {preferencesData.map((prefData, i) => {
           return (
-            <View key={prefData.itemId}>
+            <View key={prefData.key}>
               {i > 0 && (
                 <Divider orientation="horizontal" spaceSize={spacing.small} lineWidth={0} />
               )}

@@ -221,7 +221,7 @@ export const UserSettingsScreen = observer(function () {
           {
             positionIndex: 0,
             menuListItemProps: {
-              itemId: "myGyms",
+              key: "myGyms",
               itemNameLabelTx: "editProfileForm.myGymsLabel",
               currentValue: userProfile?.myGyms?.length ?? 0,
               onPress: () => mainNavigation.navigate("ManageMyGyms"),
@@ -247,7 +247,7 @@ export const UserSettingsScreen = observer(function () {
 
       <View style={{ gap: spacing.medium }}>
         <MenuListItem
-          itemId="logout"
+          key="logout"
           itemNameLabelTx={"userSettingsScreen.logoutAlertTitle"}
           currentValue={undefined}
           onPress={showLogoutAlert}
@@ -255,7 +255,7 @@ export const UserSettingsScreen = observer(function () {
         <Spacer type="vertical" size="medium" />
         <View style={styles.disabled}>
           <MenuListItem
-            itemId="deleteAccount"
+            key="deleteAccount"
             itemNameLabelTx={"userSettingsScreen.deleteAccountAlertTitle"}
             currentValue={undefined}
             onPress={showDeleteAlert}
@@ -271,7 +271,7 @@ export const UserSettingsScreen = observer(function () {
 
       <View style={{ gap: spacing.large }}>
         <MenuListItem
-          itemId="loginWith"
+          key="loginWith"
           itemNameLabelTx={"userSettingsScreen.accountAuthenticationTypeLabel"}
           currentValue={(() => {
             let tx
@@ -292,7 +292,7 @@ export const UserSettingsScreen = observer(function () {
           OverrideRightAccessory={() => null}
         />
         <MenuListItem
-          itemId="appVersion"
+          key="appVersion"
           itemNameLabelTx={"userSettingsScreen.appVersionLabel"}
           currentValue={`${Application.nativeApplicationVersion} (${Application.nativeBuildVersion})`}
           onPress={() => {}}

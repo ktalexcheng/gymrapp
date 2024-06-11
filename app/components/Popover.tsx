@@ -39,6 +39,10 @@ const PopoverContainer = observer((props: PopoverContainerProps) => {
     onOpenChange: setIsOpen,
   } as PopoverContextValue
 
+  // gap is not a valid key for popoverStyle
+  const $menuPopoverContainer = themeStore.styles("menuPopoverContainer")
+  delete $menuPopoverContainer.gap
+
   return (
     // Popover position will be relative to the parent container
     // so wrap in a View to make sure the popover is positioned correctly
@@ -49,7 +53,7 @@ const PopoverContainer = observer((props: PopoverContainerProps) => {
             // Wrap in TouchableOpacity to make sure the entire view of the children pressable
             <TouchableOpacity onPress={() => setIsOpen(true)}>{trigger}</TouchableOpacity>
           }
-          popoverStyle={themeStore.styles("menuPopoverContainer")}
+          popoverStyle={$menuPopoverContainer}
           placement={placement}
           isVisible={isOpen}
           onRequestClose={() => setIsOpen(false)}
@@ -60,8 +64,16 @@ const PopoverContainer = observer((props: PopoverContainerProps) => {
             easing: Easing.in(Easing.ease),
             useNativeDriver: true,
           }}
+          arrowSize={{ width: 0, height: 0 }}
         >
-          {children}
+          <View
+            style={{
+              // Apply gap styling here in a view because it's not a valid Tamagui component prop
+              gap: themeStore.styles("menuPopoverContainer").gap,
+            }}
+          >
+            {children}
+          </View>
         </_Popover>
       </View>
     </PopoverContext.Provider>

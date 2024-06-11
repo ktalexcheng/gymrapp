@@ -1,7 +1,7 @@
 import { useStores } from "app/stores"
 import { observer } from "mobx-react-lite"
 import React from "react"
-import { TouchableOpacity, ViewProps } from "react-native"
+import { TouchableOpacity, View, ViewProps } from "react-native"
 import { Popover, PopoverCloseProps as _PopoverCloseProps } from "tamagui"
 
 interface PopoverContainerProps extends ViewProps {
@@ -35,7 +35,10 @@ const PopoverContainer = observer((props: PopoverContainerProps) => {
       <Popover.Content
         unstyled
         elevate
-        style={themeStore.styles("menuPopoverContainer")}
+        style={{
+          ...themeStore.styles("menuPopoverContainer"),
+          gap: undefined, // gap is not a valid Tamagui component prop
+        }}
         // eslint-disable-next-line react-native/no-inline-styles
         enterStyle={{ y: -10, opacity: 0 }}
         // eslint-disable-next-line react-native/no-inline-styles
@@ -49,7 +52,14 @@ const PopoverContainer = observer((props: PopoverContainerProps) => {
           },
         ]}
       >
-        {children}
+        <View
+          style={{
+            // Apply gap styling here in a view because it's not a valid Tamagui component prop
+            gap: themeStore.styles("menuPopoverContainer").gap,
+          }}
+        >
+          {children}
+        </View>
       </Popover.Content>
     </Popover>
   )

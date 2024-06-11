@@ -5,6 +5,7 @@ import {
   Button,
   LoadingIndicator,
   Popover,
+  PopoverMenuItem,
   RowView,
   Screen,
   Spacer,
@@ -41,10 +42,9 @@ const ProfileVisitorViewScreenMenu = observer((props: ProfileVisitorViewScreenMe
   return (
     <Popover trigger={<EllipsisVertical color={themeStore.colors("foreground")} />}>
       <Popover.Close>
-        <Button
-          preset="menuItem"
-          textStyle={{ color: themeStore.colors("danger") }}
-          tx={
+        <PopoverMenuItem
+          textColor={themeStore.colors("danger")}
+          itemNameLabelTx={
             userIsBlocked
               ? "profileVisitorViewScreen.unblockUserButtonLabel"
               : "profileVisitorViewScreen.blockUserButtonLabel"
@@ -55,78 +55,17 @@ const ProfileVisitorViewScreenMenu = observer((props: ProfileVisitorViewScreenMe
             } else {
               onBlockUserPress()
             }
-            // setIsMenuOpen(false)
           }}
         />
       </Popover.Close>
       <Popover.Close>
-        <Button
-          preset="menuItem"
-          textStyle={{ color: themeStore.colors("danger") }}
-          tx="profileVisitorViewScreen.reportUserLabel"
-          onPress={() => {
-            onReportUserPress()
-            // setIsMenuOpen(false)
-          }}
+        <PopoverMenuItem
+          textColor={themeStore.colors("danger")}
+          itemNameLabelTx="profileVisitorViewScreen.reportUserLabel"
+          onPress={onReportUserPress}
         />
       </Popover.Close>
     </Popover>
-    // <TMGPopover
-    //   placement="bottom-end"
-    //   open={isMenuOpen}
-    //   onOpenChange={(open) => setIsMenuOpen(open)}
-    //   offset={-25}
-    // >
-    //   <TMGPopover.Trigger>
-    //     <Icon name="ellipsis-vertical" size={24} />
-    //   </TMGPopover.Trigger>
-
-    //   <TMGPopover.Content
-    //     unstyled
-    //     style={themeStore.styles("menuPopoverContainer")}
-    //     animation={[
-    //       "quick",
-    //       {
-    //         opacity: {
-    //           overshootClamping: true,
-    //         },
-    //       },
-    //     ]}
-    //     // eslint-disable-next-line react-native/no-inline-styles
-    //     enterStyle={{ y: -10, opacity: 0 }}
-    //     // eslint-disable-next-line react-native/no-inline-styles
-    //     exitStyle={{ y: -10, opacity: 0 }}
-    //   >
-    //     <View>
-    //       <Button
-    //         preset="menuItem"
-    //         textStyle={{ color: themeStore.colors("danger") }}
-    //         tx={
-    //           userIsBlocked
-    //             ? "profileVisitorViewScreen.unblockUserButtonLabel"
-    //             : "profileVisitorViewScreen.blockUserButtonLabel"
-    //         }
-    //         onPress={() => {
-    //           if (userIsBlocked) {
-    //             onUnblockUserPress()
-    //           } else {
-    //             onBlockUserPress()
-    //           }
-    //           setIsMenuOpen(false)
-    //         }}
-    //       />
-    //       <Button
-    //         preset="menuItem"
-    //         textStyle={{ color: themeStore.colors("danger") }}
-    //         tx="profileVisitorViewScreen.reportUserLabel"
-    //         onPress={() => {
-    //           onReportUserPress()
-    //           setIsMenuOpen(false)
-    //         }}
-    //       />
-    //     </View>
-    //   </TMGPopover.Content>
-    // </TMGPopover>
   )
 })
 

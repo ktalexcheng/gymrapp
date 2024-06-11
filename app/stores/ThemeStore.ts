@@ -59,8 +59,8 @@ export const ThemeStoreModel = types
         },
         menuPopoverContainer: {
           ...appStyles.menuPopoverContainer,
-          backgroundColor: self.colors("contentBackground"),
-          borderColor: self.colors("border"),
+          backgroundColor: self.colors("elevatedBackground"),
+          // borderColor: self.colors("border"),
         },
         walkthroughPopoverContainer: {
           ...appStyles.walkthroughPopoverContainer,

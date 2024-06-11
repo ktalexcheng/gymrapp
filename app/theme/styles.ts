@@ -102,9 +102,8 @@ export const styles = StyleSheet.create({
     minHeight: 100,
   },
   menuPopoverContainer: {
-    // marginTop: spacing.small,
-    paddingVertical: spacing.small,
-    paddingHorizontal: spacing.small,
+    padding: spacing.small,
+    gap: spacing.tiny,
     minWidth: 150,
     borderRadius: 10,
     // borderWidth: 1,

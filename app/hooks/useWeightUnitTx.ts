@@ -12,12 +12,9 @@ import { useExerciseSetting } from "./useExerciseSetting"
 export const useWeightUnitTx = (exerciseId?: ExerciseId) => {
   const { userStore } = useStores()
 
-  let weightUnit
-  if (exerciseId) {
-    ;[weightUnit] = useExerciseSetting(exerciseId, ExerciseSettingsType.WeightUnit)
-  } else {
-    weightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
-  }
+  const weightUnit = exerciseId
+    ? useExerciseSetting(exerciseId, ExerciseSettingsType.WeightUnit)
+    : userStore.getUserPreference<WeightUnit>("weightUnit")
 
   let weightUnitTx: TxKeyPath
   switch (weightUnit) {
@@ -33,5 +30,6 @@ export const useWeightUnitTx = (exerciseId?: ExerciseId) => {
       weightUnitTx = "common.kg"
   }
 
+  console.debug("useWeightUnitTx", { exerciseId, weightUnitTx })
   return weightUnitTx
 }
