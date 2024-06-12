@@ -26,7 +26,7 @@ import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useRef, useState } from "react"
 import { TextStyle, TouchableOpacity, View, ViewProps, ViewStyle } from "react-native"
 import { Swipeable } from "react-native-gesture-handler"
-import { WorkoutEditorV2Props } from "./WorkoutEditor"
+import { WorkoutEditorProps } from "./WorkoutEditor"
 
 // RPE list 6 - 10
 const rpeList: {
@@ -90,6 +90,7 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
     onPressPreviousSet,
     onPressCompleteSet,
     onRemoveSet,
+    disableSetCompletion,
   } = props
   const { exerciseOrder } = exercise
   const { setOrder, isCompleted } = set
@@ -123,7 +124,10 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
   }
 
   const $exerciseSetCompletion: ViewStyle = {
-    backgroundColor: isCompleted ? themeStore.colors("lightTint") : themeStore.colors("background"),
+    backgroundColor:
+      !disableSetCompletion && isCompleted
+        ? themeStore.colors("lightTint")
+        : themeStore.colors("background"),
   }
 
   return (
@@ -142,30 +146,40 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
           <Text text={renderPreviousSetText()} size="xs" style={$previousSetText} />
         </TouchableOpacity>
         {props.children}
-        <View style={[$isCompletedColumn, $textAlignCenter]}>
-          {isCompleted ? (
-            <Icon
-              name="checkbox"
-              color={themeStore.colors("foreground")}
-              size={30}
-              onPress={onPressCompleteSet}
-            />
-          ) : (
-            <Icon
-              name="checkbox-outline"
-              color={themeStore.colors("foreground")}
-              size={30}
-              onPress={onPressCompleteSet}
-            />
-          )}
-        </View>
+        {!disableSetCompletion && (
+          <View style={[$isCompletedColumn, $textAlignCenter]}>
+            {isCompleted ? (
+              <Icon
+                name="checkbox"
+                color={themeStore.colors("foreground")}
+                size={30}
+                onPress={onPressCompleteSet}
+              />
+            ) : (
+              <Icon
+                name="checkbox-outline"
+                color={themeStore.colors("foreground")}
+                size={30}
+                onPress={onPressCompleteSet}
+              />
+            )}
+          </View>
+        )}
       </RowView>
     </Swipeable>
   )
 }
 
 const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
-  const { exercise, exerciseSettings, set, onChangeSetValue, onCompleteSet, onRemoveSet } = props
+  const {
+    exercise,
+    exerciseSettings,
+    set,
+    onChangeSetValue,
+    onCompleteSet,
+    onRemoveSet,
+    disableSetCompletion,
+  } = props
   const { exerciseId } = exercise
   const { setOrder, isCompleted } = set
 
@@ -276,9 +290,10 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
         onRemoveSet={onRemoveSet}
         onChangeSetValue={onChangeSetValue}
         onCompleteSet={onCompleteSet}
+        disableSetCompletion={disableSetCompletion}
       >
         <TouchableOpacity
-          disabled={set.isCompleted}
+          disabled={!disableSetCompletion && set.isCompleted}
           style={$timeColumn}
           onPress={() => setShowTimeInput(true)}
         >
@@ -290,11 +305,17 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 })
 
 const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
-  const { exercise, exerciseSettings, set, onChangeSetValue, onCompleteSet, onRemoveSet } = props
+  const {
+    exercise,
+    exerciseSettings,
+    set,
+    onChangeSetValue,
+    onCompleteSet,
+    onRemoveSet,
+    disableSetCompletion,
+  } = props
   const { exerciseId } = exercise
   const { setOrder, isCompleted } = set
-
-  const { themeStore } = useStores()
 
   // Set from previous workout
   const [setFromLastWorkout] = useSetFromLastWorkout<RepsExerciseSetPerformed>(exerciseId, setOrder)
@@ -456,12 +477,13 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       onRemoveSet={onRemoveSet}
       onChangeSetValue={onChangeSetValue}
       onCompleteSet={onCompleteSet}
+      disableSetCompletion={disableSetCompletion}
     >
       <View style={$weightColumn}>
         <TextField
           // status={isNullWeight ? "error" : null}
-          status={set.isCompleted ? "disabled" : null}
-          style={{ color: themeStore.colors("text") }}
+          status={!disableSetCompletion && set.isCompleted ? "disabled" : null}
+          // style={{ color: themeStore.colors("text") }}
           textAlignVertical="center"
           value={weightInput ?? ""}
           onChangeText={handleWeightChangeText}
@@ -475,8 +497,10 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       </View>
       <View style={$repsColumn}>
         <TextField
-          status={isNullReps ? "error" : set.isCompleted ? "disabled" : null}
-          style={{ color: themeStore.colors("text") }}
+          status={
+            isNullReps ? "error" : !disableSetCompletion && set.isCompleted ? "disabled" : null
+          }
+          // style={{ color: themeStore.colors("text") }}
           textAlignVertical="center"
           value={repsInput ?? ""}
           onChangeText={handleRepsChangeText}
@@ -490,7 +514,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
       </View>
       <View style={$rpeColumn}>
         <PickerModal
-          disabled={set.isCompleted}
+          disabled={!disableSetCompletion && set.isCompleted}
           value={rpeInput}
           onChange={handleRpeChangeText}
           itemsList={rpeList}
@@ -503,8 +527,8 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
 })
 
 export type SetEntryProps = Pick<
-  WorkoutEditorV2Props,
-  "onChangeSetValue" | "onRemoveSet" | "onCompleteSet"
+  WorkoutEditorProps,
+  "onChangeSetValue" | "onRemoveSet" | "onCompleteSet" | "disableSetCompletion"
 > & {
   exercise: IExercisePerformedModel
   set: ISetPerformedModel

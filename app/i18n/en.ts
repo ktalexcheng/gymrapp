@@ -431,6 +431,11 @@ const en = {
     deleteWorkoutAlertMessage: "Are you sure you want to delete this workout?",
     deleteWorkoutSuccessMessage: "Workout deleted",
     deleteWorkoutFailedMessage: "Failed to delete workout",
+    replacePrivateExercisesAlertTitle: "Replace private exercises?",
+    replacePrivateExercisesAlertMessage:
+      "This workout contains private exercises from other users. Do you want to replace them with your own? If you choose not to, exercise history and records will not be available for private exercises from other users.",
+    doNotReplacePrivateExercisesButtonLabel: "Keep them",
+    doReplacePrivateExercisesButtonLabel: "Replace",
   },
   workoutCommentsPanel: {
     commentIsHiddenMessage: "This comment has been hidden",
@@ -489,6 +494,7 @@ const en = {
     restTimerEnabledLabel: "Enabled",
     restTimeLabel: "Rest time",
     createSupersetLabel: "Create superset",
+    replaceExerciseLabel: "Replace exercise",
     removeExerciseLabel: "Remove exercise",
     weightUnitLabel: "Weight unit",
   },

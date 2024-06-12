@@ -5,6 +5,8 @@ const zh: Translations = {
     default: "預設",
     yes: "是",
     no: "否",
+    on: "開",
+    off: "關",
     ok: "確定",
     cancel: "取消",
     clear: "清除",
@@ -404,7 +406,7 @@ const zh: Translations = {
   },
   exerciseSummary: {
     userExerciseHistoryHiddenMessage: "此使用者已隱藏他們的動作歷史紀錄",
-    exerciseNotFoundMessage: "找不到此動作，它可能是其他使用者建立的私人動作。",
+    exerciseNotFoundMessage: "找不到此動作，它可能是其他使用者建立的個人動作。",
   },
   workoutSummaryMenu: {
     editWorkoutButtonLabel: "編輯訓練記錄",
@@ -414,6 +416,11 @@ const zh: Translations = {
     deleteWorkoutAlertMessage: "你確定要刪除此訓練記錄嗎?",
     deleteWorkoutSuccessMessage: "訓練記錄已刪除",
     deleteWorkoutFailedMessage: "刪除訓練記錄失敗",
+    replacePrivateExercisesAlertTitle: "更換個人動作？",
+    replacePrivateExercisesAlertMessage:
+      "這個課表中包含其他用戶建立的個人動作，你是否要用其他動作取代？如果不更換，你將無法看到這些動作的歷史紀錄。",
+    doNotReplacePrivateExercisesButtonLabel: "保留",
+    doReplacePrivateExercisesButtonLabel: "取代",
   },
   workoutCommentsPanel: {
     commentIsHiddenMessage: "評論已隱藏",
@@ -470,6 +477,7 @@ const zh: Translations = {
     restTimerEnabledLabel: "啟用",
     restTimeLabel: "休息時間",
     createSupersetLabel: "建立複合組",
+    replaceExerciseLabel: "更換動作",
     removeExerciseLabel: "移除動作",
     weightUnitLabel: "重量單位",
   },

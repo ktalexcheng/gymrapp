@@ -30,6 +30,6 @@ export const useWeightUnitTx = (exerciseId?: ExerciseId) => {
       weightUnitTx = "common.kg"
   }
 
-  console.debug("useWeightUnitTx", { exerciseId, weightUnitTx })
+  // console.debug("useWeightUnitTx", { exerciseId, weightUnitTx })
   return weightUnitTx
 }

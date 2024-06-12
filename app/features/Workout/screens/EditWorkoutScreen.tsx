@@ -1,7 +1,6 @@
 import { Screen } from "app/components"
 import { WorkoutSource } from "app/data/constants"
 import { ExerciseSettingsType } from "app/data/types"
-import { CreateNewTemplateHeader } from "app/features/WorkoutTemplates"
 import { useInternetStatus, useToast } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
@@ -12,6 +11,7 @@ import { observer } from "mobx-react-lite"
 import React, { useState } from "react"
 import { Alert } from "react-native"
 import { WorkoutEditor } from "../../WorkoutEditor"
+import { EditWorkoutHeader } from "../components/EditWorkoutHeader"
 
 export const EditWorkoutScreen = observer(() => {
   const mainNavigation = useMainNavigation()
@@ -26,6 +26,10 @@ export const EditWorkoutScreen = observer(() => {
     value: any,
   ) => {
     exerciseStore.updateExerciseSetting(exerciseId, settingItem, value)
+  }
+
+  const onReplaceExercise = (exerciseOrder: number, newExercise: IExerciseModel) => {
+    workoutStore.replaceExercise(exerciseOrder, newExercise)
   }
 
   const onChangeExerciseNotes = (exerciseOrder: number, value: string) => {
@@ -123,11 +127,11 @@ export const EditWorkoutScreen = observer(() => {
       preset="fixed"
       isBusy={isBusy}
     >
-      {/* Reusing CreateNewTemplateHeader from templates screen */}
-      <CreateNewTemplateHeader
+      {/* Reusing ActiveWorkoutHeader from templates screen */}
+      <EditWorkoutHeader
         workoutTitle={workoutStore.workoutTitle}
         onChangeWorkoutTitle={workoutStore.setProp.bind(workoutStore, "workoutTitle")}
-        onSave={onSave}
+        onUpdate={onSave}
         onDiscard={onDiscard}
       />
 
@@ -137,6 +141,7 @@ export const EditWorkoutScreen = observer(() => {
         allExercises={workoutStore.exercises}
         enableExerciseSettingsMenuItems={Object.values(ExerciseSettingsType)}
         onChangeExerciseSettings={onChangeExerciseSettings}
+        onReplaceExercise={onReplaceExercise}
         onChangeExerciseNotes={onChangeExerciseNotes}
         onAddExercise={onAddExercise}
         onRemoveExercise={onRemoveExercise}

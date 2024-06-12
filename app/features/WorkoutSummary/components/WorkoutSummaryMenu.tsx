@@ -1,5 +1,5 @@
 import { Divider, PopoverTMG as Popover, PopoverMenuItem } from "app/components"
-import { WorkoutSource } from "app/data/constants"
+import { ExerciseSource, WorkoutSource } from "app/data/constants"
 import { WorkoutId } from "app/data/types"
 import { LoadingScreen } from "app/features/common"
 import { translate } from "app/i18n"
@@ -65,6 +65,38 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
     mainNavigation.navigate("EditWorkout")
   }
 
+  const saveAsTemplate = () => {
+    const privateExercises = workout.exercises.filter(
+      (e) => e.exerciseSource === ExerciseSource.Private,
+    )
+    if (privateExercises.length > 0) {
+      Alert.alert(
+        translate("workoutSummaryMenu.replacePrivateExercisesAlertTitle"),
+        translate("workoutSummaryMenu.replacePrivateExercisesAlertMessage"),
+        [
+          {
+            text: translate("workoutSummaryMenu.doNotReplacePrivateExercisesButtonLabel"),
+            style: "default",
+            onPress: () => setShowSaveAsTemplateModal(true),
+          },
+          {
+            text: translate("workoutSummaryMenu.doReplacePrivateExercisesButtonLabel"),
+            style: "destructive",
+            onPress: () => {
+              workoutEditorStore.resetWorkout()
+              workoutEditorStore.hydrateWithWorkout(workout)
+              mainNavigation.navigate("EditTemplate")
+            },
+          },
+        ],
+      )
+
+      return
+    }
+
+    setShowSaveAsTemplateModal(true)
+  }
+
   return (
     <>
       <Popover trigger={<EllipsisVertical color={themeStore.colors("foreground")} size={24} />}>
@@ -81,7 +113,7 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
             <Popover.Close asChild>
               <PopoverMenuItem
                 itemNameLabelTx="workoutSummaryMenu.saveAsTemplateButtonLabel"
-                onPress={() => setShowSaveAsTemplateModal(true)}
+                onPress={saveAsTemplate}
               />
             </Popover.Close>
           )}

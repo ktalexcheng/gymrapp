@@ -49,23 +49,64 @@ const BaseExercisePerformedModel = types
   })
   .actions(withSetPropAction)
 
-const RepsExercisePerformedModel = types.compose(
-  "RepsExercisePerformedModel",
-  BaseExercisePerformedModel,
-  types.model({
-    volumeType: types.literal(ExerciseVolumeType.Reps),
-    setsPerformed: types.array(RepsSetPerformedModel), // by default optional with [] as default value
-  }),
-)
+const RepsExercisePerformedModel = types
+  .compose(
+    "RepsExercisePerformedModel",
+    BaseExercisePerformedModel,
+    types.model({
+      volumeType: types.literal(ExerciseVolumeType.Reps),
+      setsPerformed: types.array(RepsSetPerformedModel), // by default optional with [] as default value
+    }),
+  )
+  .actions((self) => {
+    function addSet(initialSetValues?: Partial<ISetPerformedModel>) {
+      const newSetOrder = self.setsPerformed.length
+      self.setsPerformed.push(
+        RepsSetPerformedModel.create({
+          ...initialSetValues,
+          setId: randomUUID(),
+          setOrder: newSetOrder,
+          volumeType: self.volumeType,
+          setType: ExerciseSetType.Normal,
+          isCompleted: false,
+        }),
+      )
+    }
 
-const TimeExercisePerformedModel = types.compose(
-  "TimeExercisePerformedModel",
-  BaseExercisePerformedModel,
-  types.model({
-    volumeType: types.literal(ExerciseVolumeType.Time),
-    setsPerformed: types.array(TimeSetPerformedModel), // by default optional with [] as default value
-  }),
-)
+    return {
+      addSet,
+    }
+  })
+
+const TimeExercisePerformedModel = types
+  .compose(
+    "TimeExercisePerformedModel",
+    BaseExercisePerformedModel,
+    types.model({
+      volumeType: types.literal(ExerciseVolumeType.Time),
+      setsPerformed: types.array(TimeSetPerformedModel), // by default optional with [] as default value
+    }),
+  )
+  .actions((self) => {
+    function addSet(initialSetValues?: Partial<ISetPerformedModel>) {
+      const newSetOrder = self.setsPerformed.length
+
+      self.setsPerformed.push(
+        TimeSetPerformedModel.create({
+          ...initialSetValues,
+          setId: randomUUID(),
+          setOrder: newSetOrder,
+          volumeType: self.volumeType,
+          setType: ExerciseSetType.Normal,
+          isCompleted: false,
+        }),
+      )
+    }
+
+    return {
+      addSet,
+    }
+  })
 
 const ExercisePerformedModel = types.union(
   { eager: false },
@@ -115,7 +156,9 @@ export const ActiveWorkoutStoreModel = types
       return true
     },
     get isEmptyWorkout() {
-      return self.exercises.length === 0
+      // Check for any completed sets, if none, consider workout  empty
+      return !self.exercises.some((e) => e.setsPerformed.some((s) => s.isCompleted))
+      // return self.exercises.length === 0
     },
     get timeElapsed() {
       if (!self.startTime) return -1
@@ -360,6 +403,14 @@ export const ActiveWorkoutStoreModel = types
           !s.isCompleted && destroy(s)
         })
       })
+
+      for (let i = 0; i < self.exercises.length; i++) {
+        const e = self.exercises[i]
+        if (e.setsPerformed.length === 0) {
+          destroy(e)
+          i-- // Decrement i to account for the removed exercise
+        }
+      }
     }
 
     function setGym(gym?: Gym) {
@@ -665,33 +716,35 @@ export const ActiveWorkoutStoreModel = types
         return
       }
 
-      const newSetOrder = exercise.setsPerformed.length
-      switch (exercise.volumeType) {
-        case ExerciseVolumeType.Reps:
-          exercise.setsPerformed.push(
-            RepsSetPerformedModel.create({
-              ...initialSetValues,
-              setId: randomUUID(),
-              setOrder: newSetOrder,
-              volumeType: exercise.volumeType,
-              setType: ExerciseSetType.Normal,
-              isCompleted: false,
-            }),
-          )
-          break
-        case ExerciseVolumeType.Time:
-          exercise.setsPerformed.push(
-            TimeSetPerformedModel.create({
-              ...initialSetValues,
-              setId: randomUUID(),
-              setOrder: newSetOrder,
-              volumeType: exercise.volumeType,
-              setType: ExerciseSetType.Normal,
-              isCompleted: false,
-            }),
-          )
-          break
-      }
+      exercise.addSet(initialSetValues)
+
+      // const newSetOrder = exercise.setsPerformed.length
+      // switch (exercise.volumeType) {
+      //   case ExerciseVolumeType.Reps:
+      //     exercise.setsPerformed.push(
+      //       RepsSetPerformedModel.create({
+      //         ...initialSetValues,
+      //         setId: randomUUID(),
+      //         setOrder: newSetOrder,
+      //         volumeType: exercise.volumeType,
+      //         setType: ExerciseSetType.Normal,
+      //         isCompleted: false,
+      //       }),
+      //     )
+      //     break
+      //   case ExerciseVolumeType.Time:
+      //     exercise.setsPerformed.push(
+      //       TimeSetPerformedModel.create({
+      //         ...initialSetValues,
+      //         setId: randomUUID(),
+      //         setOrder: newSetOrder,
+      //         volumeType: exercise.volumeType,
+      //         setType: ExerciseSetType.Normal,
+      //         isCompleted: false,
+      //       }),
+      //     )
+      //     break
+      // }
     }
 
     function removeSet(targetExerciseOrder: number, targetExerciseSetOrder: number) {
@@ -779,6 +832,30 @@ export const ActiveWorkoutStoreModel = types
       self.exercises = exercisesCopy
     }
 
+    function replaceExercise(exerciseOrder: number, newExercise: IExerciseModel) {
+      const targetExercise = self.exercises[exerciseOrder]
+      if (!targetExercise) {
+        console.warn("ActiveWorkoutStore.replaceExercise: exercise not found")
+        return
+      }
+
+      const newExercisePerformed = ExercisePerformedModel.create({
+        exerciseOrder,
+        exerciseId: newExercise.exerciseId,
+        exerciseSource: newExercise.exerciseSource,
+        exerciseName: newExercise.exerciseName,
+        volumeType: newExercise.volumeType,
+        setsPerformed: [],
+      })
+
+      // Create empty sets for the new exercise
+      for (let i = 0; i < targetExercise.setsPerformed.length; i++) {
+        newExercisePerformed.addSet()
+      }
+
+      self.exercises.splice(exerciseOrder, 1, newExercisePerformed)
+    }
+
     return {
       resetWorkout,
       cleanUpWorkout,
@@ -797,6 +874,7 @@ export const ActiveWorkoutStoreModel = types
       updateSetValues,
       hydrateWithTemplate,
       reorderExercise,
+      replaceExercise,
     }
   })
 

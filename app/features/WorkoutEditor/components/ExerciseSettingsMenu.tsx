@@ -32,6 +32,11 @@ export type ExerciseSettingsProps = {
     settingItem: keyof ExerciseSettings,
     value: any,
   ) => void
+  /**
+   * This is not the actual function that handles replacing an exercise,
+   * but a callback that runs when the user presses the "Replace Exercise" button
+   */
+  onPressReplaceExercise: () => void
   onRemoveExercise: (exerciseOrder: number) => void
 }
 
@@ -41,6 +46,7 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
       exercise,
       enableExerciseSettingsMenuItems,
       onChangeExerciseSettings,
+      onPressReplaceExercise,
       onRemoveExercise,
     } = props
     const { exerciseId, exerciseOrder } = exercise
@@ -179,9 +185,14 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
                   }}
                 />
               )}
-              {enableExerciseSettingsMenuItems?.length > 0 && (
-                <Divider orientation="horizontal" spaceSize={spacing.extraSmall} />
-              )}
+              <Popover.Close>
+                <PopoverMenuItem
+                  itemNameLabelTx="exerciseEntrySettings.replaceExerciseLabel"
+                  currentValue={undefined}
+                  onPress={onPressReplaceExercise}
+                />
+              </Popover.Close>
+              <Divider orientation="horizontal" spaceSize={spacing.extraSmall} />
               <PopoverMenuItem
                 itemNameLabelTx="exerciseEntrySettings.removeExerciseLabel"
                 textColor={themeStore.colors("danger")}

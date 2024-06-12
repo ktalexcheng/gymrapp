@@ -66,11 +66,11 @@ export const ExerciseStoreModel = types
       >
 
       // Update exercises with user settings
-      console.debug("ExerciseStre.applyUserSettings() exerciseSettings", exerciseSettings)
+      // console.debug("ExerciseStre.applyUserSettings() exerciseSettings", exerciseSettings)
       if (exerciseSettings) {
         // @ts-ignore: TS does not recognize the mobx map type
         for (const [exerciseId, settings] of exerciseSettings) {
-          console.debug("ExerciseStore.applyUserSettings()", { exerciseId, settings })
+          // console.debug("ExerciseStore.applyUserSettings()", { exerciseId, settings })
           self.allExercises.get(exerciseId)?.setProp("exerciseSettings", settings)
         }
       }

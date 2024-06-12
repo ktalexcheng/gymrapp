@@ -1,22 +1,24 @@
-import { Button, Icon, RowView, Text, TextField } from "app/components"
+import { Button, Icon, RowView, Spacer, Text, TextField } from "app/components"
 import { ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import { ExerciseSettings, ExerciseSettingsType } from "app/data/types"
-import { useExerciseSetting, useWeightUnitTx } from "app/hooks"
+import { useExerciseSetting, useToast, useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { IExercisePerformedModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
+import { TriangleAlert } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { TouchableOpacity, View, ViewStyle } from "react-native"
 import { ExerciseSettingsMenu } from "./ExerciseSettingsMenu"
 import { SetEntry } from "./SetEntry"
-import { WorkoutEditorV2Props } from "./WorkoutEditor"
+import { WorkoutEditorProps } from "./WorkoutEditor"
 
-type ExerciseEntryProps = Omit<WorkoutEditorV2Props, "allExercises" | "onAddExerciseNavigateTo"> & {
+type ExerciseEntryProps = Omit<WorkoutEditorProps, "allExercises" | "onAddExerciseNavigateTo"> & {
   exercise: IExercisePerformedModel
   isPlaceholder?: boolean
   onExerciseNameLongPress?: () => void
+  onPressReplaceExercise: () => void
 }
 
 export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEntryProps) => {
@@ -26,16 +28,22 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
     onExerciseNameLongPress,
     enableExerciseSettingsMenuItems,
     onChangeExerciseSettings,
+    onPressReplaceExercise,
     onChangeExerciseNotes,
     onRemoveExercise,
     onAddSet,
+    disableSetCompletion,
   } = props
   const { exerciseId, exerciseOrder, exerciseName, volumeType, setsPerformed, exerciseNotes } =
     exercise
 
-  const { themeStore } = useStores()
+  const { themeStore, exerciseStore } = useStores()
   const mainNavigation = useMainNavigation()
   const weightUnitTx = useWeightUnitTx(exerciseId)
+  const [toastShowTx] = useToast()
+
+  // derived states
+  const isExerciseFound = !!exerciseStore.getExercise(exerciseId)
 
   const autoRestTimerEnabled = useExerciseSetting<boolean>(
     exerciseId,
@@ -86,6 +94,11 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
   }
 
   function navigateToExerciseDetails() {
+    if (!isExerciseFound) {
+      toastShowTx("exerciseSummary.exerciseNotFoundMessage")
+      return
+    }
+
     mainNavigation.navigate("ExerciseDetails", {
       exerciseId,
     })
@@ -100,7 +113,22 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
     <View style={$exercise}>
       <RowView style={styles.justifyBetween}>
         <TouchableOpacity onPress={navigateToExerciseDetails} onLongPress={onExerciseNameLongPress}>
-          <Text preset="bold">{"#" + (exerciseOrder + 1) + " " + exerciseName}</Text>
+          <RowView style={styles.alignCenter}>
+            {!isExerciseFound && (
+              <>
+                <TriangleAlert
+                  size={16}
+                  color={themeStore.colors(isExerciseFound ? "foreground" : "error")}
+                />
+                <Spacer type="horizontal" size="tiny" />
+              </>
+            )}
+            <Text
+              preset="bold"
+              textColor={themeStore.colors(isExerciseFound ? "foreground" : "error")}
+              text={"#" + (exerciseOrder + 1) + " " + exerciseName}
+            />
+          </RowView>
         </TouchableOpacity>
 
         <ExerciseSettingsMenu
@@ -108,6 +136,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
           exerciseSettings={exerciseSettings}
           enableExerciseSettingsMenuItems={enableExerciseSettingsMenuItems}
           onChangeExerciseSettings={onChangeExerciseSettings}
+          onPressReplaceExercise={onPressReplaceExercise}
           onRemoveExercise={onRemoveExercise}
         />
       </RowView>
@@ -130,9 +159,11 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
           <Text tx="workoutEditor.exerciseSetHeaders.previous" textAlign="center" />
         </View>
         {renderVolumeTypeSpecificHeaders()}
-        <View style={$isCompletedColumn}>
-          <Icon name="checkmark" color={themeStore.colors("foreground")} size={30} />
-        </View>
+        {!disableSetCompletion && (
+          <View style={$isCompletedColumn}>
+            <Icon name="checkmark" color={themeStore.colors("foreground")} size={30} />
+          </View>
+        )}
       </RowView>
 
       {renderSets()}

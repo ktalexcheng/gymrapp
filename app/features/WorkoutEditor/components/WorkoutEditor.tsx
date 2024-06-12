@@ -1,7 +1,9 @@
 import { Button, Spacer, TextField } from "app/components"
 import { ExerciseSettings, ExerciseSettingsType } from "app/data/types"
+import { useToast } from "app/hooks"
 import { IExerciseModel, IExercisePerformedModel, SetPropType } from "app/stores"
 import { spacing } from "app/theme"
+import { logError } from "app/utils/logger"
 import { toJS } from "mobx"
 import { observer } from "mobx-react-lite"
 import React, { useCallback, useRef, useState } from "react"
@@ -13,7 +15,7 @@ import DraggableFlatList, {
 import { ExerciseEntry } from "./ExerciseEntry"
 import { ExercisePickerSheet } from "./ExercisePickerSheet"
 
-export type WorkoutEditorV2Props = {
+export type WorkoutEditorProps = {
   workoutNotes?: string | null
   onChangeWorkoutNotes: (value: string) => void
   allExercises: IExercisePerformedModel[]
@@ -23,6 +25,7 @@ export type WorkoutEditorV2Props = {
     settingItem: keyof ExerciseSettings,
     value: any,
   ) => void
+  onReplaceExercise: (exerciseOrder: number, newExercise: IExerciseModel) => void
   onChangeExerciseNotes: (exerciseOrder: number, value: string) => void
   onAddExercise: (exercise: IExerciseModel) => void
   onRemoveExercise: (exerciseOrder: number) => void
@@ -33,15 +36,17 @@ export type WorkoutEditorV2Props = {
     prop: SetPropType | "isCompleted",
     value: number | null | boolean,
   ) => void
+  disableSetCompletion?: boolean
   onCompleteSet?: (settings: { autoRestTimerEnabled: boolean; restTime: number }) => void
   onAddSet: (exerciseOrder: number) => void
   onRemoveSet: (exerciseOrder: number, setOrder: number) => void
   ExtraHeaderComponent?: React.JSXElementConstructor<any>
 }
 
-export const WorkoutEditor = observer((props: WorkoutEditorV2Props) => {
+export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
   const {
     workoutNotes,
+    onReplaceExercise,
     onChangeWorkoutNotes,
     allExercises,
     onAddExercise,
@@ -49,10 +54,16 @@ export const WorkoutEditor = observer((props: WorkoutEditorV2Props) => {
     ExtraHeaderComponent,
   } = props
 
-  const exercisesRef = useRef<FlatList<IExercisePerformedModel>>(null)
-  const [exercisePickerOpen, setExercisePickerOpen] = useState(false)
+  // utilities
+  const [useToastTx] = useToast()
 
-  const handleExerciseSelected = useCallback(
+  // states
+  const exercisesRef = useRef<FlatList<IExercisePerformedModel>>(null)
+  const [addExercisePickerOpen, setAddExercisePickerOpen] = useState(false)
+  const [replaceExercisePickerOpen, setReplaceExercisePickerOpen] = useState(false)
+  const [replacingExerciseOrder, setReplacingExerciseOrder] = useState<number>()
+
+  const onAddExerciseCallback = useCallback(
     (exercise: IExerciseModel) => {
       onAddExercise(exercise)
       // If scrollToEnd is called immediately, it could happen before the new exercise
@@ -60,9 +71,22 @@ export const WorkoutEditor = observer((props: WorkoutEditorV2Props) => {
       setTimeout(() => {
         exercisesRef.current?.scrollToEnd({ animated: true })
       }, 500)
-      setExercisePickerOpen(false)
+      setAddExercisePickerOpen(false)
     },
     [exercisesRef],
+  )
+
+  const onReplaceExerciseCallback = useCallback(
+    (exercise: IExerciseModel) => {
+      if (replacingExerciseOrder === undefined) {
+        logError(new Error("replacingExerciseOrder is not set"))
+        useToastTx("common.error.unknownErrorMessage")
+      } else {
+        onReplaceExercise(replacingExerciseOrder, exercise)
+        setReplaceExercisePickerOpen(false)
+      }
+    },
+    [replacingExerciseOrder],
   )
 
   const renderItem = ({ item, drag, isActive }: RenderItemParams<IExercisePerformedModel>) => {
@@ -73,6 +97,14 @@ export const WorkoutEditor = observer((props: WorkoutEditorV2Props) => {
           exercise={item}
           isPlaceholder={isActive}
           onExerciseNameLongPress={drag}
+          onPressReplaceExercise={() => {
+            console.debug(
+              "onPressReplaceExercise called, setting replacingExerciseOrder to",
+              item.exerciseOrder,
+            )
+            setReplacingExerciseOrder(item.exerciseOrder)
+            setReplaceExercisePickerOpen(true)
+          }}
         />
       </ScaleDecorator>
     )
@@ -80,7 +112,7 @@ export const WorkoutEditor = observer((props: WorkoutEditorV2Props) => {
 
   // Note that if this function throws an error, it will result in a RN "non-std C++ exception" error
   // so just to be save, wrapping it in a try-catch block
-  const onDragEnd = ({ data, from, to }) => {
+  const onDragEnd = ({ from, to }) => {
     console.debug("WorkoutEditor.onDragEnd called", { from, to })
     try {
       onReorderExercise(from, to)
@@ -120,16 +152,25 @@ export const WorkoutEditor = observer((props: WorkoutEditorV2Props) => {
             <Button
               preset="text"
               tx="workoutEditor.addExerciseButtonLabel"
-              onPress={() => setExercisePickerOpen(true)}
+              onPress={() => setAddExercisePickerOpen(true)}
             />
             <Spacer type="vertical" size="massive" />
           </>
         }
       />
+
+      {/* For adding exercises */}
       <ExercisePickerSheet
-        open={exercisePickerOpen}
-        onOpenChange={setExercisePickerOpen}
-        onItemPress={handleExerciseSelected}
+        open={addExercisePickerOpen}
+        onOpenChange={setAddExercisePickerOpen}
+        onItemPress={onAddExerciseCallback}
+      />
+
+      {/* For replacing exercises */}
+      <ExercisePickerSheet
+        open={replaceExercisePickerOpen}
+        onOpenChange={setReplaceExercisePickerOpen}
+        onItemPress={onReplaceExerciseCallback}
       />
     </>
   )

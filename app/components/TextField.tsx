@@ -179,7 +179,10 @@ export const TextField = observer(
 
     const $inputStyles: StyleProp<TextStyle> = [
       $inputStyle,
-      disabled && { color: themeStore.colors("textDim") },
+      disabled && {
+        // color: themeStore.colors("textDim")
+        opacity: 0.5,
+      },
       // isRTL && { textAlign: "right" as TextStyle["textAlign"] },
       TextInputProps.multiline && { height: "auto" },
       $inputStyleOverride,

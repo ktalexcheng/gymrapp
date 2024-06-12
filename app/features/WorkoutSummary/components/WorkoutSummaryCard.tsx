@@ -63,7 +63,7 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
       }
 
       return (
-        <RowView key={`bestSet_${e.exerciseId}`} style={$workoutItemHeader}>
+        <RowView key={`bestSet_${e.exerciseId}_${e.exerciseOrder}`} style={$workoutItemHeader}>
           <Text
             preset={$highlightExerciseTextPreset}
             numberOfLines={1}

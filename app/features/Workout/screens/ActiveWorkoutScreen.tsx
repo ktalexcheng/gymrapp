@@ -211,6 +211,10 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
       exerciseStore.updateExerciseSetting(exerciseId, settingItem, value)
     }
 
+    const onReplaceExercise = (exerciseOrder: number, newExercise: IExerciseModel) => {
+      workoutStore.replaceExercise(exerciseOrder, newExercise)
+    }
+
     const onChangeExerciseNotes = (exerciseOrder: number, value: string) => {
       workoutStore.updateExerciseNotes(exerciseOrder, value)
     }
@@ -270,6 +274,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
           allExercises={workoutStore.exercises}
           enableExerciseSettingsMenuItems={Object.values(ExerciseSettingsType)}
           onChangeExerciseSettings={onChangeExerciseSettings}
+          onReplaceExercise={onReplaceExercise}
           onChangeExerciseNotes={onChangeExerciseNotes}
           onAddExercise={onAddExercise}
           onRemoveExercise={onRemoveExercise}
