@@ -8,7 +8,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: isDev ? "Gymrapp (Dev)" : "Gymrapp", // This is the name that appears on the home screen
     slug: "gymrapp", // This is the name of the project on Expo
     scheme: "gymrapp",
-    version: "0.1.0",
+    version: "0.1.1",
     orientation: "portrait",
     userInterfaceStyle: "automatic",
     icon: "./assets/images/app-icon-all.png",
