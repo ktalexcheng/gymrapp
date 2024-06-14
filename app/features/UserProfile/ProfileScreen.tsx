@@ -57,7 +57,7 @@ const UserActivitiesTabScene: FC = observer(() => {
         </View>
       )}
       ListFooterComponent={() =>
-        workoutsListData?.length > 0 && <Spacer type="vertical" size="extraLarge" />
+        workoutsListData?.length > 0 && <Spacer type="vertical" size="listFooterPadding" />
       }
     />
   )

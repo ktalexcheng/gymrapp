@@ -112,6 +112,7 @@ export const TemplateCatalog = observer(() => {
         // }
         data={allTemplates.data}
         renderItem={({ item }) => <TemplatePreview template={item} />}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={NoTemplates}
       />
     </View>

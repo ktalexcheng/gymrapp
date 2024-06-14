@@ -61,7 +61,7 @@ export const FeedScreen = observer(function FeedScreen() {
           ListFooterComponent={() => (
             <>
               {renderFeedFooterItem()}
-              <Spacer type="vertical" size="extraLarge" />
+              <Spacer type="vertical" size="listFooterPadding" />
             </>
           )}
           onEndReachedThreshold={0.5}

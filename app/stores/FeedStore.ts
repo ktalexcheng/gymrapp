@@ -356,7 +356,7 @@ export const FeedStoreModel = types
         console.debug("FeedStore.getSetFromWorkout() latestWorkout:", latestWorkout)
         const lastPerformedSet = latestWorkout.exercises.filter(
           (e) => e.exerciseId === exerciseId,
-        )[0].setsPerformed?.[setOrder]
+        )[0]?.setsPerformed?.[setOrder]
         if (!lastPerformedSet) return null
 
         console.debug("FeedStore.getSetFromWorkout() lastPerformedSet:", lastPerformedSet)

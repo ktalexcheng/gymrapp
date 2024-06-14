@@ -1,17 +1,18 @@
 import { useFocusEffect } from "@react-navigation/native"
-import { Button, Icon, RowView, Screen, Text } from "app/components"
+import { Button, Icon, RowView, Screen, Spacer, Text } from "app/components"
 import { ExerciseSettingsType, Gym } from "app/data/types"
-import { useToast } from "app/hooks"
+import { useGetTemplate } from "app/features/WorkoutTemplates/services/useGetTemplate"
+import { useToast, useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { IExerciseModel, SetPropType, useStores } from "app/stores"
-import { fontSize, spacing, styles } from "app/theme"
+import { spacing, styles } from "app/theme"
 import { getUserLocation } from "app/utils/getUserLocation"
 import { logError } from "app/utils/logger"
 import { observer } from "mobx-react-lite"
 import React, { FC, useCallback, useEffect, useRef, useState } from "react"
-import { AppState, TextStyle, View, ViewStyle } from "react-native"
+import { AppState, View, ViewStyle } from "react-native"
 import { WorkoutEditor } from "../../WorkoutEditor"
 import { ActiveWorkoutHeader } from "../components/ActiveWorkoutHeader"
 
@@ -99,6 +100,16 @@ const WorkoutEditorHeaderComponents = observer(() => {
   const mainNavigation = useMainNavigation()
   const { themeStore, activeWorkoutStore: workoutStore } = useStores()
 
+  // utilities
+  const weightUnitTx = useWeightUnitTx()
+  const weightUnit = translate(weightUnitTx)
+
+  // queries
+  const { workoutTemplateId } = workoutStore
+  const workoutTemplate = useGetTemplate(workoutTemplateId)
+  // console.debug("ActiveWorkoutScreen workoutTemplate", workoutTemplate)
+
+  // states
   const [timeElapsed, setTimeElapsed] = useState("00:00:00")
   const [timeSinceLastSet, setTimeSinceLastSet] = useState("00:00")
 
@@ -128,6 +139,7 @@ const WorkoutEditorHeaderComponents = observer(() => {
     flex: 1,
     padding: spacing.small,
     margin: spacing.extraSmall,
+    justifyContent: "space-between",
   }
 
   return (
@@ -144,18 +156,29 @@ const WorkoutEditorHeaderComponents = observer(() => {
       {/* Active workout metrics */}
       <RowView style={$metricsRow}>
         <View style={$metric}>
-          <Text tx="activeWorkoutScreen.timeElapsedLabel" style={$metricLabel} />
+          <Text tx="activeWorkoutScreen.timeElapsedLabel" size="tiny" />
           <Text text={timeElapsed} />
         </View>
         <View style={$metric}>
-          <Text tx="activeWorkoutScreen.timeSinceLastSetLabel" style={$metricLabel} />
+          <Text tx="activeWorkoutScreen.timeSinceLastSetLabel" size="tiny" />
           <Text text={timeSinceLastSet} />
         </View>
         <View style={$metric}>
-          <Text tx="activeWorkoutScreen.totalVolumeLabel" style={$metricLabel} />
+          <Text tx="activeWorkoutScreen.totalVolumeLabel" txOptions={{ weightUnit }} size="tiny" />
           <Text text={workoutStore.totalVolume.toFixed(0)} />
         </View>
       </RowView>
+
+      {workoutTemplate.data && (
+        <View style={$metric}>
+          <Text tx="activeWorkoutScreen.followingTemplateLabel" size="tiny" />
+          <Text>
+            <Text weight="bold" text={workoutTemplate.data?.workoutTemplateName} />
+            <Spacer type="horizontal" size="extraSmall" />
+            {workoutTemplate.data?.workoutTemplateNotes}
+          </Text>
+        </View>
+      )}
     </>
   )
 })
@@ -216,7 +239,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
     }
 
     const onChangeExerciseNotes = (exerciseOrder: number, value: string) => {
-      workoutStore.updateExerciseNotes(exerciseOrder, value)
+      workoutStore.updateExercise(exerciseOrder, "exerciseNotes", value)
     }
 
     const onAddExercise = (exercise: IExerciseModel) => {
@@ -269,9 +292,8 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
         />
 
         <WorkoutEditor
-          workoutNotes={workoutStore.workoutNotes}
+          workout={workoutStore}
           onChangeWorkoutNotes={workoutStore.setProp.bind(workoutStore, "workoutNotes")}
-          allExercises={workoutStore.exercises}
           enableExerciseSettingsMenuItems={Object.values(ExerciseSettingsType)}
           onChangeExerciseSettings={onChangeExerciseSettings}
           onReplaceExercise={onReplaceExercise}
@@ -296,8 +318,4 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
 
 const $metricsRow: ViewStyle = {
   justifyContent: "space-between",
-}
-
-const $metricLabel: TextStyle = {
-  fontSize: fontSize.tiny,
 }

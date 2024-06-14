@@ -33,7 +33,7 @@ export const EditWorkoutScreen = observer(() => {
   }
 
   const onChangeExerciseNotes = (exerciseOrder: number, value: string) => {
-    workoutStore.updateExerciseNotes(exerciseOrder, value)
+    workoutStore.updateExercise(exerciseOrder, "exerciseNotes", value)
   }
 
   const onAddExercise = (exercise: IExerciseModel) => {
@@ -136,9 +136,8 @@ export const EditWorkoutScreen = observer(() => {
       />
 
       <WorkoutEditor
-        workoutNotes={workoutStore.workoutNotes}
+        workout={workoutStore}
         onChangeWorkoutNotes={workoutStore.setProp.bind(workoutStore, "workoutNotes")}
-        allExercises={workoutStore.exercises}
         enableExerciseSettingsMenuItems={Object.values(ExerciseSettingsType)}
         onChangeExerciseSettings={onChangeExerciseSettings}
         onReplaceExercise={onReplaceExercise}

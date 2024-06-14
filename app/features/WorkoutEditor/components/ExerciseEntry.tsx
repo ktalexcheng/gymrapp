@@ -23,6 +23,7 @@ type ExerciseEntryProps = Omit<WorkoutEditorProps, "allExercises" | "onAddExerci
 
 export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEntryProps) => {
   const {
+    isTemplate = false,
     exercise,
     isPlaceholder,
     onExerciseNameLongPress,
@@ -34,8 +35,15 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
     onAddSet,
     disableSetCompletion,
   } = props
-  const { exerciseId, exerciseOrder, exerciseName, volumeType, setsPerformed, exerciseNotes } =
-    exercise
+  const {
+    exerciseId,
+    exerciseOrder,
+    exerciseName,
+    volumeType,
+    setsPerformed,
+    exerciseNotes,
+    templateExerciseNotes,
+  } = exercise
 
   const { themeStore, exerciseStore } = useStores()
   const mainNavigation = useMainNavigation()
@@ -109,6 +117,15 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
     opacity: isPlaceholder ? 0.5 : 1,
   }
 
+  const $templateNotes: ViewStyle = {
+    borderWidth: 1,
+    borderRadius: 5,
+    borderColor: themeStore.colors("separator"),
+    flex: 1,
+    padding: spacing.small,
+    margin: spacing.extraSmall,
+  }
+
   return (
     <View style={$exercise}>
       <RowView style={styles.justifyBetween}>
@@ -141,14 +158,25 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
         />
       </RowView>
 
+      {!isTemplate && templateExerciseNotes && (
+        <View style={$templateNotes}>
+          <Text tx="activeWorkoutScreen.instructionsLabel" size="tiny" />
+          <Text text={templateExerciseNotes} />
+        </View>
+      )}
+
       <TextField
         containerStyle={$exerciseNotesContainer}
         inputWrapperStyle={$exerciseNotesInputWrapper}
         style={$exerciseNotesInputStyle}
         multiline={true}
-        value={exerciseNotes ?? undefined}
+        value={(isTemplate ? templateExerciseNotes : exerciseNotes) ?? undefined}
         onChangeText={(text) => onChangeExerciseNotes(exerciseOrder, text)}
-        placeholderTx="workoutEditor.exerciseNotesPlaceholder"
+        placeholder={
+          isTemplate
+            ? translate("workoutEditor.templateExerciseNotesPlaceholder")
+            : translate("workoutEditor.exerciseNotesPlaceholder")
+        }
       />
 
       <RowView style={$exerciseSetsHeader}>

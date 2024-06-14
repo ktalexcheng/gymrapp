@@ -26,19 +26,18 @@ export const SaveWorkoutAsTemplateModal = (props: SaveWorkoutAsTemplateModalProp
 
   const saveAsTemplate = () => {
     // Save template
+    // Workout and exercise notes are intentionally not copied over
     const newTemplate = {
       activityId: workout.activityId,
       createdByUserId: userStore.userId,
       createdFromWorkoutId: workout.workoutId,
       createdFromUserId: workout.byUserId,
-      workoutTemplateNotes: workout.workoutNotes,
       workoutTemplateName,
       exercises: workout.exercises.map((e) => ({
         exerciseId: e.exerciseId,
         exerciseSource: e.exerciseSource,
         exerciseOrder: e.exerciseOrder,
         exerciseName: e.exerciseName,
-        exerciseNotes: e.exerciseNotes,
         volumeType: e.volumeType,
         sets:
           e.setsPerformed?.map((s) => ({

@@ -12,7 +12,7 @@ interface TemplateExercise {
   exerciseName: string // If the exercise is private from another user, it won't be in the target user's exercise list, so we need to store this to display exercise summary
   exerciseOrder: number
   sets: TemplateSet[]
-  exerciseNotes?: string | null
+  templateExerciseNotes?: string
 }
 
 export interface WorkoutTemplate extends baseMetadata {

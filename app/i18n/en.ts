@@ -333,7 +333,9 @@ const en = {
   workoutEditor: {
     newWorkoutTitlePlaceholder: "New workout",
     workoutNotesPlaceholder: "Add workout notes...",
+    workoutTemplateNotesPlaceholder: "Add workout instructions...",
     exerciseNotesPlaceholder: "Add exercise notes...",
+    templateExerciseNotesPlaceholder: "Add exercise instructions...",
     addExerciseButtonLabel: "Add exercise",
     exerciseSetHeaders: {
       set: "Set",
@@ -355,15 +357,17 @@ const en = {
     confirmRemoveIncompletedSets: "Yes, remove incompleted sets",
     rejectRemoveIncompletedSets: "Go back",
     discardWorkout: "Discard",
-    timeElapsedLabel: "Time elapsed:",
-    totalVolumeLabel: "Total volume:",
-    timeSinceLastSetLabel: "Resting:",
+    timeElapsedLabel: "Time elapsed",
+    totalVolumeLabel: "Total vol. ({{weightUnit}})",
+    timeSinceLastSetLabel: "Resting",
     ongoingWorkoutLabel: "Ongoing workout",
     gymPickerScreenTitle: "Select gym",
     emptyFavoriteGymsMessage:
       "You do not have any favorite gyms yet, favorite a gym to automatically set your workout location.",
     noFavoriteGymFoundMessage: "Seems like you are not near any of your favorite gyms",
     favoriteGymFoundMessage: "Setting workout location to {{gymName}}",
+    followingTemplateLabel: "Following template",
+    instructionsLabel: "Instructions",
     // setOrderColumnHeader: "Set",
     // previousColumnHeader: "Prev",
     // weightColumnHeader: "Weight",
@@ -488,7 +492,10 @@ const en = {
     requiredFieldsMissingMessage: "Please fill out all required fields",
     exerciseName: "Exercise name",
     createExerciseButton: "Create exercise",
-    createExerciseSuccessfullMessage: "Exercise created successfully",
+    createExerciseSuccessfulMessage: "Exercise created successfully",
+    exerciseAlreadyExistsTitle: "Exercise already exists",
+    exerciseAlreadyExistsMessage:
+      "An exercise with the same name already exists, are you sure you want to create a new one? The original one will not be replaced.",
   },
   exerciseEntrySettings: {
     restTimerEnabledLabel: "Enabled",

@@ -269,11 +269,26 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                   </RowView>
                 )}
               </View>
+
+              {workout.workoutNotes && (
+                <>
+                  <Spacer type="vertical" size="small" />
+                  <RowView style={{ gap: spacing.small }}>
+                    {/* <NotebookPen color={themeStore.colors("foreground")} /> */}
+                    <Text style={styles.flex1} text={workout.workoutNotes} preset="light" />
+                  </RowView>
+                </>
+              )}
             </>
           }
           data={workout.exercises}
           renderItem={({ item }) => (
-            <ExerciseSummary key={item.exerciseId} byUserId={workoutByUserId} exercise={item} />
+            <ExerciseSummary
+              key={item.exerciseId}
+              isTemplate={false}
+              byUserId={workoutByUserId}
+              exercise={item}
+            />
           )}
         />
 

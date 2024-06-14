@@ -172,6 +172,7 @@ const $sizeStyles = {
   sm: { fontSize: 16, lineHeight: 24 } as TextStyle,
   xs: { fontSize: 14, lineHeight: 21 } as TextStyle,
   xxs: { fontSize: 12, lineHeight: 18 } as TextStyle,
+  tiny: { fontSize: 10, lineHeight: 14 } as TextStyle,
 }
 
 const $primaryWeightStyles = Object.entries(typography.primary).reduce(

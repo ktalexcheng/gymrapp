@@ -69,7 +69,7 @@ const GymSearchFooterComponent: FC = () => {
         style={styles.alignCenter}
         onPress={() => mainNavigator.navigate("CreateNewGym", {})}
       />
-      <Spacer type="vertical" size="extraLarge" />
+      <Spacer type="vertical" size="listFooterPadding" />
     </>
   )
 }

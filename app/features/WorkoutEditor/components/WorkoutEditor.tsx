@@ -1,7 +1,14 @@
 import { Button, Spacer, TextField } from "app/components"
 import { ExerciseSettings, ExerciseSettingsType } from "app/data/types"
 import { useToast } from "app/hooks"
-import { IExerciseModel, IExercisePerformedModel, SetPropType } from "app/stores"
+import { translate } from "app/i18n"
+import {
+  IActiveWorkoutStoreModel,
+  IExerciseModel,
+  IExercisePerformedModel,
+  IWorkoutEditorStoreModel,
+  SetPropType,
+} from "app/stores"
 import { spacing } from "app/theme"
 import { logError } from "app/utils/logger"
 import { toJS } from "mobx"
@@ -16,9 +23,9 @@ import { ExerciseEntry } from "./ExerciseEntry"
 import { ExercisePickerSheet } from "./ExercisePickerSheet"
 
 export type WorkoutEditorProps = {
-  workoutNotes?: string | null
+  isTemplate?: boolean
+  workout: IActiveWorkoutStoreModel | IWorkoutEditorStoreModel
   onChangeWorkoutNotes: (value: string) => void
-  allExercises: IExercisePerformedModel[]
   enableExerciseSettingsMenuItems?: Array<ExerciseSettingsType>
   onChangeExerciseSettings?: (
     exerciseId: string,
@@ -45,14 +52,16 @@ export type WorkoutEditorProps = {
 
 export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
   const {
-    workoutNotes,
+    isTemplate = false,
+    workout,
     onReplaceExercise,
     onChangeWorkoutNotes,
-    allExercises,
     onAddExercise,
     onReorderExercise,
     ExtraHeaderComponent,
   } = props
+  const { exercises: allExercises } = workout
+  const { workoutNotes, workoutTemplateNotes } = workout
 
   // utilities
   const [useToastTx] = useToast()
@@ -141,9 +150,13 @@ export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
               style={$exerciseNotesInputStyle}
               inputWrapperStyle={$exerciseNotesInputWrapper}
               multiline={true}
-              value={workoutNotes ?? undefined}
+              value={(isTemplate ? workoutTemplateNotes : workoutNotes) ?? undefined}
               onChangeText={onChangeWorkoutNotes}
-              placeholderTx="workoutEditor.workoutNotesPlaceholder"
+              placeholder={
+                isTemplate
+                  ? translate("workoutEditor.workoutTemplateNotesPlaceholder")
+                  : translate("workoutEditor.workoutNotesPlaceholder")
+              }
             />
           </>
         }

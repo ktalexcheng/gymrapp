@@ -17,13 +17,21 @@ import { TouchableOpacity, View, ViewStyle } from "react-native"
 
 export type ExerciseSummaryProps = {
   byUserId: string
-  exercise: IExercisePerformedModel | IExerciseSummaryModel
   setKey?: string
   showSetStatus?: boolean
-}
+} & (
+  | {
+      isTemplate: false
+      exercise: IExerciseSummaryModel
+    }
+  | {
+      isTemplate: true
+      exercise: IExercisePerformedModel
+    }
+)
 
 export const ExerciseSummary = (props: ExerciseSummaryProps) => {
-  const { byUserId, exercise, setKey = "setsPerformed", showSetStatus = true } = props
+  const { isTemplate, byUserId, exercise, setKey = "setsPerformed", showSetStatus = true } = props
   const { themeStore, exerciseStore, userStore } = useStores()
   const weightUnitTx = useWeightUnitTx()
   const mainNavigation = useMainNavigation()
@@ -91,16 +99,31 @@ export const ExerciseSummary = (props: ExerciseSummaryProps) => {
     }
   }
 
+  function renderNotes() {
+    if (isTemplate && exercise?.templateExerciseNotes) {
+      return (
+        <>
+          <Text preset="light">{exercise.templateExerciseNotes}</Text>
+          <Spacer type="vertical" size="tiny" />
+        </>
+      )
+    } else if (exercise?.exerciseNotes) {
+      return (
+        <>
+          <Text preset="light">{exercise.exerciseNotes}</Text>
+          <Spacer type="vertical" size="tiny" />
+        </>
+      )
+    }
+
+    return null
+  }
+
   return (
     <TouchableOpacity onPress={handleOnPress}>
       <View style={$exerciseSummaryContainer}>
         <Text preset="bold">{exerciseName}</Text>
-        {exercise.exerciseNotes && (
-          <>
-            <Text preset="light">{exercise.exerciseNotes}</Text>
-            <Spacer type="vertical" size="small" />
-          </>
-        )}
+        {renderNotes()}
         {exercise?.[setKey]?.map((s, i) => renderSetSummary(s, i))}
       </View>
     </TouchableOpacity>

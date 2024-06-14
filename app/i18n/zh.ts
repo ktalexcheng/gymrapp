@@ -324,7 +324,9 @@ const zh: Translations = {
   workoutEditor: {
     newWorkoutTitlePlaceholder: "新的訓練記錄",
     workoutNotesPlaceholder: "新增訓練筆記...",
+    workoutTemplateNotesPlaceholder: "新增訓練指南...",
     exerciseNotesPlaceholder: "新增動作筆記...",
+    templateExerciseNotesPlaceholder: "新增動作指南...",
     addExerciseButtonLabel: "新增動作",
     exerciseSetHeaders: {
       set: "組次",
@@ -345,15 +347,17 @@ const zh: Translations = {
     confirmRemoveIncompletedSets: "是，移除未完成的組次",
     rejectRemoveIncompletedSets: "返回",
     discardWorkout: "捨棄",
-    timeElapsedLabel: "經過時間：",
-    totalVolumeLabel: "總量：",
-    timeSinceLastSetLabel: "休息時間：",
+    timeElapsedLabel: "經過時間",
+    totalVolumeLabel: "總量（{{weightUnit}}）",
+    timeSinceLastSetLabel: "休息時間",
     ongoingWorkoutLabel: "正在進行的訓練記錄",
     gymPickerScreenTitle: "選擇健身房",
     emptyFavoriteGymsMessage:
       "你目前沒有任何最愛的健身房。將健身房加入你的最愛，以自動設置你的訓練場所",
     noFavoriteGymFoundMessage: "看起來你附近沒有任何你最愛的健身房",
     favoriteGymFoundMessage: "將訓練場所設置為 {{gymName}}",
+    followingTemplateLabel: "使用課表",
+    instructionsLabel: "指南",
     // setOrderColumnHeader: "組次",
     // previousColumnHeader: "前次",
     // weightColumnHeader: "重量",
@@ -471,7 +475,10 @@ const zh: Translations = {
     requiredFieldsMissingMessage: "請填寫所有必填欄位",
     exerciseName: "動作名稱",
     createExerciseButton: "建立動作",
-    createExerciseSuccessfullMessage: "成功建立新的動作",
+    createExerciseSuccessfulMessage: "成功建立新的動作",
+    exerciseAlreadyExistsTitle: "動作已存在",
+    exerciseAlreadyExistsMessage:
+      "一個相同名字的動作已經存在，你是否確定要建立一個新的動作？現有的動作不會被取代。",
   },
   exerciseEntrySettings: {
     restTimerEnabledLabel: "啟用",

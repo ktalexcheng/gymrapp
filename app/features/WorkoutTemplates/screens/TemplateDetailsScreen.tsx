@@ -61,9 +61,13 @@ export const TemplateDetailsScreen = ({ route }: TemplateDetailsScreenProps) => 
           numberOfLines={showEntireTitle ? undefined : 2}
         />
       </TouchableOpacity>
+      {workoutTemplate.data.workoutTemplateNotes && (
+        <Text text={workoutTemplate.data.workoutTemplateNotes} />
+      )}
       {workoutTemplate.data.exercises.map((e) => (
         <ExerciseSummary
           key={e.exerciseId}
+          isTemplate={true}
           exercise={e as any}
           setKey="sets"
           showSetStatus={false}

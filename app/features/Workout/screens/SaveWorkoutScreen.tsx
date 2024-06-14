@@ -189,8 +189,18 @@ export const SaveWorkoutScreen: FC = observer(() => {
         }}
       />
       <Text preset="subheading" tx="workoutSettings.workoutSummaryLabel" />
+      {activeWorkoutStore.workoutNotes && <Text text={activeWorkoutStore.workoutNotes} />}
       {activeWorkoutStore.exercises.map((e, _) => {
-        return <ExerciseSummary key={e.exerciseId} byUserId={userStore.userId!} exercise={e} />
+        return (
+          // @ts-ignore: Re-using ExerciseSummary but exercises at this point are not saved yet
+          // so do not have the summary props
+          <ExerciseSummary
+            key={e.exerciseId}
+            isTemplate={false}
+            byUserId={userStore.userId!}
+            exercise={e}
+          />
+        )
       })}
       <Spacer type="vertical" size="medium" />
       <Button preset="dangerOutline" onPress={discardWorkout} tx="common.discard" />

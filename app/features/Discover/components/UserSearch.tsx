@@ -32,19 +32,19 @@ const UserSearchResultItem: FC<UserSearchResultItemProps> = ({
   )
 }
 
-// const UserSearchFooterComponent = () => {
-//   return (
-//     <>
-//       <Button
-//         tx="userSearch.inviteFriendsButtonLabel"
-//         preset="text"
-//         style={styles.alignCenter}
-//         onPress={() => console.debug("TODO: share download link to friends")}
-//       />
-//       <Spacer type="vertical" size="extraLarge" />
-//     </>
-//   )
-// }
+const UserSearchFooterComponent = () => {
+  return (
+    <>
+      {/* <Button
+        tx="userSearch.inviteFriendsButtonLabel"
+        preset="text"
+        style={styles.alignCenter}
+        onPress={() => console.debug("TODO: share download link to friends")}
+      /> */}
+      <Spacer type="vertical" size="listFooterPadding" />
+    </>
+  )
+}
 
 const UserSearchPromptComponent = () => {
   return (
@@ -71,7 +71,7 @@ export const UserSearch: FC = () => {
       renderSearchResultItem={renderSearchResultItem}
       searchResultItemKeyField="userId"
       showEndOfListMessage={false}
-      // footerComponent={UserSearchFooterComponent}
+      footerComponent={UserSearchFooterComponent}
     />
   )
 }

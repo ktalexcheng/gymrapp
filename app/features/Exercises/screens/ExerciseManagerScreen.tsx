@@ -1,9 +1,10 @@
-import { Icon, RowView, Screen, Spacer, Text } from "app/components"
+import { RowView, Screen, Spacer, Text } from "app/components"
 import { TabScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { IExerciseModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
+import { FilePlus2 } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { ViewStyle } from "react-native"
@@ -12,7 +13,7 @@ import { ExerciseCatalog } from "../components/ExerciseCatalog"
 interface ExerciseManagerScreenProps extends TabScreenProps<"Exercises"> {}
 
 export const ExerciseManagerScreen: FC<ExerciseManagerScreenProps> = observer(() => {
-  const { activeWorkoutStore } = useStores()
+  const { themeStore, activeWorkoutStore } = useStores()
   const mainNavigation = useMainNavigation()
   const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress ? [] : ["top"]
 
@@ -27,16 +28,13 @@ export const ExerciseManagerScreen: FC<ExerciseManagerScreenProps> = observer(()
       <RowView style={[styles.alignCenter, styles.justifyBetween, $screenTitleContainer]}>
         <Text preset="screenTitle" tx="exerciseManagerScreen.exerciseManagerTitle" />
         <Spacer type="vertical" size="small" />
-        <Icon
-          name="create-outline"
+        <FilePlus2
           size={30}
+          color={themeStore.colors("foreground")}
           onPress={() => mainNavigation.navigate("CreateExercise")}
         />
       </RowView>
-      <ExerciseCatalog
-        onItemPress={handleSelectExercise}
-        listFooterComponent={<Spacer type="vertical" size="extraLarge" />}
-      />
+      <ExerciseCatalog onItemPress={handleSelectExercise} />
     </Screen>
   )
 })

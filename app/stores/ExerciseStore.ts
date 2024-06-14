@@ -165,9 +165,14 @@ export const ExerciseStoreModel = types
       }
     })
 
+    const isExerciseNameUnique = (exerciseName: string) => {
+      return !self.allExercisesArray.find(
+        (e) => e.exerciseName.toLowerCase() === exerciseName.toLowerCase(),
+      )
+    }
+
     const createPrivateExercise = flow(function* (newExercise: NewExercise, isOffline = false) {
       self.isLoading = true
-
       try {
         const { privateExerciseRepository } = getEnv<RootStoreDependencies>(self)
         const newExerciseId = privateExerciseRepository.newDocumentId()
@@ -181,9 +186,10 @@ export const ExerciseStoreModel = types
         self.allExercises.put(_newExercise)
 
         self.lastUpdated = new Date()
-        self.isLoading = false
       } catch (e) {
         logError(e, "ExerciseStore.createPrivateExercise error")
+      } finally {
+        self.isLoading = false
       }
     })
 
@@ -192,6 +198,7 @@ export const ExerciseStoreModel = types
       getAllExercises,
       updateExerciseSetting,
       uploadExerciseSettings,
+      isExerciseNameUnique,
       createPrivateExercise,
     }
   })

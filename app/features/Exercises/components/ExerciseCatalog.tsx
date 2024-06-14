@@ -36,11 +36,11 @@ interface ExerciseListProps extends ExerciseCatalogProps {
     title: string
     data: IExerciseModel[]
   }[]
-  listFooterComponent?: SectionList["props"]["ListFooterComponent"]
+  ListFooterComponent?: SectionList["props"]["ListFooterComponent"]
 }
 
 const ExerciseList: FC<ExerciseListProps> = function ExerciseList(props: ExerciseListProps) {
-  const { sectionsData, onItemPress, listFooterComponent } = props
+  const { sectionsData, onItemPress, ListFooterComponent } = props
   const { themeStore } = useStores()
 
   const $sectionHeader: ViewStyle = {
@@ -85,7 +85,12 @@ const ExerciseList: FC<ExerciseListProps> = function ExerciseList(props: Exercis
           </Text>
         )}
         keyExtractor={(item) => item.exerciseId}
-        ListFooterComponent={listFooterComponent}
+        ListFooterComponent={
+          <>
+            {ListFooterComponent}
+            <Spacer type="vertical" size="listFooterPadding" />
+          </>
+        }
       />
     </View>
   )
@@ -93,7 +98,7 @@ const ExerciseList: FC<ExerciseListProps> = function ExerciseList(props: Exercis
 
 interface ExerciseCatalogProps {
   onItemPress: (exercise: IExerciseModel) => void
-  listFooterComponent?: SectionList["props"]["ListFooterComponent"]
+  ListFooterComponent?: SectionList["props"]["ListFooterComponent"]
 }
 
 interface ExerciseCatalogTabRoute extends Route {
@@ -102,7 +107,7 @@ interface ExerciseCatalogTabRoute extends Route {
 }
 
 export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: ExerciseCatalogProps) => {
-  const { onItemPress, listFooterComponent } = props
+  const { onItemPress, ListFooterComponent } = props
   const [tabIndex, setTabIndex] = useState(0)
   const { exerciseStore } = useStores()
 
@@ -188,7 +193,7 @@ export const ExerciseCatalog: FC<ExerciseCatalogProps> = observer((props: Exerci
       <ExerciseList
         sectionsData={route.data}
         onItemPress={onItemPress}
-        listFooterComponent={listFooterComponent}
+        ListFooterComponent={ListFooterComponent}
       />
     )
   }

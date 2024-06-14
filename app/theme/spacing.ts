@@ -12,6 +12,7 @@ export const spacing = {
   huge: 48,
   massive: 64,
   screenPadding: 16,
+  listFooterPadding: 64,
 } as const
 
 export type Spacing = keyof typeof spacing

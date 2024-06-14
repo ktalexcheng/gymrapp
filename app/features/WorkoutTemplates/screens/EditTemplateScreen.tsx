@@ -32,14 +32,14 @@ export const EditTemplateScreen = observer((props: EditTemplateScreenProps) => {
     activityId: ActivityType.Gym,
     createdByUserId: userStore.userId!,
     createdFromWorkoutId: undefined,
-    workoutTemplateNotes: workoutStore.workoutNotes,
+    workoutTemplateNotes: workoutStore.workoutTemplateNotes,
     workoutTemplateName: workoutStore.workoutTitle,
     exercises: workoutStore.exercises.map((e) => ({
       exerciseId: e.exerciseId,
       exerciseSource: e.exerciseSource,
       exerciseOrder: e.exerciseOrder,
       exerciseName: e.exerciseName,
-      exerciseNotes: e.exerciseNotes,
+      templateExerciseNotes: e.templateExerciseNotes,
       volumeType: e.volumeType,
       sets:
         e.setsPerformed?.map((s) => ({
@@ -87,7 +87,7 @@ export const EditTemplateScreen = observer((props: EditTemplateScreenProps) => {
   }
 
   const onChangeExerciseNotes = (exerciseOrder: number, value: string) => {
-    workoutStore.updateExerciseNotes(exerciseOrder, value)
+    workoutStore.updateExercise(exerciseOrder, "templateExerciseNotes", value)
   }
 
   const onAddExercise = (exercise: IExerciseModel) => {
@@ -142,9 +142,9 @@ export const EditTemplateScreen = observer((props: EditTemplateScreenProps) => {
       />
 
       <WorkoutEditor
-        workoutNotes={workoutStore.workoutNotes}
-        onChangeWorkoutNotes={workoutStore.setProp.bind(workoutStore, "workoutNotes")}
-        allExercises={workoutStore.exercises}
+        isTemplate={true}
+        workout={workoutStore}
+        onChangeWorkoutNotes={workoutStore.setProp.bind(workoutStore, "workoutTemplateNotes")}
         enableExerciseSettingsMenuItems={Object.values(ExerciseSettingsType)}
         onChangeExerciseSettings={onChangeExerciseSettings}
         onReplaceExercise={onReplaceExercise}

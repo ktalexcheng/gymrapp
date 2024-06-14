@@ -130,6 +130,11 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
         : themeStore.colors("background"),
   }
 
+  const $previousSetText: TextStyle = {
+    textAlign: "center",
+    opacity: isCompleted ? 0.5 : 1,
+  }
+
   return (
     <Swipeable
       ref={swipeableRef}
@@ -598,8 +603,4 @@ const $textFieldWrapper: ViewStyle = {
   height: "100%",
   width: "100%",
   backgroundColor: undefined,
-}
-
-const $previousSetText: TextStyle = {
-  textAlign: "center",
 }
