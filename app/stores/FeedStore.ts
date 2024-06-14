@@ -494,7 +494,6 @@ export const FeedStoreModel = types
 
       try {
         self.isLoadingUserWorkouts = true
-        self.userWorkoutMetas.clear()
 
         const { userRepository } = getEnv<RootStoreDependencies>(self)
         const user = yield userRepository.get(self.userId, true)
@@ -515,8 +514,6 @@ export const FeedStoreModel = types
           return
         }
 
-        addWorkoutToStore(WorkoutSource.User, ...workouts)
-
         const workoutInteractions = yield workoutInteractionRepository.getMany(workoutIds)
         workoutInteractions.forEach((interaction) => {
           self.workoutInteractions.put({
@@ -529,6 +526,10 @@ export const FeedStoreModel = types
 
         // Load local user workouts
         const localWorkouts = yield workoutRepository.getAllLocalWorkouts()
+
+        // Do this very last so the user can still see workouts while loading
+        self.userWorkoutMetas.clear()
+        addWorkoutToStore(WorkoutSource.User, ...workouts)
         addWorkoutToStore(WorkoutSource.User, ...localWorkouts)
 
         console.debug("FeedStore.loadUserWorkouts done")

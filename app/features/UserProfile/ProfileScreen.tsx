@@ -26,13 +26,6 @@ import { UserProfileStatsBar } from "./components/UserProfileStatsBar"
 
 const UserActivitiesTabScene: FC = observer(() => {
   const { userStore, feedStore } = useStores()
-  const [workoutsListData, setWorkoutsListData] = useState(feedStore.userWorkoutsListData)
-
-  useEffect(() => {
-    if (!feedStore.feedStoreIsBusy && feedStore.userWorkoutsListData) {
-      setWorkoutsListData(feedStore.userWorkoutsListData)
-    }
-  }, [feedStore.feedStoreIsBusy, feedStore.userWorkoutsListData])
 
   function renderWorkoutItem({ item }) {
     return <WorkoutSummaryCard {...item} byUser={userStore.user} />
@@ -40,7 +33,7 @@ const UserActivitiesTabScene: FC = observer(() => {
 
   return (
     <FlatList
-      data={workoutsListData}
+      data={feedStore.userWorkoutsListData}
       refreshControl={
         <ThemedRefreshControl
           onRefresh={feedStore.loadUserWorkouts}
@@ -57,7 +50,9 @@ const UserActivitiesTabScene: FC = observer(() => {
         </View>
       )}
       ListFooterComponent={() =>
-        workoutsListData?.length > 0 && <Spacer type="vertical" size="listFooterPadding" />
+        feedStore.userWorkoutsListData?.length > 0 && (
+          <Spacer type="vertical" size="listFooterPadding" />
+        )
       }
     />
   )
