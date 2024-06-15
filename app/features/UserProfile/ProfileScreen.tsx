@@ -165,7 +165,8 @@ const WeeklyWorkoutChart = observer(({ chartData }: WeeklyWorkoutChartProps) => 
           valueTextColor: processColor(themeStore.colors("actionableForeground")),
           valueTextSize: 12,
           highlightEnabled: false,
-          valueFormatter: chartData.map((d) => d.workoutsCount.toFixed(0)),
+          // Using "" for 0 to prevent from overlapping with x-axis labels
+          valueFormatter: chartData.map((d) => (d.workoutsCount ? d.workoutsCount.toFixed(0) : "")),
         },
       },
     ],
