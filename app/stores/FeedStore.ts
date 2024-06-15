@@ -302,10 +302,11 @@ export const FeedStoreModel = types
         const minWeekMs = Math.min(...Array.from(_weeklyWorkoutsCount.keys()))
 
         for (let i = minWeekMs; i <= currentWeekMs; i += milliseconds({ weeks: 1 })) {
-          if (!_weeklyWorkoutsCount.has(i)) {
+          const _weekMs = getTime(startOfDay(i))
+          if (!_weeklyWorkoutsCount.has(_weekMs)) {
             // Wrapping startOfday(i) to avoid timezone issues from date-fns
             // for example daylight saving time issues in applicable time zones
-            _weeklyWorkoutsCount.set(getTime(startOfDay(i)), 0)
+            _weeklyWorkoutsCount.set(_weekMs, 0)
           }
         }
 
