@@ -9,7 +9,7 @@ import { CommentId, ExerciseId, UserId, WorkoutComment, WorkoutId } from "app/da
 import { api } from "app/services/api"
 import { getNestedField } from "app/utils/getNestedField"
 import { logError } from "app/utils/logger"
-import { getTime, milliseconds, startOfWeek } from "date-fns"
+import { getTime, milliseconds, startOfDay, startOfWeek } from "date-fns"
 import { randomUUID } from "expo-crypto"
 import { toJS } from "mobx"
 import { Instance, SnapshotOrInstance, flow, getEnv, types } from "mobx-state-tree"
@@ -284,35 +284,28 @@ export const FeedStoreModel = types
         const workouts = Array.from(self.userWorkoutMetas.values())
         workouts.forEach((w) => {
           // Find start of week (Monday)
-          const weekStart = startOfWeek(w.startTime, {
+          const weekStart = startOfWeek(new Date(w.startTime), {
             weekStartsOn: 1,
           })
-          const weekStartTime = getTime(weekStart)
+          const weekStartMs = getTime(weekStart)
 
-          if (!_weeklyWorkoutsCount.has(weekStartTime)) {
-            _weeklyWorkoutsCount.set(weekStartTime, 0)
+          if (!_weeklyWorkoutsCount.has(weekStartMs)) {
+            _weeklyWorkoutsCount.set(weekStartMs, 1)
+          } else {
+            _weeklyWorkoutsCount.set(weekStartMs, (_weeklyWorkoutsCount.get(weekStartMs) ?? 0) + 1)
           }
-
-          _weeklyWorkoutsCount.set(
-            weekStartTime,
-            (_weeklyWorkoutsCount.get(weekStartTime) ?? 0) + 1,
-          )
         })
 
         // Fill out missing weeks
-        const currentWeek = getTime(startOfWeek(new Date(), { weekStartsOn: 1 }))
-        const minWeek = Math.min(...Array.from(_weeklyWorkoutsCount.keys()))
-        const maxWeek = Math.max(...Array.from(_weeklyWorkoutsCount.keys()), currentWeek)
-        const weekAsMilliseconds = milliseconds({ weeks: 1 })
-        console.debug("FeedStore.weeklyWorkoutsCount", {
-          minWeek,
-          maxWeek,
-          weekAsMilliseconds,
-        })
-        for (let i = minWeek; i <= maxWeek; i += weekAsMilliseconds) {
+        const currentWeek = startOfWeek(new Date(), { weekStartsOn: 1 })
+        const currentWeekMs = getTime(currentWeek)
+        const minWeekMs = Math.min(...Array.from(_weeklyWorkoutsCount.keys()))
+
+        for (let i = minWeekMs; i <= currentWeekMs; i += milliseconds({ weeks: 1 })) {
           if (!_weeklyWorkoutsCount.has(i)) {
-            console.debug("FeedStore.weeklyWorkoutsCount filling missing week", i)
-            _weeklyWorkoutsCount.set(i, 0)
+            // Wrapping startOfday(i) to avoid timezone issues from date-fns
+            // for example daylight saving time issues in applicable time zones
+            _weeklyWorkoutsCount.set(getTime(startOfDay(i)), 0)
           }
         }
 
