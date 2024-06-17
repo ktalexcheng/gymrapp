@@ -157,6 +157,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
           {volumeType === ExerciseVolumeType.Time && (
             <>
               <CircuitTimerSheet
+                exerciseName={exerciseName}
                 open={openCircuitTimer}
                 onOpenChange={setOpenCircuitTimer}
                 initialWorkTime={120}

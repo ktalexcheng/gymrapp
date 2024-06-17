@@ -389,11 +389,21 @@ const CircuitTimer = observer((props: CircuitTimerProps) => {
   )
 })
 
-type CircuitTimerSheetProps = SheetProps & CircuitTimerProps
+type CircuitTimerSheetProps = SheetProps &
+  CircuitTimerProps & {
+    exerciseName?: string
+  }
 
 export const CircuitTimerSheet = observer((props: CircuitTimerSheetProps) => {
-  const { initialWorkTime, initialRestTime, initialSets, onComplete, onOpenChange, ...sheetProps } =
-    props
+  const {
+    exerciseName,
+    initialWorkTime,
+    initialRestTime,
+    initialSets,
+    onComplete,
+    onOpenChange,
+    ...sheetProps
+  } = props
 
   const { themeStore } = useStores()
 
@@ -407,7 +417,10 @@ export const CircuitTimerSheet = observer((props: CircuitTimerSheetProps) => {
   return (
     <Sheet {...sheetProps} disableDrag={true} onOpenChange={onOpenChange}>
       <RowView style={$sheetHeader}>
-        <Text weight="bold" tx="circuitTimer.title" />
+        <RowView>
+          <Text weight="bold" tx="circuitTimer.title" />
+          {exerciseName && <Text weight="bold" text={` - ${exerciseName}`} />}
+        </RowView>
         <TouchableOpacity onPress={() => onOpenChange && onOpenChange(false)}>
           <X color={themeStore.colors("foreground")} />
         </TouchableOpacity>
