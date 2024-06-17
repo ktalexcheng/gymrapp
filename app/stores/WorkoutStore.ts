@@ -101,12 +101,12 @@ const TimeExercisePerformedModel = types
 
       self.setsPerformed.push(
         TimeSetPerformedModel.create({
-          ...initialSetValues,
           setId: randomUUID(),
           setOrder: newSetOrder,
           volumeType: self.volumeType,
           setType: ExerciseSetType.Normal,
           isCompleted: false,
+          ...initialSetValues,
         }),
       )
     }
@@ -734,7 +734,7 @@ export const ActiveWorkoutStoreModel = types
         const lastSet =
           exercise.setsPerformed.length > 0 &&
           exercise.setsPerformed[exercise.setsPerformed.length - 1]
-        exercise.addSet(lastSet)
+        exercise.addSet({ ...lastSet, isCompleted: false })
       }
 
       // const newSetOrder = exercise.setsPerformed.length
@@ -766,18 +766,22 @@ export const ActiveWorkoutStoreModel = types
       // }
     }
 
-    function removeSet(targetExerciseOrder: number, targetExerciseSetOrder: number) {
+    function removeSet(targetExerciseOrder: number, targetExerciseSetOrder?: number) {
       const targetExercise = self.exercises.at(targetExerciseOrder)
       if (!targetExercise) {
         console.warn("ActiveWorkoutStore.removeSet: exercise not found")
         return
       }
 
-      const sets = targetExercise.setsPerformed
-      sets.splice(targetExerciseSetOrder, 1)
-      sets.forEach((s, i) => {
-        s.setOrder = i
-      })
+      if (targetExerciseSetOrder === undefined) {
+        targetExercise.setsPerformed.clear()
+      } else {
+        const sets = targetExercise.setsPerformed
+        sets.splice(targetExerciseSetOrder, 1)
+        sets.forEach((s, i) => {
+          s.setOrder = i
+        })
+      }
     }
 
     function updateExercise(

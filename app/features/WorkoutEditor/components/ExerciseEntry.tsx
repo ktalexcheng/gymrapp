@@ -1,12 +1,13 @@
 import { Button, Icon, RowView, Spacer, Text, TextField } from "app/components"
 import { ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import { ExerciseSettings, ExerciseSettingsType } from "app/data/types"
+import { CircuitTimerSheet } from "app/features/Workout/components/CircuitTimerSheet"
 import { useExerciseSetting, useToast, useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { IExercisePerformedModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
-import { TriangleAlert } from "lucide-react-native"
+import { Timer, TriangleAlert } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
 import React, { FC } from "react"
 import { TouchableOpacity, View, ViewStyle } from "react-native"
@@ -33,6 +34,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
     onChangeExerciseNotes,
     onRemoveExercise,
     onAddSet,
+    onUpdateSetsFromCircuitTimer,
     disableSetCompletion,
   } = props
   const {
@@ -45,14 +47,13 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
     templateExerciseNotes,
   } = exercise
 
+  // utilities
   const { themeStore, exerciseStore } = useStores()
   const mainNavigation = useMainNavigation()
   const weightUnitTx = useWeightUnitTx(exerciseId)
   const [toastShowTx] = useToast()
 
-  // derived states
-  const isExerciseFound = !!exerciseStore.getExercise(exerciseId)
-
+  // states
   const autoRestTimerEnabled = useExerciseSetting<boolean>(
     exerciseId,
     ExerciseSettingsType.AutoRestTimerEnabled,
@@ -64,6 +65,10 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
     restTime,
     weightUnit,
   } as Required<ExerciseSettings>
+  const [openCircuitTimer, setOpenCircuitTimer] = React.useState(false)
+
+  // derived states
+  const isExerciseFound = !!exerciseStore.getExercise(exerciseId)
 
   function renderSets() {
     return setsPerformed?.map((set) => (
@@ -148,14 +153,36 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
           </RowView>
         </TouchableOpacity>
 
-        <ExerciseSettingsMenu
-          exercise={exercise}
-          exerciseSettings={exerciseSettings}
-          enableExerciseSettingsMenuItems={enableExerciseSettingsMenuItems}
-          onChangeExerciseSettings={onChangeExerciseSettings}
-          onPressReplaceExercise={onPressReplaceExercise}
-          onRemoveExercise={onRemoveExercise}
-        />
+        <RowView style={styles.alignCenter}>
+          {volumeType === ExerciseVolumeType.Time && (
+            <>
+              <CircuitTimerSheet
+                open={openCircuitTimer}
+                onOpenChange={setOpenCircuitTimer}
+                initialWorkTime={120}
+                initialRestTime={90}
+                initialSets={1}
+                onComplete={(sets) =>
+                  onUpdateSetsFromCircuitTimer && onUpdateSetsFromCircuitTimer(exerciseOrder, sets)
+                }
+              />
+
+              <TouchableOpacity onPress={() => setOpenCircuitTimer(true)}>
+                <Timer size={24} color={themeStore.colors("foreground")} />
+              </TouchableOpacity>
+              <Spacer type="horizontal" size="small" />
+            </>
+          )}
+
+          <ExerciseSettingsMenu
+            exercise={exercise}
+            exerciseSettings={exerciseSettings}
+            enableExerciseSettingsMenuItems={enableExerciseSettingsMenuItems}
+            onChangeExerciseSettings={onChangeExerciseSettings}
+            onPressReplaceExercise={onPressReplaceExercise}
+            onRemoveExercise={onRemoveExercise}
+          />
+        </RowView>
       </RowView>
 
       {!isTemplate && templateExerciseNotes && (

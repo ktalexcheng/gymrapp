@@ -6,6 +6,7 @@ import {
   IActiveWorkoutStoreModel,
   IExerciseModel,
   IExercisePerformedModel,
+  ISetPerformedModel,
   IWorkoutEditorStoreModel,
   SetPropType,
 } from "app/stores"
@@ -47,6 +48,10 @@ export type WorkoutEditorProps = {
   onCompleteSet?: (settings: { autoRestTimerEnabled: boolean; restTime: number }) => void
   onAddSet: (exerciseOrder: number) => void
   onRemoveSet: (exerciseOrder: number, setOrder: number) => void
+  onUpdateSetsFromCircuitTimer?: (
+    exerciseOrder: number,
+    sets: Partial<ISetPerformedModel>[],
+  ) => void
   ExtraHeaderComponent?: React.JSXElementConstructor<any>
 }
 

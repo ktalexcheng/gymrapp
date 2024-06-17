@@ -1,8 +1,8 @@
 import { useStores } from "app/stores"
-import { fontSize, spacing } from "app/theme"
+import { $fontSizeStyles, FontSize, spacing } from "app/theme"
 import { observer } from "mobx-react-lite"
 import React from "react"
-import { TextStyle, View, ViewStyle } from "react-native"
+import { StyleProp, TextStyle, View, ViewStyle } from "react-native"
 import { TxKeyPath, translate } from "../i18n"
 import { Text } from "./Text"
 
@@ -10,7 +10,7 @@ export interface DividerProps {
   orientation: "horizontal" | "vertical"
   tx?: TxKeyPath
   text?: string
-  fontSize?: number
+  fontSize?: FontSize
   lineWidth?: number
   spaceSize?: number
   color?: string
@@ -50,11 +50,14 @@ export const Divider = observer((props: DividerProps) => {
       break
   }
 
-  const $textStyle: TextStyle = {
-    paddingHorizontal: spacing.extraSmall,
-    fontSize: fontSizeOverride || fontSize.body,
-    color: themeStore.colors("separator"),
-  }
+  const $textStyle: StyleProp<TextStyle> = [
+    {
+      ...$fontSizeStyles.sm, // Default font size
+      paddingHorizontal: spacing.extraSmall,
+      color: themeStore.colors("separator"),
+    },
+    fontSizeOverride && $fontSizeStyles[fontSizeOverride],
+  ]
 
   const i18nText = tx && translate(tx)
   const separatorText = i18nText || text

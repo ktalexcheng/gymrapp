@@ -384,6 +384,20 @@ const en = {
     // cancelAction: "Cancel",
     // rpeNullLabel: "None",
   },
+  timer: {
+    currentSet: "Set {{set}} / {{totalSets}}",
+  },
+  circuitTimer: {
+    title: "Circuit timer",
+    work: "Work",
+    rest: "Rest",
+    sets: "Sets",
+    start: "Start",
+    pause: "Pause",
+    reset: "Reset",
+    updateSetsPerformedMessage: "Update sets performed for this exercise in your current workout?",
+    finishedMessage: "Finished!",
+  },
   editWorkoutScreen: {
     editWorkoutWarningTitle: "Are you sure?",
     editWorkoutWarningMessage:

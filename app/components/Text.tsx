@@ -12,9 +12,8 @@ import {
   TextStyle,
 } from "react-native"
 import { TxKeyPath, translate } from "../i18n"
-import { typography } from "../theme"
+import { $fontSizeStyles, FontSize, typography } from "../theme"
 
-type Sizes = keyof typeof $sizeStyles
 type Weights = keyof typeof typography.primary
 type Presets =
   | "default"
@@ -64,7 +63,7 @@ export interface TextProps extends RNTextProps {
   /**
    * Text size modifier.
    */
-  size?: Sizes
+  size?: FontSize
   /**
    * Children components.
    */
@@ -103,7 +102,7 @@ export const Text = observer((props: TextProps) => {
   const content = i18nText ?? text ?? children
 
   const $baseStyle: StyleProp<TextStyle> = [
-    $sizeStyles.sm,
+    $fontSizeStyles.sm,
     $primaryWeightStyles.normal,
     { color: themeStore.colors("text") },
   ]
@@ -115,15 +114,31 @@ export const Text = observer((props: TextProps) => {
 
     light: [$baseStyle, $primaryWeightStyles.light] as StyleProp<TextStyle>,
 
-    screenTitle: [$baseStyle, $sizeStyles.xxl, $secondaryWeightStyles.bold] as StyleProp<TextStyle>,
+    screenTitle: [
+      $baseStyle,
+      $fontSizeStyles.xxl,
+      $secondaryWeightStyles.bold,
+    ] as StyleProp<TextStyle>,
 
-    heading: [$baseStyle, $sizeStyles.xl, $secondaryWeightStyles.medium] as StyleProp<TextStyle>,
+    heading: [
+      $baseStyle,
+      $fontSizeStyles.xl,
+      $secondaryWeightStyles.medium,
+    ] as StyleProp<TextStyle>,
 
-    subheading: [$baseStyle, $sizeStyles.lg, $secondaryWeightStyles.medium] as StyleProp<TextStyle>,
+    subheading: [
+      $baseStyle,
+      $fontSizeStyles.lg,
+      $secondaryWeightStyles.medium,
+    ] as StyleProp<TextStyle>,
 
     formLabel: [$baseStyle, $primaryWeightStyles.medium] as StyleProp<TextStyle>,
 
-    formHelper: [$baseStyle, $sizeStyles.sm, $primaryWeightStyles.light] as StyleProp<TextStyle>,
+    formHelper: [
+      $baseStyle,
+      $fontSizeStyles.sm,
+      $primaryWeightStyles.light,
+    ] as StyleProp<TextStyle>,
 
     danger: [
       $baseStyle,
@@ -148,7 +163,7 @@ export const Text = observer((props: TextProps) => {
   const $styles = [
     !!preset && $presets[preset],
     !!weight && $primaryWeightStyles[weight],
-    !!size && $sizeStyles[size],
+    !!size && $fontSizeStyles[size],
     $styleOverride,
     !!textColorOverride && {
       color: textColorOverride,
@@ -163,17 +178,6 @@ export const Text = observer((props: TextProps) => {
     </RNText>
   )
 })
-
-const $sizeStyles = {
-  xxl: { fontSize: 36, lineHeight: 44 } as TextStyle,
-  xl: { fontSize: 28, lineHeight: 38 } as TextStyle,
-  lg: { fontSize: 20, lineHeight: 32 } as TextStyle,
-  md: { fontSize: 18, lineHeight: 26 } as TextStyle,
-  sm: { fontSize: 16, lineHeight: 24 } as TextStyle,
-  xs: { fontSize: 14, lineHeight: 21 } as TextStyle,
-  xxs: { fontSize: 12, lineHeight: 18 } as TextStyle,
-  tiny: { fontSize: 10, lineHeight: 14 } as TextStyle,
-}
 
 const $primaryWeightStyles = Object.entries(typography.primary).reduce(
   (acc, [weight, fontFamily]) => {

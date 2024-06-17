@@ -374,6 +374,20 @@ const zh: Translations = {
     // cancelAction: "取消",
     // rpeNullLabel: "無",
   },
+  timer: {
+    currentSet: "組次 {{set}} / {{totalSets}}",
+  },
+  circuitTimer: {
+    title: "循環計時",
+    work: "訓練",
+    rest: "休息",
+    sets: "組數",
+    start: "開始",
+    pause: "暫停",
+    reset: "重置",
+    updateSetsPerformedMessage: "更新此動作在當前訓練中的組次？",
+    finishedMessage: "完成！",
+  },
   editWorkoutScreen: {
     editWorkoutWarningTitle: "你確定嗎？",
     editWorkoutWarningMessage:

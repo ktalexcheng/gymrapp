@@ -22,6 +22,7 @@ type Presets =
   | "menuItem"
   | "dangerOutline"
   | "dangerText" // TODO: default, filled, reversed don't have clear distinction
+  | "emphasis"
 
 export interface ButtonAccessoryProps {
   style: StyleProp<any>
@@ -161,6 +162,11 @@ export const Button = observer(
       ] as StyleProp<ViewStyle>,
 
       dangerText: [$baseViewStyle, { backgroundColor: null }] as StyleProp<ViewStyle>,
+
+      emphasis: [
+        $baseViewStyle,
+        { backgroundColor: themeStore.colors("actionable") },
+      ] as StyleProp<ViewStyle>,
     }
 
     const $textPresets: Record<Presets, StyleProp<TextStyle>> = {
@@ -172,6 +178,7 @@ export const Button = observer(
       // outline: [$baseTextStyle, { color: themeStore.colors("actionable") }],
       dangerOutline: [$baseTextStyle, { color: themeStore.colors("danger") }],
       dangerText: [$baseTextStyle, { color: themeStore.colors("danger") }],
+      emphasis: [$baseTextStyle, { color: themeStore.colors("actionableForeground") }],
     }
 
     const $pressedViewPresets: Record<Presets, ViewStyle> = {
@@ -183,6 +190,7 @@ export const Button = observer(
       // outline: {},
       dangerOutline: {},
       dangerText: {},
+      emphasis: {},
     }
 
     const $pressedTextPresets: Record<Presets, StyleProp<TextStyle>> = {
@@ -194,6 +202,7 @@ export const Button = observer(
       // outline: { color: themeStore.colors("actionablePressed"), opacity: 0.8 },
       dangerOutline: { color: themeStore.colors("danger"), opacity: 0.8 },
       dangerText: { color: themeStore.colors("danger"), opacity: 0.8 },
+      emphasis: { color: themeStore.colors("actionableForeground"), opacity: 0.8 },
     }
 
     const preset: Presets = props.preset && $viewPresets[props.preset] ? props.preset : "default"

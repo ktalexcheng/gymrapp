@@ -12,7 +12,7 @@ import {
   SpaceGrotesk_400Regular as spaceGroteskRegular,
   SpaceGrotesk_600SemiBold as spaceGroteskSemiBold,
 } from "@expo-google-fonts/space-grotesk"
-import { Platform } from "react-native"
+import { Platform, TextStyle } from "react-native"
 
 export const customFontsToLoad = {
   spaceGroteskLight,
@@ -86,10 +86,23 @@ export const typography = {
   code: Platform.select({ ios: fonts.courier, android: fonts.monospace }),
 }
 
-export const fontSize = {
-  screenHeading: 32,
-  sectionHeading: 28,
-  body: 16,
-  small: 14,
-  tiny: 10,
+// export const fontSize = {
+//   screenHeading: 32,
+//   sectionHeading: 28,
+//   body: 16,
+//   small: 14,
+//   tiny: 10,
+// }
+
+export const $fontSizeStyles = {
+  xxl: { fontSize: 36, lineHeight: 44 } as TextStyle,
+  xl: { fontSize: 28, lineHeight: 38 } as TextStyle,
+  lg: { fontSize: 20, lineHeight: 32 } as TextStyle,
+  md: { fontSize: 18, lineHeight: 26 } as TextStyle,
+  sm: { fontSize: 16, lineHeight: 24 } as TextStyle,
+  xs: { fontSize: 14, lineHeight: 21 } as TextStyle,
+  xxs: { fontSize: 12, lineHeight: 18 } as TextStyle,
+  tiny: { fontSize: 10, lineHeight: 14 } as TextStyle,
 }
+
+export type FontSize = keyof typeof $fontSizeStyles

@@ -5,7 +5,7 @@ import React from "react"
 import { ViewStyle } from "react-native"
 import { Sheet as TMGSheet, SheetProps as TMGSheetProps } from "tamagui"
 
-interface SheetProps extends TMGSheetProps {
+export interface SheetProps extends TMGSheetProps {
   showHandle?: boolean
 }
 

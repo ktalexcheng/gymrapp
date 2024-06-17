@@ -6,7 +6,7 @@ import { useToast, useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
-import { IExerciseModel, SetPropType, useStores } from "app/stores"
+import { IExerciseModel, ISetPerformedModel, SetPropType, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { getUserLocation } from "app/utils/getUserLocation"
 import { logError } from "app/utils/logger"
@@ -271,6 +271,17 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
       workoutStore.removeSet(exerciseOrder, setOrder)
     }
 
+    const onUpdateSetsFromCircuitTimer = (
+      exerciseOrder: number,
+      sets: Partial<ISetPerformedModel>[],
+    ) => {
+      workoutStore.removeSet(exerciseOrder)
+      console.debug("ActiveWorkoutScreen onUpdateSetsFromCircuitTimer", { exerciseOrder, sets })
+      sets.forEach((set) => {
+        workoutStore.addSet(exerciseOrder, set)
+      })
+    }
+
     const onFinishWorkout = () => {
       workoutStore.endWorkout()
       mainNavigation.navigate("SaveWorkout")
@@ -309,6 +320,7 @@ export const ActiveWorkoutScreen: FC<ActiveWorkoutScreenProps> = observer(
               workoutStore.restartRestTimer(restTime)
             }
           }}
+          onUpdateSetsFromCircuitTimer={onUpdateSetsFromCircuitTimer}
           ExtraHeaderComponent={WorkoutEditorHeaderComponents}
         />
       </Screen>

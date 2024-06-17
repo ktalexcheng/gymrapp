@@ -11,7 +11,7 @@ import {
   ViewStyle,
 } from "react-native"
 import { translate } from "../i18n"
-import { spacing, typography } from "../theme"
+import { $fontSizeStyles, FontSize, spacing, typography } from "../theme"
 import { Text, TextProps } from "./Text"
 
 export interface TextFieldAccessoryProps {
@@ -86,6 +86,10 @@ export interface TextFieldProps extends Omit<TextInputProps, "ref"> {
    */
   inputWrapperStyle?: StyleProp<ViewStyle>
   /**
+   *
+   */
+  fontSize?: FontSize
+  /**
    * An optional component to render on the right side of the input.
    * Example: `RightAccessory={(props) => <Icon icon="ladybug" containerStyle={props.style} color={props.editable ? colors.textDim : colors.text} />}`
    * Note: It is a good idea to memoize this.
@@ -125,6 +129,7 @@ export const TextField = observer(
       style: $inputStyleOverride,
       containerStyle: $containerStyleOverride,
       inputWrapperStyle: $inputWrapperStyleOverride,
+      fontSize: fontSizeOverride,
       ...TextInputProps
     } = props
     const input = useRef<TextInput>(null)
@@ -163,19 +168,22 @@ export const TextField = observer(
       $inputWrapperStyleOverride,
     ]
 
-    const $inputStyle: TextStyle = {
-      flex: 1,
-      alignSelf: "stretch",
-      fontFamily: typography.primary.normal,
-      color: themeStore.colors("text"),
-      fontSize: 16,
-      height: 24,
-      // https://github.com/facebook/react-native/issues/21720#issuecomment-532642093
-      paddingVertical: 0,
-      paddingHorizontal: 0,
-      marginVertical: spacing.extraSmall,
-      marginHorizontal: spacing.small,
-    }
+    const $inputStyle: StyleProp<TextStyle> = [
+      {
+        flex: 1,
+        alignSelf: "stretch",
+        fontFamily: typography.primary.normal,
+        color: themeStore.colors("text"),
+        fontSize: 16,
+        height: 24,
+        // https://github.com/facebook/react-native/issues/21720#issuecomment-532642093
+        paddingVertical: 0,
+        paddingHorizontal: 0,
+        marginVertical: spacing.extraSmall,
+        marginHorizontal: spacing.small,
+      },
+      fontSizeOverride && $fontSizeStyles[fontSizeOverride],
+    ]
 
     const $inputStyles: StyleProp<TextStyle> = [
       $inputStyle,
