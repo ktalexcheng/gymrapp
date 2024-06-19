@@ -68,6 +68,7 @@ export const SaveWorkoutAsTemplateModal = (props: SaveWorkoutAsTemplateModalProp
       transparent={true}
       visible={open}
       onRequestClose={() => onOpenChange(false)}
+      pointerEvents={createTemplate.isPending ? "none" : undefined}
     >
       <TextField
         autoFocus
@@ -77,7 +78,12 @@ export const SaveWorkoutAsTemplateModal = (props: SaveWorkoutAsTemplateModalProp
         onSubmitEditing={saveAsTemplate}
       />
       <Spacer type="vertical" size="medium" />
-      <Button preset="text" tx="common.save" onPress={saveAsTemplate} />
+      <Button
+        preset="text"
+        tx="common.save"
+        onPress={saveAsTemplate}
+        isBusy={createTemplate.isPending}
+      />
       <Button preset="text" tx="common.cancel" onPress={() => onOpenChange(false)} />
     </Modal>
   )

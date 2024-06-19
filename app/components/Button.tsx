@@ -211,6 +211,8 @@ export const Button = observer(
         $viewPresets[preset],
         $viewStyleOverride,
         !!pressed && [$pressedViewPresets[preset], $pressedViewStyleOverride],
+        // Show an opaque overlay of the pressed state when the button is busy
+        isBusy && { opacity: 0.5 },
       ]
     }
     function $textStyle({ pressed }) {
@@ -221,18 +223,6 @@ export const Button = observer(
         !!pressed && [$pressedTextPresets[preset], $pressedTextStyleOverride],
       ]
     }
-    // Show an opaque overlay of the pressed state when the button is busy
-    const $isBusyOverlay: StyleProp<ViewStyle> = [
-      $viewPresets[preset],
-      $viewStyleOverride,
-      $pressedViewPresets[preset],
-      $pressedViewStyleOverride,
-      {
-        position: "absolute",
-        opacity: 0.8,
-        zIndex: 100,
-      },
-    ]
 
     return (
       <Pressable
@@ -244,14 +234,14 @@ export const Button = observer(
       >
         {(state) => (
           <>
-            {isBusy && (
-              <View style={$isBusyOverlay}>
-                <LoadingIndicator />
-              </View>
-            )}
-
             {!!LeftAccessory && (
               <LeftAccessory style={$leftAccessoryStyle} pressableState={state} />
+            )}
+
+            {isBusy && (
+              <View>
+                <LoadingIndicator />
+              </View>
             )}
 
             <Text

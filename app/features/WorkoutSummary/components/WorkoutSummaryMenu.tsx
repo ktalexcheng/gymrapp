@@ -1,5 +1,5 @@
 import { Divider, PopoverTMG as Popover, PopoverMenuItem } from "app/components"
-import { ExerciseSource, WorkoutSource } from "app/data/constants"
+import { WorkoutSource } from "app/data/constants"
 import { WorkoutId } from "app/data/types"
 import { LoadingScreen } from "app/features/common"
 import { translate } from "app/i18n"
@@ -27,7 +27,7 @@ interface WorkoutSummaryMenuProps {
 
 export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
   const { workoutSource, workoutId, enabledActionItems, onBusyChange } = props
-  const { feedStore, themeStore, workoutEditorStore } = useStores()
+  const { feedStore, themeStore, workoutEditorStore, exerciseStore } = useStores()
   const mainNavigation = useMainNavigation()
   const [showSaveAsTemplateModal, setShowSaveAsTemplateModal] = useState(false)
 
@@ -66,10 +66,11 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
   }
 
   const saveAsTemplate = () => {
-    const privateExercises = workout.exercises.filter(
-      (e) => e.exerciseSource === ExerciseSource.Private,
+    const exerciseNotFound = workout.exercises.filter(
+      (e) => !exerciseStore.getExercise(e.exerciseId),
     )
-    if (privateExercises.length > 0) {
+
+    if (exerciseNotFound.length > 0) {
       Alert.alert(
         translate("workoutSummaryMenu.replacePrivateExercisesAlertTitle"),
         translate("workoutSummaryMenu.replacePrivateExercisesAlertMessage"),
