@@ -34,7 +34,7 @@ const CircuitEntry = observer((props: CircuitEntryProps) => {
     circuitStatus,
   } = props
 
-  // utilities
+  // hooks
   const { themeStore } = useStores()
 
   // derived states

@@ -51,6 +51,9 @@ export const ExerciseStoreModel = types
     getExerciseVolumeType(exerciseId: string) {
       return self.allExercises.get(exerciseId)?.volumeType
     },
+    getExerciseCategory(exerciseId: string) {
+      return self.allExercises.get(exerciseId)?.exerciseCat1
+    },
     get allExercisesArray() {
       return Array.from(self.allExercises.values())
     },

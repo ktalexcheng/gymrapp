@@ -68,7 +68,7 @@ export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
   const { exercises: allExercises } = workout
   const { workoutNotes, workoutTemplateNotes } = workout
 
-  // utilities
+  // hooks
   const [useToastTx] = useToast()
 
   // states

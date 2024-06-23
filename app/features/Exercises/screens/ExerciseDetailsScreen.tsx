@@ -1,5 +1,5 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { RowView, Screen, TabBar, Text } from "app/components"
+import { ButtonGroup, Dropdown, RowView, Screen, Spacer, TabBar, Text } from "app/components"
 import { ExerciseVolumeType, WeightUnit, WorkoutSource } from "app/data/constants"
 import { RepsPersonalRecord, WorkoutId } from "app/data/types"
 import { WorkoutSummaryCard } from "app/features/WorkoutSummary"
@@ -9,11 +9,14 @@ import { MainStackParamList } from "app/navigators"
 import { IPersonalRecordsMapModel, useStores } from "app/stores"
 import { spacing } from "app/theme"
 import { formatDate } from "app/utils/formatDate"
+import { roundToString } from "app/utils/formatNumber"
 import { formatSecondsAsTime } from "app/utils/formatTime"
 import { Weight } from "app/utils/weight"
+import { add, differenceInDays } from "date-fns"
 import { observer } from "mobx-react-lite"
 import React, { useState } from "react"
-import { FlatList, TextStyle, View, ViewStyle } from "react-native"
+import { FlatList, processColor, ScrollView, TextStyle, View, ViewStyle } from "react-native"
+import { LineChart } from "react-native-charts-wrapper"
 import { SceneMap, TabView } from "react-native-tab-view"
 
 const WorkoutHistoryTabScene = (exerciseId: string) =>
@@ -58,13 +61,221 @@ const WorkoutHistoryTabScene = (exerciseId: string) =>
     )
   })
 
+const generatePerfOverTimeData = (
+  personalRecords: Array<any>,
+  recordField: string,
+  dateField: string,
+) => {
+  const personalRecordsChartData = personalRecords
+    .reduce((acc, pr) => {
+      const _record = pr[recordField]
+      const _datePerformed = pr[dateField]
+      const _daysSinceZero = differenceInDays(_datePerformed, 0)
+
+      // If a record already exists for the given date, keep the best one
+      const findDate = acc.find((record) => record.xAxis === _daysSinceZero)
+      if (findDate) {
+        findDate.record = Math.max(findDate.record, _record) // Only keep the best record, this mutates the acc array
+        return acc
+      }
+
+      // Otherwise, add a new record
+      acc.push({
+        record: _record,
+        xAxis: _daysSinceZero,
+      })
+      return acc
+    }, [] as { record: number; xAxis: number }[])
+    .sort((a, b) => a.xAxis - b.xAxis)
+
+  return personalRecordsChartData
+}
+
+type ExercisePerformanceChartProps = {
+  /**
+   * personalRecords is a map of time/reps (as string) to volume
+   * e.g. { "10":}
+   */
+  personalRecords: { record: number; xAxis: number }[]
+  xAxisType: "date" | "reps"
+  yAxisType: "time" | "weight" | "reps"
+  chartLegendLabel: string
+  noDataText: string
+  recordFormatter?: (record: number) => string
+  // xAxisFormatter?: (volume: number) => string
+}
+
+const ExercisePerformanceChart = observer((props: ExercisePerformanceChartProps) => {
+  const {
+    personalRecords,
+    xAxisType,
+    yAxisType,
+    chartLegendLabel,
+    noDataText,
+    recordFormatter,
+    // xAxisFormatter,
+  } = props
+
+  const { themeStore } = useStores()
+
+  const data = {
+    dataSets: [
+      {
+        label: chartLegendLabel,
+        values: personalRecords.map(({ record, xAxis }) => ({
+          y: record,
+          x: xAxis,
+          // The Marker component is styled poorly, so we add some padding
+          marker:
+            "   " +
+            (xAxisType === "date" ? formatDate(add(0, { days: xAxis }), "yyyy-MM-dd") : xAxis),
+        })),
+        config: {
+          mode: "HORIZONTAL_BEZIER", // LINEAR, HORIZONTAL_BEZIER, CUBIC_BEZIER
+          valueFormatter: "labelByXValue",
+          valueFormatterLabels: personalRecords.map(({ record, xAxis }) => ({
+            label: recordFormatter ? recordFormatter(record) : record.toString(),
+            x: xAxis,
+          })),
+          valueTextColor: processColor(themeStore.colors("actionable")),
+          valueTextSize: 12,
+          // highlightEnabled: false,
+          drawVerticalHighlightIndicator: false,
+          drawHorizontalHighlightIndicator: false,
+          color: processColor(themeStore.colors("actionable")),
+          circleColor: processColor(themeStore.colors("actionable")),
+          circleRadius: 6,
+          drawCircleHole: true,
+          lineWidth: 3, // Not documented
+          // drawFilled: true,
+          // fillColor: processColor("yellow"),
+          // fillFormatter: {
+          //   min: 100,
+          // },
+        },
+      },
+    ],
+  }
+
+  const legend = {
+    enabled: false,
+    textSize: 12,
+    drawInside: false,
+    horizontalAlignment: "RIGHT",
+    verticalAlignment: "BOTTOM",
+    form: "CIRCLE",
+  }
+
+  const xAxis: any = {
+    position: "BOTTOM",
+    drawLabels: true,
+    drawGridLines: true,
+    granularityEnabled: true,
+    // labelCount: 8,
+    // labelCountForce: true,
+    // limitLines: [
+    //   {
+    //     limit: 19837,
+    //     label: "test limit",
+    //     lineWidth: 3,
+    //   },
+    // ],
+  }
+
+  const minXValue = personalRecords.reduce((acc, { xAxis }) => Math.min(acc, xAxis), Infinity)
+  const maxXValue = personalRecords.reduce((acc, { xAxis }) => Math.max(acc, xAxis), -Infinity)
+  switch (xAxisType) {
+    case "reps":
+      xAxis.granularity = 1
+      if (minXValue !== Infinity) xAxis.axisMinimum = minXValue - 0.5
+      if (maxXValue !== -Infinity) xAxis.axisMaximum = maxXValue + 0.5
+      break
+    case "date":
+      xAxis.granularity = 1
+      // react-native-charts-wrapper does not support dynamic axis labels, they must be a fixed granularity
+      // xAxis.valueFormatter = personalRecords.reduce((acc, { xAxis }) => {
+      //   console.debug("valueFormatter", xAxis, formatDate(add(0, { days: xAxis })))
+      //   acc[xAxis] = formatDate(add(0, { days: xAxis }))!
+      //   return acc
+      // }, [] as string[])
+      xAxis.valueFormatter = "date"
+      xAxis.since = 0
+      xAxis.timeUnit = "DAYS"
+      xAxis.valueFormatterPattern = "MM/dd"
+      xAxis.labelRotationAngle = -45
+      if (minXValue !== Infinity) xAxis.axisMinimum = minXValue - 7
+      if (maxXValue !== -Infinity) xAxis.axisMaximum = maxXValue + 7
+      break
+  }
+
+  const yAxis: any = {
+    left: {
+      drawGridLines: false,
+    },
+    right: {
+      enabled: false,
+    },
+  }
+
+  switch (yAxisType) {
+    case "time":
+      yAxis.left.valueFormatter = "date"
+      yAxis.left.valueFormatterPattern = "mm:ss"
+      yAxis.left.timeUnit = "SECONDS"
+      break
+    case "reps":
+      yAxis.left.granularity = 1
+      yAxis.left.granularityEnabled = true
+  }
+
+  const marker = {
+    enabled: true,
+    textSize: 18,
+    textColor: processColor(themeStore.colors("text")),
+    markerColor: processColor(themeStore.colors("contentBackground")),
+  }
+
+  return (
+    <LineChart
+      // eslint-disable-next-line react-native/no-inline-styles
+      style={{ height: 300 }}
+      data={data}
+      legend={legend}
+      xAxis={xAxis}
+      yAxis={yAxis}
+      marker={marker}
+      noDataText={noDataText}
+      doubleTapToZoomEnabled={false}
+      chartDescription={{ text: "" }}
+      maxVisibleValueCount={xAxisType === "date" ? 14 : undefined}
+      // extraOffsets={{
+      //   left: 0,
+      //   top: 0,
+      //   right: 20,
+      //   bottom: 0,
+      // }}
+    />
+  )
+})
+
 type IPersonalRecordsMapModelAsJS = Map<number, IPersonalRecordsMapModel>
 
 const PersonalRecordsTabScene = (exerciseId: string) =>
   observer(() => {
-    const { userStore, exerciseStore } = useStores()
-    const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
+    // hooks
+    const { userStore, exerciseStore, feedStore } = useStores()
+
+    // states
     const weightUnitTx = useWeightUnitTx()
+    const [prChartMode, setPrChartMode] = useState<"default" | "byWeight" | "byReps">("default")
+    const [byWeightFilter, setByWeightFilter] = useState<number>(0)
+    const [byRepsFilter, setByRepsFilter] = useState<number>(8)
+
+    // derived states
+    const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
+    const exerciseHistory = userStore.getPropAsJS<WorkoutId[]>(
+      `user.exerciseHistory.${exerciseId}.performedWorkoutIds`,
+    )
     const personalRecordsMap = userStore.getPropAsJS<IPersonalRecordsMapModelAsJS>(
       `user.exerciseHistory.${exerciseId}.personalRecords`,
     )
@@ -81,11 +292,27 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
 
       const sortedTimeRecords = personalRecords[0].records.sort((a, b) => b.time - a.time)
 
+      // Prepare data for the chart
+      const personalRecordsChartData = generatePerfOverTimeData(
+        sortedTimeRecords,
+        "time",
+        "datePerformed",
+      )
+
       return (
         <>
+          <ExercisePerformanceChart
+            personalRecords={personalRecordsChartData}
+            xAxisType="date"
+            yAxisType="time"
+            chartLegendLabel={translate("volumeType.time")}
+            noDataText={translate("exerciseDetailsScreen.noExerciseHistoryFound")}
+            recordFormatter={(record) => formatSecondsAsTime(record)}
+          />
+          <Spacer type="vertical" size="small" />
           <RowView style={$recordItem}>
             <Text
-              style={$recordsDateColumn}
+              style={$recordsDateColumnHeader}
               preset="bold"
               tx="exerciseDetailsScreen.recordsHeaderDateLabel"
             />
@@ -116,11 +343,196 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
         return <Text tx="exerciseDetailsScreen.volumeTypeUpdatedMessage" preset="light" />
       }
 
+      // Prepare data for the personal best chart
+      const personalRecordsChartData = Object.entries(repsPersonalRecords).map(
+        ([reps, recordModel]) => {
+          const recordsCount = recordModel.records.length
+          const bestRecord = recordModel.records[recordsCount - 1] as RepsPersonalRecord
+          const weight = new Weight(bestRecord.weight)
+
+          return {
+            record: weight.getWeightInUnit(userWeightUnit),
+            xAxis: parseInt(reps),
+          }
+        },
+      )
+
+      // Prepare data for all time history
+      const allTimeHistoryChartData = React.useMemo(() => {
+        const workouts = feedStore.userWorkouts.filter(({ workoutId }) => {
+          return exerciseHistory.includes(workoutId)
+        })
+
+        const allTimeHistoryChartData = {
+          byWeight: {},
+          byReps: {},
+        } as {
+          byWeight: {
+            [weight: number]: {
+              record: number // reps
+              xAxis: number // datePerformed
+            }[]
+          }
+          byReps: {
+            [reps: number]: {
+              record: number // weight
+              xAxis: number // datePerformed
+            }[]
+          }
+        }
+        workouts.forEach((workout) => {
+          const exercise = workout.exercises.find((exercise) => exercise.exerciseId === exerciseId)
+          if (!exercise) return
+
+          const byWeightBestReps = {}
+          const byRepsBestWeight = {}
+          exercise.setsPerformed.forEach((set) => {
+            byWeightBestReps[set.weight ?? 0] = Math.max(
+              byWeightBestReps[set.weight] ?? 0,
+              set.reps,
+            )
+            byRepsBestWeight[set.reps] = Math.max(byRepsBestWeight[set.reps] ?? 0, set.weight)
+          })
+
+          Object.entries(byWeightBestReps).forEach(([weight, reps]) => {
+            if (!allTimeHistoryChartData.byWeight[weight]) {
+              allTimeHistoryChartData.byWeight[weight] = []
+            }
+            allTimeHistoryChartData.byWeight[weight].push({
+              record: reps,
+              xAxis: workout.startTime,
+            })
+          })
+
+          Object.entries(byRepsBestWeight).forEach(([reps, _weight]) => {
+            const weight = new Weight(_weight as number)
+
+            if (!allTimeHistoryChartData.byReps[reps]) {
+              allTimeHistoryChartData.byReps[reps] = []
+            }
+            allTimeHistoryChartData.byReps[reps].push({
+              record: weight.getWeightInUnit(userWeightUnit),
+              xAxis: workout.startTime,
+            })
+          })
+        })
+
+        // Clean up data (keep only the best record per date, because there might be multiple records per date)
+        Object.entries(allTimeHistoryChartData.byWeight).forEach(([weight, records]) => {
+          allTimeHistoryChartData.byWeight[weight] = generatePerfOverTimeData(
+            records,
+            "record",
+            "xAxis",
+          )
+        })
+        Object.entries(allTimeHistoryChartData.byReps).forEach(([reps, records]) => {
+          allTimeHistoryChartData.byReps[reps] = generatePerfOverTimeData(
+            records,
+            "record",
+            "xAxis",
+          )
+        })
+
+        return allTimeHistoryChartData
+      }, [])
+
+      // Get all weights and reps for the picker
+      const weightPickerItems = Object.keys(allTimeHistoryChartData.byWeight).map((_weight) => {
+        const weight = new Weight(parseFloat(_weight))
+
+        return {
+          label: `${weight.getFormattedWeightInUnit(userWeightUnit, 1)} ${translate(weightUnitTx)}`,
+          value: parseFloat(_weight),
+        }
+      })
+      const repsPickerItems = Object.keys(allTimeHistoryChartData.byReps).map((reps) => ({
+        label: reps.toString(),
+        value: parseInt(reps),
+      }))
+      const itemsLabel =
+        prChartMode === "byWeight"
+          ? translate("exerciseDetailsScreen.performanceChartByWeightLabel")
+          : translate("exerciseDetailsScreen.performanceChartByRepsLabel")
+      const itemsList = prChartMode === "byWeight" ? weightPickerItems : repsPickerItems
+      const pickerValue = prChartMode === "byWeight" ? byWeightFilter : byRepsFilter
+      const setPickerValue = prChartMode === "byWeight" ? setByWeightFilter : setByRepsFilter
+
+      // Choose the appropriate chart to display
+      let chartData, xAxisType, yAxisType
+      switch (prChartMode) {
+        case "byWeight":
+          chartData = allTimeHistoryChartData.byWeight[byWeightFilter] ?? []
+          xAxisType = "date"
+          yAxisType = "reps"
+          break
+        case "byReps":
+          chartData = allTimeHistoryChartData.byReps[byRepsFilter] ?? []
+          xAxisType = "date"
+          yAxisType = "weight"
+          break
+        default:
+          chartData = personalRecordsChartData
+          xAxisType = "reps"
+          yAxisType = "weight"
+          break
+      }
+
+      React.useEffect(() => {
+        if (prChartMode !== "default" && !pickerValue) {
+          setPickerValue(itemsList[0].value)
+        }
+      }, [prChartMode])
+
       return (
-        <>
+        <ScrollView>
+          <ButtonGroup
+            buttons={[
+              {
+                tx: "exerciseDetailsScreen.performanceChartDefaultLabel",
+                state: prChartMode === "default" ? "active" : "inactive",
+                onPress: () => setPrChartMode("default"),
+              },
+              {
+                tx: "exerciseDetailsScreen.performanceChartByWeightLabel",
+                state: prChartMode === "byWeight" ? "active" : "inactive",
+                onPress: () => setPrChartMode("byWeight"),
+              },
+              {
+                tx: "exerciseDetailsScreen.performanceChartByRepsLabel",
+                state: prChartMode === "byReps" ? "active" : "inactive",
+                onPress: () => setPrChartMode("byReps"),
+              },
+            ]}
+          />
+
+          {/* Passing in key here so when the chart mode changes, force the chart to re-render, */}
+          {/* or else some properties are not updating properly in react-native-charts-wrapper */}
+          {/* and Dropdown */}
+          <View key={prChartMode}>
+            {["byWeight", "byReps"].includes(prChartMode) && (
+              <View key={prChartMode}>
+                <Dropdown
+                  selectedValue={pickerValue}
+                  onValueChange={setPickerValue}
+                  itemsList={itemsList}
+                  itemsLabel={itemsLabel}
+                />
+              </View>
+            )}
+            <ExercisePerformanceChart
+              personalRecords={chartData}
+              xAxisType={xAxisType}
+              yAxisType={yAxisType}
+              chartLegendLabel={translate(weightUnitTx)}
+              noDataText={translate("exerciseDetailsScreen.noExerciseHistoryFound")}
+              recordFormatter={(record) => roundToString(record, 2, false)!}
+            />
+          </View>
+
+          <Spacer type="vertical" size="small" />
           <RowView style={$recordItem}>
             <Text
-              style={$recordsDateColumn}
+              style={$recordsDateColumnHeader}
               preset="bold"
               tx="exerciseDetailsScreen.recordsHeaderDateLabel"
             />
@@ -149,7 +561,7 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
               </RowView>
             )
           })}
-        </>
+        </ScrollView>
       )
     }
 
@@ -231,9 +643,15 @@ const $screenContentContainer: ViewStyle = {
   paddingHorizontal: spacing.small,
 }
 
-const $recordsDateColumn: ViewStyle & TextStyle = {
+const $recordsDateColumnHeader: ViewStyle & TextStyle = {
   flex: 2,
   textAlign: "center",
+}
+
+const $recordsDateColumn: ViewStyle & TextStyle = {
+  flex: 2,
+  textAlign: "left",
+  paddingLeft: spacing.small,
 }
 
 const $recordsWeightColumn: ViewStyle & TextStyle = {

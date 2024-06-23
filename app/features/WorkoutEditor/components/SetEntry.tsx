@@ -258,6 +258,7 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     borderWidth: set.isCompleted ? undefined : 1,
     borderRadius: 4,
     borderColor: isNullTime ? themeStore.colors("error") : themeStore.colors("border"),
+    opacity: isCompleted ? 0.5 : 1,
   }
 
   return (
@@ -465,7 +466,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     // If weight was null in the previous set, ignore it as well
     if (setFromLastWorkout.weight) {
       const prevWeight = new Weight(setFromLastWorkout.weight)
-      handleWeightChangeText(roundToString(prevWeight.getWeightInUnit(weightUnit) ?? 0, 2))
+      handleWeightChangeText(roundToString(prevWeight.getWeightInUnit(weightUnit) ?? 0, 2, false))
     }
     handleRepsChangeText(roundToString(setFromLastWorkout.reps ?? 0, 0, false))
   }

@@ -18,7 +18,7 @@ interface PopoverContainerProps extends ViewProps {
 const PopoverContainer = observer((props: PopoverContainerProps) => {
   const { trigger, placement: _placement, children } = props
 
-  // utilities
+  // hooks
   const { themeStore } = useStores()
 
   // derived state

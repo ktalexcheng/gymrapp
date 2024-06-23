@@ -100,7 +100,7 @@ const WorkoutEditorHeaderComponents = observer(() => {
   const mainNavigation = useMainNavigation()
   const { themeStore, activeWorkoutStore: workoutStore } = useStores()
 
-  // utilities
+  // hooks
   const weightUnitTx = useWeightUnitTx()
   const weightUnit = translate(weightUnitTx)
 

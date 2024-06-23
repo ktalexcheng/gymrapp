@@ -19,7 +19,7 @@ export const ExercisePickerSheet = observer(function ExercisePickerSheet(
 ) {
   const { open, onOpenChange, onItemPress } = props
 
-  // utilities
+  // hooks
   const { themeStore } = useStores()
 
   // states

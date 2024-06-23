@@ -1,7 +1,9 @@
 import {
   Avatar,
+  ButtonGroup,
   Icon,
   LoadingIndicator,
+  Popover,
   RowView,
   Screen,
   Spacer,
@@ -16,15 +18,36 @@ import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { ExtendedEdge } from "app/utils/useSafeAreaInsetsStyle"
-import { format } from "date-fns"
+import { format, sub } from "date-fns"
+import { Info } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
-import React, { FC, useEffect, useState } from "react"
-import { FlatList, processColor, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
-import { BarChart } from "react-native-charts-wrapper"
+import React, { useEffect, useState } from "react"
+import {
+  FlatList,
+  FlatListProps,
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  processColor,
+  ScrollView,
+  ScrollViewProps,
+  TextStyle,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from "react-native"
+import { BarChart, HorizontalBarChart } from "react-native-charts-wrapper"
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated"
 import { SceneMap, TabView } from "react-native-tab-view"
 import { UserProfileStatsBar } from "./components/UserProfileStatsBar"
 
-const UserActivitiesTabScene: FC = observer(() => {
+type UserActivitiesTabSceneProps = {
+  onScroll: FlatListProps<any>["onScroll"]
+}
+
+const UserActivitiesTabScene = observer((props: UserActivitiesTabSceneProps) => {
+  const { onScroll } = props
+
   const { userStore, feedStore } = useStores()
 
   function renderWorkoutItem({ item }) {
@@ -54,6 +77,7 @@ const UserActivitiesTabScene: FC = observer(() => {
           <Spacer type="vertical" size="listFooterPadding" />
         )
       }
+      onScroll={onScroll}
     />
   )
 })
@@ -211,6 +235,7 @@ const WeeklyWorkoutChart = observer(({ chartData }: WeeklyWorkoutChartProps) => 
 
   return (
     <View style={styles.flex1}>
+      <Text preset="subheading" tx="profileScreen.dashboardWeeklyWorkoutsTitle" />
       <BarChart
         // eslint-disable-next-line react-native/no-inline-styles
         style={{ height: 200 }}
@@ -232,8 +257,163 @@ const WeeklyWorkoutChart = observer(({ chartData }: WeeklyWorkoutChartProps) => 
   )
 })
 
-const DashboardTabScene: FC = observer(() => {
-  const { feedStore } = useStores()
+type ExercisesCoverageChartProps = {
+  // data is a map of exercise category name to number of workouts
+  chartData: {
+    startTime: Date
+    categories: {
+      [category: string]: number
+    }
+  }[]
+}
+
+const ExercisesCoverageChart = observer(({ chartData }: ExercisesCoverageChartProps) => {
+  const { themeStore } = useStores()
+
+  const [range, setRange] = useState<"last7" | "last30" | "all">()
+  const nowTm7 = sub(Date.now(), { weeks: 1 })
+  const nowTm30 = sub(Date.now(), { months: 1 })
+
+  const filteredChartData = chartData.filter((d) => {
+    if (range === "last7") return d.startTime >= nowTm7
+    if (range === "last30") return d.startTime >= nowTm30
+    return true
+  })
+  const isEmpty = filteredChartData.length === 0
+  const chartDataSummarized: { [category: string]: number } = filteredChartData.reduce((acc, d) => {
+    Object.entries(d.categories).forEach(([cat, count]) => {
+      acc[cat] = (acc[cat] || 0) + count
+    })
+    return acc
+  }, {})
+
+  const categories = Object.keys(chartDataSummarized) // To ensure consistent order of bars
+  categories.sort((a, b) => chartDataSummarized[a] - chartDataSummarized[b]) // Sort by descending order of workouts count
+  const drawLabelCutoffValue = Math.max(...Object.values(chartDataSummarized)) * 0.2 // Don't draw labels for values below this threshold
+
+  const barChartdata = {
+    dataSets: [
+      {
+        label: translate("profileScreen.dashboardWeeklyWorkoutsTitle"), // This is required but only affects legends
+        values: categories.map((c, i) => ({
+          x: i,
+          y: chartDataSummarized[c],
+          marker: "   " + chartDataSummarized[c], // The Marker component is styled poorly, so we add some padding
+        })),
+        config: {
+          color: processColor(themeStore.colors("actionable")),
+          valueTextColor: processColor(themeStore.colors("actionableForeground")),
+          valueTextSize: 12,
+          // Using "" for 0 to prevent from overlapping with x-axis labels
+          valueFormatter: categories.map((c) =>
+            chartDataSummarized[c] > drawLabelCutoffValue ? chartDataSummarized[c].toFixed(0) : "",
+          ),
+        },
+      },
+    ],
+    config: {
+      barWidth: 0.7,
+    },
+  }
+
+  const legend = {
+    enabled: false,
+  }
+
+  const xAxis = {
+    valueFormatter: categories,
+    position: "BOTTOM",
+    drawLabels: true,
+    drawGridLines: false,
+    granularity: 1,
+    granularityEnabled: true,
+  }
+
+  const yAxis = {
+    left: {
+      enabled: false,
+      axisMinimum: 0,
+    },
+    right: {
+      enabled: false,
+    },
+  }
+
+  const marker = {
+    enabled: true,
+    textSize: 18,
+    textColor: processColor(themeStore.colors("text")),
+    markerColor: processColor(themeStore.colors("contentBackground")),
+  }
+
+  const onRangeButtonPress = (newRange: typeof range) => {
+    setRange(newRange)
+  }
+
+  const $chartContainer: ViewStyle = {
+    height: 300,
+    justifyContent: "center",
+  }
+
+  return (
+    <View style={styles.flex1}>
+      <RowView style={[styles.alignCenter, styles.justifyBetween]}>
+        <Text preset="subheading" tx="profileScreen.dashboardExercisesCoverageTitle" />
+        <Popover trigger={<Info size={24} color={themeStore.colors("foreground")} />}>
+          <Text tx="profileScreen.dashboardExercisesCoverageInfo" />
+        </Popover>
+      </RowView>
+      <ButtonGroup
+        buttons={[
+          {
+            tx: "profileScreen.dashboardExercisesCoverageAllTimeLabel",
+            state: range === "all" ? "active" : "inactive",
+            onPress: () => onRangeButtonPress("all"),
+          },
+          {
+            tx: "profileScreen.dashboardExercisesCoverageLast30DaysLabel",
+            state: range === "last30" ? "active" : "inactive",
+            onPress: () => onRangeButtonPress("last30"),
+          },
+          {
+            tx: "profileScreen.dashboardExercisesCoverageLast7DaysLabel",
+            state: range === "last7" ? "active" : "inactive",
+            onPress: () => onRangeButtonPress("last7"),
+          },
+        ]}
+      />
+      {isEmpty ? (
+        <View style={$chartContainer}>
+          <Text tx="profileScreen.dashboardExercisesCoverageNoDataMessage" />
+        </View>
+      ) : (
+        <HorizontalBarChart
+          // eslint-disable-next-line react-native/no-inline-styles
+          style={$chartContainer}
+          chartDescription={{ text: "" }}
+          drawValueAboveBar={false}
+          data={barChartdata}
+          noDataText="No data"
+          legend={legend}
+          xAxis={xAxis}
+          yAxis={yAxis}
+          doubleTapToZoomEnabled={false}
+          highlightPerDragEnabled={false}
+          marker={marker}
+        />
+      )}
+    </View>
+  )
+})
+
+type DashboardTabSceneProps = {
+  onScroll: ScrollViewProps["onScroll"]
+}
+
+const DashboardTabScene = observer((props: DashboardTabSceneProps) => {
+  const { onScroll } = props
+
+  const { feedStore, exerciseStore } = useStores()
 
   if (feedStore.isLoadingUserWorkouts) return <LoadingIndicator />
   if (feedStore.userWorkouts.length === 0)
@@ -243,30 +423,72 @@ const DashboardTabScene: FC = observer(() => {
       </View>
     )
 
-  const data = [...feedStore.weeklyWorkoutsCount.entries()].map(
+  // Prepare WeeklyWorkoutChart data
+  const weeklyWorkoutData = [...feedStore.weeklyWorkoutsCount.entries()].map(
     ([weekStartDate, workoutsCount]) => ({
       weekStartDate,
       workoutsCount,
     }),
   )
-  data.sort((a, b) => a.weekStartDate - b.weekStartDate)
+  weeklyWorkoutData.sort((a, b) => a.weekStartDate - b.weekStartDate)
+
+  // Prepare ExercisesCoverageChart data
+  const exerciseCoverageData = feedStore.userWorkouts.map((w) => {
+    const categories = w.exercises.reduce((acc, exercise) => {
+      const cat = exerciseStore.getExerciseCategory(exercise.exerciseId)
+      if (!cat) return acc
+
+      acc[cat] = (acc[cat] || 0) + exercise.setsPerformed.length
+      return acc
+    }, {})
+
+    return {
+      startTime: w.startTime,
+      categories,
+    }
+  })
 
   return (
-    <>
-      <Text preset="subheading" tx="profileScreen.dashboardWeeklyWorkoutsTitle" />
-      <WeeklyWorkoutChart chartData={data} />
-    </>
+    <ScrollView
+      onScroll={onScroll}
+      contentContainerStyle={{ gap: spacing.large }}
+      showsVerticalScrollIndicator={false}
+    >
+      <WeeklyWorkoutChart chartData={weeklyWorkoutData} />
+      <ExercisesCoverageChart chartData={exerciseCoverageData} />
+      <Spacer type="vertical" size="listFooterPadding" />
+    </ScrollView>
   )
 })
 
 export const ProfileScreen = observer(function ProfileScreen() {
   const mainNavigation = useMainNavigation()
   const { userStore, feedStore, activeWorkoutStore, themeStore } = useStores()
-  const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress ? [] : ["top"]
+
+  // states
   const [tabIndex, setTabIndex] = useState(0)
+  const statsBarFullHeight = useSharedValue(0)
+  const statsBarHeight = useSharedValue(0)
+
+  // derived states
+  const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress ? [] : ["top"]
+
+  // utilities
+  const onLayoutUserProfileStatsBar = (e: LayoutChangeEvent) => {
+    statsBarFullHeight.value = e.nativeEvent.layout.height
+    statsBarHeight.value = e.nativeEvent.layout.height
+  }
+
+  const onContentScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offset = e.nativeEvent.contentOffset.y
+    if (offset <= 0) {
+      statsBarHeight.value = withTiming(statsBarFullHeight.value, { duration: 200 })
+    } else if (offset > 50) {
+      statsBarHeight.value = withTiming(0, { duration: 200 })
+    }
+  }
 
   useEffect(() => {
-    console.debug("ProfileScreen mounted")
     userStore.fetchUserProfile()
     feedStore.loadUserWorkouts()
   }, [])
@@ -283,8 +505,8 @@ export const ProfileScreen = observer(function ProfileScreen() {
   ]
 
   const renderScene = SceneMap({
-    activities: UserActivitiesTabScene,
-    dashboard: DashboardTabScene,
+    activities: () => <UserActivitiesTabScene onScroll={onContentScroll} />,
+    dashboard: () => <DashboardTabScene onScroll={onContentScroll} />,
   })
 
   const renderTabBar = (props) => {
@@ -314,6 +536,17 @@ export const ProfileScreen = observer(function ProfileScreen() {
     textAlign: "center",
     fontSize: 14,
     lineHeight: 18,
+  }
+
+  const $statsBarContainerAnimated = useAnimatedStyle(() => {
+    return {
+      height: statsBarHeight.value,
+    }
+  })
+
+  const $tabViewContainer: ViewStyle = {
+    flex: 1,
+    backgroundColor: themeStore.colors("background"), // To overlay the stats bar
   }
 
   if (!userStore.user) return <LoadingScreen />
@@ -352,7 +585,13 @@ export const ProfileScreen = observer(function ProfileScreen() {
               )}
             </View>
           </RowView>
-          <UserProfileStatsBar user={userStore.user} containerStyle={$userProfileStatsBar} />
+          <Animated.View style={$statsBarContainerAnimated}>
+            <UserProfileStatsBar
+              onLayout={onLayoutUserProfileStatsBar}
+              user={userStore.user}
+              containerStyle={$userProfileStatsBar}
+            />
+          </Animated.View>
           <View style={$tabViewContainer}>
             <TabView
               navigationState={{ index: tabIndex, routes }}
@@ -372,13 +611,11 @@ const $userAvatarRow: ViewStyle = {
 }
 
 const $userProfileStatsBar: ViewStyle = {
-  marginVertical: spacing.medium,
+  position: "absolute",
+  width: "100%",
+  paddingVertical: spacing.medium, // Use padding (internal property) instead of margin (external property) so we can animate the height
 }
 
 const $userDisplayName: ViewStyle = {
   marginLeft: spacing.small,
-}
-
-const $tabViewContainer: ViewStyle = {
-  flex: 1,
 }

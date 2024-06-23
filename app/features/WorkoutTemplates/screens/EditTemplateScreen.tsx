@@ -20,7 +20,7 @@ interface EditTemplateScreenProps
 export const EditTemplateScreen = observer((props: EditTemplateScreenProps) => {
   const workoutTemplateId = props.route?.params?.workoutTemplateId
 
-  // utilities
+  // hooks
   const mainNavigation = useMainNavigation()
   const { userStore, workoutEditorStore: workoutStore, exerciseStore } = useStores()
 

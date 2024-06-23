@@ -101,12 +101,12 @@ const TimeExercisePerformedModel = types
 
       self.setsPerformed.push(
         TimeSetPerformedModel.create({
+          ...initialSetValues,
           setId: randomUUID(),
           setOrder: newSetOrder,
           volumeType: self.volumeType,
           setType: ExerciseSetType.Normal,
           isCompleted: false,
-          ...initialSetValues,
         }),
       )
     }

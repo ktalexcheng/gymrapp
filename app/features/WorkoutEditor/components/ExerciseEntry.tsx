@@ -47,7 +47,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
     templateExerciseNotes,
   } = exercise
 
-  // utilities
+  // hooks
   const { themeStore, exerciseStore } = useStores()
   const mainNavigation = useMainNavigation()
   const weightUnitTx = useWeightUnitTx(exerciseId)

@@ -16,7 +16,7 @@ interface TemplateDetailsScreenProps
 export const TemplateDetailsScreen = ({ route }: TemplateDetailsScreenProps) => {
   const { workoutTemplateId } = route.params
 
-  // utilities
+  // hooks
   const mainNavigation = useMainNavigation()
   const { themeStore, userStore, activeWorkoutStore, workoutEditorStore } = useStores()
   const workoutTemplate = useGetTemplate(workoutTemplateId)

@@ -4,7 +4,7 @@ import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { IUserModel } from "app/stores"
 import { simplifyNumber } from "app/utils/formatNumber"
 import React, { FC } from "react"
-import { TouchableOpacity, View, ViewStyle } from "react-native"
+import { TouchableOpacity, View, ViewProps, ViewStyle } from "react-native"
 
 const UserProfileStatTile: FC<{ labelTx: TxKeyPath; value: string }> = ({ labelTx, value }) => {
   return (
@@ -20,12 +20,14 @@ interface UserProfileStatsBarProps {
   user: IUserModel
   containerStyle?: ViewStyle
   hideActivitesCount?: boolean
+  onLayout?: ViewProps["onLayout"]
 }
 
 export const UserProfileStatsBar: FC<UserProfileStatsBarProps> = ({
   user,
   containerStyle: $containerStyleOverride,
   hideActivitesCount = false,
+  onLayout,
 }: UserProfileStatsBarProps) => {
   const mainNavigation = useMainNavigation()
 
@@ -48,7 +50,7 @@ export const UserProfileStatsBar: FC<UserProfileStatsBarProps> = ({
   console.debug("UserProfileStatsBar", { activitiesCount, followersCount, followingCount })
 
   return (
-    <RowView style={$containerStyle}>
+    <RowView style={$containerStyle} onLayout={onLayout}>
       <UserProfileStatTile labelTx="common.activities" value={simplifyNumber(activitiesCount)!} />
       <TouchableOpacity
         onPress={() =>
