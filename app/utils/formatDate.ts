@@ -27,7 +27,7 @@ const getDefaultDateFormat = () => {
     case "en":
       return "MMM dd yyyy, HH:mm"
     case "zh":
-      return "yyyy年M月dd日 HH:mm"
+      return "yyyy年MM月dd日 HH:mm"
     default:
       return "MMM dd yyyy, HH:mm"
   }

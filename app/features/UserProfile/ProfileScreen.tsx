@@ -28,6 +28,7 @@ import {
   LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   processColor,
   ScrollView,
   ScrollViewProps,
@@ -81,6 +82,8 @@ const UserActivitiesTabScene = observer((props: UserActivitiesTabSceneProps) => 
     />
   )
 })
+
+const chartMarkerStringPadding = Platform.select({ ios: "   " }) ?? ""
 
 type WeeklyWorkoutChartProps = {
   // data is a map of week start date (in milliseconds) to number of workouts
@@ -204,6 +207,7 @@ const WeeklyWorkoutChart = observer(({ chartData }: WeeklyWorkoutChartProps) => 
   }
 
   const xAxis = {
+    textColor: processColor(themeStore.colors("text")),
     valueFormatter: chartData.map((d) => format(d.weekStartDate, "MM/dd")),
     position: "BOTTOM",
     // labelRotationAngle: -45, // labels get cut off when rotated and visibleRange is set on BarChart
@@ -215,6 +219,7 @@ const WeeklyWorkoutChart = observer(({ chartData }: WeeklyWorkoutChartProps) => 
 
   const yAxis = {
     left: {
+      textColor: processColor(themeStore.colors("text")),
       granularity: 1,
       granularityEnabled: true,
       axisMinimum: 0,
@@ -298,7 +303,7 @@ const ExercisesCoverageChart = observer(({ chartData }: ExercisesCoverageChartPr
         values: categories.map((c, i) => ({
           x: i,
           y: chartDataSummarized[c],
-          marker: "   " + chartDataSummarized[c], // The Marker component is styled poorly, so we add some padding
+          marker: chartMarkerStringPadding + chartDataSummarized[c], // The Marker component is styled poorly, so we add some padding
         })),
         config: {
           color: processColor(themeStore.colors("actionable")),
@@ -321,6 +326,7 @@ const ExercisesCoverageChart = observer(({ chartData }: ExercisesCoverageChartPr
   }
 
   const xAxis = {
+    textColor: processColor(themeStore.colors("text")),
     valueFormatter: categories,
     position: "BOTTOM",
     drawLabels: true,
@@ -331,6 +337,7 @@ const ExercisesCoverageChart = observer(({ chartData }: ExercisesCoverageChartPr
 
   const yAxis = {
     left: {
+      textColor: processColor(themeStore.colors("text")),
       enabled: false,
       axisMinimum: 0,
     },

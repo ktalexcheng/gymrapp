@@ -475,9 +475,13 @@ const zh: Translations = {
   exerciseDetailsScreen: {
     headerTitle: "動作詳情",
     personalRecordsLabel: "個人紀錄",
+    performanceChartTitle: "運動表現圖表",
     performanceChartDefaultLabel: "歷史最佳",
+    performanceChartDefaultHelpText: "顯示每個次數的個人最佳重量",
     performanceChartByWeightLabel: "依重量",
+    performanceChartByWeightHelpText: "顯示過去的每個訓練記錄中，依重量你所達到的次數",
     performanceChartByRepsLabel: "依次數",
+    performanceChartByRepsHelpText: "顯示過去的每個訓練記錄中，依次數你所達到的重量",
     workoutHistoryLabel: "訓練記錄歷史",
     recordsHeaderDateLabel: "紀錄日期",
     recordsHeaderWeightLabel: "重量",

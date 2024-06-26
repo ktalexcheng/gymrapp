@@ -48,8 +48,8 @@
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.17",
     "@shopify/react-native-skia": "1.2.3",
-    "@tamagui/babel-plugin": "^1.79.11",
-    "@tamagui/config": "^1.79.11",
+    "@tamagui/babel-plugin": "^1.101.3",
+    "@tamagui/config": "^1.101.3",
     "@tanstack/react-query": "^5.39.0",
     "apisauce": "^3.0.1",
     "date-fns": "^3.6.0",
@@ -94,7 +94,7 @@
     "react-native-screens": "3.31.1",
     "react-native-svg": "15.2.0",
     "react-native-tab-view": "^3.5.2",
-    "tamagui": "^1.79.11"
+    "tamagui": "^1.101.3"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",

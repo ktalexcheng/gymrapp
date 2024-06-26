@@ -38,6 +38,10 @@ export interface DropdownProps {
    */
   itemStyle?: StyleProp<ViewStyle>
   /**
+   * Style overrides for the items
+   */
+  itemTextStyle?: StyleProp<ViewStyle>
+  /**
    *
    */
   itemsLabel?: string
@@ -48,7 +52,7 @@ export interface DropdownProps {
   /**
    * The currently selected value
    */
-  selectedValue?: any
+  selectedValue: any
   /**
    * Callback when the selected value changes
    */
@@ -81,12 +85,18 @@ export const Dropdown: FC<DropdownProps> = observer(function Picker(props: Dropd
     clearSelectionCallback,
     containerStyle: $containerStyleOverride,
     itemStyle: $itemStyleOverride,
+    itemTextStyle: $itemTextStyleOverride,
   } = props
   const disabled = status === "disabled"
   const allowClearSelection = !!clearSelectionPlaceholderTx && !!clearSelectionCallback
 
+  // hooks
   const { themeStore } = useStores()
 
+  // states
+  const [open, setOpen] = React.useState(false)
+
+  // styles
   const $containerStyles = [
     {
       opacity: disabled ? 0.5 : 1,
@@ -94,10 +104,26 @@ export const Dropdown: FC<DropdownProps> = observer(function Picker(props: Dropd
     $containerStyleOverride,
   ]
   const $labelStyles = [LabelTextProps?.style]
-  const $itemStyles = [$itemStyleOverride]
+  const $itemContainerStyles = [
+    {
+      backgroundColor: themeStore.colors("background"),
+    },
+    $itemStyleOverride,
+  ]
+  const $itemTextStyles: StyleProp<TextStyle> = [
+    {
+      color: themeStore.colors("text"),
+    },
+    $itemTextStyleOverride,
+  ]
+
+  const handleOpenChange = (isOpen: boolean) => {
+    console.debug("handleOpenChange triggered")
+    setOpen(isOpen)
+  }
 
   return (
-    <View style={$containerStyles} pointerEvents={disabled ? "none" : undefined}>
+    <View style={$containerStyles}>
       {!!(label || labelTx) && (
         <Text
           preset="formLabel"
@@ -109,9 +135,21 @@ export const Dropdown: FC<DropdownProps> = observer(function Picker(props: Dropd
         />
       )}
 
-      <Select value={selectedValue} onValueChange={onValueChange}>
-        <Select.Trigger iconAfter={<ChevronDown color={themeStore.colors("foreground")} />}>
-          <Select.Value />
+      <Select
+        defaultValue={itemsList[0].value}
+        value={selectedValue}
+        onValueChange={onValueChange}
+        open={open}
+        onOpenChange={handleOpenChange}
+      >
+        <Select.Trigger
+          disabled={disabled}
+          backgroundColor={themeStore.colors("contentBackground")}
+          borderWidth={0}
+          iconAfter={<ChevronDown color={themeStore.colors("foreground")} />}
+          onPress={() => handleOpenChange(true)}
+        >
+          <Select.Value color={themeStore.colors("text")} />
         </Select.Trigger>
 
         {/* This is the only way for Tamagui to render Select on Native */}
@@ -127,7 +165,7 @@ export const Dropdown: FC<DropdownProps> = observer(function Picker(props: Dropd
               stiffness: 250,
             }}
           >
-            <Sheet.Frame>
+            <Sheet.Frame backgroundColor={themeStore.colors("background")}>
               <Sheet.ScrollView>
                 <Adapt.Contents />
               </Sheet.ScrollView>
@@ -145,32 +183,34 @@ export const Dropdown: FC<DropdownProps> = observer(function Picker(props: Dropd
         <Select.Content>
           <Select.Viewport>
             <Select.Group>
+              <Select.Label
+                backgroundColor={themeStore.colors("background")}
+                color={themeStore.colors("text")}
+              >
+                {itemsLabel}
+              </Select.Label>
               {allowClearSelection && (
-                <Select.Item index={-1} value={""} style={$itemStyles}>
+                <Select.Item index={-1} value={""} style={$itemContainerStyles}>
                   <Select.ItemText style={$clearSelectionItemStyle}>
                     <Text tx={clearSelectionPlaceholderTx} />
                   </Select.ItemText>
                 </Select.Item>
               )}
               {React.useMemo(
-                () => (
-                  <>
-                    <Select.Label>{itemsLabel}</Select.Label>
-                    {itemsList.map((item, i) => (
-                      <Select.Item
-                        index={i}
-                        key={item.value}
-                        value={item.value}
-                        style={$itemStyles}
-                      >
-                        <Select.ItemText>{item.label}</Select.ItemText>
-                        <Select.ItemIndicator marginLeft="auto">
-                          <Check size={16} color={themeStore.colors("foreground")} />
-                        </Select.ItemIndicator>
-                      </Select.Item>
-                    ))}
-                  </>
-                ),
+                () =>
+                  itemsList.map((item, i) => (
+                    <Select.Item
+                      index={i}
+                      key={item.value}
+                      value={item.value}
+                      style={$itemContainerStyles}
+                    >
+                      <Select.ItemText style={$itemTextStyles}>{item.label}</Select.ItemText>
+                      <Select.ItemIndicator marginLeft="auto">
+                        <Check size={16} color={themeStore.colors("foreground")} />
+                      </Select.ItemIndicator>
+                    </Select.Item>
+                  )),
                 [itemsList],
               )}
             </Select.Group>

@@ -1,5 +1,14 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
-import { ButtonGroup, Dropdown, RowView, Screen, Spacer, TabBar, Text } from "app/components"
+import {
+  ButtonGroup,
+  Dropdown,
+  Popover,
+  RowView,
+  Screen,
+  Spacer,
+  TabBar,
+  Text,
+} from "app/components"
 import { ExerciseVolumeType, WeightUnit, WorkoutSource } from "app/data/constants"
 import { RepsPersonalRecord, WorkoutId } from "app/data/types"
 import { WorkoutSummaryCard } from "app/features/WorkoutSummary"
@@ -7,15 +16,24 @@ import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
 import { IPersonalRecordsMapModel, useStores } from "app/stores"
-import { spacing } from "app/theme"
+import { spacing, styles } from "app/theme"
 import { formatDate } from "app/utils/formatDate"
 import { roundToString } from "app/utils/formatNumber"
 import { formatSecondsAsTime } from "app/utils/formatTime"
 import { Weight } from "app/utils/weight"
 import { add, differenceInDays } from "date-fns"
+import { Info } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
 import React, { useState } from "react"
-import { FlatList, processColor, ScrollView, TextStyle, View, ViewStyle } from "react-native"
+import {
+  FlatList,
+  Platform,
+  processColor,
+  ScrollView,
+  TextStyle,
+  View,
+  ViewStyle,
+} from "react-native"
 import { LineChart } from "react-native-charts-wrapper"
 import { SceneMap, TabView } from "react-native-tab-view"
 
@@ -91,6 +109,8 @@ const generatePerfOverTimeData = (
   return personalRecordsChartData
 }
 
+const chartMarkerStringPadding = Platform.select({ ios: "   " }) ?? ""
+
 type ExercisePerformanceChartProps = {
   /**
    * personalRecords is a map of time/reps (as string) to volume
@@ -127,7 +147,7 @@ const ExercisePerformanceChart = observer((props: ExercisePerformanceChartProps)
           x: xAxis,
           // The Marker component is styled poorly, so we add some padding
           marker:
-            "   " +
+            chartMarkerStringPadding +
             (xAxisType === "date" ? formatDate(add(0, { days: xAxis }), "yyyy-MM-dd") : xAxis),
         })),
         config: {
@@ -146,6 +166,7 @@ const ExercisePerformanceChart = observer((props: ExercisePerformanceChartProps)
           circleColor: processColor(themeStore.colors("actionable")),
           circleRadius: 6,
           drawCircleHole: true,
+          circleHoleColor: processColor(themeStore.colors("contentBackground")),
           lineWidth: 3, // Not documented
           // drawFilled: true,
           // fillColor: processColor("yellow"),
@@ -167,6 +188,7 @@ const ExercisePerformanceChart = observer((props: ExercisePerformanceChartProps)
   }
 
   const xAxis: any = {
+    textColor: processColor(themeStore.colors("text")),
     position: "BOTTOM",
     drawLabels: true,
     drawGridLines: true,
@@ -210,6 +232,7 @@ const ExercisePerformanceChart = observer((props: ExercisePerformanceChartProps)
 
   const yAxis: any = {
     left: {
+      textColor: processColor(themeStore.colors("text")),
       drawGridLines: false,
     },
     right: {
@@ -263,7 +286,7 @@ type IPersonalRecordsMapModelAsJS = Map<number, IPersonalRecordsMapModel>
 const PersonalRecordsTabScene = (exerciseId: string) =>
   observer(() => {
     // hooks
-    const { userStore, exerciseStore, feedStore } = useStores()
+    const { userStore, exerciseStore, feedStore, themeStore } = useStores()
 
     // states
     const weightUnitTx = useWeightUnitTx()
@@ -284,6 +307,9 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
       personalRecordsMap.size > 0 &&
       Object.fromEntries(personalRecordsMap.entries()) // Quick fix to convert Map to Object
     const volumeType = exerciseStore.getExerciseVolumeType(exerciseId)
+    const workouts = feedStore.userWorkouts.filter(({ workoutId }) => {
+      return exerciseHistory?.includes(workoutId)
+    })
 
     const renderTimePersonalRecords = (personalRecords: IPersonalRecordsMapModel) => {
       if (!personalRecords?.[0]) {
@@ -359,10 +385,6 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
 
       // Prepare data for all time history
       const allTimeHistoryChartData = React.useMemo(() => {
-        const workouts = feedStore.userWorkouts.filter(({ workoutId }) => {
-          return exerciseHistory.includes(workoutId)
-        })
-
         const allTimeHistoryChartData = {
           byWeight: {},
           byReps: {},
@@ -434,57 +456,99 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
         })
 
         return allTimeHistoryChartData
-      }, [])
+      }, [workouts])
 
       // Get all weights and reps for the picker
-      const weightPickerItems = Object.keys(allTimeHistoryChartData.byWeight).map((_weight) => {
-        const weight = new Weight(parseFloat(_weight))
+      const weightPickerItems = Object.keys(allTimeHistoryChartData.byWeight)
+        .map((_weight) => {
+          const weight = new Weight(parseFloat(_weight))
 
-        return {
-          label: `${weight.getFormattedWeightInUnit(userWeightUnit, 1)} ${translate(weightUnitTx)}`,
-          value: parseFloat(_weight),
-        }
-      })
-      const repsPickerItems = Object.keys(allTimeHistoryChartData.byReps).map((reps) => ({
-        label: reps.toString(),
-        value: parseInt(reps),
-      }))
-      const itemsLabel =
-        prChartMode === "byWeight"
-          ? translate("exerciseDetailsScreen.performanceChartByWeightLabel")
-          : translate("exerciseDetailsScreen.performanceChartByRepsLabel")
-      const itemsList = prChartMode === "byWeight" ? weightPickerItems : repsPickerItems
-      const pickerValue = prChartMode === "byWeight" ? byWeightFilter : byRepsFilter
-      const setPickerValue = prChartMode === "byWeight" ? setByWeightFilter : setByRepsFilter
+          return {
+            label: `${weight.getFormattedWeightInUnit(userWeightUnit, 1)} ${translate(
+              weightUnitTx,
+            )}`,
+            value: parseFloat(_weight),
+          }
+        })
+        .sort((a, b) => a.value - b.value)
+      const repsPickerItems = Object.keys(allTimeHistoryChartData.byReps)
+        .map((reps) => ({
+          label: reps.toString(),
+          value: parseInt(reps),
+        }))
+        .sort((a, b) => a.value - b.value)
 
       // Choose the appropriate chart to display
-      let chartData, xAxisType, yAxisType
+      let itemsLabel,
+        itemsList,
+        // pickerValue,
+        setPickerValue,
+        chartData,
+        xAxisType,
+        yAxisType,
+        helpTextTx
       switch (prChartMode) {
         case "byWeight":
+          itemsLabel = translate("exerciseDetailsScreen.performanceChartByWeightLabel")
+          itemsList = weightPickerItems
+          // pickerValue = byWeightFilter
+          setPickerValue = setByWeightFilter
           chartData = allTimeHistoryChartData.byWeight[byWeightFilter] ?? []
           xAxisType = "date"
           yAxisType = "reps"
+          helpTextTx = "exerciseDetailsScreen.performanceChartByWeightHelpText"
           break
         case "byReps":
+          itemsLabel = translate("exerciseDetailsScreen.performanceChartByRepsLabel")
+          itemsList = repsPickerItems
+          // pickerValue = byRepsFilter
+          setPickerValue = setByRepsFilter
           chartData = allTimeHistoryChartData.byReps[byRepsFilter] ?? []
           xAxisType = "date"
           yAxisType = "weight"
+          helpTextTx = "exerciseDetailsScreen.performanceChartByRepsHelpText"
           break
         default:
+          itemsList = [
+            {
+              label: translate("exerciseDetailsScreen.performanceChartDefaultLabel"),
+              value: "",
+            },
+          ]
           chartData = personalRecordsChartData
           xAxisType = "reps"
           yAxisType = "weight"
+          helpTextTx = "exerciseDetailsScreen.performanceChartDefaultHelpText"
           break
       }
 
+      const pickerValue = React.useMemo(() => {
+        console.debug("pickerValue useMemo triggered")
+        switch (prChartMode) {
+          case "byWeight":
+            return byWeightFilter
+          case "byReps":
+            return byRepsFilter
+          default:
+            return ""
+        }
+      }, [prChartMode])
+
       React.useEffect(() => {
-        if (prChartMode !== "default" && !pickerValue) {
+        if (prChartMode !== "default" && !pickerValue && itemsList.length) {
           setPickerValue(itemsList[0].value)
         }
       }, [prChartMode])
 
       return (
         <ScrollView>
+          <RowView style={[styles.alignCenter, styles.justifyBetween]}>
+            <Text tx="exerciseDetailsScreen.performanceChartTitle" preset="subheading" />
+            <Popover trigger={<Info size={24} color={themeStore.colors("foreground")} />}>
+              <Text tx={helpTextTx} />
+            </Popover>
+          </RowView>
+
           <ButtonGroup
             buttons={[
               {
@@ -508,26 +572,25 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
           {/* Passing in key here so when the chart mode changes, force the chart to re-render, */}
           {/* or else some properties are not updating properly in react-native-charts-wrapper */}
           {/* and Dropdown */}
-          <View key={prChartMode}>
-            {["byWeight", "byReps"].includes(prChartMode) && (
-              <View key={prChartMode}>
-                <Dropdown
-                  selectedValue={pickerValue}
-                  onValueChange={setPickerValue}
-                  itemsList={itemsList}
-                  itemsLabel={itemsLabel}
-                />
-              </View>
-            )}
-            <ExercisePerformanceChart
-              personalRecords={chartData}
-              xAxisType={xAxisType}
-              yAxisType={yAxisType}
-              chartLegendLabel={translate(weightUnitTx)}
-              noDataText={translate("exerciseDetailsScreen.noExerciseHistoryFound")}
-              recordFormatter={(record) => roundToString(record, 2, false)!}
-            />
-          </View>
+          {/* {["byWeight", "byReps"].includes(prChartMode) && ( */}
+          <Dropdown
+            // key={prChartMode + "_dropdown"}
+            status={!["byWeight", "byReps"].includes(prChartMode) ? "disabled" : undefined}
+            selectedValue={pickerValue}
+            onValueChange={setPickerValue}
+            itemsList={itemsList}
+            itemsLabel={itemsLabel}
+          />
+          {/* )} */}
+          <ExercisePerformanceChart
+            key={prChartMode + "_chart"}
+            personalRecords={chartData}
+            xAxisType={xAxisType}
+            yAxisType={yAxisType}
+            chartLegendLabel={translate(weightUnitTx)}
+            noDataText={translate("exerciseDetailsScreen.noExerciseHistoryFound")}
+            recordFormatter={(record) => roundToString(record, 2, false)!}
+          />
 
           <Spacer type="vertical" size="small" />
           <RowView style={$recordItem}>
@@ -608,10 +671,19 @@ export const ExerciseDetailsScreen = observer(({ route }: ExerciseDetailsScreenP
     },
   ]
 
-  const renderScene = SceneMap({
-    records: PersonalRecordsTabScene(exerciseId),
-    history: WorkoutHistoryTabScene(exerciseId),
-  })
+  // This is important to prevent unnecessary re-renders, and also to ensure Tamagui's Select components work
+  // For undocumented reasons, Tamagui's Select components on Android does not work properly when mounted, unmounted, and re-mounted
+  // See: https://github.com/tamagui/tamagui/issues/1595
+  // See: https://github.com/tamagui/tamagui/issues/1859
+  const tabBarSceneMap = React.useMemo(
+    () => ({
+      records: PersonalRecordsTabScene(exerciseId),
+      history: WorkoutHistoryTabScene(exerciseId),
+    }),
+    [exerciseId],
+  )
+
+  const renderScene = SceneMap(tabBarSceneMap)
 
   const renderTabBar = (props) => {
     return (
@@ -650,8 +722,7 @@ const $recordsDateColumnHeader: ViewStyle & TextStyle = {
 
 const $recordsDateColumn: ViewStyle & TextStyle = {
   flex: 2,
-  textAlign: "left",
-  paddingLeft: spacing.small,
+  textAlign: "center",
 }
 
 const $recordsWeightColumn: ViewStyle & TextStyle = {

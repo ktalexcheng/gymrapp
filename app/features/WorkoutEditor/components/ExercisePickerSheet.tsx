@@ -78,7 +78,12 @@ export const ExercisePickerSheet = observer(function ExercisePickerSheet(
 
   console.debug("ExercisePickerSheet rendering")
   return (
-    <Sheet forceRemoveScrollEnabled={open} open={open} onOpenChange={onOpenChange}>
+    <Sheet
+      disableDrag={true}
+      forceRemoveScrollEnabled={open}
+      open={open}
+      onOpenChange={onOpenChange}
+    >
       {renderContent()}
     </Sheet>
   )

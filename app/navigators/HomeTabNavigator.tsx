@@ -107,6 +107,8 @@ const NewActivityButton = observer(() => {
     backgroundColor: themeStore.colors("actionable"),
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: themeStore.colors("border"),
   }
 
   const $centerButtonLabel: TextStyle = {

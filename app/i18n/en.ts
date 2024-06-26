@@ -491,9 +491,15 @@ const en = {
   exerciseDetailsScreen: {
     headerTitle: "Exercise details",
     personalRecordsLabel: "Personal Records",
+    performanceChartTitle: "Performance chart",
     performanceChartDefaultLabel: "All time PRs",
+    performanceChartDefaultHelpText:
+      "Shows your all time personal weight records for every rep count",
     performanceChartByWeightLabel: "By weight",
+    performanceChartByWeightHelpText:
+      "Shows the reps performed at each weight from all your past workouts",
     performanceChartByRepsLabel: "By reps",
+    performanceChartByRepsHelpText: "Shows the weight used at each rep from all your past workouts",
     workoutHistoryLabel: "Workout History",
     recordsHeaderDateLabel: "Date Performed",
     recordsHeaderWeightLabel: "Weight",
