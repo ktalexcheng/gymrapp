@@ -261,7 +261,7 @@ export const darkColors: Colors = {
   elevatedBackground: darkPalette.neutral200,
   border: darkPalette.neutral200,
   tint: darkPalette.primary500,
-  lightTint: darkPalette.primary100,
+  lightTint: darkPalette.primary050,
   actionable: darkPalette.primary500,
   actionablePressed: darkPalette.primary400,
   separator: darkPalette.neutral400,

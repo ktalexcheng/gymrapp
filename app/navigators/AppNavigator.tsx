@@ -12,6 +12,8 @@ import { Icon, RowView, Spacer, Text } from "app/components"
 import { useLocale } from "app/context"
 import { AppColorScheme, AppLocale } from "app/data/constants"
 import { LoadingScreen } from "app/features/common/LoadingScreen"
+import { useUpdateUser } from "app/features/UserProfile/services/useUpdateUser"
+import { getExpoDevicePushToken } from "app/features/UserProfile/utils/getDevicePushToken"
 import { useInternetStatus, useToast } from "app/hooks"
 import { spacing } from "app/theme"
 import { useSafeAreaInsetsStyle } from "app/utils/useSafeAreaInsetsStyle"
@@ -122,6 +124,7 @@ export interface NavigationProps
   extends Partial<React.ComponentProps<typeof NavigationContainer>> {}
 
 export const AppNavigator = observer((props: NavigationProps) => {
+  // hooks
   const {
     authenticationStore: authStore,
     userStore,
@@ -130,10 +133,15 @@ export const AppNavigator = observer((props: NavigationProps) => {
     activeWorkoutStore,
     workoutEditorStore,
   } = useStores()
-  const [isInternetConnectState, setIsInternetConnectState] = useState<boolean>()
-  const [isInitializing, setIsInitializing] = useState(true) // To prevent initial route flicker
   const [isInternetConnected] = useInternetStatus()
   const [showToastTx] = useToast()
+
+  // queries
+  const updateUser = useUpdateUser()
+
+  // states
+  const [isInternetConnectState, setIsInternetConnectState] = useState<boolean>()
+  const [isInitializing, setIsInitializing] = useState(true) // To prevent initial route flicker
 
   useEffect(() => {
     const handleNetworkChange = (newIsInternetConnected: boolean) => {
@@ -177,6 +185,12 @@ export const AppNavigator = observer((props: NavigationProps) => {
       authStore.setFirebaseUser(user)
       console.debug("onAuthStateChanged user is email verified")
       await userStore.loadUserWithId(user.uid)
+
+      // Once user is authenticated, save the user's device token for push notifications
+      const expoPushToken = await getExpoDevicePushToken()
+      if (expoPushToken) {
+        updateUser.mutate({ userId: user.uid, expoPushToken })
+      }
     } else {
       console.debug("onAuthStateChanged received invalid user, invalidating session")
       authStore.resetAuthStore()

@@ -72,7 +72,7 @@ const ExerciseList: FC<ExerciseListProps> = function ExerciseList(props: Exercis
               <ExerciseTag
                 txTag={`volumeType.${item.volumeType?.toLowerCase()}` as TxKeyPath}
                 backgroundColor={
-                  item.volumeType === "Time" ? themeStore.palette("secondary050") : undefined
+                  item.volumeType === "Time" ? themeStore.colors("lightTint") : undefined
                 }
               />
               <Text size="md">{item.exerciseName}</Text>

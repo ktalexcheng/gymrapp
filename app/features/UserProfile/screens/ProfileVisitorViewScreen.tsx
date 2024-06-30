@@ -12,6 +12,7 @@ import {
   Text,
   ThemedRefreshControl,
 } from "app/components"
+import { ReportAbusePanel } from "app/features/ReportAbuse"
 import { WorkoutSummaryCard } from "app/features/WorkoutSummary"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
@@ -20,12 +21,11 @@ import { spacing, styles } from "app/theme"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
 import { formatDate } from "app/utils/formatDate"
 import { formatName } from "app/utils/formatName"
-import { EllipsisVertical, HeartCrack } from "lucide-react-native"
+import { CircleCheck, EllipsisVertical, HeartCrack, X } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
 import React, { FC, useCallback, useEffect, useState } from "react"
 import { Alert, FlatList, View, ViewStyle } from "react-native"
-import { ReportAbusePanel } from "../ReportAbuse"
-import { UserProfileStatsBar } from "./components/UserProfileStatsBar"
+import { UserProfileStatsBar } from "../components/UserProfileStatsBar"
 
 type ProfileVisitorViewScreenMenuProps = {
   userIsBlocked: boolean
@@ -264,11 +264,46 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
       )
     }
 
+    const isUserSentFollowRequetst = userStore.pendingFollowRequests.find(
+      (r) => r.requestedByUserId === otherUserId,
+    )
+
+    const $pendingFollowRequestContainer: ViewStyle = {
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: themeStore.colors("contentBackground"),
+      marginBottom: spacing.small,
+      padding: spacing.small,
+      borderRadius: 8,
+    }
+
     const profileHeaderComponent = () => {
       if (!otherUser) return null
 
       return (
         <>
+          {isUserSentFollowRequetst && (
+            <RowView style={$pendingFollowRequestContainer}>
+              <Text
+                tx="profileVisitorViewScreen.pendingFollowRequestMessage"
+                txOptions={{ userHandle: otherUser.userHandle }}
+              />
+              <RowView style={styles.alignCenter}>
+                <CircleCheck
+                  size={32}
+                  color={themeStore.colors("contentBackground")}
+                  fill={themeStore.colors("actionable")}
+                  onPress={() => userStore.acceptFollowRequest(otherUserId)}
+                />
+                <Spacer type="horizontal" size="small" />
+                <X
+                  size={32}
+                  color={themeStore.colors("foreground")}
+                  onPress={() => userStore.declineFollowRequest(otherUserId)}
+                />
+              </RowView>
+            </RowView>
+          )}
           <RowView style={styles.justifyBetween}>
             <RowView style={styles.flex1}>
               <Avatar user={otherUser} size="lg" />
@@ -278,11 +313,12 @@ export const ProfileVisitorViewScreen: FC<ProfileVisitorViewScreenProps> = obser
                   {formatName(otherUser.firstName, otherUser.lastName)}
                 </Text>
                 <RowView style={styles.flex1}>
-                  <Text preset="formLabel" tx="profileVisitorViewScreen.dateJoinedLabel" />
-                  <Spacer type="horizontal" size="small" />
-                  <Text preset="formLabel" numberOfLines={1}>
-                    {otherUser._createdAt ? formatDate(otherUser._createdAt, "MMM dd, yyyy") : ""}
-                  </Text>
+                  <Text
+                    preset="light"
+                    size="xs"
+                    tx="profileVisitorViewScreen.dateJoinedLabel"
+                    txOptions={{ dateJoinedString: formatDate(otherUser._createdAt) }}
+                  />
                 </RowView>
               </View>
             </RowView>

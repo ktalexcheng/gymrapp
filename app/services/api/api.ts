@@ -157,12 +157,11 @@ export class Api {
     return getDistance(gpsLatLng1, gpsLatLng2)
   }
 
-  async getOtherUserWorkout(userId: UserId, workoutId: WorkoutId): Promise<Workout> {
+  async getOtherUserWorkout(workoutId: WorkoutId): Promise<Workout> {
     try {
       const response = await this.firebaseFunctionsClient.httpsCallable(
         "workoutGetOtherUserWorkout",
       )({
-        userId,
         workoutId,
       })
 

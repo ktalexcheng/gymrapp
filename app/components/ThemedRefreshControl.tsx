@@ -6,5 +6,12 @@ import { RefreshControl as RNRefreshControl, RefreshControlProps } from "react-n
 export const ThemedRefreshControl = observer((props: RefreshControlProps) => {
   const { themeStore } = useStores()
 
-  return <RNRefreshControl tintColor={themeStore.colors("logo")} {...props} />
+  return (
+    <RNRefreshControl
+      tintColor={themeStore.colors("logo")} // iOS
+      progressBackgroundColor={themeStore.colors("background")} // Android
+      colors={[themeStore.colors("logo")]} // Android
+      {...props}
+    />
+  )
 })

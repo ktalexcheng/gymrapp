@@ -48,6 +48,8 @@ const linkingConfig = {
     MainNavigator: {
       screens: {
         ActiveWorkout: "activeWorkout",
+        WorkoutSummary: "workoutSummary",
+        ProfileVisitorView: "profileVisitorView",
       },
     },
     AuthNavigator: {
@@ -73,6 +75,7 @@ const linking = {
     // Handle URL from notifications
     const response = await Notifications.getLastNotificationResponseAsync()
 
+    console.debug("getInitialURL() response data:", response?.notification.request.content?.data)
     return response?.notification.request.content?.data?.url
   },
   // See: https://reactnavigation.org/docs/navigation-container/#linkingsubscribe
@@ -85,6 +88,7 @@ const linking = {
     // Listen to expo push notifications
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const url = response.notification.request.content.data.url
+      console.debug("Linking subscription triggered by notification:", { url })
 
       // Let React Navigation handle the URL
       listener(url)
@@ -190,6 +194,7 @@ function App(props: AppProps) {
 
   const [areFontsLoaded] = useFonts(customFontsToLoad)
 
+  // TODO: Move this to after the user has logged in
   useNotification()
 
   const [updateLink, setUpdateLink] = useState<string>()

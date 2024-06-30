@@ -13,7 +13,6 @@ import { Text } from "./Text"
 export interface MenuListItemProps extends TouchableOpacityProps {
   disabled?: boolean
   required?: boolean
-  key?: string
   itemNameLabelTx?: TxKeyPath
   itemNameLabel?: string
   itemDescriptionLabelTx?: TxKeyPath
@@ -39,7 +38,6 @@ export const MenuListItem = observer(
     const {
       disabled = false,
       required = false,
-      key,
       itemNameLabelTx,
       itemNameLabel,
       itemDescriptionLabelTx,
@@ -60,7 +58,6 @@ export const MenuListItem = observer(
 
     const $container: StyleProp<ViewStyle> = [
       {
-        // width: "100%",
         alignItems: "center",
         justifyContent: "space-between",
       },
@@ -68,7 +65,6 @@ export const MenuListItem = observer(
     ]
 
     const $preferenceLabelContainer: ViewStyle = {
-      // flex: 1,
       alignItems: "center",
       overflow: "hidden",
     }
@@ -105,13 +101,7 @@ export const MenuListItem = observer(
 
     if (overrideOnPress) {
       return (
-        <TouchableOpacity
-          ref={forwardedRef}
-          key={key}
-          disabled={disabled}
-          onPress={overrideOnPress}
-          // {...rest}
-        >
+        <TouchableOpacity ref={forwardedRef} disabled={disabled} onPress={overrideOnPress}>
           <MenuListItemDisplay currentValueFormatted={currentValueFormatted ?? currentValue} />
         </TouchableOpacity>
       )
@@ -122,21 +112,10 @@ export const MenuListItem = observer(
       return null
     }
 
-    // console.debug("PreferenceListItem", {
-    //   preferenceId,
-    //   preferenceNameLabelTx,
-    //   preferenceDescriptionLabelTx,
-    //   currentValue,
-    //   currentValueFormatted,
-    //   disabled,
-    //   showModal,
-    //   selectedValue,
-    // })
     return (
       <>
         <TouchableOpacity
           ref={forwardedRef}
-          key={key}
           disabled={disabled}
           onPress={() => setShowModal(true)}
           {...rest}

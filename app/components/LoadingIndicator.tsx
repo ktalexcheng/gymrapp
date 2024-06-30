@@ -68,7 +68,7 @@ export const LoadingIndicator = observer((props: LoadingIndicatorProps) => {
       {type === "logo" ? (
         <Animated.Text style={$glowAnimation}>GYMRAPP</Animated.Text>
       ) : (
-        <ActivityIndicator size={size} color={themeStore.colors("tint")} />
+        <ActivityIndicator size={size} color={themeStore.colors("logo")} />
       )}
     </View>
   )

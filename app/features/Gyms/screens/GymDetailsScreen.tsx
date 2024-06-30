@@ -1,4 +1,5 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
+import { useInfiniteQuery, useQueries } from "@tanstack/react-query"
 import {
   Avatar,
   Button,
@@ -9,16 +10,16 @@ import {
   Spacer,
   TabBar,
   Text,
+  ThemedRefreshControl,
 } from "app/components"
-import { WorkoutSource } from "app/data/constants"
-import { GymDetails, GymMember, UserId, WorkoutId } from "app/data/types"
+import { GymDetails, GymMember } from "app/data/types"
 import { WorkoutSummaryCard } from "app/features/WorkoutSummary"
 import { useToast } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { api } from "app/services/api"
-import { IUserModel, IWorkoutSummaryModel, useStores } from "app/stores"
+import { IUserModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { simplifyNumber } from "app/utils/formatNumber"
 import { logError } from "app/utils/logger"
@@ -26,6 +27,7 @@ import { observer } from "mobx-react-lite"
 import React, { FC, useEffect, useState } from "react"
 import { FlatList, TouchableOpacity, View, ViewStyle } from "react-native"
 import { SceneMap, TabView } from "react-native-tab-view"
+import { queries } from "../services/queryFactory"
 
 interface GymWorkoutsTabSceneProps {
   gymId: string
@@ -35,84 +37,53 @@ interface GymWorkoutsTabSceneProps {
 const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
   (props: GymWorkoutsTabSceneProps) => {
     const { gymId, gymDetails } = props
-    const { gymStore, feedStore } = useStores()
-    const [gymWorkouts, setGymWorkouts] = useState<IWorkoutSummaryModel[]>([])
-    const [lastWorkoutId, setLastWorkoutId] = useState<WorkoutId>()
-    const [noMoreWorkouts, setNoMoreWorkouts] = useState(false)
-    const [loadingWorkouts, setLoadingWorkouts] = useState(false)
-    const [gymMemberProfiles, setGymMemberProfiles] = useState<{
-      [userId: string]: GymMember & IUserModel
-    }>({})
 
-    const loadMoreGymWorkouts = async () => {
-      if (loadingWorkouts || noMoreWorkouts) return
-      console.debug("GymWorkoutsTabScene.loadMoreGymWorkouts running", {
-        noMoreWorkouts,
-        lastWorkoutId,
-      })
-      setLoadingWorkouts(true)
-
-      const {
-        lastWorkoutId: newLastWorkoutId,
-        noMoreItems,
-        workouts,
-      } = await api.getGymWorkouts(gymId, lastWorkoutId)
-      console.debug("GymWorkoutsTabScene.loadMoreGymWorkouts getGymWorkouts response", {
-        gymId,
-        noMoreItems,
-        newLastWorkoutId,
-        // workouts,
-      })
-      setLastWorkoutId(newLastWorkoutId)
-      setNoMoreWorkouts(noMoreItems)
-
-      // Fetch the users first to filter our workouts from invalid users
-      let validWorkouts = [...workouts]
-      const byUserIds = workouts.map((workout) => workout.byUserId)
-      for (const byUserId of byUserIds) {
-        if (!gymMemberProfiles[byUserId]) {
-          const user = await feedStore.fetchUserProfileToStore(byUserId)
-          // The user may have been deleted, so remove those workouts
-          if (!user) {
-            validWorkouts = validWorkouts.filter((workout) => workout.byUserId !== byUserId)
-            continue
-          }
-
-          // Get gym member profile which contains some additional gym-specific data of the member
-          const gymMember = await gymStore.getGymMember(gymId, byUserId)
-          setGymMemberProfiles((prev) => ({
-            ...prev,
-            [byUserId]: {
-              ...gymMember,
-              ...user,
-            },
+    // queries
+    const gymWorkoutsQuery = useInfiniteQuery({
+      queryKey: ["gyms", "getWorkouts", gymId],
+      queryFn: ({ pageParam }) => api.getGymWorkouts(gymId, pageParam),
+      initialPageParam: "",
+      getNextPageParam: (lastPage) => (lastPage.noMoreItems ? null : lastPage.lastWorkoutId),
+    })
+    const gymWorkouts = gymWorkoutsQuery.data?.pages?.flatMap((page) => page.workouts) ?? []
+    const byUserIds = Array.from(new Set(gymWorkouts.map((workout) => workout.byUserId)))
+    const gymMembersQuery = useQueries({
+      queries: byUserIds
+        ? byUserIds.map((userId) => ({
+            ...queries.getMember(gymId, userId),
           }))
-        }
+        : [],
+    })
+    const gymMembers = gymMembersQuery.reduce((acc, query) => {
+      if (query.data) {
+        acc[query.data.userId] = query.data
       }
-
-      setGymWorkouts((prev) => prev.concat(validWorkouts))
-      setLoadingWorkouts(false)
-    }
+      return acc
+    }, {})
 
     return (
       <FlatList
         data={gymWorkouts}
         renderItem={({ item }) => {
-          if (!gymMemberProfiles[item.byUserId]) return null
+          if (!gymMembers[item.byUserId]) return null
 
           return (
             <WorkoutSummaryCard
               workout={item}
-              workoutSource={WorkoutSource.OtherUser}
               workoutId={item.workoutId}
-              byUser={gymMemberProfiles[item.byUserId]}
+              byUser={gymMembers[item.byUserId]}
             />
           )
         }}
-        // ItemSeparatorComponent={() => <Spacer type="vertical" size="small" />}
         keyExtractor={(item) => item.workoutId}
+        refreshControl={
+          <ThemedRefreshControl
+            refreshing={gymWorkoutsQuery.isFetching}
+            onRefresh={() => gymWorkoutsQuery.refetch()}
+          />
+        }
         onEndReachedThreshold={0.5}
-        onEndReached={loadMoreGymWorkouts}
+        onEndReached={() => !gymWorkoutsQuery.isFetching && gymWorkoutsQuery.fetchNextPage()}
         ListHeaderComponent={() => {
           if (gymWorkouts.length > 0) {
             return (
@@ -128,7 +99,7 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
           return null
         }}
         ListEmptyComponent={() => {
-          if (!loadingWorkouts) {
+          if (!gymWorkoutsQuery.isFetching) {
             return (
               <View style={styles.alignCenter}>
                 <Spacer type="vertical" size="medium" />
@@ -147,9 +118,9 @@ const GymWorkoutsTabScene: FC<GymWorkoutsTabSceneProps> = observer(
           return null
         }}
         ListFooterComponent={() => {
-          if (loadingWorkouts) return <LoadingIndicator />
+          if (gymWorkoutsQuery.isFetching) return <LoadingIndicator />
 
-          if (noMoreWorkouts && gymWorkouts?.length > 0) {
+          if (!gymWorkoutsQuery.hasNextPage && gymWorkouts?.length > 0) {
             return (
               <View style={styles.alignCenter}>
                 <Spacer type="vertical" size="medium" />
@@ -172,42 +143,22 @@ interface GymMembersTabSceneProps {
 const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
   (props: GymMembersTabSceneProps) => {
     const { gymId } = props
+
+    // hooks
     const { themeStore, gymStore, userStore } = useStores()
-    const [gymMemberProfiles, setGymMemberProfiles] = useState<{
-      [userId: string]: GymMember & IUserModel
-    }>({})
-    const [lastMemberId, setLastMemberId] = useState<UserId>()
-    const [noMoreMembers, setNoMoreMembers] = useState(false)
-    const [loadingMembers, setLoadingMembers] = useState(false)
     const mainNavigation = useMainNavigation()
 
-    const sortedGymMembers = Object.values(gymMemberProfiles).sort(
-      (a, b) => (b.workoutsCount ?? 0) - (a.workoutsCount ?? 0),
-    )
-
-    const loadMoreGymMembers = async () => {
-      if (loadingMembers || noMoreMembers) return
-      console.debug("GymDetailsScreen.loadMoreGymMembers running")
-      setLoadingMembers(true)
-
-      const {
-        lastMemberId: newLastMemberId,
-        noMoreItems,
-        gymMemberProfiles,
-      } = await gymStore.getWorkoutsLeaderboard(gymId, lastMemberId)
-      console.debug("GymDetailsScreen.loadMoreGymMembers after response", {
-        noMoreItems,
-        newLastMemberId,
-      })
-      setLastMemberId(newLastMemberId)
-      setNoMoreMembers(noMoreItems)
-
-      for (const gymMemberProfile of gymMemberProfiles) {
-        setGymMemberProfiles((prev) => ({ ...prev, [gymMemberProfile.userId]: gymMemberProfile }))
-      }
-
-      setLoadingMembers(false)
-    }
+    // queries
+    const gymMembersQuery = useInfiniteQuery({
+      queryKey: ["gyms", "getWorkoutsLeaderboard", gymId],
+      queryFn: ({ pageParam }) => gymStore.getWorkoutsLeaderboard(gymId, pageParam),
+      initialPageParam: "",
+      getNextPageParam: (lastPage) => (lastPage.noMoreItems ? null : lastPage.lastMemberId),
+    })
+    const gymMembers =
+      gymMembersQuery.data?.pages
+        ?.flatMap((page) => page.gymMemberProfiles)
+        ?.sort((a, b) => (b.workoutsCount ?? 0) - (a.workoutsCount ?? 0)) ?? []
 
     const $tileHeader: ViewStyle = {
       justifyContent: "space-between",
@@ -256,13 +207,19 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
           <Text preset="formLabel" tx="common.workouts" />
         </RowView>
         <FlatList
-          data={sortedGymMembers}
+          data={gymMembers}
           renderItem={({ item }) => <GymMemberTile {...item} />}
           keyExtractor={(item) => item.userId}
+          refreshControl={
+            <ThemedRefreshControl
+              refreshing={gymMembersQuery.isFetching}
+              onRefresh={() => gymMembersQuery.refetch()}
+            />
+          }
           onEndReachedThreshold={0.5}
-          onEndReached={() => !noMoreMembers && loadMoreGymMembers()}
+          onEndReached={() => gymMembersQuery.hasNextPage && gymMembersQuery.fetchNextPage()}
           ListEmptyComponent={() => {
-            if (!loadingMembers)
+            if (!gymMembersQuery.isFetching)
               return (
                 <View style={styles.alignCenter}>
                   <Spacer type="vertical" size="medium" />
@@ -273,7 +230,7 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
             return null
           }}
           ListFooterComponent={() => {
-            if (noMoreMembers && sortedGymMembers?.length > 0) {
+            if (!gymMembersQuery.hasNextPage && gymMembers?.length > 0) {
               return (
                 <View style={styles.alignCenter}>
                   <Spacer type="vertical" size="medium" />
@@ -282,7 +239,7 @@ const GymMembersTabScene: FC<GymMembersTabSceneProps> = observer(
               )
             }
 
-            if (loadingMembers) return <LoadingIndicator />
+            if (gymMembersQuery.isFetching) return <LoadingIndicator />
 
             return null
           }}
@@ -314,10 +271,15 @@ export const GymDetailsScreen = observer(({ route }: GymDetailsScreenProps) => {
     },
   ]
 
-  const renderScene = SceneMap({
-    gymWorkouts: () => <GymWorkoutsTabScene gymId={gymId} gymDetails={gymDetails!} />,
-    gymMembers: () => <GymMembersTabScene gymId={gymId} />,
-  })
+  const tabBarSceneMap = React.useMemo(
+    () => ({
+      gymWorkouts: () => <GymWorkoutsTabScene gymId={gymId} gymDetails={gymDetails!} />,
+      gymMembers: () => <GymMembersTabScene gymId={gymId} />,
+    }),
+    [gymId, gymDetails],
+  )
+
+  const renderScene = SceneMap(tabBarSceneMap)
 
   const renderTabBar = (props) => {
     return (

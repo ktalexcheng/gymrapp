@@ -46,7 +46,6 @@ const ExerciseSettingsTile = (exercise: IExerciseModel) => {
   return (
     <View style={$container}>
       <MenuListItem
-        key={exercise.exerciseId}
         itemNameLabel={exercise.exerciseName}
         currentValue={undefined}
         onPress={() => {

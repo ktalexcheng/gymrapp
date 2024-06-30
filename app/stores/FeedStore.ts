@@ -5,6 +5,7 @@ import {
   ReportAbuseTypes,
   WorkoutSource,
 } from "app/data/constants"
+import { FirebaseSnapshotType } from "app/data/repository"
 import { CommentId, ExerciseId, UserId, WorkoutComment, WorkoutId } from "app/data/types"
 import { api } from "app/services/api"
 import { getNestedField } from "app/utils/getNestedField"
@@ -329,12 +330,8 @@ export const FeedStoreModel = types
         })
         return self.isLoadingUserWorkouts || self.isLoadingFeed || self.isLoadingOtherUserWorkouts
       },
-      getWorkout(workoutSource: WorkoutSource, workoutId: string) {
-        if (
-          (workoutSource === WorkoutSource.User && self.isLoadingUserWorkouts) ||
-          (workoutSource === WorkoutSource.Feed && self.isLoadingFeed) ||
-          (workoutSource === WorkoutSource.OtherUser && self.isLoadingOtherUserWorkouts)
-        ) {
+      getWorkout(workoutId: string) {
+        if (self.isLoadingUserWorkouts || self.isLoadingFeed || self.isLoadingOtherUserWorkouts) {
           console.debug("FeedStore.getWorkout loading workouts")
           return undefined
         }
@@ -356,18 +353,14 @@ export const FeedStoreModel = types
         console.debug("FeedStore.getSetFromWorkout() lastPerformedSet:", lastPerformedSet)
         return lastPerformedSet
       },
-      getInteractionsForWorkout(workoutSource: WorkoutSource, workoutId: string) {
-        if (
-          (workoutSource === WorkoutSource.User && self.isLoadingUserWorkouts) ||
-          (workoutSource === WorkoutSource.Feed && self.isLoadingFeed) ||
-          (workoutSource === WorkoutSource.Feed && self.isLoadingFeed)
-        ) {
-          // console.debug("FeedStore.getInteractionsForWorkout loading workouts")
-          return undefined
+      getInteractionsForWorkout(workoutId: string) {
+        if (self.isLoadingUserWorkouts || self.isLoadingFeed || self.isLoadingOtherUserWorkouts) {
+          console.debug("FeedStore.getInteractionsForWorkout loading workouts")
+          return null
         }
 
-        const interactions = self.workoutInteractions.get(workoutId)
-        return interactions
+        const interactions = self.workoutInteractions.get(workoutId) ?? null
+        return toJS(interactions)
       },
       getOtherUserWorkoutsListData(otherUserId: UserId) {
         return getAllWorkoutsListData(WorkoutSource.OtherUser, otherUserId)
@@ -379,9 +372,6 @@ export const FeedStoreModel = types
         const interactions = self.workoutInteractions.get(workoutId)
         const reportedCount = interactions?.reportedCommentIds?.get(commentId)?.count ?? 0
         return reportedCount > 0
-      },
-      getOtherUser(userId: string) {
-        return self.otherUserProfiles.get(userId)
       },
     }
   })
@@ -441,12 +431,16 @@ export const FeedStoreModel = types
             case WorkoutSource.OtherUser:
               // self.otherUserMetas.get(workout.byUserId)?.workoutMetas?.push(workoutMeta)
               workoutMetas = self.otherUserMetas.get(workout.byUserId)?.workoutMetas
+              if (!workoutMetas) {
+                self.otherUserMetas.put({
+                  byUserId: workout.byUserId,
+                  workoutMetas: [],
+                  lastWorkoutId: null,
+                  noMoreItems: false,
+                })
+                workoutMetas = self.otherUserMetas.get(workout.byUserId)?.workoutMetas
+              }
               break
-          }
-
-          if (!workoutMetas) {
-            console.warn("FeedStore.addWorkoutToStore: workoutMetas is undefined")
-            return
           }
 
           const existingWorkoutMeta = workoutMetas.find((w) => w.workoutId === workout.workoutId)
@@ -461,11 +455,7 @@ export const FeedStoreModel = types
       }
     }
 
-    const refreshWorkout = flow(function* (
-      workoutSource: WorkoutSource,
-      userId: UserId,
-      workoutId: WorkoutId,
-    ) {
+    const refreshWorkout = flow(function* (workoutSource: WorkoutSource, workoutId: WorkoutId) {
       const { workoutRepository } = getEnv<RootStoreDependencies>(self)
 
       try {
@@ -473,7 +463,7 @@ export const FeedStoreModel = types
         if (workoutSource === WorkoutSource.User) {
           workout = yield workoutRepository.get(workoutId, true)
         } else {
-          workout = yield api.getOtherUserWorkout(userId, workoutId)
+          workout = yield api.getOtherUserWorkout(workoutId)
         }
         console.debug("FeedStore.refreshWorkout() ", { workout })
         addWorkoutToStore(workoutSource, workout)
@@ -564,7 +554,7 @@ export const FeedStoreModel = types
         let user
         try {
           user = yield userRepository.get(userId)
-          if (!user) return
+          if (!user) return null
 
           const userSnapshot = convertUserToMSTSnapshot(user)
           self.otherUserProfiles.put(userSnapshot)
@@ -574,7 +564,6 @@ export const FeedStoreModel = types
       }
 
       const userProfile = self.otherUserProfiles.get(userId)
-      console.debug("FeedStore.fetchUserProfileToStore() ", { userId, userProfile })
       return userProfile
     })
 
@@ -616,10 +605,16 @@ export const FeedStoreModel = types
 
     const addCommentToWorkout = flow(function* (
       workoutId: WorkoutId,
-      workoutByUserId: UserId,
       commentByUserId: UserId,
       comment: string,
     ) {
+      const workout = self.workouts.get(workoutId)
+      if (!workout) {
+        logError(new Error("FeedStore.likeWorkout workout not found"), { workoutId })
+        return
+      }
+      const workoutByUserId = workout.byUserId
+
       // Nested FieldValue.serverTimestamp() in arrayUnion() is not supported
       // so we use the client timestamp instead, should be good enough for this case
       const newComment = {
@@ -630,6 +625,14 @@ export const FeedStoreModel = types
       } as WorkoutComment
 
       try {
+        if (!self.workoutInteractions.has(workoutId)) {
+          self.workoutInteractions.put({
+            workoutId,
+            workoutByUserId,
+            likedByUserIds: [],
+            comments: [],
+          })
+        }
         const interactions = self.workoutInteractions.get(workoutId)
         interactions?.addComment(newComment)
 
@@ -669,12 +672,23 @@ export const FeedStoreModel = types
       }
     })
 
-    const likeWorkout = flow(function* (
-      workoutId: WorkoutId,
-      workoutByUserId: UserId,
-      likedByUserId: UserId,
-    ) {
+    const likeWorkout = flow(function* (workoutId: WorkoutId, likedByUserId: UserId) {
       try {
+        const workout = self.workouts.get(workoutId)
+        if (!workout) {
+          logError(new Error("FeedStore.likeWorkout workout not found"), { workoutId })
+          return
+        }
+        const workoutByUserId = workout.byUserId
+
+        if (!self.workoutInteractions.has(workoutId)) {
+          self.workoutInteractions.put({
+            workoutId,
+            workoutByUserId,
+            likedByUserIds: [],
+            comments: [],
+          })
+        }
         const interactions = self.workoutInteractions.get(workoutId)
         interactions?.addLike(likedByUserId)
 
@@ -846,92 +860,52 @@ export const FeedStoreModel = types
       }
     })
 
-    let lastUserFollowerDoc: any = null
-    let hasMoreUserFollowers = true
-    const getMoreUserFollowers = flow(function* (userId: string, refresh?: boolean) {
-      console.debug("FeedStore.getMoreUserFollowers called", {
-        lastUserFollowerDoc,
-        hasMoreUserFollowers,
-        userId,
-        refresh,
-      })
-      if (refresh) {
-        lastUserFollowerDoc = null
-        hasMoreUserFollowers = true
-      }
-
+    const getMoreUserFollowers = flow(function* (
+      userId: string,
+      lastUserFollowerDoc?: FirebaseSnapshotType,
+    ) {
       const userProfiles: IUserModel = []
-      if (hasMoreUserFollowers) {
-        const { userRepository } = getEnv<RootStoreDependencies>(self)
-        try {
-          const { ids, hasMore, lastDocSnapshot } = yield userRepository.getAllUserFollowers(
-            userId,
-            lastUserFollowerDoc,
-          )
-          hasMoreUserFollowers = hasMore
-          lastUserFollowerDoc = lastDocSnapshot
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        const { ids, hasMore, lastDocSnapshot } = yield userRepository.getAllUserFollowers(
+          userId,
+          lastUserFollowerDoc,
+        )
 
-          for (const id of ids) {
-            yield fetchUserProfileToStore(id).then((profile) => userProfiles.push(profile))
-          }
-
-          console.debug("FeedStore.getMoreUserFollowers returning", {
-            lastUserFollowerDoc,
-            hasMoreUserFollowers,
-            userId,
-            refresh,
-          })
-          return { userProfiles, hasMore }
-        } catch (e) {
-          logError(e, "UserStore.getAllUserFollowers error")
+        for (const id of ids) {
+          yield fetchUserProfileToStore(id).then((profile) => profile && userProfiles.push(profile))
         }
+
+        return { userProfiles, hasMore, lastDocSnapshot }
+      } catch (e) {
+        logError(e, "UserStore.getAllUserFollowers error")
       }
 
-      return { userProfiles: [], hasMore: false }
+      return { userProfiles: [], hasMore: false, lastDocSnapshot: null }
     })
 
-    let lastUserFollowingDoc: any = null
-    let hasMoreUserFollowing = true
-    const getMoreUserFollowing = flow(function* (userId: string, refresh?: boolean) {
-      console.debug("FeedStore.getMoreUserFollowing called", {
-        lastUserFollowingDoc,
-        hasMoreUserFollowing,
-        userId,
-        refresh,
-      })
-      if (refresh) {
-        lastUserFollowingDoc = null
-        hasMoreUserFollowing = true
-      }
-
+    const getMoreUserFollowing = flow(function* (
+      userId: string,
+      lastUserFollowingDoc?: FirebaseSnapshotType,
+    ) {
       const userProfiles: IUserModel = []
-      if (hasMoreUserFollowing) {
-        const { userRepository } = getEnv<RootStoreDependencies>(self)
-        try {
-          const { ids, hasMore, lastDocSnapshot } = yield userRepository.getAllUserFollowing(
-            userId,
-            lastUserFollowingDoc,
-          )
-          hasMoreUserFollowing = hasMore
-          lastUserFollowingDoc = lastDocSnapshot
+      const { userRepository } = getEnv<RootStoreDependencies>(self)
+      try {
+        const { ids, hasMore, lastDocSnapshot } = yield userRepository.getAllUserFollowing(
+          userId,
+          lastUserFollowingDoc,
+        )
 
-          for (const id of ids) {
-            yield fetchUserProfileToStore(id).then((profile) => userProfiles.push(profile))
-          }
-
-          console.debug("FeedStore.getMoreUserFollowing returning", {
-            lastUserFollowingDoc,
-            hasMoreUserFollowing,
-            userId,
-            refresh,
-          })
-          return { userProfiles, hasMore }
-        } catch (e) {
-          logError(e, "UserStore.getMoreUserFollowing error")
+        for (const id of ids) {
+          yield fetchUserProfileToStore(id).then((profile) => profile && userProfiles.push(profile))
         }
+
+        return { userProfiles, hasMore, lastDocSnapshot }
+      } catch (e) {
+        logError(e, "UserStore.getMoreUserFollowing error")
       }
 
-      return { userProfiles: [], hasMore: false }
+      return { userProfiles, hasMore: false, lastDocSnapshot: null }
     })
 
     return {

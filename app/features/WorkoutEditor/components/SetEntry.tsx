@@ -2,8 +2,8 @@ import {
   Button,
   Icon,
   Modal,
-  PickerModal,
   RowView,
+  Sheet,
   Spacer,
   Text,
   TextField,
@@ -31,16 +31,14 @@ import { WorkoutEditorProps } from "./WorkoutEditor"
 // RPE list 6 - 10
 const rpeList: {
   label: string
-  value: string | null
+  value: number
 }[] = Array.from({ length: 9 }, (_, i) => {
   const rpe = 6 + 0.5 * i
   return {
     label: rpe.toString(),
-    value: rpe.toString(),
+    value: rpe,
   }
 })
-// Using empty string as the first item in the list to allow for clearing the dropdown
-rpeList.unshift({ label: "", value: null })
 
 function isValidPrecision(value: string, decimalPlaces: number) {
   let isValid = true
@@ -106,6 +104,7 @@ const SetSwipeableContainer: FC<SetSwipeableContainerProps> = (
     const $swipeContainer: ViewStyle = {
       justifyContent: "center",
       marginTop: spacing.tiny,
+      marginLeft: spacing.extraSmall,
     }
 
     const $deleteButton: ViewStyle = {
@@ -275,14 +274,19 @@ const TimeSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
         <RowView style={styles.justifyCenter}>
           <Button
             preset="text"
+            textStyle={{ color: themeStore.colors("text") }}
+            tx="common.cancel"
+            onPress={() => setShowTimeInput(false)}
+          />
+          <Spacer type="horizontal" size="massive" />
+          <Button
+            preset="text"
             tx="common.ok"
             onPress={() => {
               updateTime()
               setShowTimeInput(false)
             }}
           />
-          <Spacer type="horizontal" size="small" />
-          <Button preset="text" tx="common.cancel" onPress={() => setShowTimeInput(false)} />
         </RowView>
       </Modal>
       <SetSwipeableContainer
@@ -323,20 +327,13 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
   const { exerciseId } = exercise
   const { setOrder, isCompleted } = set
 
+  const { themeStore } = useStores()
+
   // Set from previous workout
   const [setFromLastWorkout] = useSetFromLastWorkout<RepsExerciseSetPerformed>(exerciseId, setOrder)
 
   // Exercise properties and settings
   const { autoRestTimerEnabled, restTime, weightUnit } = exerciseSettings
-  // const [autoRestTimerEnabled] = useExerciseSetting<boolean>(
-  //   exerciseId,
-  //   ExerciseSettingsType.AutoRestTimerEnabled,
-  // )
-  // const [restTime] = useExerciseSetting<number>(exerciseId, ExerciseSettingsType.RestTime)
-  // const [weightUnitSetting] = useExerciseSetting<WeightUnit>(
-  //   exerciseId,
-  //   ExerciseSettingsType.WeightUnit,
-  // )
 
   // States
   const [isNullReps, setIsNullReps] = useState(false)
@@ -353,7 +350,7 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     displayWeight ? roundToString(displayWeight, 2, false) : undefined,
   )
   const [repsInput, setRepsInput] = useState(reps?.toString())
-  const [rpeInput, setRpeInput] = useState(rpe?.toString())
+  const [openRpeSelector, setOpenRpeSelector] = useState(false)
 
   useEffect(() => {
     setWeightInput(displayWeight ? roundToString(displayWeight, 2, false) : undefined)
@@ -425,20 +422,9 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     }
   }
 
-  function handleRpeChangeText(value: string) {
-    if (!value) {
-      // Must set to empty string, a null or undefined will not clear the dropdown
-      setRpeInput("")
-      return
-    }
-
-    if (isValidPrecision(value, 1)) {
-      const num = Number(value)
-      if (num >= 6 && num <= 10) {
-        setRpeInput(value)
-        setRpe(parseFloat(value))
-      }
-    }
+  function onRpeChange(value: number | null) {
+    setRpe(value)
+    setOpenRpeSelector(false)
   }
 
   const renderPreviousSetText = () => {
@@ -471,28 +457,48 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
     handleRepsChangeText(roundToString(setFromLastWorkout.reps ?? 0, 0, false))
   }
 
+  const $rpeInput: ViewStyle = {
+    flex: 2,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: spacing.tiny,
+    borderWidth: isCompleted ? undefined : 1,
+    borderRadius: 4,
+    borderColor: themeStore.colors("border"),
+    opacity: isCompleted ? 0.5 : 1,
+  }
+
+  const $rpeSelectorItems: ViewStyle = {
+    minWidth: 50,
+    minHeight: 35,
+    borderRadius: 8,
+    backgroundColor: themeStore.colors("contentBackground"),
+    alignItems: "center",
+    justifyContent: "center",
+  }
+
   return (
-    <SetSwipeableContainer
-      exercise={exercise}
-      exerciseSettings={exerciseSettings}
-      set={set}
-      setFromLastWorkout={setFromLastWorkout ?? undefined}
-      renderPreviousSetText={renderPreviousSetText}
-      onPressPreviousSet={copyPreviousSet}
-      onPressCompleteSet={toggleSetStatus}
-      onRemoveSet={onRemoveSet}
-      onChangeSetValue={onChangeSetValue}
-      onCompleteSet={onCompleteSet}
-      disableSetCompletion={disableSetCompletion}
-    >
-      <View style={$weightColumn}>
+    <>
+      <SetSwipeableContainer
+        exercise={exercise}
+        exerciseSettings={exerciseSettings}
+        set={set}
+        setFromLastWorkout={setFromLastWorkout ?? undefined}
+        renderPreviousSetText={renderPreviousSetText}
+        onPressPreviousSet={copyPreviousSet}
+        onPressCompleteSet={toggleSetStatus}
+        onRemoveSet={onRemoveSet}
+        onChangeSetValue={onChangeSetValue}
+        onCompleteSet={onCompleteSet}
+        disableSetCompletion={disableSetCompletion}
+      >
         <TextField
-          // status={isNullWeight ? "error" : null}
           status={!disableSetCompletion && set.isCompleted ? "disabled" : null}
-          // style={{ color: themeStore.colors("text") }}
           textAlignVertical="center"
           value={weightInput ?? ""}
           onChangeText={handleWeightChangeText}
+          containerStyle={$weightInput}
           inputWrapperStyle={$textFieldWrapper}
           textAlign="center"
           autoCorrect={false}
@@ -500,16 +506,14 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
           inputMode="decimal"
           maxLength={7}
         />
-      </View>
-      <View style={$repsColumn}>
         <TextField
           status={
             isNullReps ? "error" : !disableSetCompletion && set.isCompleted ? "disabled" : null
           }
-          // style={{ color: themeStore.colors("text") }}
           textAlignVertical="center"
           value={repsInput ?? ""}
           onChangeText={handleRepsChangeText}
+          containerStyle={$repsInput}
           inputWrapperStyle={$textFieldWrapper}
           textAlign="center"
           autoCorrect={false}
@@ -517,20 +521,70 @@ const RepsSetEntry: FC<SetEntryProps> = observer((props: SetEntryProps) => {
           inputMode="numeric"
           maxLength={3}
         />
-      </View>
-      <View style={$rpeColumn}>
-        <PickerModal
-          disabled={!disableSetCompletion && set.isCompleted}
-          value={rpeInput}
-          onChange={handleRpeChangeText}
-          itemsList={rpeList}
-          modalTitleTx="workoutEditor.exerciseSetHeaders.rpe"
-          wrapperStyle={$textFieldWrapper}
-        />
-      </View>
-    </SetSwipeableContainer>
+        <TouchableOpacity style={$rpeInput} onPress={() => setOpenRpeSelector(true)}>
+          <Text>{rpe}</Text>
+        </TouchableOpacity>
+      </SetSwipeableContainer>
+
+      <Sheet
+        open={openRpeSelector}
+        onOpenChange={setOpenRpeSelector}
+        snapPoints={[30]}
+        snapPointsMode={"percent"}
+      >
+        <View style={$rpeSelectorContainer}>
+          <RowView style={[styles.alignCenter, styles.justifyBetween]}>
+            <Text tx="workoutEditor.selectRpeLabel" />
+            <Button preset="text" tx="common.clear" onPress={() => onRpeChange(null)} />
+          </RowView>
+          <Spacer type="vertical" size="small" />
+          <RowView style={$rpeItemsFullSteps}>
+            {rpeList.map(
+              (rpeItem, index) =>
+                index % 2 === 0 && (
+                  <TouchableOpacity
+                    key={"rpe_" + index}
+                    style={$rpeSelectorItems}
+                    onPress={() => onRpeChange(rpeItem.value)}
+                  >
+                    <Text>{rpeItem.label}</Text>
+                  </TouchableOpacity>
+                ),
+            )}
+          </RowView>
+          <Spacer type="vertical" size="small" />
+          <RowView style={$rpeItemsFullSteps}>
+            {rpeList.map(
+              (rpeItem, index) =>
+                index % 2 !== 0 && (
+                  <TouchableOpacity
+                    key={"rpe_" + index}
+                    style={$rpeSelectorItems}
+                    onPress={() => onRpeChange(rpeItem.value)}
+                  >
+                    <Text>{rpeItem.label}</Text>
+                  </TouchableOpacity>
+                ),
+            )}
+          </RowView>
+          <Spacer type="vertical" size="small" />
+          <Button tx="common.back" onPress={() => setOpenRpeSelector(false)} />
+        </View>
+      </Sheet>
+    </>
   )
 })
+
+const $rpeSelectorContainer: ViewStyle = {
+  flex: 1,
+  paddingHorizontal: spacing.screenPadding,
+  marginBottom: spacing.screenPadding,
+}
+
+const $rpeItemsFullSteps: ViewStyle = {
+  gap: spacing.large,
+  marginHorizontal: "auto",
+}
 
 export type SetEntryProps = Pick<
   WorkoutEditorProps,
@@ -566,19 +620,13 @@ const $previousColumn: ViewStyle = {
   paddingHorizontal: spacing.tiny,
 }
 
-const $weightColumn: ViewStyle = {
+const $weightInput: ViewStyle = {
   flex: 2,
   alignItems: "center",
   paddingHorizontal: spacing.tiny,
 }
 
-const $repsColumn: ViewStyle = {
-  flex: 2,
-  alignItems: "center",
-  paddingHorizontal: spacing.tiny,
-}
-
-const $rpeColumn: ViewStyle = {
+const $repsInput: ViewStyle = {
   flex: 2,
   alignItems: "center",
   paddingHorizontal: spacing.tiny,

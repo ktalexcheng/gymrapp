@@ -1,85 +1,55 @@
 import { firebase } from "@react-native-firebase/firestore"
-import { useFocusEffect } from "@react-navigation/native"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { Avatar, Icon, RowView, Screen, Spacer, Text, ThemedRefreshControl } from "app/components"
-import { WorkoutSource } from "app/data/constants"
+import { useGetUser } from "app/features/UserProfile/services/useGetUser"
 import { MainStackParamList } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
-import { IUserModel, IWorkoutInteractionModel, IWorkoutSummaryModel, useStores } from "app/stores"
+import { IWorkoutInteractionModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
 import { convertFirestoreTimestampToDate } from "app/utils/convertFirestoreTimestampToDate"
-import { formatDate } from "app/utils/formatDate"
+import { formatDateTime } from "app/utils/formatDate"
 import { formatName } from "app/utils/formatName"
-import { logError } from "app/utils/logger"
 import { observer } from "mobx-react-lite"
-import React, { useCallback, useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { FlatList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { ExerciseSummary } from "../components/ExerciseSummary"
 import { WorkoutCommentsPanel } from "../components/WorkoutCommentsPanel"
 import { WorkoutSocialButtonGroup } from "../components/WorkoutSocialButtonGroup"
 import { WorkoutSummaryActions, WorkoutSummaryMenu } from "../components/WorkoutSummaryMenu"
+import { useGetWorkout } from "../services/useGetWorkout"
 
 interface WorkoutSummaryScreenProps
   extends NativeStackScreenProps<MainStackParamList, "WorkoutSummary"> {}
 
 export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) => {
-  const { workoutSource, workoutId, workoutByUserId, jumpToComments } = props.route.params
+  const { workoutId, jumpToComments } = props.route.params
 
+  // hooks
   const mainNavigation = useMainNavigation()
   const { feedStore, userStore, themeStore } = useStores()
 
-  const [workout, setWorkout] = useState<IWorkoutSummaryModel>()
-  const [workoutByUser, setWorkoutByUser] = useState<IUserModel>()
-  const [isInitialized, setIsInitialized] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isError, setIsError] = useState(false)
+  // queries
+  const workoutQuery = useGetWorkout(workoutId)
+  const workout = workoutQuery.data
+  const workoutByUserId = workout?.byUserId
+  const workoutByUserQuery = useGetUser(workoutByUserId)
+  const workoutByUser = workoutByUserQuery.data
+
+  // states
   const [showCommentsPanel, setShowCommentsPanel] = useState(jumpToComments)
   const [showEntireTitle, setShowEntireTitle] = useState(false)
 
-  const workoutLoaded = !isLoading && !!workout && !!workoutByUser
-  console.debug("WorkoutSummaryScreen.render", { workoutLoaded, isLoading, workout, workoutByUser })
+  // derived states
+  const isReadyForDisplay = workout && workoutByUserId && workoutByUser
+  const isLoading = workoutQuery.isLoading || workoutByUserQuery.isLoading
+  const isError = workoutQuery.isError || workoutByUserQuery.isError
   const isMyWorkout = workout?.byUserId === userStore.userId
-  const newRecordsCount = workout?.exercises?.reduce((acc, exercise) => {
-    return acc + (exercise?.newRecords?.size ?? 0)
-  }, 0)
+  const newRecordsCount =
+    workout?.exercises?.reduce((acc, exercise) => {
+      return acc + (exercise?.newRecords?.size ?? 0)
+    }, 0) ?? -1
   const workoutByUserDisplayName =
     workoutByUser && formatName(workoutByUser.firstName, workoutByUser.lastName)
-
-  const getWorkoutAndUser = async () => {
-    console.debug("WorkoutSummaryScreen.getWorkoutAndUser called", { isLoading })
-    if (isLoading) return
-
-    setIsLoading(true)
-    try {
-      const _workout = feedStore.getWorkout(workoutSource, workoutId)
-      if (_workout) {
-        setWorkout(_workout)
-      } else {
-        // This should not be possible
-        throw new Error("Workout not found in FeedStore")
-      }
-      if (workoutSource === WorkoutSource.User) {
-        setWorkoutByUser(userStore.user)
-      } else {
-        feedStore.fetchUserProfileToStore(workoutByUserId).then((user) => {
-          if (user) setWorkoutByUser(user)
-        })
-      }
-      setIsError(false)
-    } catch (e) {
-      logError(e, "WorkoutSummaryScreen.getWorkoutAndUser error")
-      setIsError(true)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // In case the workout is updated, we want to refresh every time the screen is focused
-  useFocusEffect(
-    useCallback(() => {
-      getWorkoutAndUser().finally(() => setIsInitialized(true))
-    }, []),
-  )
 
   useEffect(() => {
     const unsubscribeWorkoutInteractions = firebase
@@ -108,16 +78,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
   }
 
   const refreshWorkout = async () => {
-    if (isLoading) return
-
-    setIsLoading(true)
-    try {
-      await feedStore.refreshWorkout(workoutSource, workoutByUserId, workoutId)
-      getWorkoutAndUser()
-    } catch (e) {
-      logError(e, "WorkoutSummaryScreen.refreshWorkout error")
-      setIsError(true)
-    }
+    workoutQuery.refetch()
   }
 
   const $announcementContainer: ViewStyle = {
@@ -128,9 +89,9 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
   }
 
   const renderScreen = () => {
-    if (!isInitialized) return null
+    if (!isReadyForDisplay) return null
 
-    if (!workoutLoaded && isError) {
+    if (isError) {
       return <Text tx="workoutSummaryScreen.workoutUnavailableMessage" />
     }
 
@@ -142,7 +103,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
           }
           ListHeaderComponent={
             <>
-              {isMyWorkout && workout?.__isOnlyLocal && (
+              {isMyWorkout && workout?.__isLocalOnly && (
                 <>
                   <RowView style={styles.alignCenter}>
                     <Icon name="cloud-offline-outline" size={16} />
@@ -175,13 +136,15 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                     />
                   </TouchableOpacity>
                   <Spacer type="vertical" size="extraSmall" />
-                  <Text size="sm" style={$workoutDateText} text={formatDate(workout.startTime)} />
+                  <Text
+                    size="sm"
+                    style={$workoutDateText}
+                    text={formatDateTime(workout.startTime)}
+                  />
                 </View>
                 <View style={$menuButton}>
                   <WorkoutSummaryMenu
-                    workoutSource={workoutSource}
                     workoutId={workoutId}
-                    onBusyChange={(isBusy) => setIsLoading(isBusy)}
                     enabledActionItems={[
                       WorkoutSummaryActions.SaveAsTemplate,
                       ...(isMyWorkout
@@ -220,7 +183,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                   <Spacer type="vertical" size="small" />
                   <TouchableOpacity
                     onPress={() =>
-                      mainNavigation.navigate("GymDetails", { gymId: workout.performedAtGymId })
+                      mainNavigation.navigate("GymDetails", { gymId: workout.performedAtGymId! })
                     }
                   >
                     <Text weight="bold" numberOfLines={2}>
@@ -231,9 +194,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
               )}
 
               <WorkoutSocialButtonGroup
-                workoutSource={workoutSource}
                 workoutId={workoutId}
-                workoutByUserId={workout.byUserId}
                 onPressComments={toggleShowCommentsPanel}
               />
 
@@ -274,7 +235,6 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
                 <>
                   <Spacer type="vertical" size="small" />
                   <RowView style={{ gap: spacing.small }}>
-                    {/* <NotebookPen color={themeStore.colors("foreground")} /> */}
                     <Text style={styles.flex1} text={workout.workoutNotes} preset="light" />
                   </RowView>
                 </>
@@ -295,9 +255,7 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
         {/* Having WorkoutCommentsPanel after the FlatList matters to achieve an overlay */}
         {showCommentsPanel && (
           <WorkoutCommentsPanel
-            workoutSource={workoutSource}
             workoutId={workoutId}
-            workoutByUserId={workout.byUserId}
             toggleShowCommentsPanel={toggleShowCommentsPanel}
           />
         )}
@@ -320,10 +278,6 @@ export const WorkoutSummaryScreen = observer((props: WorkoutSummaryScreenProps) 
 const $menuButton: ViewStyle = {
   marginTop: spacing.tiny,
   marginRight: spacing.tiny,
-  // position: "absolute",
-  // zIndex: 1,
-  // top: spacing.screenPadding + spacing.tiny,
-  // right: spacing.screenPadding + spacing.tiny,
 }
 
 const $workoutTitleText: TextStyle = {

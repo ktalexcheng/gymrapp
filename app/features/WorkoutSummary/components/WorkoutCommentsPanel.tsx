@@ -1,13 +1,13 @@
+import { useQueryClient } from "@tanstack/react-query"
 import { Avatar, Button, Icon, RowView, Spacer, Text, TextField } from "app/components"
-import { WorkoutSource } from "app/data/constants"
 import { UserId, WorkoutId } from "app/data/types"
 import { ReportAbusePanel } from "app/features/ReportAbuse"
 import { useToast } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
-import { IUserModel, IWorkoutCommentModel, IWorkoutInteractionModel, useStores } from "app/stores"
+import { IUserModel, IWorkoutCommentModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
-import { formatDate } from "app/utils/formatDate"
+import { formatDateTime } from "app/utils/formatDate"
 import { BlurView } from "expo-blur"
 import * as Clipboard from "expo-clipboard"
 import { MessageSquareWarning } from "lucide-react-native"
@@ -32,6 +32,8 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated"
+import { queries } from "../services/queryFactory"
+import { useGetWorkoutInteractions } from "../services/useGetWorkoutInteractions"
 
 const WorkoutCommentTile = (props: {
   workoutId: WorkoutId
@@ -134,7 +136,7 @@ const WorkoutCommentTile = (props: {
               ) : (
                 <View style={$skeletonDisplayName} />
               )}
-              <Text size="xs">{formatDate(commentDate)}</Text>
+              <Text size="xs">{formatDateTime(commentDate)}</Text>
             </RowView>
             <Text style={styles.flex1}>{comment}</Text>
           </View>
@@ -150,18 +152,20 @@ const PANEL_MINIMIZE_Y_THRESHOLD = PANEL_INITIAL_Y_POSITION + 200
 const PANEL_HIDDEN_Y_POSITION = 1000
 
 type WorkoutCommentsPanelProps = {
-  workoutSource: WorkoutSource
   workoutId: WorkoutId
-  workoutByUserId: UserId
   toggleShowCommentsPanel: () => void
 }
 
 export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) => {
-  const { workoutSource, workoutId, workoutByUserId, toggleShowCommentsPanel } = props
+  const { workoutId, toggleShowCommentsPanel } = props
+
+  // hooks
   const { userStore, feedStore, themeStore } = useStores()
+  const [toastShowTx] = useToast()
+
+  // states
   const panelTranslateY = useSharedValue(PANEL_INITIAL_Y_POSITION)
   const context = useSharedValue({ yPosition: PANEL_INITIAL_Y_POSITION })
-  const [interactions, setInteractions] = useState<IWorkoutInteractionModel>()
   const [commentInput, setCommentInput] = useState("")
   const [commentInputHeight, setCommentInputHeight] = useState(50)
   const commentInputRef = useRef<TextInput>(null)
@@ -169,18 +173,14 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
   const [selectedComment, setSelectedComment] = useState<IWorkoutCommentModel>()
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [showReportSheet, setShowReportSheet] = useState(false)
-  const [toastShowTx] = useToast()
 
-  const thisWorkoutInteraction = feedStore.getInteractionsForWorkout(workoutSource, workoutId)
+  const queryClient = useQueryClient()
+  const interactionsQuery = useGetWorkoutInteractions(workoutId)
+  const interactions = interactionsQuery.data
 
   useEffect(() => {
     commentInputRef.current?.focus()
   }, [])
-
-  useEffect(() => {
-    console.debug("WorkoutCommentsPanel.useEffect [getInteractionsForWorkout] called")
-    setInteractions(thisWorkoutInteraction)
-  }, [thisWorkoutInteraction])
 
   const panGestureHandler = Gesture.Pan()
     .onStart(() => {
@@ -243,12 +243,13 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
     if (!commentInput || !userStore.userId) return
 
     setIsSubmittingComment(true)
-    feedStore
-      .addCommentToWorkout(workoutId, workoutByUserId, userStore.userId, commentInput)
-      .then(() => {
-        setIsSubmittingComment(false)
-        setCommentInput("")
+    feedStore.addCommentToWorkout(workoutId, userStore.userId, commentInput).then(() => {
+      queryClient.invalidateQueries({
+        queryKey: queries.getWorkoutInteractions(workoutId).queryKey,
       })
+      setIsSubmittingComment(false)
+      setCommentInput("")
+    })
   }
 
   const commentSubmitButton = (props) => {
@@ -288,6 +289,9 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
                 if (!selectedComment) return
 
                 feedStore.removeCommentFromWorkout(workoutId, selectedComment.commentId)
+                queryClient.invalidateQueries({
+                  queryKey: queries.getWorkoutInteractions(workoutId).queryKey,
+                })
                 setSelectedComment(undefined)
                 setShowDeleteConfirmation(false)
               }}

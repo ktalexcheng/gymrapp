@@ -1,14 +1,20 @@
-import { REST_TIMER_CHANNEL_ID } from "app/data/constants"
+import {
+  NEW_ACTIVITIES_CHANNEL_ID,
+  NEW_COMMENTS_CHANNEL_ID,
+  NEW_CONNECTIONS_CHANNEL_ID,
+  NEW_LIKES_CHANNEL_ID,
+  REST_TIMER_CHANNEL_ID,
+} from "app/data/constants"
 import { translate } from "app/i18n"
 import { useStores } from "app/stores"
 import * as Notifications from "expo-notifications"
-import { useEffect } from "react"
+import React, { useEffect } from "react"
 import { Alert, Linking, Platform } from "react-native"
 
 export const useNotification = () => {
   const { themeStore } = useStores()
-  // const notificationListener = useRef<Notifications.Subscription>()
-  // const responseListener = useRef<Notifications.Subscription>()
+  const notificationListener = React.useRef<Notifications.Subscription>()
+  const responseListener = React.useRef<Notifications.Subscription>()
 
   const requestNotificationPermissions = async () => {
     const { status: existingStatus } = await Notifications.getPermissionsAsync()
@@ -52,38 +58,54 @@ export const useNotification = () => {
         vibrationPattern: [0, 250, 250, 250],
         lightColor: themeStore.colors("actionable"),
       })
+      await Notifications.setNotificationChannelAsync(NEW_ACTIVITIES_CHANNEL_ID, {
+        importance: Notifications.AndroidImportance.HIGH,
+        name: translate("notification.newActivities.channelName"),
+        enableVibrate: true,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: themeStore.colors("actionable"),
+      })
+      await Notifications.setNotificationChannelAsync(NEW_CONNECTIONS_CHANNEL_ID, {
+        importance: Notifications.AndroidImportance.HIGH,
+        name: translate("notification.newConnections.channelName"),
+        enableVibrate: true,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: themeStore.colors("actionable"),
+      })
+      await Notifications.setNotificationChannelAsync(NEW_COMMENTS_CHANNEL_ID, {
+        importance: Notifications.AndroidImportance.HIGH,
+        name: translate("notification.newComments.channelName"),
+        enableVibrate: true,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: themeStore.colors("actionable"),
+      })
+      await Notifications.setNotificationChannelAsync(NEW_LIKES_CHANNEL_ID, {
+        importance: Notifications.AndroidImportance.HIGH,
+        name: translate("notification.newLikes.channelName"),
+        enableVibrate: true,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: themeStore.colors("actionable"),
+      })
     }
   }
-
-  // // See: https://docs.expo.dev/versions/latest/sdk/notifications/#handling-notification-channels
-  // // The token is only required for push notifications, not for local notifications
-  // const registerForPushNotifications = async () => {
-  //   // Learn more about projectId:
-  //   // https://docs.expo.dev/push-notifications/push-notifications-setup/#configure-projectid
-  //   const token = (
-  //     await Notifications.getExpoPushTokenAsync({
-  //       projectId: Constants.expoConfig.extra.eas.projectId,
-  //     })
-  //   ).data
-  //   return token
-  // }
 
   useEffect(() => {
     requestNotificationPermissions()
     registerAndroidNotificationChannels()
-    // registerForPushNotifications()
 
-    // notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-    //   console.debug("useNotification notificationListener:", notification)
-    // })
+    notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
+      console.debug("useNotification notificationListener:", notification)
+    })
 
-    // responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-    //   console.debug("useNotification responseListener:", response)
-    // })
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+      console.debug("useNotification responseListener:", response)
+    })
 
-    // return () => {
-    //   Notifications.removeNotificationSubscription(notificationListener.current!)
-    //   Notifications.removeNotificationSubscription(responseListener.current!)
-    // }
+    return () => {
+      notificationListener.current &&
+        Notifications.removeNotificationSubscription(notificationListener.current!)
+      responseListener.current &&
+        Notifications.removeNotificationSubscription(responseListener.current!)
+    }
   }, [])
 }

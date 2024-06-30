@@ -103,7 +103,7 @@ export const CreateExercise = (props: CreateExerciseProps) => {
   const newExerciseFormData: MenuListItemProps[] = [
     {
       required: true,
-      key: "exerciseName",
+      id: "exerciseName",
       itemNameLabelTx: "createExerciseScreen.exerciseName",
       currentValue: exerciseName,
       currentValueFormatted: exerciseName,
@@ -118,7 +118,7 @@ export const CreateExercise = (props: CreateExerciseProps) => {
     },
     {
       required: true,
-      key: "activityName",
+      id: "activityName",
       itemNameLabelTx: "createExerciseScreen.activityType",
       currentValue: activityName,
       currentValueFormatted: activityName,
@@ -135,7 +135,7 @@ export const CreateExercise = (props: CreateExerciseProps) => {
     },
     {
       required: true,
-      key: "exerciseCat1",
+      id: "exerciseCat1",
       itemNameLabelTx: "createExerciseScreen.exerciseCat1",
       currentValue: exerciseCat1,
       currentValueFormatted: exerciseCat1,
@@ -151,7 +151,7 @@ export const CreateExercise = (props: CreateExerciseProps) => {
       ),
     },
     {
-      key: "exerciseCat2",
+      id: "exerciseCat2",
       itemNameLabelTx: "createExerciseScreen.exerciseCat2",
       currentValue: exerciseCat2,
       currentValueFormatted: exerciseCat2,
@@ -170,7 +170,7 @@ export const CreateExercise = (props: CreateExerciseProps) => {
     },
     {
       required: true,
-      key: "volumeType",
+      id: "volumeType",
       itemNameLabelTx: "createExerciseScreen.volumeType",
       currentValue: volumeType,
       currentValueFormatted: volumeType,
@@ -193,7 +193,7 @@ export const CreateExercise = (props: CreateExerciseProps) => {
       <Spacer type="vertical" size="massive" />
       {newExerciseFormData.map((exerciseDetails, i) => {
         return (
-          <View key={exerciseDetails.key}>
+          <View key={exerciseDetails.id}>
             {i > 0 && <Divider orientation="horizontal" spaceSize={12} lineWidth={0} />}
             <MenuListItem {...exerciseDetails} />
           </View>

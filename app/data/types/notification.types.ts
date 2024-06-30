@@ -6,6 +6,7 @@ export enum NotificationType {
   Like = "like",
   FollowRequest = "followRequest",
   FollowAccepted = "followAccepted",
+  NewActivity = "newActivity",
 }
 
 export type NotificationId = string

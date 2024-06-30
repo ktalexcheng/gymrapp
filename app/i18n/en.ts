@@ -10,6 +10,7 @@ const en = {
     clear: "Clear",
     back: "Back",
     delete: "Delete",
+    remove: "Remove",
     loading: "Loading...",
     exercise: "Exercise",
     bestSet: "Best set",
@@ -92,6 +93,18 @@ const en = {
       restTimeCompletedTitle: "Rest time is up!",
       restTimeCompletedGenericPrompt: "Time to get back to work!",
       restTimeCompletedFromLastSetPrompt: "Last completed set: {{setDescription}}",
+    },
+    newActivities: {
+      channelName: "New activities",
+    },
+    newConnections: {
+      channelName: "New connections",
+    },
+    newComments: {
+      channelName: "New comments",
+    },
+    newLikes: {
+      channelName: "New likes",
     },
     permissionAlert: {
       title: "Permission required",
@@ -352,6 +365,10 @@ const en = {
       time: "Time",
     },
     addSetButtonLabel: "Add set",
+    replaceExerciseConfirmationTitle: "Replace exercise?",
+    replaceExerciseConfirmationMessage:
+      "Are you sure you want to replace {{originalExercise}} with {{newExercise}}? All existing sets for this exercise will be removed.",
+    selectRpeLabel: "Select RPE",
   },
   activeWorkoutScreen: {
     newActiveWorkoutTitle: "New workout",
@@ -532,6 +549,8 @@ const en = {
     createSupersetLabel: "Create superset",
     replaceExerciseLabel: "Replace exercise",
     removeExerciseLabel: "Remove exercise",
+    removeExerciseConfirmationTitle: "Remove exercise?",
+    removeExerciseConfirmationMessage: "Are you sure you want to remove this exercise?",
     weightUnitLabel: "Weight unit",
   },
   createNewGymScreen: {
@@ -596,7 +615,7 @@ const en = {
     gymsCategoryLabel: "Gyms",
   },
   profileVisitorViewScreen: {
-    dateJoinedLabel: "Date joined",
+    dateJoinedLabel: "Date joined {{dateJoinedString}}",
     followButtonLabel: "Follow",
     unfollowButtonLabel: "Unfollow",
     followRequestSentMessage: "Follow request sent",
@@ -605,6 +624,7 @@ const en = {
     noActivityHistoryMessage: "No activity history",
     userIsPrivateMessage: "This user is private",
     endOfUserActivityMessage: "That's all from this user!",
+    pendingFollowRequestMessage: "{{userHandle}} wants to follow you",
     blockUserButtonLabel: "Block user",
     blockUserAlertTitle: "Block {{userHandle}} ?",
     blockUserAlertMessage:
@@ -622,7 +642,7 @@ const en = {
   notificationsScreen: {
     notificationsTitle: "Notifications",
     noNotificationsMessage: "No notifications",
-    newNotificationsTitle: "New",
+    pastDayNotificationsTitle: "Past day",
     olderNotificationsTitle: "Older",
     followRequestsTitle: "Follow requests",
     commentNotificationMessage: "{{senderDisplayName}} commented on your workout",

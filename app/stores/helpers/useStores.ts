@@ -17,13 +17,13 @@ import { setupRootStore } from "./setupRootStore"
  */
 export type RootStoreDependencies = typeof repositorySingletons
 
-const _rootStore = RootStoreModel.create({}, repositorySingletons)
+export const rootStore = RootStoreModel.create({}, repositorySingletons)
 
 /**
  * The RootStoreContext provides a way to access
  * the RootStore in any screen or component.
  */
-const RootStoreContext = createContext<RootStore>(_rootStore)
+const RootStoreContext = createContext<RootStore>(rootStore)
 
 /**
  * You can use this Provider to specify a *different* RootStore

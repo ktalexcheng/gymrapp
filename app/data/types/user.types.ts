@@ -37,6 +37,7 @@ export interface User extends baseMetadata {
   privateAccount: boolean
   providerId: string
   preferences: UserPreferences
+  expoPushToken?: string
   avatarUrl?: string
   avatarBlurhash?: string
   workoutMetas?: Record<WorkoutId, WorkoutMeta>

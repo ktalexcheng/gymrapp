@@ -18,7 +18,7 @@ export const SaveWorkoutAsTemplateModal = (props: SaveWorkoutAsTemplateModalProp
   const templateName = workout.workoutTitle
 
   const mainNavigation = useMainNavigation()
-  const { userStore } = useStores()
+  const { userStore, themeStore } = useStores()
   const queryClient = useQueryClient()
   const createTemplate = useCreateTemplate()
 
@@ -84,7 +84,12 @@ export const SaveWorkoutAsTemplateModal = (props: SaveWorkoutAsTemplateModalProp
         onPress={saveAsTemplate}
         isBusy={createTemplate.isPending}
       />
-      <Button preset="text" tx="common.cancel" onPress={() => onOpenChange(false)} />
+      <Button
+        preset="text"
+        textStyle={{ color: themeStore.colors("text") }}
+        tx="common.cancel"
+        onPress={() => onOpenChange(false)}
+      />
     </Modal>
   )
 }

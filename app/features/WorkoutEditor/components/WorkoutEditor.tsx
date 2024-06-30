@@ -15,7 +15,7 @@ import { logError } from "app/utils/logger"
 import { toJS } from "mobx"
 import { observer } from "mobx-react-lite"
 import React, { useCallback, useRef, useState } from "react"
-import { FlatList, ViewStyle } from "react-native"
+import { Alert, FlatList, ViewStyle } from "react-native"
 import DraggableFlatList, {
   RenderItemParams,
   ScaleDecorator,
@@ -96,8 +96,27 @@ export const WorkoutEditor = observer((props: WorkoutEditorProps) => {
         logError(new Error("replacingExerciseOrder is not set"))
         useToastTx("common.error.unknownErrorMessage")
       } else {
-        onReplaceExercise(replacingExerciseOrder, exercise)
-        setReplaceExercisePickerOpen(false)
+        Alert.alert(
+          translate("workoutEditor.replaceExerciseConfirmationTitle"),
+          translate("workoutEditor.replaceExerciseConfirmationMessage", {
+            originalExercise: allExercises.find((e) => e.exerciseOrder === replacingExerciseOrder)
+              ?.exerciseName,
+            newExercise: exercise.exerciseName,
+          }),
+          [
+            {
+              text: translate("common.cancel"),
+              style: "cancel",
+            },
+            {
+              text: translate("common.ok"),
+              onPress: () => {
+                onReplaceExercise(replacingExerciseOrder, exercise)
+                setReplaceExercisePickerOpen(false)
+              },
+            },
+          ],
+        )
       }
     },
     [replacingExerciseOrder],

@@ -1,6 +1,5 @@
 import firestore from "@react-native-firebase/firestore"
 import { NativeStackScreenProps, createNativeStackNavigator } from "@react-navigation/native-stack"
-import { WorkoutSource } from "app/data/constants"
 import { FollowRequest, User } from "app/data/types"
 import { CreateExerciseScreen, ExerciseDetailsScreen } from "app/features/Exercises"
 import { CreateNewGymScreen, GymDetailsScreen } from "app/features/Gyms"
@@ -58,9 +57,7 @@ export type MainStackParamList = {
   ManageExerciseSettings: undefined
   Notifications: undefined
   WorkoutSummary: {
-    workoutSource: WorkoutSource
     workoutId: string
-    workoutByUserId: string
     jumpToComments: boolean
   }
   OnboardingNavigator: undefined

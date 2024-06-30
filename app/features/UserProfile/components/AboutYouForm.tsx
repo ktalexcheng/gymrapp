@@ -82,7 +82,7 @@ export const AboutYouForm = (props: AboutYouFormProps) => {
             name="close-circle"
             style={$removeAvatarButton}
             onPress={removeAvatar}
-            color={themeStore.colors("tint")}
+            color={themeStore.colors("actionable")}
             size={30}
           />
           <TouchableOpacity onPress={pickImage}>

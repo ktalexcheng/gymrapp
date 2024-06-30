@@ -1,15 +1,28 @@
-import { Avatar, Button, Divider, Icon, RowView, Screen, Text } from "app/components"
-import { WorkoutSource } from "app/data/constants"
-import { NotificationType } from "app/data/types"
+import { useInfiniteQuery, useQueries } from "@tanstack/react-query"
+import {
+  Avatar,
+  Divider,
+  Icon,
+  RowView,
+  Screen,
+  Spacer,
+  Text,
+  ThemedRefreshControl,
+} from "app/components"
+import { FirebaseSnapshotType, repositorySingletons } from "app/data/repository"
+import { Notification, NotificationType } from "app/data/types"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { IFollowRequestsModel, INotificationModel, IUserModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
-import { formatDate } from "app/utils/formatDate"
+import { formatDateTime } from "app/utils/formatDate"
 import { formatName } from "app/utils/formatName"
+import { add } from "date-fns"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
 import { FlatList, SectionList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import { queries } from "../services/queryFactory"
+import { useGetFollowRequests } from "../services/useGetFollowRequests"
 
 type FollowRequestTileProps = {
   followRequest: IFollowRequestsModel
@@ -91,17 +104,13 @@ const NotificationTile = ({ notification, userProfile }: NotificationTileProps) 
     switch (notification.notificationType) {
       case NotificationType.Comment:
         mainNavigation.navigate("WorkoutSummary", {
-          workoutSource: WorkoutSource.User,
           workoutId: notification.workoutId,
-          workoutByUserId: userStore.userId!,
           jumpToComments: true,
         })
         break
       case NotificationType.Like:
         mainNavigation.navigate("WorkoutSummary", {
-          workoutSource: WorkoutSource.User,
           workoutId: notification.workoutId,
-          workoutByUserId: userStore.userId!,
           jumpToComments: false,
         })
         break
@@ -144,6 +153,11 @@ const NotificationTile = ({ notification, userProfile }: NotificationTileProps) 
     backgroundColor: themeStore.colors("contentBackground"),
   }
 
+  const $followRequestContent: ViewStyle = {
+    alignItems: "center",
+    marginTop: spacing.small,
+  }
+
   if (!message || !senderUser)
     return (
       <RowView style={$skeletonGroup}>
@@ -162,104 +176,109 @@ const NotificationTile = ({ notification, userProfile }: NotificationTileProps) 
         <View style={styles.flex1}>
           <RowView style={[styles.justifyBetween, styles.alignCenter]}>
             <Text style={$notificationText} weight="bold" text={senderUser.userHandle} />
-            <Text size="xs">{formatDate(notification.notificationDate)}</Text>
+            <Text size="xs">{formatDateTime(notification.notificationDate)}</Text>
           </RowView>
-          <Text style={$notificationText} text={message} />
-        </View>
-        {notification.notificationType === NotificationType.FollowRequest && (
           <RowView style={styles.alignCenter}>
-            <Icon name="checkmark-circle" size={32} onPress={acceptFollowRequest} />
-            <Icon name="close-outline" size={32} onPress={declineFollowRequest} />
+            <Text style={$notificationText} text={message} />
+            {notification.notificationType === NotificationType.FollowRequest && (
+              <RowView style={$followRequestContent}>
+                <Icon name="checkmark-circle" size={32} onPress={acceptFollowRequest} />
+                <Spacer type="horizontal" size="small" />
+                <Icon name="close-outline" size={32} onPress={declineFollowRequest} />
+              </RowView>
+            )}
           </RowView>
-        )}
+        </View>
       </RowView>
     </TouchableOpacity>
   )
 }
 
+const { notificationRepository } = repositorySingletons
+
 export const NotificationsScreen = observer(() => {
-  const { userStore, feedStore } = useStores()
-  const [isNotificationsLoaded, setIsNotificationsLoaded] = useState(false)
-  const [isReady, setIsReady] = useState(false)
-  const [newNotifications, setNewNotifications] = useState<INotificationModel[]>([])
-  const [oldNotifications, setOldNotifications] = useState<INotificationModel[]>([])
-  const [pendingFollowRequests, setPendingFollowRequests] = useState<IFollowRequestsModel[]>([])
+  const { userStore } = useStores()
+
+  // queries
+  // follow requests
+  const followRequestsQuery = useGetFollowRequests()
+  const pendingFollowRequests = (followRequestsQuery.data ?? [])
+    .filter((followRequest) => !followRequest.isAccepted && !followRequest.isDeclined)
+    .sort((a, b) => b.requestDate.getTime() - a.requestDate.getTime())
+
+  // notifications
+  const notificationsQuery = useInfiniteQuery({
+    queryKey: ["notifications", userStore.userId],
+    queryFn: ({ pageParam }) =>
+      notificationRepository.getByFilter<Notification>({
+        orderBy: [{ field: "notificationDate", direction: "desc" }],
+        afterSnapshot: pageParam,
+      }),
+    initialPageParam: undefined as unknown as FirebaseSnapshotType,
+    getNextPageParam: (lastPage) => lastPage.lastDocSnapshot,
+  })
+  const notifications = notificationsQuery.data?.pages?.flatMap((page) => page.docData) ?? []
+
+  // user profiles
+  const senderIds = Array.from(new Set(notifications.map((n) => n.senderUserId)))
+  const usersQuery = useQueries({
+    queries: senderIds
+      ? senderIds.map((userId) => ({
+          ...queries.getUser(userId),
+        }))
+      : [],
+  })
+  const userProfiles = usersQuery.reduce((acc, query) => {
+    if (query.data) {
+      acc[query.data.userId] = query.data
+    }
+    return acc
+  }, {})
+
+  // states
   const [showFollowRequests, setShowFollowRequests] = useState(false)
-  // Consolidating all user profiles here and not in the individual tiles to allow filtering out invalid users
-  const [userProfiles, setUserProfiles] = useState<{ [userId: string]: IUserModel }>({})
+
+  // derived states
+  // Filter out notifications from deleted users
+  const allNotifications = notifications.filter((n) => n.senderUserId in userProfiles)
+  const pastDayNotifications = allNotifications.filter(
+    (n) => n.notificationDate >= add(new Date(), { days: -1 }),
+  )
+  const olderNotifications = allNotifications.filter(
+    (n) => n.notificationDate < add(new Date(), { days: -1 }),
+  )
 
   useEffect(() => {
-    console.debug("NotificationsScreen.useEffect [] called")
-    async function hydrateNotifications() {
-      // Get a list of all the user IDs that are in the notifications
-      const userIds = new Set([
-        ...userStore.newNotifications.map((notification) => notification.senderUserId),
-        ...userStore.oldNotifications.map((notification) => notification.senderUserId),
-        ...userStore.pendingFollowRequests.map((followRequest) => followRequest.requestedByUserId),
-      ])
-      console.debug("NotificationsScreen.useEffect [] hydrateNotifications()", {
-        newNotifications,
-        userIds,
-      })
-
-      // Fetch user profile and keep track of which user IDs are valid (i.e. the user profile was fetched successfully)
-      const validUserIds = new Set()
-      const _userProfiles = {}
-      for (const userId of userIds) {
-        const userProfile = await feedStore.fetchUserProfileToStore(userId)
-        if (userProfile) {
-          _userProfiles[userId] = userProfile
-          validUserIds.add(userId)
-        }
-      }
-      console.debug("NotificationsScreen.useEffect [] hydrateNotifications()", {
-        validUserIds,
-        _userProfiles,
-      })
-
-      // Filter out the invalid users
-      setNewNotifications(
-        userStore.newNotifications?.filter((n) => validUserIds.has(n.senderUserId)) ?? [],
-      )
-      setOldNotifications(
-        userStore.oldNotifications?.filter((n) => validUserIds.has(n.senderUserId)) ?? [],
-      )
-      setPendingFollowRequests(
-        userStore.pendingFollowRequests?.filter((r) => validUserIds.has(r.requestedByUserId)) ?? [],
-      )
-      setUserProfiles(_userProfiles)
-    }
-
-    if (isNotificationsLoaded) {
-      hydrateNotifications().then(() => setIsReady(true))
-    } else {
-      userStore.loadNotifications().then(() => {
-        setIsNotificationsLoaded(true)
-      })
-    }
-  }, [
-    isNotificationsLoaded,
-    userStore.newNotifications,
-    userStore.oldNotifications,
-    userStore.pendingFollowRequests,
-  ])
+    userStore.markAllNotificationsAsRead()
+  }, [])
 
   const toggleShowFollowRequests = () => {
     setShowFollowRequests(!showFollowRequests)
   }
 
+  console.debug("pendingFollowRequests", pendingFollowRequests)
   return (
-    <Screen safeAreaEdges={["bottom"]} contentContainerStyle={$container} isBusy={!isReady}>
+    <Screen
+      safeAreaEdges={["bottom"]}
+      contentContainerStyle={$container}
+      isBusy={notificationsQuery.isFetching}
+    >
       <Text tx="notificationsScreen.notificationsTitle" preset="heading" />
       <SectionList
+        refreshControl={
+          <ThemedRefreshControl
+            refreshing={notificationsQuery.isFetching}
+            onRefresh={notificationsQuery.refetch}
+          />
+        }
         sections={[
           {
-            title: translate("notificationsScreen.newNotificationsTitle"),
-            data: newNotifications,
+            title: translate("notificationsScreen.pastDayNotificationsTitle"),
+            data: pastDayNotifications,
           },
           {
             title: translate("notificationsScreen.olderNotificationsTitle"),
-            data: oldNotifications,
+            data: olderNotifications,
           },
         ]}
         ListHeaderComponent={() => (
@@ -291,7 +310,9 @@ export const NotificationsScreen = observer(() => {
                 ItemSeparatorComponent={() => <Divider orientation="horizontal" />}
               />
             )}
-            {newNotifications.length + oldNotifications.length + pendingFollowRequests.length ===
+            {pastDayNotifications.length +
+              allNotifications.length +
+              pendingFollowRequests.length ===
               0 && <Text tx="notificationsScreen.noNotificationsMessage" />}
           </>
         )}
@@ -301,21 +322,12 @@ export const NotificationsScreen = observer(() => {
         renderSectionHeader={({ section: { title, data } }) =>
           data.length > 0 ? (
             <RowView style={[styles.alignCenter, styles.justifyBetween]}>
-              <Text style={$sectionHeader} preset="subheading" text={title} />
-              {title === translate("notificationsScreen.newNotificationsTitle") &&
-                userStore.unreadNotificationsCount > 0 && (
-                  <Button
-                    preset="text"
-                    style={$markAllAsReadButtonContainer}
-                    tx="notificationsScreen.markAllAsReadButtonLabel"
-                    onPress={userStore.markAllNotificationsAsRead}
-                  />
-                )}
+              <Text style={$sectionHeader} text={title} />
             </RowView>
           ) : null
         }
         keyExtractor={(item) => item.notificationId}
-        ItemSeparatorComponent={() => <Divider orientation="horizontal" />}
+        ItemSeparatorComponent={() => <Spacer type="vertical" size="medium" />}
         stickySectionHeadersEnabled={false}
       />
     </Screen>
@@ -346,9 +358,4 @@ const $notificationTileContainer: ViewStyle = {
 const $notificationText: TextStyle = {
   flex: 1,
   flexWrap: "wrap",
-}
-
-const $markAllAsReadButtonContainer: ViewStyle = {
-  minHeight: undefined,
-  justifyContent: "flex-end",
 }

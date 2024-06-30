@@ -1,75 +1,66 @@
 import { Icon, RowView, Spacer, Text } from "app/components"
-import { WorkoutSource } from "app/data/constants"
-import { UserId, WorkoutId } from "app/data/types"
+import { WorkoutId } from "app/data/types"
 import { useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
+import { simplifyNumber } from "app/utils/formatNumber"
 import { observer } from "mobx-react-lite"
-import React, { useEffect, useState } from "react"
+import React from "react"
 import { TouchableOpacity, ViewStyle } from "react-native"
+import { useGetWorkoutInteractions } from "../services/useGetWorkoutInteractions"
+import { useLikeWorkout } from "../services/useLikeWorkout"
 
 type WorkoutSocialButtonGroupProps = {
-  workoutSource: WorkoutSource
   workoutId: WorkoutId
-  workoutByUserId: UserId
   onPressComments: () => void
 }
 
 const buttonGroupIconSize = 24
 
 export const WorkoutSocialButtonGroup = observer((props: WorkoutSocialButtonGroupProps) => {
-  const { workoutSource, workoutId, workoutByUserId, onPressComments } = props
-  const { userStore, feedStore, themeStore } = useStores()
-  const workoutInteractionsFromStore = feedStore.getInteractionsForWorkout(workoutSource, workoutId)
-  const [workoutInteractions, setWorkoutInteractions] = useState(workoutInteractionsFromStore)
-  const [isLikedByUser, setIsLikedByUser] = useState(false)
-  const [likesCount, setLikesCount] = useState<number>(0)
+  const { workoutId, onPressComments } = props
 
-  // UX improvement: Replacing workoutInteractions in one action only once new data is ready
-  // to prevent flickering during loading
-  useEffect(() => {
-    if (!feedStore.feedStoreIsBusy) {
-      // console.debug("WorkoutSocialButtonGroup.useEffect", { workoutInteractionsFromStore })
-      setWorkoutInteractions(workoutInteractionsFromStore)
-    }
-  }, [feedStore.feedStoreIsBusy, workoutInteractionsFromStore])
+  // hooks
+  const { userStore, themeStore } = useStores()
 
-  useEffect(() => {
-    // console.debug("WorkoutSocialButtonGroup.useEffect", { workoutInteractions })
-    if (userStore.userId) {
-      setIsLikedByUser(workoutInteractions?.likedByUserIds?.includes(userStore.userId) ?? false)
-    }
-    setLikesCount(workoutInteractions?.likedByUserIds?.length ?? 0)
-  }, [workoutInteractions, userStore.userId])
+  // queries
+  const workoutInteractionsQuery = useGetWorkoutInteractions(workoutId)
+  const workoutInteractions = workoutInteractionsQuery.data
+  const { likeWorkout, unlikeWorkout } = useLikeWorkout()
+
+  // derived states
+  const isLikedByUser = userStore.userId
+    ? workoutInteractions?.likedByUserIds?.includes(userStore.userId)
+    : false
+  const likesCount = workoutInteractions?.likedByUserIds?.length ?? 0
 
   const handleLike = () => {
     if (!userStore.userId) {
-      console.debug("WorkoutSocialButtonGroup.handleLike userStore.userId is null")
       return
     }
 
     if (isLikedByUser) {
-      feedStore.unlikeWorkout(workoutId, userStore.userId)
-      setLikesCount((prev) => Math.max(0, prev - 1))
-      setIsLikedByUser(false)
+      unlikeWorkout.mutate({ workoutId, byUserId: userStore.userId })
     } else {
-      feedStore.likeWorkout(workoutId, workoutByUserId, userStore.userId)
-      setLikesCount((prev) => prev + 1)
-      setIsLikedByUser(true)
+      likeWorkout.mutate({ workoutId, likedByUserId: userStore.userId })
     }
   }
 
   return (
     <RowView>
-      <TouchableOpacity onPress={handleLike} style={$socialButton}>
+      <TouchableOpacity
+        disabled={workoutInteractionsQuery.isFetching}
+        onPress={handleLike}
+        style={$socialButton}
+      >
         <RowView style={styles.alignCenter}>
           <Icon
             name={isLikedByUser ? "thumbs-up" : "thumbs-up-outline"}
-            color={isLikedByUser ? themeStore.colors("tint") : undefined}
+            color={isLikedByUser ? themeStore.colors("actionable") : undefined}
             size={buttonGroupIconSize}
           />
           <Spacer type="horizontal" size="micro" />
           <Text preset="light" size="sm">
-            {likesCount}
+            {simplifyNumber(likesCount)}
           </Text>
         </RowView>
       </TouchableOpacity>
@@ -78,7 +69,7 @@ export const WorkoutSocialButtonGroup = observer((props: WorkoutSocialButtonGrou
           <Icon name="chatbubble-outline" size={buttonGroupIconSize} />
           <Spacer type="horizontal" size="micro" />
           <Text preset="light" size="sm">
-            {workoutInteractions?.comments?.length ?? 0}
+            {simplifyNumber(workoutInteractions?.comments?.length ?? 0)}
           </Text>
         </RowView>
       </TouchableOpacity>

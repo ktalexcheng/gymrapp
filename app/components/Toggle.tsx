@@ -391,7 +391,7 @@ const Switch = observer((props: ToggleInputProps) => {
   const onBackgroundColor =
     (disabled && themeStore.colors("transparent")) ||
     (status === "error" && themeStore.colors("errorBackground")) ||
-    themeStore.colors("tint")
+    themeStore.colors("actionable")
 
   const knobBackgroundColor = (function () {
     if (on) {

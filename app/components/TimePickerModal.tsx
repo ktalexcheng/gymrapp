@@ -65,14 +65,19 @@ export const TimePickerModal = observer((props: TimePickerModalProps) => {
         <RowView style={styles.justifyCenter}>
           <Button
             preset="text"
+            textStyle={{ color: themeStore.colors("text") }}
+            tx="common.cancel"
+            onPress={() => setShowTimeInput(false)}
+          />
+          <Spacer type="horizontal" size="massive" />
+          <Button
+            preset="text"
             tx="common.ok"
             onPress={() => {
               updateTime()
               setShowTimeInput(false)
             }}
           />
-          <Spacer type="horizontal" size="small" />
-          <Button preset="text" tx="common.cancel" onPress={() => setShowTimeInput(false)} />
         </RowView>
       </Modal>
     </>

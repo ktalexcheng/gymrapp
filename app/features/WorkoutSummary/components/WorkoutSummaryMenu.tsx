@@ -1,5 +1,4 @@
 import { Divider, PopoverTMG as Popover, PopoverMenuItem } from "app/components"
-import { WorkoutSource } from "app/data/constants"
 import { WorkoutId } from "app/data/types"
 import { LoadingScreen } from "app/features/common"
 import { translate } from "app/i18n"
@@ -10,6 +9,8 @@ import { EllipsisVertical } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
 import React, { useState } from "react"
 import { Alert, View } from "react-native"
+import { useDeleteWorkout } from "../services/useDeleteWorkout"
+import { useGetWorkout } from "../services/useGetWorkout"
 import { SaveWorkoutAsTemplateModal } from "./SaveWorkoutAsTemplateModal"
 
 export enum WorkoutSummaryActions {
@@ -19,20 +20,25 @@ export enum WorkoutSummaryActions {
 }
 
 interface WorkoutSummaryMenuProps {
-  workoutSource: WorkoutSource
   workoutId: WorkoutId
   enabledActionItems: Array<WorkoutSummaryActions>
-  onBusyChange?: (isBusy: boolean) => void
 }
 
 export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
-  const { workoutSource, workoutId, enabledActionItems, onBusyChange } = props
-  const { feedStore, themeStore, workoutEditorStore, exerciseStore } = useStores()
+  const { workoutId, enabledActionItems } = props
+
+  // hooks
+  const { themeStore, workoutEditorStore, exerciseStore } = useStores()
   const mainNavigation = useMainNavigation()
+
+  // queries
+  const workoutQuery = useGetWorkout(workoutId)
+  const workout = workoutQuery.data
+  const deleteWorkout = useDeleteWorkout()
+
+  // states
   const [showSaveAsTemplateModal, setShowSaveAsTemplateModal] = useState(false)
 
-  // derived states
-  const workout = feedStore.getWorkout(workoutSource, workoutId)
   if (!workout) return <LoadingScreen />
 
   const showDeleteConfirmationAlert = () => {
@@ -47,10 +53,8 @@ export const WorkoutSummaryMenu = observer((props: WorkoutSummaryMenuProps) => {
         {
           text: translate("common.delete"),
           onPress: () => {
-            if (onBusyChange) onBusyChange(true)
-            feedStore.deleteWorkout(workoutId).then(() => {
-              if (onBusyChange) onBusyChange(false)
-              mainNavigation.goBack()
+            deleteWorkout.mutate(workoutId, {
+              onSuccess: () => mainNavigation.goBack(),
             })
           },
           style: "destructive",

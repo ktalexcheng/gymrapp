@@ -25,23 +25,24 @@ export const Modal: FC<ModalProps> = observer((props: ModalProps) => {
   } = props
   const { themeStore } = useStores()
 
+  const $containerBase: ViewStyle = {
+    flex: 1,
+    alignContent: "center",
+    justifyContent: "center",
+    backgroundColor: themeStore.colors("background") + "80",
+  }
+
   const $container = [$containerBase, $containerStyleOverride]
 
   const $contentContainer = [themeStore.styles("modalContent"), $contentContainerStyleOverride]
 
   return (
-    <RNModal {...rest} onRequestClose={onRequestClose}>
-      <TouchableOpacity style={$container} activeOpacity={1} onPress={onRequestClose}>
-        <TouchableOpacity activeOpacity={1}>
-          <View style={$contentContainer}>{children}</View>
-        </TouchableOpacity>
+    <RNModal {...rest} onRequestClose={onRequestClose} animationType="fade">
+      {/* Overlay */}
+      <TouchableOpacity style={$container} onPress={onRequestClose}>
+        {/* Dialog */}
+        <View style={$contentContainer}>{children}</View>
       </TouchableOpacity>
     </RNModal>
   )
 })
-
-const $containerBase: ViewStyle = {
-  flex: 1,
-  alignContent: "center",
-  justifyContent: "center",
-}

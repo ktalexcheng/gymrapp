@@ -19,8 +19,8 @@ import * as Device from "expo-device"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
 import { Alert, BackHandler, View } from "react-native"
-import { AboutYouForm } from "./components/AboutYouForm"
-import { UserPreferencesMenu } from "./components/UserPreferencesMenu"
+import { AboutYouForm } from "../components/AboutYouForm"
+import { UserPreferencesMenu } from "../components/UserPreferencesMenu"
 
 export const UserSettingsScreen = observer(function () {
   const { authenticationStore: authStore } = useStores()
@@ -221,7 +221,7 @@ export const UserSettingsScreen = observer(function () {
           {
             positionIndex: 0,
             menuListItemProps: {
-              key: "myGyms",
+              id: "myGyms",
               itemNameLabelTx: "editProfileForm.myGymsLabel",
               currentValue: userProfile?.myGyms?.length ?? 0,
               onPress: () => mainNavigation.navigate("ManageMyGyms"),
@@ -247,7 +247,6 @@ export const UserSettingsScreen = observer(function () {
 
       <View style={{ gap: spacing.medium }}>
         <MenuListItem
-          key="logout"
           itemNameLabelTx={"userSettingsScreen.logoutAlertTitle"}
           currentValue={undefined}
           onPress={showLogoutAlert}
@@ -255,7 +254,6 @@ export const UserSettingsScreen = observer(function () {
         <Spacer type="vertical" size="medium" />
         <View style={styles.disabled}>
           <MenuListItem
-            key="deleteAccount"
             itemNameLabelTx={"userSettingsScreen.deleteAccountAlertTitle"}
             currentValue={undefined}
             onPress={showDeleteAlert}
@@ -271,7 +269,6 @@ export const UserSettingsScreen = observer(function () {
 
       <View style={{ gap: spacing.large }}>
         <MenuListItem
-          key="loginWith"
           itemNameLabelTx={"userSettingsScreen.accountAuthenticationTypeLabel"}
           currentValue={(() => {
             let tx
@@ -292,7 +289,6 @@ export const UserSettingsScreen = observer(function () {
           OverrideRightAccessory={() => null}
         />
         <MenuListItem
-          key="appVersion"
           itemNameLabelTx={"userSettingsScreen.appVersionLabel"}
           currentValue={`${Application.nativeApplicationVersion} (${Application.nativeBuildVersion})`}
           onPress={() => {}}

@@ -114,7 +114,7 @@ export const RestTimerScreen: FC = observer(() => {
             cx={progressCircleViewBoxSize / 2}
             cy={progressCircleViewBoxSize / 2}
             r={progressCircleRadius}
-            stroke={themeStore.colors("tint")}
+            stroke={themeStore.colors("logo")}
             strokeWidth={progressCircleStrokeWidthInner}
             strokeDasharray={progressCircleLength}
             animatedProps={timerAnimatedProps}

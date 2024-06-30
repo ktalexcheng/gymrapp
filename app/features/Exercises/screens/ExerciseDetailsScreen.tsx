@@ -9,7 +9,7 @@ import {
   TabBar,
   Text,
 } from "app/components"
-import { ExerciseVolumeType, WeightUnit, WorkoutSource } from "app/data/constants"
+import { ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import { RepsPersonalRecord, WorkoutId } from "app/data/types"
 import { WorkoutSummaryCard } from "app/features/WorkoutSummary"
 import { useWeightUnitTx } from "app/hooks"
@@ -17,7 +17,7 @@ import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
 import { IPersonalRecordsMapModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
-import { formatDate } from "app/utils/formatDate"
+import { formatDateTime } from "app/utils/formatDate"
 import { roundToString } from "app/utils/formatNumber"
 import { formatSecondsAsTime } from "app/utils/formatTime"
 import { Weight } from "app/utils/weight"
@@ -61,7 +61,6 @@ const WorkoutHistoryTabScene = (exerciseId: string) =>
 
       return (
         <WorkoutSummaryCard
-          workoutSource={WorkoutSource.User}
           workoutId={item.workoutId}
           workout={item}
           byUser={userStore.user}
@@ -148,10 +147,10 @@ const ExercisePerformanceChart = observer((props: ExercisePerformanceChartProps)
           // The Marker component is styled poorly, so we add some padding
           marker:
             chartMarkerStringPadding +
-            (xAxisType === "date" ? formatDate(add(0, { days: xAxis }), "yyyy-MM-dd") : xAxis),
+            (xAxisType === "date" ? formatDateTime(add(0, { days: xAxis }), "yyyy-MM-dd") : xAxis),
         })),
         config: {
-          mode: "HORIZONTAL_BEZIER", // LINEAR, HORIZONTAL_BEZIER, CUBIC_BEZIER
+          mode: "LINEAR", // LINEAR, HORIZONTAL_BEZIER, CUBIC_BEZIER
           valueFormatter: "labelByXValue",
           valueFormatterLabels: personalRecords.map(({ record, xAxis }) => ({
             label: recordFormatter ? recordFormatter(record) : record.toString(),
@@ -351,7 +350,7 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
 
             return (
               <RowView key={`${exerciseId}_${i}`} style={$recordItem}>
-                <Text style={$recordsDateColumn}>{formatDate(record.datePerformed)}</Text>
+                <Text style={$recordsDateColumn}>{formatDateTime(record.datePerformed)}</Text>
                 <Text style={$recordsTimeColumn}>{recordTime}</Text>
               </RowView>
             )
@@ -569,19 +568,13 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
             ]}
           />
 
-          {/* Passing in key here so when the chart mode changes, force the chart to re-render, */}
-          {/* or else some properties are not updating properly in react-native-charts-wrapper */}
-          {/* and Dropdown */}
-          {/* {["byWeight", "byReps"].includes(prChartMode) && ( */}
           <Dropdown
-            // key={prChartMode + "_dropdown"}
             status={!["byWeight", "byReps"].includes(prChartMode) ? "disabled" : undefined}
             selectedValue={pickerValue}
             onValueChange={setPickerValue}
             itemsList={itemsList}
             itemsLabel={itemsLabel}
           />
-          {/* )} */}
           <ExercisePerformanceChart
             key={prChartMode + "_chart"}
             personalRecords={chartData}
@@ -616,7 +609,7 @@ const PersonalRecordsTabScene = (exerciseId: string) =>
 
             return (
               <RowView key={`${exerciseId}_${reps}`} style={$recordItem}>
-                <Text style={$recordsDateColumn}>{formatDate(bestRecord.datePerformed)}</Text>
+                <Text style={$recordsDateColumn}>{formatDateTime(bestRecord.datePerformed)}</Text>
                 <Text style={$recordsRepsColumn}>{reps}</Text>
                 <Text style={$recordsWeightColumn}>
                   {weight.getFormattedWeightInUnit(userWeightUnit, 1)}

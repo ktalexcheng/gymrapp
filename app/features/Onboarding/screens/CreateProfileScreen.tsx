@@ -257,7 +257,7 @@ export const CreateProfileScreen = observer(() => {
   if (isSaving) {
     return (
       <View style={styles.fillAndCenter}>
-        <ActivityIndicator size={"large"} color={themeStore.colors("tint")} />
+        <ActivityIndicator size={"large"} color={themeStore.colors("logo")} />
         <Spacer type="vertical" size="large" />
         <Text tx="createProfileScreen.creatingYourProfileMessage" />
       </View>

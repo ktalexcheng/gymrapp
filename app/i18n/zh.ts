@@ -12,6 +12,7 @@ const zh: Translations = {
     clear: "清除",
     back: "返回",
     delete: "刪除",
+    remove: "移除",
     loading: "進行中...",
     exercise: "動作",
     bestSet: "最佳組次",
@@ -93,6 +94,18 @@ const zh: Translations = {
       restTimeCompletedTitle: "休息時間結束!",
       restTimeCompletedGenericPrompt: "該做下一組了！",
       restTimeCompletedFromLastSetPrompt: "上次完成的組次: {{setDescription}}",
+    },
+    newActivities: {
+      channelName: "新的動態",
+    },
+    newConnections: {
+      channelName: "新的追蹤",
+    },
+    newComments: {
+      channelName: "新的留言",
+    },
+    newLikes: {
+      channelName: "新的按讚",
     },
     permissionAlert: {
       title: "需要權限",
@@ -343,6 +356,10 @@ const zh: Translations = {
       time: "時間",
     },
     addSetButtonLabel: "新增組次",
+    replaceExerciseConfirmationTitle: "更換動作？",
+    replaceExerciseConfirmationMessage:
+      "你確定要將 {{originalExercise}} 更換為 {{newExercise}} 嗎？這將會重置該動作已輸入的紀錄。",
+    selectRpeLabel: "選擇 RPE",
   },
   activeWorkoutScreen: {
     newActiveWorkoutTitle: "新的訓練記錄",
@@ -513,6 +530,8 @@ const zh: Translations = {
     createSupersetLabel: "建立複合組",
     replaceExerciseLabel: "更換動作",
     removeExerciseLabel: "移除動作",
+    removeExerciseConfirmationTitle: "移除動作？",
+    removeExerciseConfirmationMessage: "你確定要移除這個動作嗎？",
     weightUnitLabel: "重量單位",
   },
   createNewGymScreen: {
@@ -575,7 +594,7 @@ const zh: Translations = {
     gymsCategoryLabel: "健身房",
   },
   profileVisitorViewScreen: {
-    dateJoinedLabel: "加入日期",
+    dateJoinedLabel: "加入日期 {{dateJoinedString}}",
     followButtonLabel: "追蹤",
     unfollowButtonLabel: "取消追蹤",
     followRequestSentMessage: "已送出追蹤邀請",
@@ -584,6 +603,7 @@ const zh: Translations = {
     noActivityHistoryMessage: "沒有活動紀錄",
     userIsPrivateMessage: "此使用者為私人帳戶",
     endOfUserActivityMessage: "這已經是此使用者的所有紀錄了！",
+    pendingFollowRequestMessage: "{{userHandle}} 對你發出了追蹤請求",
     blockUserButtonLabel: "封鎖使用者",
     blockUserAlertTitle: "封鎖 {{userHandle}} ?",
     blockUserAlertMessage: "{{userHandle}} 將不能再看到你的帳戶以及活動資訊",
@@ -599,13 +619,13 @@ const zh: Translations = {
   notificationsScreen: {
     notificationsTitle: "通知",
     noNotificationsMessage: "沒有通知",
-    newNotificationsTitle: "新通知",
-    olderNotificationsTitle: "較舊",
+    pastDayNotificationsTitle: "過去一天",
+    olderNotificationsTitle: "更早",
     followRequestsTitle: "追蹤請求",
     commentNotificationMessage: "{{senderDisplayName}} 對你的訓練記錄發表了評論",
     likeNotificationMessage: "{{senderDisplayName}} 對你的訓練記錄按了讚",
     followRequestNotificationMessage: "{{senderDisplayName}} 要求追蹤你",
-    followAcceptedNotificationMessage: "{{senderDisplayName}} 接受了你的追蹤邀請",
+    followAcceptedNotificationMessage: "{{senderDisplayName}} 接受了你的追蹤請求",
     markAllAsReadButtonLabel: "標記全部為已讀",
   },
 }

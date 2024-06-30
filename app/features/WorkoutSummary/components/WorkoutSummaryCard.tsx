@@ -1,11 +1,11 @@
 import { Avatar, Icon, RowView, Spacer, Text } from "app/components"
-import { ExerciseVolumeType, WeightUnit, WorkoutSource } from "app/data/constants"
+import { ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
 import { IExerciseSummaryModel, IUserModel, IWorkoutSummaryModel, useStores } from "app/stores"
 import { spacing, styles } from "app/theme"
-import { formatDate } from "app/utils/formatDate"
+import { formatDateTime } from "app/utils/formatDate"
 import { formatSecondsAsTime } from "app/utils/formatTime"
 import { Weight } from "app/utils/weight"
 import { observer } from "mobx-react-lite"
@@ -14,7 +14,6 @@ import { TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { WorkoutSocialButtonGroup } from "./WorkoutSocialButtonGroup"
 
 export interface WorkoutSummaryCardProps {
-  workoutSource: WorkoutSource
   workoutId: string
   workout: IWorkoutSummaryModel
   byUser: IUserModel
@@ -23,7 +22,7 @@ export interface WorkoutSummaryCardProps {
 
 export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
   (props: WorkoutSummaryCardProps) => {
-    const { workoutSource, workoutId, workout, byUser, highlightExerciseId } = props
+    const { workoutId, workout, byUser, highlightExerciseId } = props
     const { exerciseStore, userStore, themeStore } = useStores()
     const mainNavigation = useMainNavigation()
     const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
@@ -38,11 +37,11 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
       const $highlightExercise: TextStyle =
         highlightExerciseId && highlightExerciseId === e.exerciseId
           ? {
-              color: themeStore.colors("tint"),
+              color: themeStore.colors("logo"),
             }
           : {}
       const $highlightExerciseTextPreset =
-        highlightExerciseId && highlightExerciseId === e.exerciseId ? "bold" : "default"
+        highlightExerciseId && highlightExerciseId === e.exerciseId ? "default" : "default"
 
       const bestSet = e.bestSet
       let bestSetString = ""
@@ -111,13 +110,12 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
       <TouchableOpacity
         onPress={() =>
           mainNavigation.navigate("WorkoutSummary", {
-            workoutSource,
             workoutId,
-            workoutByUserId: workout.byUserId,
             jumpToComments: false,
           })
         }
       >
+        {/* <Text>{workoutId}</Text> */}
         {/* <Text>{JSON.stringify(byUser)}</Text> */}
         <View style={themeStore.styles("listItemContainer")}>
           {workout?.__isLocalOnly && (
@@ -134,7 +132,7 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
                   {displayName}
                 </Text>
               </RowView>
-              <Text>{formatDate(workout.startTime)}</Text>
+              <Text>{formatDateTime(workout.startTime)}</Text>
             </RowView>
           )}
           <RowView style={[styles.alignCenter, styles.justifyBetween]}>
@@ -156,14 +154,10 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
             )}
           </RowView>
           <WorkoutSocialButtonGroup
-            workoutSource={workoutSource}
             workoutId={workoutId}
-            workoutByUserId={workout.byUserId}
             onPressComments={() =>
               mainNavigation.navigate("WorkoutSummary", {
-                workoutSource,
                 workoutId,
-                workoutByUserId: workout.byUserId,
                 jumpToComments: true,
               })
             }

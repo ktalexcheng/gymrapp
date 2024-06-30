@@ -47,9 +47,11 @@ type ResetWorkoutDialogProps = {
   onCancel: () => void
 }
 
-const ResetWorkoutDialog: FC<ResetWorkoutDialogProps> = function ResetWorkoutDialog(
+const ResetWorkoutDialog: FC<ResetWorkoutDialogProps> = observer(function ResetWorkoutDialog(
   props: ResetWorkoutDialogProps,
 ) {
+  const { themeStore } = useStores()
+
   return (
     <Modal
       animationType="slide"
@@ -61,10 +63,15 @@ const ResetWorkoutDialog: FC<ResetWorkoutDialogProps> = function ResetWorkoutDia
       <Spacer type="vertical" size="medium" />
       <Button tx="newActivityScreen.resumeWorkout" preset="text" onPress={props.onResume} />
       <Button tx="newActivityScreen.startNewWorkoutText" preset="text" onPress={props.onReset} />
-      <Button tx="common.cancel" preset="text" onPress={props.onCancel} />
+      <Button
+        tx="common.cancel"
+        textStyle={{ color: themeStore.colors("text") }}
+        preset="text"
+        onPress={props.onCancel}
+      />
     </Modal>
   )
-}
+})
 
 const NewActivityButton = observer(() => {
   const navigation = useMainNavigation()
@@ -107,8 +114,10 @@ const NewActivityButton = observer(() => {
     backgroundColor: themeStore.colors("actionable"),
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: themeStore.colors("border"),
+    elevation: 15,
+    shadowRadius: 15,
+    shadowOpacity: 0.5,
+    shadowColor: themeStore.palette("neutral050"),
   }
 
   const $centerButtonLabel: TextStyle = {
@@ -132,9 +141,11 @@ const NewActivityButton = observer(() => {
 
   return (
     <>
-      <TouchableOpacity style={$centerButton} onPress={() => setIsSheetOpen(true)}>
-        <Icon name="add" color={themeStore.colors("actionableForeground")} size={30} />
-        <Text style={$centerButtonLabel}>{translate("tabNavigator.activityTab")}</Text>
+      <TouchableOpacity onPress={() => setIsSheetOpen(true)}>
+        <View style={$centerButton}>
+          <Icon name="add" color={themeStore.colors("actionableForeground")} size={30} />
+          <Text style={$centerButtonLabel}>{translate("tabNavigator.activityTab")}</Text>
+        </View>
       </TouchableOpacity>
 
       <Sheet
@@ -194,6 +205,10 @@ export const HomeTabNavigator = observer(() => {
     }),
   ]
 
+  const tabIconColor = (focused: boolean) => {
+    return focused ? themeStore.colors("logo") : themeStore.colors("disabledBackground")
+  }
+
   return (
     <>
       {activeWorkoutStore.inProgress && <ActiveWorkoutOverlay />}
@@ -211,11 +226,7 @@ export const HomeTabNavigator = observer(() => {
           options={{
             tabBarLabel: translate("tabNavigator.feedTab"),
             tabBarIcon: ({ focused }) => (
-              <Icon
-                name="people"
-                color={focused ? themeStore.colors("tint") : themeStore.colors("foreground")}
-                size={20}
-              />
+              <Icon name="people" color={tabIconColor(focused)} size={20} />
             ),
           }}
         />
@@ -225,11 +236,7 @@ export const HomeTabNavigator = observer(() => {
           options={{
             tabBarLabel: translate("tabNavigator.discoverTab"),
             tabBarIcon: ({ focused }) => (
-              <Icon
-                name="search-outline"
-                color={focused ? themeStore.colors("tint") : themeStore.colors("foreground")}
-                size={20}
-              />
+              <Icon name="search-outline" color={tabIconColor(focused)} size={20} />
             ),
           }}
         />
@@ -246,11 +253,7 @@ export const HomeTabNavigator = observer(() => {
           options={{
             tabBarLabel: translate("tabNavigator.exercisesTab"),
             tabBarIcon: ({ focused }) => (
-              <Icon
-                name="list-outline"
-                color={focused ? themeStore.colors("tint") : themeStore.colors("foreground")}
-                size={20}
-              />
+              <Icon name="list-outline" color={tabIconColor(focused)} size={20} />
             ),
           }}
         />
@@ -260,11 +263,7 @@ export const HomeTabNavigator = observer(() => {
           options={{
             tabBarLabel: translate("tabNavigator.profileTab"),
             tabBarIcon: ({ focused }) => (
-              <Icon
-                name="person"
-                color={focused ? themeStore.colors("tint") : themeStore.colors("foreground")}
-                size={20}
-              />
+              <Icon name="person" color={tabIconColor(focused)} size={20} />
             ),
           }}
         />

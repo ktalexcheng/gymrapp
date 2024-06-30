@@ -20,7 +20,7 @@ import { formatSecondsAsTime } from "app/utils/formatTime"
 import { EllipsisVertical } from "lucide-react-native"
 import { observer } from "mobx-react-lite"
 import React, { FC, useState } from "react"
-import { Platform, View, ViewStyle } from "react-native"
+import { Alert, Platform, View, ViewStyle } from "react-native"
 import { Switch } from "tamagui"
 
 export type ExerciseSettingsProps = {
@@ -84,7 +84,23 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
     }
 
     function removeExercise() {
-      onRemoveExercise(exerciseOrder)
+      Alert.alert(
+        translate("exerciseEntrySettings.removeExerciseConfirmationTitle"),
+        translate("exerciseEntrySettings.removeExerciseConfirmationMessage"),
+        [
+          {
+            text: translate("common.cancel"),
+            style: "cancel",
+          },
+          {
+            text: translate("common.remove"),
+            style: "destructive",
+            onPress: () => {
+              onRemoveExercise(exerciseOrder)
+            },
+          },
+        ],
+      )
     }
 
     const renderPopoverContent = () => {
@@ -154,7 +170,7 @@ export const ExerciseSettingsMenu: FC<ExerciseSettingsProps> = observer(
               />
               {Object.values(WeightUnit).map((item, index) => (
                 <PopoverMenuItem
-                  key={`exerciseSettingsMenu_${item}_${index}`}
+                  key={`exerciseSettingsMenu_weight_${index}`}
                   itemNameLabel={WeightUnit[item]}
                   onPress={() => updateWeightUnit(item)}
                   OverrideRightAccessory={() =>

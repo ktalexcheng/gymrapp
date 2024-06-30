@@ -1,4 +1,5 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
+import { useInfiniteQuery, UseInfiniteQueryResult } from "@tanstack/react-query"
 import {
   Avatar,
   Button,
@@ -9,6 +10,7 @@ import {
   Text,
   ThemedRefreshControl,
 } from "app/components"
+import { FirebaseSnapshotType } from "app/data/repository"
 import { translate } from "app/i18n"
 import { MainStackParamList } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
@@ -21,21 +23,14 @@ import React, { useEffect, useState } from "react"
 import { Alert, FlatList, TouchableOpacity, View, ViewStyle } from "react-native"
 import { TabView } from "react-native-tab-view"
 
-type ConnectionsTabSceneProps = {
-  userId: string
-}
-
-const FollowerTile = observer((followerProfile: IUserModel) => {
-  const mainNavigation = useMainNavigation()
+const FollowerTile = observer((followerProfile: IUserModel & { isFollowingUser: boolean }) => {
+  // hooks
   const { userStore } = useStores()
+  const mainNavigation = useMainNavigation()
 
-  const [, setIsFollowingUser] = useState<boolean>()
+  // states
   const [isFollowerRemoved, setIsFollowerRemoved] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState(false)
-
-  useEffect(() => {
-    userStore.isFollowingUser(followerProfile.userId).then(setIsFollowingUser)
-  }, [])
 
   const removeFollower = () => {
     setIsLoading(true)
@@ -98,38 +93,11 @@ const FollowerTile = observer((followerProfile: IUserModel) => {
   )
 })
 
-const FollowersTabScene = ({ userId }: ConnectionsTabSceneProps) => {
-  const { feedStore } = useStores()
-
-  const [followerProfiles, setFollowerProfiles] = useState<IUserModel>([])
-  const [error, setError] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
-
-  useEffect(() => {
-    loadMore()
-  }, [])
-
-  const loadMore = (refresh?: boolean) => {
-    if (loading) return
-
-    if (refresh) {
-      setFollowerProfiles([])
-      setHasMore(true)
-    }
-
-    if (refresh || hasMore) {
-      setLoading(true)
-      feedStore
-        .getMoreUserFollowers(userId, refresh)
-        .then((result) => {
-          setFollowerProfiles((prev) => [...prev, ...result.userProfiles])
-          setHasMore(result.hasMore)
-        })
-        .catch(() => setError(true))
-        .finally(() => setLoading(false))
-    }
-  }
+const FollowersTabScene = (props: {
+  query: UseInfiniteQueryResult
+  followers: (IUserModel & { isFollowingUser: boolean })[]
+}) => {
+  const { query, followers } = props
 
   const $container: ViewStyle = {
     flex: 1,
@@ -137,20 +105,18 @@ const FollowersTabScene = ({ userId }: ConnectionsTabSceneProps) => {
     paddingBottom: spacing.screenPadding,
   }
 
-  console.debug("followerProfiles length", followerProfiles.length)
-
-  if (error) {
+  if (query.isError) {
     return <Text tx="common.error.unknownErrorMessage" />
   }
 
   return (
     <View style={$container}>
       <FlatList
-        data={followerProfiles}
+        data={followers}
         renderItem={({ item }) => <FollowerTile {...item} />}
-        onEndReached={() => loadMore(false)}
+        onEndReached={() => query.hasNextPage && query.fetchNextPage()}
         refreshControl={
-          <ThemedRefreshControl refreshing={loading} onRefresh={() => loadMore(true)} />
+          <ThemedRefreshControl refreshing={query.isFetching} onRefresh={query.refetch} />
         }
       />
     </View>
@@ -158,14 +124,14 @@ const FollowersTabScene = ({ userId }: ConnectionsTabSceneProps) => {
 }
 
 const FollowingTile = observer((followingProfile: IUserModel) => {
+  // hooks
   const mainNavigation = useMainNavigation()
   const { userStore } = useStores()
 
+  // states
   const [isFollowingUser, setIsFollowingUser] = useState<boolean>(true)
   const [isRequestSent, setIsRequestSent] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState(false)
-
-  useEffect(() => {}, [])
 
   const doUnfollow = () => {
     setIsLoading(true)
@@ -271,38 +237,8 @@ const FollowingTile = observer((followingProfile: IUserModel) => {
   )
 })
 
-const FollowingTabScene = ({ userId }: ConnectionsTabSceneProps) => {
-  const { feedStore } = useStores()
-
-  const [followingProfiles, setFollowingProfiles] = useState<IUserModel>([])
-  const [error, setError] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
-
-  useEffect(() => {
-    loadMore()
-  }, [])
-
-  const loadMore = (refresh?: boolean) => {
-    if (loading) return
-
-    if (refresh) {
-      setFollowingProfiles([])
-      setHasMore(true)
-    }
-
-    if (refresh || hasMore) {
-      setLoading(true)
-      feedStore
-        .getMoreUserFollowing(userId, refresh)
-        .then((result) => {
-          setFollowingProfiles((prev) => [...prev, ...result.userProfiles])
-          setHasMore(result.hasMore)
-        })
-        .catch(() => setError(true))
-        .finally(() => setLoading(false))
-    }
-  }
+const FollowingTabScene = (props: { query: UseInfiniteQueryResult; following: IUserModel[] }) => {
+  const { query, following } = props
 
   const $container: ViewStyle = {
     flex: 1,
@@ -310,20 +246,18 @@ const FollowingTabScene = ({ userId }: ConnectionsTabSceneProps) => {
     paddingBottom: spacing.screenPadding,
   }
 
-  console.debug("followingProfiles length", followingProfiles.length)
-
-  if (error) {
+  if (query.isError) {
     return <Text tx="common.error.unknownErrorMessage" />
   }
 
   return (
     <View style={$container}>
       <FlatList
-        data={followingProfiles}
+        data={following}
         renderItem={({ item }) => <FollowingTile {...item} />}
-        onEndReached={() => loadMore(false)}
+        onEndReached={() => query.hasNextPage && query.fetchNextPage()}
         refreshControl={
-          <ThemedRefreshControl refreshing={loading} onRefresh={() => loadMore(true)} />
+          <ThemedRefreshControl refreshing={query.isFetching} onRefresh={query.refetch} />
         }
       />
     </View>
@@ -336,16 +270,13 @@ export const UserConnectionsScreen = observer(
   ({ navigation, route }: UserConnectionsScreenProps) => {
     const { userId, userHandle } = route.params
 
-    useEffect(() => {
-      navigation.setOptions({
-        title: userHandle,
-      })
-    }, [])
+    // hooks
+    const { userStore, feedStore } = useStores()
 
-    const { userStore } = useStores()
-
+    // states
     const [tabIndex, setTabIndex] = useState(0)
 
+    // derived states
     const routes = [
       {
         key: "followers",
@@ -360,6 +291,39 @@ export const UserConnectionsScreen = observer(
         )})`,
       },
     ]
+
+    // prepare data here so it can be shared across tabs
+    const followingQuery = useInfiniteQuery({
+      queryKey: ["userConnections", "following", userId],
+      queryFn: ({ pageParam }) => feedStore.getMoreUserFollowing(userId, pageParam),
+      initialPageParam: null as unknown as FirebaseSnapshotType,
+      getNextPageParam: (lastPage) => lastPage.lastDocSnapshot,
+    })
+    const followingProfiles = followingQuery.data?.pages?.flatMap((page) => page.userProfiles) ?? []
+
+    const followersQuery = useInfiniteQuery({
+      queryKey: ["userConnections", "followers", userId],
+      queryFn: ({ pageParam }) => feedStore.getMoreUserFollowers(userId, pageParam),
+      initialPageParam: null as unknown as FirebaseSnapshotType,
+      getNextPageParam: (lastPage) => lastPage.lastDocSnapshot,
+    })
+    const followersProfiles =
+      followersQuery.data?.pages
+        ?.flatMap((page) => page.userProfiles)
+        .map((user) => {
+          return {
+            ...user,
+            isFollowingUser:
+              followingProfiles?.some((followingUser) => followingUser.userId === user.userId) ??
+              false,
+          }
+        }) ?? []
+
+    useEffect(() => {
+      navigation.setOptions({
+        title: userHandle,
+      })
+    }, [])
 
     const renderTabBar = (props) => {
       return (
@@ -377,9 +341,9 @@ export const UserConnectionsScreen = observer(
     const renderScene = ({ route }) => {
       switch (route.key) {
         case "followers":
-          return <FollowersTabScene userId={userId} />
+          return <FollowersTabScene query={followersQuery} followers={followersProfiles} />
         case "following":
-          return <FollowingTabScene userId={userId} />
+          return <FollowingTabScene query={followingQuery} following={followingProfiles} />
         default:
           return null
       }

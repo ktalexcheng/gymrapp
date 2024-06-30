@@ -177,12 +177,6 @@ export const UserStoreModel = types
       }
     })
 
-    const getOtherUser = flow(function* (userId: string) {
-      const { userRepository } = getEnv<RootStoreDependencies>(self)
-      const user = yield userRepository.get(userId, true)
-      return user
-    })
-
     const followUser = flow(function* (followeeUserId: string) {
       // const { userRepository } = getEnv<RootStoreDependencies>(self)
       let status = "unknown"
@@ -448,7 +442,6 @@ export const UserStoreModel = types
       deleteProfile,
       createNewProfile,
       uploadUserAvatar,
-      getOtherUser,
       followUser,
       unfollowUser,
       isFollowingUser,

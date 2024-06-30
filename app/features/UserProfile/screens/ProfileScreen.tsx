@@ -40,7 +40,7 @@ import {
 import { BarChart, HorizontalBarChart } from "react-native-charts-wrapper"
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated"
 import { SceneMap, TabView } from "react-native-tab-view"
-import { UserProfileStatsBar } from "./components/UserProfileStatsBar"
+import { UserProfileStatsBar } from "../components/UserProfileStatsBar"
 
 type UserActivitiesTabSceneProps = {
   onScroll: FlatListProps<any>["onScroll"]
@@ -188,7 +188,7 @@ const WeeklyWorkoutChart = observer(({ chartData }: WeeklyWorkoutChartProps) => 
           y: workoutsCount,
         })),
         config: {
-          color: processColor(themeStore.colors("actionable")),
+          color: processColor(themeStore.colors("logo")),
           valueTextColor: processColor(themeStore.colors("actionableForeground")),
           valueTextSize: 12,
           highlightEnabled: false,
@@ -306,7 +306,7 @@ const ExercisesCoverageChart = observer(({ chartData }: ExercisesCoverageChartPr
           marker: chartMarkerStringPadding + chartDataSummarized[c], // The Marker component is styled poorly, so we add some padding
         })),
         config: {
-          color: processColor(themeStore.colors("actionable")),
+          color: processColor(themeStore.colors("logo")),
           valueTextColor: processColor(themeStore.colors("actionableForeground")),
           valueTextSize: 12,
           // Using "" for 0 to prevent from overlapping with x-axis labels
@@ -528,7 +528,7 @@ export const ProfileScreen = observer(function ProfileScreen() {
   }
 
   const $notificationsBadge: ViewStyle = {
-    backgroundColor: themeStore.colors("tint"),
+    backgroundColor: themeStore.colors("actionable"),
     borderRadius: 4,
     paddingHorizontal: 2,
     position: "absolute",
@@ -539,7 +539,7 @@ export const ProfileScreen = observer(function ProfileScreen() {
   }
 
   const $notificationsBadgeText: TextStyle = {
-    color: themeStore.colors("tintForeground"),
+    color: themeStore.colors("actionableForeground"),
     textAlign: "center",
     fontSize: 14,
     lineHeight: 18,
