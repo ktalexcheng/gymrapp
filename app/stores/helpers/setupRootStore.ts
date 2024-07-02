@@ -36,7 +36,7 @@ export async function setupRootStore(rootStore: RootStore) {
       // load the last known state from AsyncStorage
       console.debug("setupRootStore: Loading root store snapshot from AsyncStorage")
       restoredState = (await storage.getData(storageKeys.ROOT_STORE_STATE)) as RootStoreSnapshot
-      applySnapshot(rootStore, restoredState)
+      restoredState && applySnapshot(rootStore, restoredState)
     }
 
     await storage.storeData(storageKeys.BUILD_VERSION, thisBuildVersion)

@@ -25,7 +25,7 @@ export const WorkoutSocialButtonGroup = observer((props: WorkoutSocialButtonGrou
   // queries
   const workoutInteractionsQuery = useGetWorkoutInteractions(workoutId)
   const workoutInteractions = workoutInteractionsQuery.data
-  const { likeWorkout, unlikeWorkout } = useLikeWorkout()
+  const likeWorkout = useLikeWorkout()
 
   // derived states
   const isLikedByUser = userStore.userId
@@ -38,11 +38,11 @@ export const WorkoutSocialButtonGroup = observer((props: WorkoutSocialButtonGrou
       return
     }
 
-    if (isLikedByUser) {
-      unlikeWorkout.mutate({ workoutId, byUserId: userStore.userId })
-    } else {
-      likeWorkout.mutate({ workoutId, likedByUserId: userStore.userId })
-    }
+    likeWorkout.mutate({
+      workoutId,
+      likedByUserId: userStore.userId,
+      action: isLikedByUser ? "unlike" : "like",
+    })
   }
 
   return (
