@@ -1,8 +1,9 @@
 import { useFocusEffect } from "@react-navigation/native"
 import { Button, Icon, RowView, Screen, Spacer, Text } from "app/components"
+import { WeightUnit } from "app/data/constants"
 import { ExerciseSettingsType, Gym } from "app/data/types"
 import { useGetTemplate } from "app/features/WorkoutTemplates/services/useGetTemplate"
-import { useToast, useWeightUnitTx } from "app/hooks"
+import { useToast, useWeight, useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
 import { MainStackScreenProps } from "app/navigators"
 import { useMainNavigation } from "app/navigators/navigationUtilities"
@@ -98,11 +99,16 @@ const $gymTextButton: ViewStyle = {
 
 const WorkoutEditorHeaderComponents = observer(() => {
   const mainNavigation = useMainNavigation()
-  const { themeStore, activeWorkoutStore: workoutStore } = useStores()
+  const { themeStore, userStore, activeWorkoutStore: workoutStore } = useStores()
+  const userWeightUnit = userStore.getUserPreference<WeightUnit>("weightUnit")
 
   // hooks
   const weightUnitTx = useWeightUnitTx()
   const weightUnit = translate(weightUnitTx)
+  const [displayWeight, weightKg, setDisplayWeight, setDisplayUnit] = useWeight(
+    workoutStore.totalVolume,
+    userWeightUnit,
+  )
 
   // queries
   const { workoutTemplateId } = workoutStore
@@ -131,6 +137,10 @@ const WorkoutEditorHeaderComponents = observer(() => {
       }
     }
   }, [workoutStore.inProgress])
+
+  useEffect(() => {
+    setDisplayUnit(userWeightUnit)
+  }, [userWeightUnit])
 
   const $metric: ViewStyle = {
     borderWidth: 1,
@@ -165,7 +175,7 @@ const WorkoutEditorHeaderComponents = observer(() => {
         </View>
         <View style={$metric}>
           <Text tx="activeWorkoutScreen.totalVolumeLabel" txOptions={{ weightUnit }} size="tiny" />
-          <Text text={workoutStore.totalVolume.toFixed(0)} />
+          <Text text={(displayWeight ?? 0).toFixed(0)} />
         </View>
       </RowView>
 
