@@ -1,3 +1,4 @@
+import { useFocusEffect } from "@react-navigation/native"
 import { Screen, Spacer, Text, ThemedRefreshControl } from "app/components"
 import { WorkoutSummaryCard } from "app/features/WorkoutSummary"
 import { useStores } from "app/stores"
@@ -7,11 +8,12 @@ import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
 import { FlatList, View } from "react-native"
 
-// interface FeedScreenProps extends TabScreenProps<"Profile"> {}
-
 export const FeedScreen = observer(function FeedScreen() {
+  // hooks
   const { feedStore, userStore, activeWorkoutStore, themeStore } = useStores()
   const safeAreaEdges: ExtendedEdge[] = activeWorkoutStore.inProgress ? [] : ["top"]
+
+  // states
   const [feedItems, setFeedItems] = useState(feedStore.feedListData)
 
   // UX improvement: Replacing feedItems in one action only once new data is ready
@@ -21,6 +23,12 @@ export const FeedScreen = observer(function FeedScreen() {
       setFeedItems(feedStore.feedListData)
     }
   }, [feedStore.isLoadingFeed, feedStore.feedListData])
+
+  useFocusEffect(
+    React.useCallback(() => {
+      feedStore.refreshFeedItems()
+    }, []),
+  )
 
   const renderFeedWorkoutItem = ({ item }) => {
     return <WorkoutSummaryCard {...item} />
