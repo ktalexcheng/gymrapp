@@ -30,7 +30,6 @@ import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-c
 import { PortalProvider, TamaguiProvider } from "tamagui"
 import Config from "./config"
 import { LocaleProvider } from "./context"
-import { useNotification } from "./hooks"
 import { translate } from "./i18n"
 import { AppNavigator } from "./navigators"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -46,6 +45,9 @@ const linkPrefix = Linking.createURL("")
 const linkingConfig = {
   screens: {
     MainNavigator: {
+      // initialRouteName is important so that when the app is opened from a deep link
+      // the stack contains a screen to navigate back to
+      initialRouteName: "HomeTabNavigator",
       screens: {
         ActiveWorkout: "activeWorkout",
         WorkoutSummary: "workoutSummary",
@@ -63,22 +65,22 @@ const linking = {
   prefixes: [linkPrefix, "https://gymrapp.com", "https://gymrapp-test.web.app"],
   config: linkingConfig,
   // See: https://reactnavigation.org/docs/navigation-container#linkinggetinitialurl
+  // getInitialURL is only triggered when the app is opened from an inactive state
   async getInitialURL() {
     // First, you may want to do the default deep link handling
     // Check if app was opened from a deep link
     const url = await Linking.getInitialURL()
 
-    if (url != null) {
+    if (url !== null) {
       return url
     }
 
     // Handle URL from notifications
-    const response = await Notifications.getLastNotificationResponseAsync()
-
-    console.debug("getInitialURL() response data:", response?.notification.request.content?.data)
-    return response?.notification.request.content?.data?.url
+    const lastNotificationResponse = await Notifications.getLastNotificationResponseAsync()
+    return lastNotificationResponse?.notification?.request?.content?.data?.url
   },
   // See: https://reactnavigation.org/docs/navigation-container/#linkingsubscribe
+  // listens to user response to notifications while app is active (including local and push notifications)
   subscribe(listener) {
     const onReceiveURL = ({ url }: { url: string }) => listener(url)
 
@@ -87,10 +89,8 @@ const linking = {
 
     // Listen to expo push notifications
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const url = response.notification.request.content.data.url
-      console.debug("Linking subscription triggered by notification:", { url })
-
       // Let React Navigation handle the URL
+      const url = response?.notification?.request?.content?.data?.url
       listener(url)
     })
 
@@ -186,16 +186,13 @@ interface AppProps {
  */
 function App(props: AppProps) {
   const { hideSplashScreen } = props
+
   const {
     initialNavigationState,
     onNavigationStateChange,
     isRestored: isNavigationStateRestored,
   } = useNavigationPersistence(storageKeys.MAIN_NAVIGATOR_STATE)
-
   const [areFontsLoaded] = useFonts(customFontsToLoad)
-
-  // TODO: Move this to after the user has logged in
-  useNotification()
 
   const [updateLink, setUpdateLink] = useState<string>()
   const [forceUpdate, setForceUpdate] = useState(false)

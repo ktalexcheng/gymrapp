@@ -12,7 +12,7 @@ import React, { useEffect } from "react"
 import { Alert, Linking, Platform } from "react-native"
 
 export const useNotification = () => {
-  const { themeStore } = useStores()
+  const { themeStore, userStore } = useStores()
   const notificationListener = React.useRef<Notifications.Subscription>()
   const responseListener = React.useRef<Notifications.Subscription>()
 
@@ -95,17 +95,24 @@ export const useNotification = () => {
 
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
       console.debug("useNotification notificationListener:", notification)
+      // TODO: Maybe show a toast in app
     })
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       console.debug("useNotification responseListener:", response)
+      const data = response?.notification?.request?.content?.data
+      const notificationId = data?.notificationId
+      if (!notificationId) return
+
+      userStore.markNotificationAsRead(notificationId)
+      Notifications.getBadgeCountAsync().then((badgeCount) => {
+        Notifications.setBadgeCountAsync(Math.max(badgeCount - 1, 0))
+      })
     })
 
     return () => {
       notificationListener.current &&
         Notifications.removeNotificationSubscription(notificationListener.current!)
-      responseListener.current &&
-        Notifications.removeNotificationSubscription(responseListener.current!)
     }
   }, [])
 }

@@ -18,6 +18,7 @@ import { spacing, styles } from "app/theme"
 import { formatDateTime } from "app/utils/formatDate"
 import { formatName } from "app/utils/formatName"
 import { add } from "date-fns"
+import * as Notifications from "expo-notifications"
 import { observer } from "mobx-react-lite"
 import React, { useEffect, useState } from "react"
 import { FlatList, SectionList, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
@@ -250,6 +251,7 @@ export const NotificationsScreen = observer(() => {
 
   useEffect(() => {
     userStore.markAllNotificationsAsRead()
+    Notifications.setBadgeCountAsync(0)
   }, [])
 
   const toggleShowFollowRequests = () => {

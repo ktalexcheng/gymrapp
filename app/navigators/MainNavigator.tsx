@@ -25,6 +25,7 @@ import {
   TemplateManagerScreen,
 } from "app/features/WorkoutTemplates"
 import { LoadingScreen } from "app/features/common"
+import { useNotification } from "app/hooks"
 import { translate } from "app/i18n"
 import { INotificationModel, useStores } from "app/stores"
 import { logError } from "app/utils/logger"
@@ -84,6 +85,8 @@ export const MainNavigator = observer(function MainNavigator() {
     activeWorkoutStore,
   } = useStores()
   const mainNavigation = useMainNavigation()
+  useNotification()
+
   const [isInitialized, setIsInitialized] = useState(false)
 
   const listenToSnapshots = () => {
