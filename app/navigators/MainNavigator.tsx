@@ -210,6 +210,7 @@ export const MainNavigator = observer(function MainNavigator() {
       })
       activityStore.getAllActivities()
       feedStore.initializeWithUserId(authStore.userId)
+      feedStore.loadUserWorkouts()
 
       // If navigation is at initial "Splash" screen, or the stack is empty, then navigate to "HomeTabNavigator"
       initializeToHome()

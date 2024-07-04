@@ -513,8 +513,7 @@ export const FeedStoreModel = types
 
         // Do this very last so the user can still see workouts while loading
         self.userWorkoutMetas.clear()
-        addWorkoutToStore(WorkoutSource.User, ...workouts)
-        addWorkoutToStore(WorkoutSource.User, ...localWorkouts)
+        addWorkoutToStore(WorkoutSource.User, ...workouts, ...localWorkouts)
 
         console.debug("FeedStore.loadUserWorkouts done")
       } catch (e) {
