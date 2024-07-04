@@ -77,7 +77,7 @@
     "geolib": "^3.3.4",
     "i18n-js": "3.9.2",
     "lodash": "^4.17.21",
-    "lucide-react-native": "^0.376.0",
+    "lucide-react-native": "^0.400.0",
     "mobx": "^6.11.0",
     "mobx-react-lite": "^4.0.5",
     "mobx-state-tree": "^5.3.0",
