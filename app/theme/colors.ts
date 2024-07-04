@@ -240,7 +240,7 @@ export const darkPalette: Palette = {
   secondary800: "#76D2C4",
   secondary900: "#A9E6DB",
 
-  angry100: "#C03403",
+  angry100: "#FF4230", // Make brighter for better contrast against dark background
   angry500: "#F2D6CD",
 
   success100: "#2E7D32",

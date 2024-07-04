@@ -84,7 +84,7 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
             <View style={$weightColumn}>
               <Text textAlign="center">
                 {translate("workoutEditor.exerciseSetHeaders.weight") +
-                  ` (${translate(weightUnitTx)})`}
+                  `\n(${translate(weightUnitTx)})`}
               </Text>
             </View>
             <View style={$repsColumn}>
