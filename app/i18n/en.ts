@@ -506,6 +506,7 @@ const en = {
     headerTitle: "Select exercise",
   },
   exerciseDetailsScreen: {
+    isPrivateLabel: "This exercise was created by you and is only visible to you",
     headerTitle: "Exercise details",
     personalRecordsLabel: "Personal Records",
     performanceChartTitle: "Performance chart",

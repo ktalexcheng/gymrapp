@@ -80,6 +80,10 @@ export interface Colors {
    */
   border: string
   /**
+   * Shadow color.
+   */
+  shadow: string
+  /**
    * The main tinting color.
    */
   tint: string
@@ -189,6 +193,7 @@ export const lightColors: Colors = {
   contentBackground: lightPalette.neutral100,
   elevatedBackground: lightPalette.neutral200,
   border: lightPalette.neutral400,
+  shadow: lightPalette.neutral300 + "80",
   tint: lightPalette.secondary500,
   lightTint: lightPalette.secondary200,
   actionable: lightPalette.secondary500,
@@ -260,6 +265,7 @@ export const darkColors: Colors = {
   contentBackground: darkPalette.neutral100,
   elevatedBackground: darkPalette.neutral200,
   border: darkPalette.neutral200,
+  shadow: darkPalette.neutral200 + "80",
   tint: darkPalette.primary500,
   lightTint: darkPalette.primary050,
   actionable: darkPalette.primary500,

@@ -156,7 +156,7 @@ export const Card = observer((props: CardProps) => {
     borderRadius: spacing.medium,
     padding: spacing.extraSmall,
     borderWidth: 1,
-    shadowColor: themeStore.colors("foreground"),
+    shadowColor: themeStore.colors("shadow"),
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,
     shadowRadius: 12.81,

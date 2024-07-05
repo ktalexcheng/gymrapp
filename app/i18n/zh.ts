@@ -490,6 +490,7 @@ const zh: Translations = {
     headerTitle: "選擇動作",
   },
   exerciseDetailsScreen: {
+    isPrivateLabel: "這是你創建的個人動作，僅你可見",
     headerTitle: "動作詳情",
     personalRecordsLabel: "個人紀錄",
     performanceChartTitle: "運動表現圖表",

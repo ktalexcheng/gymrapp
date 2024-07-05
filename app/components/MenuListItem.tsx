@@ -87,8 +87,14 @@ export const MenuListItem = observer(
               </>
             )}
           </RowView>
-          <RowView style={styles.alignCenter}>
-            <Text text={currentValueFormatted} />
+          <RowView style={[styles.flex1, styles.alignCenter]}>
+            <Spacer type="horizontal" size="small" />
+            <Text
+              style={styles.flex1}
+              numberOfLines={1}
+              textAlign="right"
+              text={currentValueFormatted}
+            />
             {OverrideRightAccessory ? (
               <OverrideRightAccessory />
             ) : (

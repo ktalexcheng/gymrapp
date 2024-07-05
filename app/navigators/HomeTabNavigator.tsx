@@ -114,7 +114,7 @@ const NewActivityButton = observer(() => {
     backgroundColor: themeStore.colors("actionable"),
     alignItems: "center",
     justifyContent: "center",
-    elevation: 15,
+    elevation: 16,
     shadowRadius: 15,
     shadowOpacity: 0.5,
     shadowColor: themeStore.palette("neutral050"),

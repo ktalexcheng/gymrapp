@@ -128,9 +128,12 @@ export const WorkoutSummaryCard: FC<WorkoutSummaryCardProps> = observer(
               <RowView style={$cardHeaderAvatarAndName}>
                 <Avatar user={byUser} size="sm" />
                 <Spacer type="horizontal" size="small" />
-                <Text preset="bold" numberOfLines={1} style={styles.flex1}>
-                  {displayName}
-                </Text>
+                <Text
+                  preset="bold"
+                  numberOfLines={1}
+                  style={styles.flex1}
+                  text={byUser.userHandle}
+                />
               </RowView>
               <Text>{formatDateTime(workout.startTime)}</Text>
             </RowView>

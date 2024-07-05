@@ -133,9 +133,13 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
 
   return (
     <View style={$exercise}>
-      <RowView style={styles.justifyBetween}>
-        <TouchableOpacity onPress={navigateToExerciseDetails} onLongPress={onExerciseNameLongPress}>
-          <RowView style={styles.alignCenter}>
+      <RowView style={[styles.flex1, styles.justifyBetween]}>
+        <TouchableOpacity
+          style={styles.flex1}
+          onPress={navigateToExerciseDetails}
+          onLongPress={onExerciseNameLongPress}
+        >
+          <RowView style={[styles.flex1, styles.alignCenter]}>
             {!isExerciseFound && (
               <>
                 <TriangleAlert
@@ -147,6 +151,8 @@ export const ExerciseEntry: FC<ExerciseEntryProps> = observer((props: ExerciseEn
             )}
             <Text
               preset="bold"
+              style={styles.flex1}
+              numberOfLines={1}
               textColor={themeStore.colors(isExerciseFound ? "foreground" : "error")}
               text={"#" + (exerciseOrder + 1) + " " + exerciseName}
             />

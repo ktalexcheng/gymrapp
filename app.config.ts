@@ -121,6 +121,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-font",
       "@react-native-google-signin/google-signin",
       "expo-apple-authentication",
+      // withAndroidAppThemeItems will insert custom AppTheme items to res/values/styles.xml
+      // We need this so Android navigation bar colors don't change when a Modal is visible
+      [
+        "./expo/plugins/withAndroidAppThemeItems",
+        {
+          "android:navigationBarColor": "@android:color/transparent",
+        },
+      ],
     ],
     locales: {
       en: "./languages/en.json",

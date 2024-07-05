@@ -9,8 +9,9 @@ import {
   TabBar,
   Text,
 } from "app/components"
-import { ExerciseVolumeType, WeightUnit } from "app/data/constants"
+import { ExerciseSource, ExerciseVolumeType, WeightUnit } from "app/data/constants"
 import { RepsPersonalRecord, WorkoutId } from "app/data/types"
+import { LoadingScreen } from "app/features/common"
 import { WorkoutSummaryCard } from "app/features/WorkoutSummary"
 import { useWeightUnitTx } from "app/hooks"
 import { translate } from "app/i18n"
@@ -31,6 +32,7 @@ import {
   processColor,
   ScrollView,
   TextStyle,
+  TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native"
@@ -647,9 +649,16 @@ type ExerciseDetailsScreenProps = NativeStackScreenProps<MainStackParamList, "Ex
 
 export const ExerciseDetailsScreen = observer(({ route }: ExerciseDetailsScreenProps) => {
   const exerciseId = route.params.exerciseId
-  const { exerciseStore } = useStores()
-  const exerciseName = exerciseStore.getExerciseName(exerciseId)
+
+  // hooks
+  const { themeStore, exerciseStore } = useStores()
+
+  // states
+  const [showEntireTitle, setShowEntireTitle] = useState(false)
   const [tabIndex, setTabIndex] = useState(0)
+
+  // derived states
+  const exercise = exerciseStore.getExercise(exerciseId)
 
   if (exerciseStore.isLoading) return null
 
@@ -689,9 +698,32 @@ export const ExerciseDetailsScreen = observer(({ route }: ExerciseDetailsScreenP
     )
   }
 
+  const $isPrivateLabelContainer: ViewStyle = {
+    alignItems: "center",
+    padding: spacing.extraSmall,
+    borderRadius: 8,
+    backgroundColor: themeStore.colors("contentBackground"),
+  }
+
+  if (!exercise) return <LoadingScreen />
+
   return (
     <Screen safeAreaEdges={["bottom"]} contentContainerStyle={$screenContentContainer}>
-      <Text preset="heading">{exerciseName}</Text>
+      {exercise?.exerciseSource === ExerciseSource.Private && (
+        <>
+          <RowView style={$isPrivateLabelContainer}>
+            <Info size={16} color={themeStore.colors("foreground")} />
+            <Spacer type="horizontal" size="extraSmall" />
+            <Text size="xxs" style={styles.flex1} tx="exerciseDetailsScreen.isPrivateLabel" />
+          </RowView>
+          <Spacer type="vertical" size="small" />
+        </>
+      )}
+      <TouchableOpacity onPress={() => setShowEntireTitle((prev) => !prev)}>
+        <Text preset="heading" numberOfLines={showEntireTitle ? undefined : 2}>
+          {exercise?.exerciseName}
+        </Text>
+      </TouchableOpacity>
       <TabView
         navigationState={{ index: tabIndex, routes }}
         renderScene={renderScene}
