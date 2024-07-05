@@ -146,7 +146,7 @@ const WorkoutCommentTile = (props: {
   )
 }
 
-const PANEL_INITIAL_Y_POSITION = 250
+const PANEL_INITIAL_Y_POSITION = 100
 const PANEL_MAXIMIZE_Y_THRESHOLD = PANEL_INITIAL_Y_POSITION - 100
 const PANEL_MINIMIZE_Y_THRESHOLD = PANEL_INITIAL_Y_POSITION + 200
 const PANEL_HIDDEN_Y_POSITION = 1000
@@ -467,22 +467,26 @@ export const WorkoutCommentsPanel = observer((props: WorkoutCommentsPanelProps) 
           </GestureDetector>
         </Animated.View>
       </GestureDetector>
-      <TextField
-        ref={commentInputRef}
-        placeholderTx="workoutSummaryScreen.commentInputPlaceholder"
-        multiline={true}
-        value={commentInput}
-        onChangeText={setCommentInput}
-        textAlignVertical="center" // This is Android only, there seems to be no solution for vertically centering multiline text input on iOS
-        onContentSizeChange={(event) => {
-          setCommentInputHeight(event.nativeEvent.contentSize.height)
-        }}
-        containerStyle={$commentInputContainerStyle}
-        inputWrapperStyle={$commentInputWrapperStyle}
-        style={[$commentInputStyle, commentInputHeightStyle()]}
-        LeftAccessory={() => <Avatar user={userStore.user} size="sm" />}
-        RightAccessory={commentSubmitButton}
-      />
+      <View style={$commentInputContainerStyle}>
+        <RowView style={[styles.flex1, styles.alignCenter]}>
+          <Avatar user={userStore.user} size="sm" />
+          <TextField
+            ref={commentInputRef}
+            placeholderTx="workoutSummaryScreen.commentInputPlaceholder"
+            multiline={true}
+            value={commentInput}
+            onChangeText={setCommentInput}
+            textAlignVertical="center" // This is Android only, there seems to be no solution for vertically centering multiline text input on iOS
+            onContentSizeChange={(event) => {
+              setCommentInputHeight(event.nativeEvent.contentSize.height)
+            }}
+            containerStyle={styles.flex1}
+            inputWrapperStyle={$commentInputWrapperStyle}
+            style={[$commentInputStyle, commentInputHeightStyle()]}
+            RightAccessory={commentSubmitButton}
+          />
+        </RowView>
+      </View>
     </View>
   )
 })
